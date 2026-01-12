@@ -6,7 +6,9 @@ export interface Product {
   price: number;
   oldPrice?: number;
   category: 'phone' | 'computer' | 'accessory' | 'consumable';
-  image: string;
+  image: string; // Image principale
+  images?: string[]; // Galerie d'images
+  video?: string; // URL Vidéo (mp4)
   stock: number;
   isPromo?: boolean;
   // New detailed fields
@@ -23,13 +25,25 @@ export interface CartItem extends Product {
 
 export interface Order {
   id: string;
-  items: CartItem[];
+  items: CartItem[]; // Stored as JSONB in Supabase
   total: number;
   status: 'pending' | 'paid' | 'delivered';
   paymentMethod: 'OM' | 'MOMO' | 'CASH';
-  customerName: string;
-  customerPhone: string;
+  customerName: string; // Mapped to customer_name in DB
+  customerPhone: string; // Mapped to customer_phone in DB
+  customerCity?: string; // Mapped to customer_city
+  deliveryMode: 'delivery' | 'pickup'; // Mapped to delivery_mode
   date: string;
+}
+
+export interface Staff {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'manager' | 'editor';
+  phone?: string;
+  avatar?: string;
+  created_at?: string;
 }
 
 export interface ChatMessage {

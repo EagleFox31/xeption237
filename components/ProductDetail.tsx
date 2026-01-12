@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Product } from '../types';
-import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Image as ImageIcon } from 'lucide-react';
 
 interface ProductDetailProps {
   product: Product;
@@ -10,6 +10,13 @@ interface ProductDetailProps {
 }
 
 const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToCart }) => {
+  // Use main image as default, fallback to first in array if main is empty
+  const [activeImage, setActiveImage] = useState(product.image);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Combine main image + extra images for gallery list
+  const galleryImages = [product.image, ...(product.images || [])].filter(Boolean);
+
   return (
     <div className="min-h-screen bg-[#F9F8F6]/85 backdrop-blur-sm text-gray-900 pb-20 animate-in slide-in-from-right duration-500 z-50 absolute inset-0 overflow-y-auto overflow-x-hidden supports-[backdrop-filter]:bg-[#F9F8F6]/75">
       
@@ -38,86 +45,124 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
       </div>
 
       {/* 1. HERO SECTION */}
-      <div className="relative h-[60vh] md:h-[70vh] w-full flex items-end md:items-center">
+      <div className="relative min-h-[70vh] w-full flex flex-col md:flex-row items-center pt-20 px-4 sm:px-6 max-w-7xl mx-auto gap-8 md:gap-12">
         
         {/* Subtle Grid Floor */}
-        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
-            {/* Horizontal Lines */}
+        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none overflow-hidden">
             <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_49%,rgba(0,0,0,0.2)_50%,transparent_51%)] bg-[size:100%_40px] [transform:perspective(500px)_rotateX(60deg)_scale(2)] origin-bottom"></div>
-            {/* Vertical Lines */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_49%,rgba(0,0,0,0.2)_50%,transparent_51%)] bg-[size:40px_100%] [transform:perspective(500px)_rotateX(60deg)_scale(2)] origin-bottom"></div>
         </div>
 
         {/* Back Button */}
         <button 
             onClick={onBack}
-            className="absolute top-6 left-6 z-30 p-3 bg-white/60 backdrop-blur-md border border-white/50 rounded-full hover:bg-white hover:border-xeption-gold hover:text-xeption-gold text-black shadow-lg transition-all group"
+            className="fixed top-6 left-6 z-40 p-3 bg-white/60 backdrop-blur-md border border-white/50 rounded-full hover:bg-white hover:border-xeption-gold hover:text-xeption-gold text-black shadow-lg transition-all group"
         >
             <ArrowLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform" />
         </button>
 
-        {/* Content Container */}
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center pb-12 md:pb-0">
+        {/* Left: Text Info */}
+        <div className="w-full md:w-1/2 space-y-6 z-10 order-2 md:order-1">
+            <div className="inline-flex items-center space-x-2 bg-white/60 border border-xeption-gold/30 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
+                <Award className="h-4 w-4 text-xeption-gold" />
+                <span className="text-xeption-goldDim text-xs font-bold uppercase tracking-[0.2em] font-tech">Xeption Certified</span>
+            </div>
             
-            {/* Left: Text */}
-            <div className="space-y-4 md:space-y-6 pt-20 md:pt-0">
-                <div className="inline-flex items-center space-x-2 bg-white/60 border border-xeption-gold/30 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
-                    <Award className="h-4 w-4 text-xeption-gold" />
-                    <span className="text-xeption-goldDim text-xs font-bold uppercase tracking-[0.2em] font-tech">Xeption Certified</span>
-                </div>
-                
-                <h1 className="text-5xl md:text-7xl font-bold font-tech uppercase leading-none text-black drop-shadow-sm mix-blend-hard-light">
-                    {product.name}
-                </h1>
-                
-                <p className="text-xl md:text-2xl text-gray-800 font-light max-w-lg drop-shadow-sm">
-                    {product.description}
-                </p>
+            <h1 className="text-5xl md:text-7xl font-bold font-tech uppercase leading-none text-black drop-shadow-sm mix-blend-hard-light">
+                {product.name}
+            </h1>
+            
+            <p className="text-xl text-gray-800 font-light max-w-lg drop-shadow-sm">
+                {product.description}
+            </p>
 
-                <div className="flex items-center space-x-6 pt-4">
-                    <div>
-                        <span className="block text-sm text-gray-600 uppercase font-bold tracking-wider">Prix Actuel</span>
-                        <div className="flex items-baseline space-x-2">
-                            <span className="text-4xl font-bold text-black font-mono">{product.price.toLocaleString('fr-FR')}</span>
-                            <span className="text-xeption-goldDim font-bold">FCFA</span>
-                        </div>
+            <div className="flex items-center space-x-6 pt-4">
+                <div>
+                    <span className="block text-sm text-gray-600 uppercase font-bold tracking-wider">Prix Actuel</span>
+                    <div className="flex items-baseline space-x-2">
+                        <span className="text-4xl font-bold text-black font-mono">{product.price.toLocaleString('fr-FR')}</span>
+                        <span className="text-xeption-goldDim font-bold">FCFA</span>
                     </div>
-                    {product.rating && (
-                        <div className="hidden md:block">
-                             <div className="w-16 h-16 rounded-full border-2 border-xeption-gold flex items-center justify-center bg-white/80 backdrop-blur shadow-lg">
-                                <span className="text-xl font-bold text-xeption-goldDim">{product.rating}</span>
-                             </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Desktop Add to Cart */}
-                <div className="hidden md:flex space-x-4 pt-4">
-                    <button 
-                        onClick={() => onAddToCart(product)}
-                        className="bg-black text-white px-8 py-4 font-tech font-bold uppercase text-lg tracking-wider hover:bg-xeption-gold hover:text-black transition-colors shadow-xl flex items-center gap-2"
-                    >
-                        <ShoppingCart className="h-5 w-5" />
-                        Ajouter au panier
-                    </button>
                 </div>
             </div>
 
-            {/* Right: Image Hero */}
-            <div className="relative h-64 md:h-[500px] w-full flex items-center justify-center group">
-                {/* Glowing Circle behind product */}
+            {/* Desktop Add to Cart */}
+            <div className="hidden md:flex space-x-4 pt-4">
+                <button 
+                    onClick={() => onAddToCart(product)}
+                    className="bg-black text-white px-8 py-4 font-tech font-bold uppercase text-lg tracking-wider hover:bg-xeption-gold hover:text-black transition-colors shadow-xl flex items-center gap-2"
+                >
+                    <ShoppingCart className="h-5 w-5" />
+                    Ajouter au panier
+                </button>
+            </div>
+        </div>
+
+        {/* Right: Gallery & Hero Image */}
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center order-1 md:order-2 z-10">
+            <div className="relative h-80 md:h-[500px] w-full flex items-center justify-center group mb-6">
+                {/* Glowing Circle */}
                 <div className="absolute w-64 h-64 md:w-96 md:h-96 bg-gradient-to-tr from-xeption-gold/30 to-orange-200/50 rounded-full blur-[60px] group-hover:blur-[80px] transition-all duration-700 mix-blend-multiply"></div>
                 
                 <img 
-                    src={product.image} 
+                    src={activeImage} 
                     alt={product.name} 
-                    className="relative z-10 max-h-full max-w-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform group-hover:scale-105 group-hover:-translate-y-4 transition-transform duration-500 ease-out"
+                    className="relative z-10 max-h-full max-w-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform transition-transform duration-500 ease-out animate-in zoom-in-95"
+                    key={activeImage} // Force re-render animation on change
                 />
+            </div>
+
+            {/* Gallery Thumbnails */}
+            <div className="flex gap-3 overflow-x-auto pb-2 w-full justify-center px-4">
+                 {galleryImages.map((img, idx) => (
+                     <button 
+                        key={idx}
+                        onClick={() => setActiveImage(img)}
+                        className={`relative w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all ${activeImage === img ? 'border-xeption-gold shadow-lg scale-105' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
+                     >
+                        <img src={img} className="w-full h-full object-cover" alt="" />
+                     </button>
+                 ))}
+                 {product.video && (
+                     <button
+                        onClick={() => {
+                             const videoSection = document.getElementById('video-section');
+                             videoSection?.scrollIntoView({ behavior: 'smooth' });
+                             setIsPlaying(true);
+                        }}
+                        className="w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 border-gray-300 bg-black flex items-center justify-center flex-shrink-0 hover:border-xeption-gold transition-colors group"
+                     >
+                         <Play className="text-white group-hover:text-xeption-gold" />
+                     </button>
+                 )}
             </div>
         </div>
       </div>
 
-      {/* 2. SUMMARY (Pour les pressés) */}
+      {/* 2. VIDEO SECTION (If exists) */}
+      {product.video && (
+          <div id="video-section" className="max-w-6xl mx-auto px-4 py-12">
+             <div className="bg-black rounded-xl overflow-hidden shadow-2xl relative aspect-video border border-gray-800">
+                {/* Simple video player */}
+                <video 
+                    src={product.video} 
+                    controls 
+                    className="w-full h-full object-cover"
+                    poster={product.image}
+                    playsInline
+                    autoPlay={isPlaying}
+                />
+                {!isPlaying && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+                        <div className="w-20 h-20 bg-xeption-gold/90 rounded-full flex items-center justify-center backdrop-blur-sm animate-pulse">
+                            <Play className="h-8 w-8 text-black ml-1" fill="black" />
+                        </div>
+                    </div>
+                )}
+             </div>
+          </div>
+      )}
+
+      {/* 3. SUMMARY */}
       <div className="max-w-5xl mx-auto px-4 py-16 relative z-10">
           <div className="bg-white/60 backdrop-blur-xl border border-white/50 p-8 md:p-12 relative overflow-hidden shadow-2xl rounded-sm">
              <div className="absolute top-0 right-0 w-32 h-32 bg-xeption-gold/20 rounded-full blur-2xl -mr-16 -mt-16 mix-blend-multiply"></div>
@@ -170,7 +215,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
           </div>
       </div>
 
-      {/* 3. GEEK ZONE (Specs Detail) */}
+      {/* 4. GEEK ZONE (Specs Detail) */}
       {product.specs && (
           <div className="max-w-5xl mx-auto px-4 pb-24 relative z-10">
               <div className="flex items-center gap-4 mb-8">

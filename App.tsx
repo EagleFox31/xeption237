@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductList from './components/ProductList';
@@ -8,14 +8,40 @@ import AiConsultant from './components/AiConsultant';
 import Checkout from './components/Checkout';
 import TrocSection from './components/TrocSection';
 import AdminPanel from './components/AdminPanel';
-import { PRODUCTS } from './constants';
+import { PRODUCTS as DEFAULT_PRODUCTS } from './constants';
 import { Product, CartItem } from './types';
+import { supabase } from './services/supabaseClient';
 
 const App: React.FC = () => {
   const [page, setPage] = useState('home');
+  const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  // Fetch products from Supabase on mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const { data, error } = await supabase.from('products').select('*');
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          // Format data if needed to match types strictly, usually Supabase returns correct JSON types
+          setProducts(data as Product[]);
+        } else {
+            // Fallback to constants if DB is empty so the user sees something
+            setProducts(DEFAULT_PRODUCTS);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setProducts(DEFAULT_PRODUCTS); // Fallback
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -28,6 +54,16 @@ const App: React.FC = () => {
       return [...prev, { ...product, quantity: 1 }];
     });
     setIsCartOpen(true);
+  };
+
+  const updateQuantity = (id: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQuantity = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    }));
   };
 
   const removeFromCart = (id: string) => {
@@ -87,7 +123,7 @@ const App: React.FC = () => {
           <>
             <Hero onShopNow={() => setPage('shop')} />
             <div id="featured-products">
-               <ProductList products={PRODUCTS.slice(0, 3)} onAddToCart={addToCart} onProductClick={handleProductClick} />
+               <ProductList products={products.slice(0, 3)} onAddToCart={addToCart} onProductClick={handleProductClick} />
             </div>
             <TrocSection />
           </>
@@ -99,7 +135,7 @@ const App: React.FC = () => {
                <h1 className="text-4xl font-bold text-white drop-shadow-lg">La Boutique <span className="text-xeption-gold">237</span></h1>
                <p className="text-gray-300 mt-2 font-medium">Choisis ton matos, on livre au calme.</p>
             </div>
-            <ProductList products={PRODUCTS} onAddToCart={addToCart} onProductClick={handleProductClick} />
+            <ProductList products={products} onAddToCart={addToCart} onProductClick={handleProductClick} />
           </div>
         )}
 
@@ -127,7 +163,10 @@ const App: React.FC = () => {
         )}
 
         {page === 'admin' && (
-            <AdminPanel />
+            <AdminPanel 
+              products={products} 
+              onUpdateProducts={setProducts} 
+            />
         )}
       </main>
 
@@ -167,6 +206,7 @@ const App: React.FC = () => {
         onClose={() => setIsCartOpen(false)}
         onRemoveItem={removeFromCart}
         onClearCart={clearCart}
+        onUpdateQuantity={updateQuantity}
       />
 
       <AiConsultant />

@@ -1,17 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from '../constants';
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
-
 export const getShoppingAdvice = async (userMessage: string, chatHistory: { role: 'user' | 'model', text: string }[]) => {
   try {
+    // Initialize GoogleGenAI right before the API call to ensure we use the correct injected process.env.API_KEY
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const model = 'gemini-3-flash-preview';
     
-    // Transform simple history to format expected by Chat if needed, 
-    // but here we will just use generateContent with history included in prompt for simplicity 
-    // or maintain a chat session. Let's use chat session for better context.
-    
+    // Create a chat session with the specified model and system instructions
     const chat = ai.chats.create({
       model: model,
       config: {
@@ -24,6 +20,7 @@ export const getShoppingAdvice = async (userMessage: string, chatHistory: { role
     });
 
     const result = await chat.sendMessage({ message: userMessage });
+    // Use the .text property to access the response content
     return result.text;
   } catch (error) {
     console.error("Gemini Error:", error);

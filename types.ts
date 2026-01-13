@@ -30,16 +30,30 @@ export interface Order {
   status: 'pending' | 'paid' | 'delivered';
   paymentMethod: 'OM' | 'MOMO' | 'CASH';
   customerName: string; // Mapped to customer_name in DB
+  customerEmail?: string; // Mapped to customer_email in DB
   customerPhone: string; // Mapped to customer_phone in DB
   customerCity?: string; // Mapped to customer_city
   deliveryMode: 'delivery' | 'pickup'; // Mapped to delivery_mode
   date: string;
 }
 
-export interface Staff {
+export interface Customer {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  city?: string;
+  total_orders?: number;
+  total_spent?: number;
+  created_at?: string;
+}
+
+export interface Staff {
+  id: string;
+  username: string; // Added for login
+  name: string;
+  email?: string;
+  password?: string;
   role: 'admin' | 'manager' | 'editor';
   phone?: string;
   avatar?: string;

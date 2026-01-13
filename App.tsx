@@ -8,6 +8,7 @@ import AiConsultant from './components/AiConsultant';
 import Checkout from './components/Checkout';
 import TrocSection from './components/TrocSection';
 import AdminPanel from './components/AdminPanel';
+import StaffLogin from './components/StaffLogin'; // Import Login
 import { PRODUCTS as DEFAULT_PRODUCTS } from './constants';
 import { Product, CartItem } from './types';
 import { supabase } from './services/supabaseClient';
@@ -18,6 +19,9 @@ const App: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Fetch products from Supabase on mount
   useEffect(() => {
@@ -28,15 +32,13 @@ const App: React.FC = () => {
         if (error) throw error;
         
         if (data && data.length > 0) {
-          // Format data if needed to match types strictly, usually Supabase returns correct JSON types
           setProducts(data as Product[]);
         } else {
-            // Fallback to constants if DB is empty so the user sees something
             setProducts(DEFAULT_PRODUCTS);
         }
       } catch (error) {
         console.error('Error fetching products:', error);
-        setProducts(DEFAULT_PRODUCTS); // Fallback
+        setProducts(DEFAULT_PRODUCTS);
       }
     };
 
@@ -163,10 +165,16 @@ const App: React.FC = () => {
         )}
 
         {page === 'admin' && (
-            <AdminPanel 
-              products={products} 
-              onUpdateProducts={setProducts} 
-            />
+            <>
+                {isAuthenticated ? (
+                    <AdminPanel 
+                        products={products} 
+                        onUpdateProducts={setProducts} 
+                    />
+                ) : (
+                    <StaffLogin onLogin={() => setIsAuthenticated(true)} />
+                )}
+            </>
         )}
       </main>
 

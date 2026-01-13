@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus } from 'lucide-react';
-import { Product, Order, Staff } from '../types';
+import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin } from 'lucide-react';
+import { Product, Order, Staff, Customer } from '../types';
 import { supabase } from '../services/supabaseClient';
 
 interface AdminPanelProps {
@@ -10,7 +10,7 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'staff'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'staff' | 'clients'>('dashboard');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
   // Orders State
@@ -21,6 +21,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
 
+  // Clients State
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+
   // Fetch data on tab change
   useEffect(() => {
       if (activeTab === 'orders' || activeTab === 'dashboard') {
@@ -28,6 +32,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       }
       if (activeTab === 'staff') {
           fetchStaff();
+      }
+      if (activeTab === 'clients') {
+          fetchCustomers();
       }
   }, [activeTab]);
 
@@ -42,6 +49,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
               status: o.status,
               paymentMethod: o.payment_method,
               customerName: o.customer_name,
+              customerEmail: o.customer_email,
               customerPhone: o.customer_phone,
               customerCity: o.customer_city,
               deliveryMode: o.delivery_mode || 'delivery',
@@ -57,6 +65,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       if (data) {
           setStaffMembers(data as Staff[]);
       }
+  };
+
+  const fetchCustomers = async () => {
+      setLoadingCustomers(true);
+      const { data, error } = await supabase.from('customers').select('*').order('total_spent', { ascending: false });
+      if (data) {
+          setCustomers(data as Customer[]);
+      }
+      setLoadingCustomers(false);
   };
 
   // --- Product Handlers ---
@@ -114,16 +131,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       const isNew = editingStaff.id.startsWith('new_');
       const staffData = {
           ...editingStaff,
-          id: isNew ? undefined : editingStaff.id // Let Supabase gen UUID for new
+          id: isNew ? undefined : editingStaff.id
       };
       
-      // Remove temp id if new so Supabase generates one
       if (isNew) delete (staffData as any).id;
 
       const { data, error } = await supabase.from('staff').upsert(staffData).select();
 
       if (!error && data) {
-          fetchStaff(); // Refresh list to get proper ID and dates
+          fetchStaff();
           setEditingStaff(null);
       } else {
           alert("Erreur: " + (error?.message || "Inconnue"));
@@ -138,7 +154,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     }
   };
 
-  // --- Product Images Helper ---
   const handleAddImage = () => {
       if (!editingProduct) return;
       const currentImages = editingProduct.images || [];
@@ -159,9 +174,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       setEditingProduct({ ...editingProduct, images: currentImages });
   };
 
-
-  // --- Renderers ---
-
   const renderDashboard = () => (
     <>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12 animate-in slide-in-from-bottom-5">
@@ -169,7 +181,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 { label: 'Revenu Total', value: orders.reduce((acc, o) => acc + o.total, 0).toLocaleString(), sub: 'FCFA', icon: TrendingUp, color: 'text-green-500' },
                 { label: 'Commandes', value: orders.filter(o => o.status === 'pending').length.toString(), sub: 'En attente', icon: Package, color: 'text-xeption-gold' },
                 { label: 'Staff', value: staffMembers.length > 0 ? staffMembers.length.toString() : '-', sub: 'Actifs', icon: Users, color: 'text-blue-500' },
-                { label: 'Stock Faible', value: products.filter(p => p.stock < 5).length.toString(), sub: 'Articles', icon: AlertCircle, color: 'text-xeption-red' },
+                { label: 'Clients', value: customers.length > 0 ? customers.length.toString() : '-', sub: 'Dans le CRM', icon: Users, color: 'text-purple-500' },
             ].map((stat, i) => (
                 <div key={i} className="bg-xeption-highlight border border-white/5 p-6 relative overflow-hidden group hover:border-white/20 transition-all rounded-sm">
                     <div className="absolute right-0 top-0 opacity-10 transform translate-x-1/3 -translate-y-1/3">
@@ -308,6 +320,171 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     </div>
   );
 
+  const renderOrders = () => (
+    <div className="animate-in fade-in">
+        <h3 className="text-xl text-white font-tech font-bold uppercase mb-6 flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-xeption-gold" />
+            Gestion des Commandes
+        </h3>
+        
+        {loadingOrders ? (
+             <div className="flex justify-center py-20">
+                 <div className="w-8 h-8 border-2 border-xeption-gold border-t-transparent rounded-full animate-spin"></div>
+             </div>
+        ) : (
+            <div className="bg-black/40 border border-white/10 rounded-sm overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-white/5 text-gray-400 text-xs uppercase font-bold tracking-wider">
+                        <tr>
+                            <th className="px-6 py-4">ID / Date</th>
+                            <th className="px-6 py-4">Client</th>
+                            <th className="px-6 py-4">Détails</th>
+                            <th className="px-6 py-4">Total & Paiement</th>
+                            <th className="px-6 py-4">Status</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
+                        {orders.map(order => (
+                            <tr key={order.id} className="hover:bg-white/5 transition-colors group">
+                                <td className="px-6 py-4">
+                                    <span className="font-bold text-white block text-xs font-mono mb-1">#{order.id}</span>
+                                    <span className="text-gray-500 text-xs">{order.date}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className="block text-white font-bold">{order.customerName}</span>
+                                    <span className="text-xs text-gray-500 block font-mono">{order.customerPhone}</span>
+                                    {order.customerEmail && <span className="text-[10px] text-xeption-gold block font-mono mt-1">{order.customerEmail}</span>}
+                                    <div className="flex items-center gap-1 mt-1 text-[10px] uppercase text-gray-400">
+                                        {order.deliveryMode === 'delivery' ? <Truck className="w-3 h-3"/> : <Store className="w-3 h-3"/>}
+                                        <span className="truncate max-w-[150px]">{order.customerCity || 'Retrait Boutique'}</span>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex flex-col gap-1">
+                                        {order.items.map((item, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-xs">
+                                                <span className="text-xeption-gold font-bold">{item.quantity}x</span>
+                                                <span className="text-gray-300">{item.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className="font-mono text-white font-bold block mb-1">{order.total.toLocaleString()} FCFA</span>
+                                    <span className={`inline-block text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border ${
+                                        order.paymentMethod === 'OM' ? 'text-orange-500 border-orange-500/30 bg-orange-500/5' : 
+                                        order.paymentMethod === 'MOMO' ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/5' : 
+                                        'text-green-500 border-green-500/30 bg-green-500/5'
+                                    }`}>
+                                        {order.paymentMethod}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <button 
+                                        onClick={() => toggleOrderStatus(order.id, order.status)}
+                                        className={`px-3 py-1 rounded text-xs uppercase font-bold border transition-all ${
+                                        order.status === 'delivered' 
+                                            ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20' 
+                                            : order.status === 'paid'
+                                                ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20'
+                                    }`}>
+                                        {order.status === 'pending' ? 'En Attente' : order.status === 'delivered' ? 'Livré' : order.status}
+                                    </button>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                   {order.status === 'pending' && (
+                                       <button 
+                                            onClick={() => toggleOrderStatus(order.id, order.status)}
+                                            className="text-xs font-bold text-gray-500 hover:text-white uppercase tracking-wider flex items-center gap-1 justify-end w-full"
+                                       >
+                                           <Check className="w-3 h-3" /> Valider
+                                       </button>
+                                   )}
+                                </td>
+                            </tr>
+                        ))}
+                        {orders.length === 0 && (
+                            <tr>
+                                <td colSpan={6} className="px-6 py-20 text-center text-gray-500 italic flex flex-col items-center justify-center">
+                                    <ShoppingBag className="w-8 h-8 mb-2 opacity-20" />
+                                    Aucune commande trouvée.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        )}
+    </div>
+  );
+
+  const renderClients = () => (
+      <div className="animate-in fade-in">
+        <h3 className="text-xl text-white font-tech font-bold uppercase mb-6 flex items-center gap-2">
+            <Users className="w-5 h-5 text-purple-500" />
+            Carnet d'Adresses (CRM)
+        </h3>
+        
+        {loadingCustomers ? (
+             <div className="flex justify-center py-20">
+                 <div className="w-8 h-8 border-2 border-xeption-gold border-t-transparent rounded-full animate-spin"></div>
+             </div>
+        ) : (
+            <div className="bg-black/40 border border-white/10 rounded-sm overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-white/5 text-gray-400 text-xs uppercase font-bold tracking-wider">
+                        <tr>
+                            <th className="px-6 py-4">Client</th>
+                            <th className="px-6 py-4">Contacts</th>
+                            <th className="px-6 py-4">Ville</th>
+                            <th className="px-6 py-4">Commandes</th>
+                            <th className="px-6 py-4 text-right">Total Dépensé</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
+                        {customers.map(client => (
+                            <tr key={client.id} className="hover:bg-white/5 transition-colors group">
+                                <td className="px-6 py-4">
+                                    <span className="font-bold text-white block">{client.name}</span>
+                                    <span className="text-xs text-gray-500">Depuis le {new Date(client.created_at || '').toLocaleDateString()}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <Mail className="w-3 h-3 text-gray-500" />
+                                            <span className="text-white hover:text-xeption-gold cursor-pointer">{client.email}</span>
+                                        </div>
+                                        {client.phone && (
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <Phone className="w-3 h-3 text-gray-500" />
+                                                <span className="font-mono">{client.phone}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                                        <MapPin className="w-3 h-3" />
+                                        {client.city || '-'}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className="px-2 py-1 bg-white/5 rounded text-xs font-bold">{client.total_orders}</span>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <span className="font-mono text-xeption-gold font-bold">{(client.total_spent || 0).toLocaleString()} FCFA</span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        )}
+      </div>
+  );
+
   const renderStaff = () => (
     <div className="animate-in fade-in">
         <div className="flex justify-between items-center mb-6">
@@ -315,8 +492,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             <button 
                 onClick={() => setEditingStaff({
                     id: `new_${Date.now()}`,
+                    username: '', // Added username for new staff
                     name: '',
                     email: '',
+                    password: '123456',
                     role: 'editor',
                     phone: ''
                 })}
@@ -330,8 +509,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             <table className="w-full text-left border-collapse">
                 <thead className="bg-white/5 text-gray-400 text-xs uppercase font-bold tracking-wider">
                     <tr>
-                        <th className="px-6 py-4">Nom</th>
-                        <th className="px-6 py-4">Email</th>
+                        <th className="px-6 py-4">Username</th>
+                        <th className="px-6 py-4">Nom Réel</th>
                         <th className="px-6 py-4">Rôle</th>
                         <th className="px-6 py-4">Contact</th>
                         <th className="px-6 py-4 text-right">Actions</th>
@@ -340,8 +519,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
                     {staffMembers.map(staff => (
                         <tr key={staff.id} className="hover:bg-white/5 transition-colors">
+                            <td className="px-6 py-4 font-mono text-xeption-gold font-bold">{staff.username}</td>
                             <td className="px-6 py-4 font-bold text-white">{staff.name}</td>
-                            <td className="px-6 py-4">{staff.email}</td>
                             <td className="px-6 py-4">
                                 <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold ${
                                     staff.role === 'admin' ? 'bg-xeption-red/20 text-xeption-red' : 
@@ -351,7 +530,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                                     {staff.role}
                                 </span>
                             </td>
-                            <td className="px-6 py-4 font-mono">{staff.phone || '-'}</td>
+                            <td className="px-6 py-4 font-mono text-xs text-gray-500">{staff.email || staff.phone || '-'}</td>
                             <td className="px-6 py-4 text-right">
                                 <div className="flex justify-end gap-2">
                                     <button onClick={() => setEditingStaff(staff)} className="p-2 hover:bg-white/10 rounded text-xeption-gold"><Edit className="w-4 h-4" /></button>
@@ -360,85 +539,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                             </td>
                         </tr>
                     ))}
-                    {staffMembers.length === 0 && (
-                        <tr>
-                            <td colSpan={5} className="px-6 py-10 text-center text-gray-500 italic">Aucun membre staff configuré.</td>
-                        </tr>
-                    )}
                 </tbody>
             </table>
         </div>
-    </div>
-  );
-
-  const renderOrders = () => (
-    <div className="animate-in fade-in">
-        {loadingOrders ? (
-            <div className="text-center py-20 text-gray-500">Chargement des commandes...</div>
-        ) : (
-            <div className="grid grid-cols-1 gap-4">
-                {orders.map(order => (
-                    <div key={order.id} className="bg-black/40 border border-white/10 p-6 flex flex-col md:flex-row justify-between items-center gap-6 hover:border-white/20 transition-all rounded-sm">
-                        <div className="flex items-start gap-4 flex-1">
-                            <div className={`p-3 rounded-full ${order.status === 'delivered' ? 'bg-green-500/10 text-green-500' : 'bg-xeption-gold/10 text-xeption-gold'}`}>
-                                <ShoppingBag className="w-6 h-6" />
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-1">
-                                    <h4 className="text-white font-bold font-tech text-lg">{order.id}</h4>
-                                    <span className="text-gray-500 text-xs">{order.date}</span>
-                                    {order.deliveryMode === 'pickup' && (
-                                        <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded font-bold uppercase flex items-center gap-1">
-                                            <Store className="w-3 h-3" /> Retrait
-                                        </span>
-                                    )}
-                                    {order.deliveryMode === 'delivery' && (
-                                        <span className="bg-purple-500/20 text-purple-400 text-[10px] px-2 py-0.5 rounded font-bold uppercase flex items-center gap-1">
-                                            <Truck className="w-3 h-3" /> Livraison
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-gray-300 text-sm font-bold">{order.customerName}</p>
-                                        <p className="text-gray-500 text-xs">{order.customerPhone}</p>
-                                        <p className="text-gray-400 text-xs mt-1">{order.customerCity}</p>
-                                    </div>
-                                    <div className="bg-white/5 p-2 rounded text-xs text-gray-400">
-                                        {order.items.map((item: any) => (
-                                            <div key={item.id} className="flex justify-between">
-                                                <span>{item.quantity}x {item.name}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                
-                                <div className="flex items-center gap-2 mt-2">
-                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${order.paymentMethod === 'OM' ? 'bg-orange-600/20 text-orange-500' : order.paymentMethod === 'MOMO' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-green-600/20 text-green-500'}`}>
-                                        {order.paymentMethod}
-                                    </span>
-                                    <span className="text-white font-mono font-bold text-sm">{order.total.toLocaleString()} FCFA</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            <div className={`text-right px-4 py-2 rounded border ${order.status === 'delivered' ? 'border-green-500/30 text-green-500 bg-green-500/5' : 'border-xeption-gold/30 text-xeption-gold bg-xeption-gold/5'}`}>
-                                <span className="block text-[10px] uppercase font-bold tracking-widest">Status</span>
-                                <span className="font-tech font-bold uppercase">{order.status === 'delivered' ? 'Livré' : 'En attente'}</span>
-                            </div>
-                            <button 
-                                onClick={() => toggleOrderStatus(order.id, order.status)}
-                                className="bg-white/10 hover:bg-white hover:text-black text-white p-3 rounded-full transition-colors"
-                                title="Changer Status"
-                            >
-                                {order.status === 'pending' ? <Check className="w-5 h-5" /> : <TrendingUp className="w-5 h-5" />}
-                            </button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        )}
     </div>
   );
 
@@ -460,7 +563,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
                 { id: 'inventory', label: 'Inventaire', icon: Package },
                 { id: 'orders', label: 'Commandes', icon: ShoppingBag },
-                { id: 'staff', label: 'Staff & Rôles', icon: Users },
+                { id: 'clients', label: 'Clients (CRM)', icon: Users },
+                { id: 'staff', label: 'Staff & Rôles', icon: Key },
             ].map((tab) => (
                 <button
                     key={tab.id}
@@ -478,6 +582,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       {activeTab === 'dashboard' && renderDashboard()}
       {activeTab === 'inventory' && renderInventory()}
       {activeTab === 'orders' && renderOrders()}
+      {activeTab === 'clients' && renderClients()}
       {activeTab === 'staff' && renderStaff()}
 
 
@@ -494,7 +599,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 
                 <form onSubmit={handleSaveProduct} className="p-8 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Name */}
                         <div className="md:col-span-2">
                             <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Nom du produit</label>
                             <input 
@@ -506,7 +610,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                             />
                         </div>
 
-                        {/* Price */}
                         <div>
                             <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Prix (FCFA)</label>
                             <input 
@@ -518,7 +621,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                             />
                         </div>
 
-                        {/* Stock */}
                         <div>
                             <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Stock</label>
                             <input 
@@ -530,7 +632,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                             />
                         </div>
                         
-                        {/* Category */}
                         <div>
                             <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Catégorie</label>
                             <select 
@@ -545,11 +646,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                             </select>
                         </div>
 
-                        {/* --- MEDIA SECTION --- */}
                         <div className="md:col-span-2 space-y-4 border-t border-white/10 pt-4">
                              <h4 className="text-white font-bold uppercase text-sm">Galerie & Média</h4>
                              
-                             {/* Main Image */}
                              <div>
                                 <label className="block text-xs text-gray-500 uppercase font-bold mb-2 flex items-center gap-2"><ImageIcon className="w-3 h-3 text-xeption-gold" /> Image Principale (URL)</label>
                                 <div className="flex gap-4">
@@ -566,7 +665,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                                 </div>
                              </div>
 
-                             {/* Video */}
                              <div>
                                 <label className="block text-xs text-gray-500 uppercase font-bold mb-2 flex items-center gap-2"><Video className="w-3 h-3 text-blue-500" /> Vidéo (URL MP4)</label>
                                 <input 
@@ -578,7 +676,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                                 />
                              </div>
 
-                             {/* Extra Images */}
                              <div>
                                  <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Images Supplémentaires</label>
                                  <div className="space-y-2">
@@ -598,7 +695,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                              </div>
                         </div>
 
-                        {/* Description */}
                         <div className="md:col-span-2">
                             <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Description courte</label>
                             <textarea 
@@ -608,7 +704,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                             />
                         </div>
 
-                        {/* Promo Section */}
                         <div className="md:col-span-2 bg-xeption-gold/5 border border-xeption-gold/20 p-4 rounded-sm">
                             <div className="flex items-center gap-2 mb-4">
                                 <Tag className="w-4 h-4 text-xeption-gold" />
@@ -671,16 +766,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                  </h3>
                  <form onSubmit={handleSaveStaff} className="space-y-4">
                      <div>
-                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Nom complet</label>
+                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Username (Login)</label>
+                         <input required type="text" value={editingStaff.username} onChange={e => setEditingStaff({...editingStaff, username: e.target.value})} className="w-full bg-black/50 border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>
+                     </div>
+                     <div>
+                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Nom complet (Réel)</label>
                          <input required type="text" value={editingStaff.name} onChange={e => setEditingStaff({...editingStaff, name: e.target.value})} className="w-full bg-black/50 border border-white/10 p-2 text-white outline-none focus:border-xeption-gold"/>
                      </div>
                      <div>
-                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Email</label>
-                         <input required type="email" value={editingStaff.email} onChange={e => setEditingStaff({...editingStaff, email: e.target.value})} className="w-full bg-black/50 border border-white/10 p-2 text-white outline-none focus:border-xeption-gold"/>
-                     </div>
-                     <div>
-                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Téléphone</label>
-                         <input type="text" value={editingStaff.phone || ''} onChange={e => setEditingStaff({...editingStaff, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 p-2 text-white outline-none focus:border-xeption-gold"/>
+                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1 flex items-center gap-1"><Key className="w-3 h-3" /> Mot de Passe</label>
+                         <input required type="text" value={editingStaff.password || ''} onChange={e => setEditingStaff({...editingStaff, password: e.target.value})} className="w-full bg-black/50 border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>
                      </div>
                      <div>
                          <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Rôle</label>

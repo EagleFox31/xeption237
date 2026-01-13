@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ShoppingCart, Menu, X, Smartphone, Zap, Search } from 'lucide-react';
 import Logo from './Logo';
@@ -25,7 +26,8 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, onNavigate, curr
   };
 
   return (
-    <header className="sticky top-0 z-50 glass-panel">
+    // Added 'supports' query for better glassmorphism and reinforced z-index/sticky
+    <header className="sticky top-0 z-[100] w-full bg-black/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300 supports-[backdrop-filter]:bg-black/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
@@ -86,7 +88,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, onNavigate, curr
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-black/95 backdrop-blur-xl border-t border-gray-800 animate-in slide-in-from-top-5">
+        <div className="md:hidden bg-black/95 backdrop-blur-xl border-t border-gray-800 animate-in slide-in-from-top-5 absolute w-full left-0 border-b border-xeption-gold/20">
           <div className="px-4 pt-4 pb-6 space-y-2">
             {navItems.map((item) => (
               <button

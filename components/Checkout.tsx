@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { CartItem, PaymentMethod } from '../types';
 import { PAYMENT_DETAILS } from '../constants';
 import { supabase } from '../services/supabaseClient';
-import { X, Smartphone, CheckCircle, ShieldCheck, Minus, Plus, ShoppingBag, ArrowRight, Lock, MapPin, Truck, Store, Loader2 } from 'lucide-react';
+import { generateInvoiceHTML } from '../utils/invoiceGenerator';
+import { X, Smartphone, CheckCircle, ShieldCheck, Minus, Plus, ShoppingBag, ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail } from 'lucide-react';
 
 interface CheckoutProps {
   cart: CartItem[];
@@ -21,7 +22,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, isOpen, onClose, onRemoveItem
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Form State
-  const [formData, setFormData] = useState({ name: '', phone: '', city: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '', city: '' });
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const deliveryFee = deliveryMode === 'pickup' ? 0 : 2000;
@@ -46,21 +47,70 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, isOpen, onClose, onRemoveItem
   const submitOrder = async () => {
       setIsProcessing(true);
       try {
+          const newOrderId = `ORD-${Date.now().toString().slice(-6)}`;
+          const orderDate = new Date().toLocaleDateString('fr-FR');
+
+          // 1. Prepare Order Data
           const orderData = {
-              id: `ORD-${Date.now().toString().slice(-6)}`,
+              id: newOrderId,
               customer_name: formData.name,
+              customer_email: formData.email,
               customer_phone: formData.phone,
               customer_city: deliveryMode === 'pickup' ? 'Retrait Boutique' : formData.city,
               delivery_mode: deliveryMode,
               total: total,
               status: 'pending',
               payment_method: selectedPayment,
-              items: cart // Supabase stores JSONB
+              items: cart, // Supabase stores JSONB
+              date: orderDate // For local usage if needed immediately
           };
 
-          const { error } = await supabase.from('orders').insert([orderData]);
-          
-          if (error) throw error;
+          // 2. Insert into Supabase
+          const { error: orderError } = await supabase.from('orders').insert([{
+              ...orderData,
+              // remove date from insert if your DB auto-generates 'created_at', or keep it if you have a 'date' column
+              date: undefined 
+          }]);
+          if (orderError) throw orderError;
+
+          // 3. Save to CRM
+          if (formData.email) {
+            const { data: existingCustomer } = await supabase
+                .from('customers')
+                .select('*')
+                .eq('email', formData.email)
+                .single();
+
+            if (existingCustomer) {
+                await supabase.from('customers').update({
+                    total_orders: (existingCustomer.total_orders || 0) + 1,
+                    total_spent: (existingCustomer.total_spent || 0) + total,
+                    updated_at: new Date().toISOString()
+                }).eq('id', existingCustomer.id);
+            } else {
+                await supabase.from('customers').insert([{
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    city: formData.city,
+                    total_orders: 1,
+                    total_spent: total
+                }]);
+            }
+
+            // 4. SEND EMAIL via Edge Function
+            // We generate the HTML here to keep design control in frontend
+            const fullOrderObject = { ...orderData, date: orderDate } as any; 
+            const emailHtml = generateInvoiceHTML(fullOrderObject);
+
+            await supabase.functions.invoke('send-invoice', {
+                body: {
+                    to: formData.email,
+                    subject: `XEPTION | Commande ${newOrderId} Confirmée`,
+                    html: emailHtml
+                }
+            });
+          }
           
           setStep('success');
       } catch (err) {
@@ -237,6 +287,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, isOpen, onClose, onRemoveItem
             placeholder="Ex: Samuel Eto'o"
           />
         </div>
+
         <div>
           <label className="block text-xs text-gray-400 uppercase font-bold mb-2 ml-1">WhatsApp / Tél</label>
           <input 
@@ -245,6 +296,17 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, isOpen, onClose, onRemoveItem
             onChange={e => setFormData({...formData, phone: e.target.value})}
             className="w-full bg-black/40 border border-white/10 text-white p-4 focus:border-xeption-gold focus:bg-black/60 outline-none transition-all placeholder-gray-600"
             placeholder="Ex: 699..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-gray-400 uppercase font-bold mb-2 ml-1">Email (Pour la facture)</label>
+          <input 
+            type="email" 
+            value={formData.email}
+            onChange={e => setFormData({...formData, email: e.target.value})}
+            className="w-full bg-black/40 border border-white/10 text-white p-4 focus:border-xeption-gold focus:bg-black/60 outline-none transition-all placeholder-gray-600"
+            placeholder="Ex: samuel@xeptionetwork.shop"
           />
         </div>
         
@@ -364,10 +426,17 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, isOpen, onClose, onRemoveItem
             <CheckCircle className="h-12 w-12 text-green-500" />
           </div>
           <h3 className="text-4xl font-bold text-white font-tech uppercase mb-4 drop-shadow-lg">C'est Validé !</h3>
-          <p className="text-gray-300 text-lg mb-8 leading-relaxed">
+          <p className="text-gray-300 text-lg mb-4 leading-relaxed">
             Respect <span className="text-xeption-gold font-bold">{formData.name}</span>.<br/>
-            Ta commande est enregistrée. Notre équipe logistique t'appelle au <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded">{formData.phone}</span> pour confirmer le {deliveryMode === 'delivery' ? 'lieu de livraison' : 'retrait en boutique'}.
+            Ta commande est enregistrée. Notre équipe logistique t'appelle au <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded">{formData.phone}</span>.
           </p>
+
+          {formData.email && (
+            <div className="bg-white/5 border border-white/10 p-4 rounded mb-8 flex items-center gap-3 justify-center text-sm">
+                <Mail className="w-5 h-5 text-xeption-gold" />
+                <span className="text-gray-300">Facture envoyée à <span className="text-white font-bold">{formData.email}</span> depuis <span className="text-gray-500 italic">support@xeptionetwork.shop</span></span>
+            </div>
+          )}
           
           <button 
             onClick={() => {

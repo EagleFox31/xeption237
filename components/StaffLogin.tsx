@@ -9,7 +9,7 @@ interface StaffLoginProps {
 }
 
 const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,22 +20,24 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-        // Query Supabase 'staff' table by username
+        // Query Supabase 'staff' table by 'name' column
+        // On cherche la correspondance exacte avec le nom dans la base de données (ex: "Le Boss")
         const { data, error } = await supabase
             .from('staff')
             .select('*')
-            .eq('username', username)
+            .eq('name', name)
             .eq('password', password)
             .single();
 
         if (error || !data) {
+            console.error("Supabase error:", error);
             throw new Error('Identifiants incorrects');
         }
 
         // Login success
         onLogin();
     } catch (err) {
-        setError('Username ou mot de passe incorrect');
+        setError('Nom ou mot de passe incorrect');
         console.error("Login failed", err);
     } finally {
         setIsLoading(false);
@@ -64,15 +66,15 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Username</label>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Nom du Staff</label>
                     <div className="relative group">
                         <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5 group-focus-within:text-xeption-gold transition-colors" />
                         <input 
                             type="text" 
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
                             className="w-full bg-black/50 border border-white/10 text-white pl-12 pr-4 py-4 outline-none focus:border-xeption-gold transition-colors placeholder-gray-700 font-mono text-sm"
-                            placeholder="Ex: samuel_admin"
+                            placeholder="Ex: Le Boss"
                             required
                         />
                     </div>

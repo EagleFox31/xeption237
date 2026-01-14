@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductList from './components/ProductList';
@@ -23,6 +23,9 @@ const App: React.FC = () => {
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Video Ref for speed control
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   // Fetch products from Supabase on mount
   useEffect(() => {
     const fetchProducts = async () => {
@@ -43,6 +46,13 @@ const App: React.FC = () => {
     };
 
     fetchProducts();
+  }, []);
+
+  // Set video playback rate to be very slow
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.25; // 25% speed for ultra slow cinematic effect
+    }
   }, []);
 
   const addToCart = (product: Product) => {
@@ -97,6 +107,7 @@ const App: React.FC = () => {
           }}
       >
           <video 
+            ref={videoRef}
             autoPlay 
             loop 
             muted 
@@ -104,7 +115,7 @@ const App: React.FC = () => {
             poster="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
             className="w-full h-full object-cover opacity-60 mix-blend-overlay md:mix-blend-normal md:opacity-100" 
           >
-            <source src="https://res.cloudinary.com/dli0kdkg9/video/upload/v1768237095/xeption3_vihpqi.mp4" type="video/mp4" />
+            <source src="https://res.cloudinary.com/dli0kdkg9/video/upload/v1768411339/xeption4_ckhpcy.mp4" type="video/mp4" />
           </video>
           
           <div className="absolute inset-0 bg-black/50"></div>

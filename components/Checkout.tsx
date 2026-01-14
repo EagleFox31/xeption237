@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 
@@ -7,7 +8,7 @@ import { supabase } from '../services/supabaseClient';
 import { generateInvoiceHTML } from '../utils/invoiceGenerator';
 import {
   X, Smartphone, CheckCircle, ShieldCheck, Minus, Plus, ShoppingBag,
-  ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, Eye
+  ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, Download
 } from 'lucide-react';
 
 interface CheckoutProps {
@@ -187,6 +188,22 @@ const Checkout: React.FC<CheckoutProps> = ({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleDownloadInvoice = () => {
+    if (!lastOrderHtml) return;
+
+    const blob = new Blob([lastOrderHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    // Format: Facture_Xeption_NomClient_Timestamp.html
+    const safeName = formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    link.download = `Facture_Xeption_${safeName}_${Date.now()}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const StepIndicator = () => (
@@ -455,18 +472,14 @@ const Checkout: React.FC<CheckoutProps> = ({
             </div>
           )}
 
-          <button
-            onClick={() => {
-              const win = window.open("", "_blank");
-              if (win && lastOrderHtml) {
-                win.document.write(lastOrderHtml);
-                win.document.close();
-              }
-            }}
-            className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-xeption-gold hover:text-white transition-colors py-2"
-          >
-            <Eye className="w-4 h-4" /> Voir la facture (Test)
-          </button>
+          {lastOrderHtml && (
+            <button
+              onClick={handleDownloadInvoice}
+              className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-xeption-gold hover:text-white transition-colors py-2 border border-xeption-gold/30 hover:bg-xeption-gold hover:text-black rounded-sm p-3 mt-4"
+            >
+              <Download className="w-4 h-4" /> Télécharger la facture
+            </button>
+          )}
         </div>
 
         <button
@@ -475,7 +488,7 @@ const Checkout: React.FC<CheckoutProps> = ({
             onClose();
             setStep('cart');
           }}
-          className="w-full bg-xeption-gold text-black font-bold py-4 font-tech uppercase tracking-wider hover:bg-white shadow-lg transition-all"
+          className="w-full bg-white/10 text-white font-bold py-4 font-tech uppercase tracking-wider hover:bg-white hover:text-black shadow-lg transition-all"
         >
           Retour au Shop
         </button>
@@ -484,9 +497,11 @@ const Checkout: React.FC<CheckoutProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto overflow-x-hidden bg-black/40 backdrop-blur-md">
+    // Updated Z-index to 200 to stay above Header (z-100)
+    <div className="fixed inset-0 z-[200] overflow-y-auto overflow-x-hidden bg-black/40 backdrop-blur-md">
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.02),transparent_70%)]"></div>
-      <div className="min-h-screen flex flex-col items-center justify-start py-12 px-4 sm:px-6">
+      {/* Updated top padding to pt-32 to push content down below sticky header */}
+      <div className="min-h-screen flex flex-col items-center justify-start pt-32 pb-12 px-4 sm:px-6">
         <div className="w-full max-w-7xl flex justify-between items-center mb-10 relative z-20">
           <div className="flex items-center gap-3">
             <div className="h-10 w-1 bg-xeption-gold shadow-[0_0_10px_#FFD700]"></div>

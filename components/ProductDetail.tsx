@@ -1,7 +1,7 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
-import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Share2, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
 
 interface ProductDetailProps {
   product: Product;
@@ -13,10 +13,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
   // Use main image as default, fallback to first in array if main is empty
   const [activeImage, setActiveImage] = useState(product.image);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Combine main image + extra images for gallery list
   const galleryImages = [product.image, ...(product.images || [])].filter(Boolean);
+
+  // SEO: Dynamic Page Title
+  useEffect(() => {
+    document.title = `${product.name} | Xeption Network`;
+    return () => {
+        // Cleanup title handled in App parent or stays until new nav
+    };
+  }, [product]);
 
   const handlePlayVideo = () => {
     const videoSection = document.getElementById('video-section');
@@ -24,6 +33,17 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
     if (videoRef.current) {
         videoRef.current.play();
     }
+  };
+
+  const handleShare = async () => {
+      const url = `${window.location.origin}/?product=${product.id}`;
+      try {
+          await navigator.clipboard.writeText(url);
+          setLinkCopied(true);
+          setTimeout(() => setLinkCopied(false), 2000);
+      } catch (err) {
+          console.error("Failed to copy link", err);
+      }
   };
 
   return (
@@ -71,9 +91,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
 
         {/* Left: Text Info */}
         <div className="w-full md:w-1/2 space-y-6 z-10 order-2 md:order-1">
-            <div className="inline-flex items-center space-x-2 bg-white/60 border border-xeption-gold/30 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
-                <Award className="h-4 w-4 text-xeption-gold" />
-                <span className="text-xeption-goldDim text-xs font-bold uppercase tracking-[0.2em] font-tech">Xeption Certified</span>
+            <div className="flex items-center justify-between">
+                <div className="inline-flex items-center space-x-2 bg-white/60 border border-xeption-gold/30 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
+                    <Award className="h-4 w-4 text-xeption-gold" />
+                    <span className="text-xeption-goldDim text-xs font-bold uppercase tracking-[0.2em] font-tech">Xeption Certified</span>
+                </div>
+                
+                {/* Share Button */}
+                <button 
+                    onClick={handleShare}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/5 hover:bg-black/10 transition-colors text-xs font-bold uppercase tracking-wider"
+                >
+                    {linkCopied ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4 text-gray-700" />}
+                    {linkCopied ? 'Lien Copié' : 'Partager'}
+                </button>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold font-tech uppercase leading-none text-black drop-shadow-sm mix-blend-hard-light">

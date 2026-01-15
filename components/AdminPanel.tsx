@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard, Printer, CreditCard, Calculator, Wrench, ShieldCheck, ArrowRight, XCircle, RotateCcw } from 'lucide-react';
+import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard, Printer, CreditCard, Calculator, Wrench, ShieldCheck, ArrowRight, XCircle, RotateCcw, BookOpen, Info, AlertTriangle } from 'lucide-react';
 import { Product, Order, Staff, Customer, CartItem } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { generateProductDetails, generateMarketingVideo } from '../services/geminiService';
@@ -14,7 +14,7 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide'>('dashboard');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
   // Orders State
@@ -491,7 +491,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     }
   };
 
-  // --- RENDER FUNCTIONS (Dashboard, POS, Inventory etc. same structure, just Orders changed) ---
+  // --- RENDER FUNCTIONS ---
   
   const renderOrders = () => (
     <div className="animate-in fade-in pb-20">
@@ -643,8 +643,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     </div>
   );
 
-  // ... (Keep existing Dashboard, POS, Inventory, etc. render functions, and main return) ...
-
   const renderDashboard = () => (
     <>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12 animate-in slide-in-from-bottom-5">
@@ -666,7 +664,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             ))}
         </div>
         
-        {/* Rest of dashboard remains same */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
                 <h3 className="text-white font-tech uppercase font-bold mb-4 flex items-center gap-2">
@@ -705,13 +702,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     </>
   );
 
-  // Re-use logic for POS, Inventory, Clients, Staff, Marketing...
-  // The XML replacement will replace the entire file, so I'm including the full structure 
-  // but focusing on the updated Order Logic and RenderOrders.
-
-  // ... (Full file content structure to be safe) ...
-  
-  // (POS Render)
   const renderPOS = () => {
     const filteredProducts = products.filter(p => p.name.toLowerCase().includes(posSearch.toLowerCase()));
     const posTotal = posCart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -809,7 +799,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   };
 
   const renderInventory = () => (
-     /* ... Inventory Code (Same as provided in previous prompt but kept for context) ... */
      <div className="animate-in fade-in">
         <div className="flex justify-between items-center mb-6">
             <div className="relative">
@@ -908,6 +897,132 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       </div>
   );
 
+  const renderGuide = () => (
+    <div className="animate-in fade-in max-w-5xl mx-auto pb-20">
+      <div className="mb-10 text-center">
+        <h3 className="text-4xl text-white font-tech font-bold uppercase mb-2">Guide Opérationnel <span className="text-xeption-gold">V2.0</span></h3>
+        <p className="text-gray-400 text-sm max-w-2xl mx-auto">Procédures standard pour le Staff Xeption Network. Respectez ces règles pour garantir une expérience client premium.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        {/* CARD 1: CYCLE DE VIE COMMANDE */}
+        <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl relative group">
+          <div className="absolute top-0 right-0 p-4 opacity-10"><ShoppingBag className="w-24 h-24 text-white" /></div>
+          <div className="p-6 border-b border-white/5 bg-black/40">
+            <h4 className="text-white font-bold uppercase flex items-center gap-2"><Truck className="w-5 h-5 text-blue-400" /> Workflow Commandes</h4>
+          </div>
+          <div className="p-6 space-y-6">
+            <div className="relative pl-6 border-l-2 border-dashed border-gray-700 space-y-8">
+              <div className="relative">
+                <span className="absolute -left-[31px] w-4 h-4 rounded-full bg-blue-500 border-4 border-[#18181b]"></span>
+                <h5 className="text-blue-400 font-bold text-xs uppercase tracking-widest mb-1">1. En Attente (Pending)</h5>
+                <p className="text-gray-400 text-sm">Le client vient de commander. Vérifiez si le paiement (OM/MOMO) est reçu ou si le stock est dispo.</p>
+              </div>
+              <div className="relative">
+                <span className="absolute -left-[31px] w-4 h-4 rounded-full bg-purple-500 border-4 border-[#18181b]"></span>
+                <h5 className="text-purple-400 font-bold text-xs uppercase tracking-widest mb-1">2. Confirmée (Confirmed)</h5>
+                <p className="text-gray-400 text-sm">Commande validée. Préparez le colis. C'est l'étape logistique interne.</p>
+              </div>
+              <div className="relative">
+                <span className="absolute -left-[31px] w-4 h-4 rounded-full bg-yellow-500 border-4 border-[#18181b]"></span>
+                <h5 className="text-yellow-400 font-bold text-xs uppercase tracking-widest mb-1">3. En Route / Prêt</h5>
+                <p className="text-gray-400 text-sm">
+                  <span className="text-white font-bold">Livraison :</span> Remis au livreur.<br/>
+                  <span className="text-white font-bold">Retrait :</span> Colis posé au comptoir (Ready).
+                </p>
+              </div>
+              <div className="relative">
+                <span className="absolute -left-[31px] w-4 h-4 rounded-full bg-green-500 border-4 border-[#18181b]"></span>
+                <h5 className="text-green-500 font-bold text-xs uppercase tracking-widest mb-1">4. Terminée (Delivered)</h5>
+                <p className="text-gray-400 text-sm">Le client a le produit, l'argent est dans la caisse. Dossier clos.</p>
+              </div>
+               <div className="relative">
+                <span className="absolute -left-[31px] w-4 h-4 rounded-full bg-red-500 border-4 border-[#18181b]"></span>
+                <h5 className="text-red-500 font-bold text-xs uppercase tracking-widest mb-1">X. Annulée (Cancelled)</h5>
+                <p className="text-gray-400 text-sm">Si le client disparaît après 1 mois ou annule. <span className="text-xeption-red font-bold">Le stock est automatiquement restauré.</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CARD 2: GESTION PRODUITS */}
+        <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl relative group">
+          <div className="absolute top-0 right-0 p-4 opacity-10"><Box className="w-24 h-24 text-white" /></div>
+          <div className="p-6 border-b border-white/5 bg-black/40">
+            <h4 className="text-white font-bold uppercase flex items-center gap-2"><Tag className="w-5 h-5 text-xeption-gold" /> Règles Catalogue</h4>
+          </div>
+          <div className="p-6 space-y-4">
+             <div className="bg-white/5 p-4 rounded-sm border border-white/5">
+                <h5 className="text-white font-bold text-sm mb-2 flex items-center gap-2"><ImageIcon className="w-4 h-4 text-gray-400" /> Images & Média</h5>
+                <ul className="text-xs text-gray-400 space-y-2 list-disc pl-4">
+                  <li>Utilisez toujours des images <strong>PNG détourées</strong> ou fond noir pour le style.</li>
+                  <li>Le système optimise automatiquement les images via Cloudinary (WebP/AVIF).</li>
+                  <li>Uploadez des vidéos courtes (moins de 30s) pour éviter de ralentir le site.</li>
+                </ul>
+             </div>
+             <div className="bg-white/5 p-4 rounded-sm border border-white/5">
+                <h5 className="text-white font-bold text-sm mb-2 flex items-center gap-2"><Sparkles className="w-4 h-4 text-purple-400" /> Intelligence Artificielle</h5>
+                <p className="text-xs text-gray-400">
+                  Utilisez le bouton <strong>"Auto-Fill IA"</strong> pour générer les descriptions. 
+                  L'IA est configurée pour parler "Tech & Chill" (style Camerounais pro). Relisez toujours avant de valider.
+                </p>
+             </div>
+          </div>
+        </div>
+
+        {/* CARD 3: SAV & GARANTIE */}
+        <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl relative group">
+          <div className="absolute top-0 right-0 p-4 opacity-10"><Wrench className="w-24 h-24 text-white" /></div>
+          <div className="p-6 border-b border-white/5 bg-black/40">
+            <h4 className="text-white font-bold uppercase flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-green-500" /> Politique SAV</h4>
+          </div>
+          <div className="p-6 space-y-4">
+            <p className="text-gray-400 text-sm">
+              Le module SAV vérifie automatiquement la date d'achat.
+            </p>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+               <div className="p-3 bg-black/40 border border-green-500/30 rounded text-center">
+                  <span className="block text-green-500 font-bold text-lg mb-1">Active</span>
+                  <span className="text-[10px] text-gray-500">Date achat + Durée Garantie > Aujourd'hui</span>
+               </div>
+               <div className="p-3 bg-black/40 border border-red-500/30 rounded text-center">
+                  <span className="block text-red-500 font-bold text-lg mb-1">Expirée</span>
+                  <span className="text-[10px] text-gray-500">Hors délais. Réparation payante.</span>
+               </div>
+            </div>
+            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-xs flex gap-2 rounded">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>Attention : Si vous supprimez un produit du catalogue, l'historique SAV reste, mais le lien produit sera brisé. Préférez mettre le stock à 0.</span>
+            </div>
+          </div>
+        </div>
+
+         {/* CARD 4: CONTACTS UTILES */}
+         <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl relative group">
+          <div className="p-6 border-b border-white/5 bg-black/40">
+            <h4 className="text-white font-bold uppercase flex items-center gap-2"><Phone className="w-5 h-5 text-gray-400" /> Contacts Urgence</h4>
+          </div>
+          <div className="p-6 space-y-4">
+             <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                <span className="text-gray-400 text-sm">Support Technique (Dev)</span>
+                <span className="text-white font-mono text-sm">699 00 00 00</span>
+             </div>
+             <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                <span className="text-gray-400 text-sm">Directeur Logistique</span>
+                <span className="text-white font-mono text-sm">677 11 22 33</span>
+             </div>
+             <div className="flex justify-between items-center">
+                <span className="text-gray-400 text-sm">Manager Boutique Mfoundi</span>
+                <span className="text-white font-mono text-sm">655 44 55 66</span>
+             </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+
   // EDITOR CODE (Editing Product View)
   if (editingProduct) {
       return (
@@ -954,7 +1069,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         <div className="flex flex-col md:flex-row justify-between items-end mb-10 border-b border-white/10 pb-6">
           <div><div className="flex items-center gap-3 mb-2"><div className="h-8 w-1 bg-xeption-red"></div><h2 className="text-4xl font-bold text-white font-tech uppercase">Staff Portal <span className="text-gray-600 text-lg align-middle ml-2">Manager</span></h2></div><p className="text-gray-400 text-sm">Gérez le stock, les commandes et le catalogue en temps réel.</p></div>
           <div className="flex bg-[#18181b] border border-white/10 rounded-sm p-1 mt-4 md:mt-0 overflow-x-auto shadow-lg">
-            {[{ id: 'dashboard', label: 'Dashboard', icon: TrendingUp }, { id: 'pos', label: 'Caisse (POS)', icon: CreditCard }, { id: 'sav', label: 'SAV / Réparations', icon: Wrench }, { id: 'inventory', label: 'Inventaire', icon: Package }, { id: 'marketing', label: 'Studio Vidéo', icon: Clapperboard }, { id: 'orders', label: 'Commandes', icon: ShoppingBag }, { id: 'clients', label: 'Clients (CRM)', icon: Users }, { id: 'staff', label: 'Staff & Rôles', icon: Key }].map((tab) => (<button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase tracking-wide transition-all rounded-sm whitespace-nowrap ${activeTab === tab.id ? 'bg-xeption-gold text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}><tab.icon className="w-4 h-4" /><span className="hidden sm:inline">{tab.label}</span></button>))}
+            {[{ id: 'dashboard', label: 'Dashboard', icon: TrendingUp }, { id: 'pos', label: 'Caisse (POS)', icon: CreditCard }, { id: 'sav', label: 'SAV / Réparations', icon: Wrench }, { id: 'inventory', label: 'Inventaire', icon: Package }, { id: 'marketing', label: 'Studio Vidéo', icon: Clapperboard }, { id: 'orders', label: 'Commandes', icon: ShoppingBag }, { id: 'clients', label: 'Clients (CRM)', icon: Users }, { id: 'staff', label: 'Staff & Rôles', icon: Key }, { id: 'guide', label: 'Guide & Procédures', icon: BookOpen }].map((tab) => (<button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase tracking-wide transition-all rounded-sm whitespace-nowrap ${activeTab === tab.id ? 'bg-xeption-gold text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}><tab.icon className="w-4 h-4" /><span className="hidden sm:inline">{tab.label}</span></button>))}
           </div>
       </div>
       {activeTab === 'dashboard' && renderDashboard()}
@@ -965,6 +1080,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       {activeTab === 'orders' && renderOrders()}
       {activeTab === 'clients' && renderClients()}
       {activeTab === 'staff' && renderStaff()}
+      {activeTab === 'guide' && renderGuide()}
 
       {editingStaff && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"><div className="bg-[#18181b] border border-white/10 w-full max-w-md p-6 rounded-sm shadow-2xl"><h3 className="text-xl font-bold text-white font-tech uppercase mb-6">{editingStaff.id.startsWith('new_') ? 'Nouveau Membre' : 'Modifier Membre'}</h3><form onSubmit={handleSaveStaff} className="space-y-4"><div><label className="block text-xs text-gray-400 uppercase font-bold mb-1">Nom d'utilisateur (Login)</label><input required type="text" value={editingStaff.name} onChange={e => setEditingStaff({...editingStaff, name: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/><p className="text-[10px] text-gray-500 mt-1">Ce nom sera utilisé pour la connexion.</p></div><div><label className="block text-xs text-gray-400 uppercase font-bold mb-1 flex items-center gap-1"><Key className="w-3 h-3" /> Mot de Passe</label><input required type="text" value={editingStaff.password || ''} onChange={e => setEditingStaff({...editingStaff, password: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/></div><div><label className="block text-xs text-gray-400 uppercase font-bold mb-1">Rôle</label><select value={editingStaff.role} onChange={e => setEditingStaff({...editingStaff, role: e.target.value as any})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold"><option value="admin">Administrateur</option><option value="manager">Manager</option><option value="editor">Éditeur</option></select></div><div className="flex justify-end gap-2 pt-4"><button type="button" onClick={() => setEditingStaff(null)} className="px-4 py-2 text-gray-500 text-xs font-bold uppercase">Annuler</button><button type="submit" className="px-4 py-2 bg-xeption-gold text-black text-xs font-bold uppercase">Enregistrer</button></div></form></div></div>)}
     </div>

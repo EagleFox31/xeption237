@@ -11,6 +11,7 @@ import AdminPanel from './components/AdminPanel';
 import StaffLogin from './components/StaffLogin'; // Import Login
 import { Product, CartItem } from './types';
 import { supabase } from './services/supabaseClient';
+import { optimizeVideo, optimizeImage } from './utils/mediaOptimization';
 
 const App: React.FC = () => {
   const [page, setPage] = useState('home');
@@ -140,6 +141,9 @@ const App: React.FC = () => {
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
+  const bgVideoUrl = "https://res.cloudinary.com/dli0kdkg9/video/upload/v1768438828/xption7_zrgro4.mp4";
+  const bgPosterUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1280&auto=format&fit=crop";
+
   return (
     <div className="min-h-screen text-white font-sans selection:bg-xeption-gold selection:text-black relative overflow-x-hidden">
       
@@ -147,7 +151,7 @@ const App: React.FC = () => {
       <div 
           className="fixed inset-0 z-0 w-full h-full bg-cover bg-center pointer-events-none"
           style={{
-              backgroundImage: "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')"
+              backgroundImage: `url('${optimizeImage(bgPosterUrl, 1280)}')`
           }}
       >
           <video 
@@ -156,11 +160,11 @@ const App: React.FC = () => {
             loop 
             muted 
             playsInline
-            poster="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
+            poster={optimizeImage(bgPosterUrl, 1280)}
             className="w-full h-full object-cover opacity-90 md:opacity-100" 
           >
-            {/* Added q_auto:best to force High Definition rendering without aggressive compression */}
-            <source src="https://res.cloudinary.com/dli0kdkg9/video/upload/q_auto:best/v1768438828/xption7_zrgro4.mp4" type="video/mp4" />
+            {/* Optimized video using utility: removes sound, lowers quality for background */}
+            <source src={optimizeVideo(bgVideoUrl)} type="video/mp4" />
           </video>
           
           {/* Reduced overlay opacity from bg-black/50 to bg-black/20 for brighter video */}

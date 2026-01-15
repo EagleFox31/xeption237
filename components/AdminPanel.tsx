@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard, Printer, CreditCard, Calculator, Wrench, ShieldCheck, ArrowRight, XCircle, RotateCcw, BookOpen, Info, AlertTriangle, Menu, LogOut, LayoutDashboard } from 'lucide-react';
+import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard, Printer, CreditCard, Calculator, Wrench, ShieldCheck, ArrowRight, XCircle, RotateCcw, BookOpen, Info, AlertTriangle, Menu, LogOut, LayoutDashboard, HelpCircle, FileText, Smartphone, Shield } from 'lucide-react';
 import { Product, Order, Staff, Customer, CartItem } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { generateProductDetails, generateMarketingVideo } from '../services/geminiService';
@@ -98,7 +97,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   // --- INITIAL DATA FETCHING ---
-  // Charge TOUTES les données au montage pour que le Dashboard soit correct immédiatement
   useEffect(() => {
       const initData = async () => {
           setIsLoadingData(true);
@@ -138,7 +136,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       if (data) setCustomers(data as Customer[]);
   };
 
-  // --- MODAL HELPER ---
   const showConfirm = (title: string, message: string, action: () => void, type: 'danger' | 'info' | 'success' = 'info') => {
       setModalConfig({
           isOpen: true,
@@ -151,8 +148,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
           type
       });
   };
-
-  // --- ACTIONS LOGIC ---
 
   const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
@@ -208,7 +203,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       );
   };
 
-  // --- POS Logic --- 
   const addToPosCart = (product: Product) => {
     setPosCart(prev => {
       const exists = prev.find(item => item.id === product.id);
@@ -252,27 +246,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                       }
                   }
 
-                   // CRM Update Logic...
-                   if (posCustomer.email) {
-                        // (Same simplified logic for brevity)
-                        const { data: existing } = await supabase.from('customers').select('*').eq('email', posCustomer.email).single();
-                        if (existing) {
-                             await supabase.from('customers').update({ 
-                                 total_orders: (existing.total_orders || 0) + 1,
-                                 total_spent: (existing.total_spent || 0) + total,
-                             }).eq('email', posCustomer.email);
-                        } else {
-                             await supabase.from('customers').insert([{
-                                 id: crypto.randomUUID(),
-                                 name: posCustomer.name,
-                                 email: posCustomer.email,
-                                 total_orders: 1,
-                                 total_spent: total
-                             }]);
-                        }
-                   }
-
-                   // Print Invoice
                   const invoiceData = {
                       id: newOrderId,
                       items: posCart,
@@ -296,7 +269,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
 
                   setPosCart([]);
                   setPosCustomer({ name: '', phone: '', email: '' });
-                  // Refresh data
                   fetchOrders();
                   fetchCustomers();
 
@@ -308,7 +280,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       );
   };
 
-  // --- SAVE & EDIT LOGIC (Standard) ---
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
@@ -335,8 +306,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       }
   };
 
-  // --- HELPERS FOR MEDIA UPLOAD & AI ---
-  // (Assuming these are identical to previous version, omitted for brevity to focus on Layout, but included in implementation)
   const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!e.target.files || !editingProduct) return;
       setUploadingImage(true);
@@ -361,8 +330,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
           if (url) setGeneratedVideoUrl(url);
       } finally { setGeneratingVideo(false); }
   };
-
-  // --- LAYOUT COMPONENTS ---
 
   const MENU_ITEMS = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -430,9 +397,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       </nav>
   );
 
-  // --- CONTENT RENDERING ---
-
-  // Dashboard Updated with LIVE Data
   const renderDashboard = () => (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5">
         <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Tableau de bord</h2>
@@ -493,32 +457,129 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     </div>
   );
 
-  // Simplified renders for other sections (refer to full logic in previous steps, just adapting structure)
-  // ... (POS, Inventory, etc. logic remains identical, just wrapped in the new Layout)
+  const renderGuide = () => (
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-5 max-w-5xl">
+        <div>
+            <h2 className="text-3xl font-tech font-bold uppercase text-white mb-2">Guide de Survie Staff</h2>
+            <p className="text-gray-400">Procédures opérationnelles pour Xeption Network Boutique 2063.</p>
+        </div>
 
-  // --- MAIN LAYOUT STRUCTURE ---
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Section POS */}
+            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
+                <div className="flex items-center gap-3 mb-6 text-xeption-gold">
+                    <CreditCard className="w-6 h-6" />
+                    <h3 className="text-xl font-bold uppercase font-tech">Ventes & Caisse (POS)</h3>
+                </div>
+                <ul className="space-y-4">
+                    <li className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-xeption-gold/10 text-xeption-gold flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                        <p className="text-gray-300 text-sm">Sélectionnez les articles dans le <strong>POS</strong> en cliquant sur les vignettes.</p>
+                    </li>
+                    <li className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-xeption-gold/10 text-xeption-gold flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                        <p className="text-gray-300 text-sm">Demandez le <strong>Nom</strong> et <strong>Email</strong> du client pour le CRM et la facture.</p>
+                    </li>
+                    <li className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-xeption-gold/10 text-xeption-gold flex items-center justify-center text-xs font-bold shrink-0">3</div>
+                        <p className="text-gray-300 text-sm">Cliquez sur <strong>Valider</strong> pour déduire le stock et imprimer la facture automatiquement.</p>
+                    </li>
+                </ul>
+            </div>
+
+            {/* Section SAV */}
+            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
+                <div className="flex items-center gap-3 mb-6 text-blue-400">
+                    <Wrench className="w-6 h-6" />
+                    <h3 className="text-xl font-bold uppercase font-tech">Atelier SAV & Garantie</h3>
+                </div>
+                <ul className="space-y-4">
+                    <li className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-400/10 text-blue-400 flex items-center justify-center text-xs font-bold shrink-0">!</div>
+                        <p className="text-gray-300 text-sm"><strong>Vérifiez l'ID Commande</strong> sur la facture du client avant toute intervention.</p>
+                    </li>
+                    <li className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-400/10 text-blue-400 flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                        <p className="text-gray-300 text-sm">Changez le statut à <strong>"Reçu"</strong> dès que vous prenez l'appareil en main.</p>
+                    </li>
+                    <li className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-400/10 text-blue-400 flex items-center justify-center text-xs font-bold shrink-0">3</div>
+                        <p className="text-gray-300 text-sm">Une fois réparé, passez à <strong>"Terminé"</strong>. Le client recevra une alerte (bientôt).</p>
+                    </li>
+                </ul>
+            </div>
+
+            {/* Section Marketing */}
+            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
+                <div className="flex items-center gap-3 mb-6 text-purple-400">
+                    <Clapperboard className="w-6 h-6" />
+                    <h3 className="text-xl font-bold uppercase font-tech">Marketing & Vidéo</h3>
+                </div>
+                <div className="bg-white/5 p-4 rounded-sm border border-white/5">
+                    <p className="text-xs text-gray-400 italic leading-relaxed">
+                        "Pour les promos sur WhatsApp, utilisez le <strong>Studio Vidéo</strong>. Demandez à l'IA de générer des visuels futuristes avec votre prompt (ex: iPhone 15 dans un volcan doré)."
+                    </p>
+                </div>
+            </div>
+
+            {/* Section Codes Conduite */}
+            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
+                <div className="flex items-center gap-3 mb-6 text-green-400">
+                    <Shield className="w-6 h-6" />
+                    <h3 className="text-xl font-bold uppercase font-tech">Ton Xeption</h3>
+                </div>
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs py-2 border-b border-white/5">
+                        <span className="text-gray-500">Approche</span>
+                        <span className="text-white font-bold">Expert & Chill</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs py-2 border-b border-white/5">
+                        <span className="text-gray-500">Service</span>
+                        <span className="text-white font-bold">"On gère ça"</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs py-2 border-b border-white/5">
+                        <span className="text-gray-500">SAV</span>
+                        <span className="text-white font-bold">Zéro Stress</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Aide Rapide */}
+        <div className="p-8 bg-xeption-gold/5 border border-xeption-gold/20 rounded-sm">
+            <h4 className="font-tech font-bold uppercase text-xeption-gold mb-4 flex items-center gap-2">
+                <HelpCircle className="w-4 h-4" /> FAQ Staff
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+                <div>
+                    <p className="text-white font-bold mb-1">Le client a perdu sa facture ?</p>
+                    <p className="text-gray-400">Allez dans "Commandes", cherchez par nom, et cliquez sur "Imprimer" (Action future) ou ré-imprimez via le navigateur.</p>
+                </div>
+                <div>
+                    <p className="text-white font-bold mb-1">Un produit manque à l'inventaire ?</p>
+                    <p className="text-gray-400">Utilisez l'option "Auto-Fill IA" pour générer la description technique instantanément.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen text-white font-sans selection:bg-xeption-gold selection:text-black">
-        {/* Modal Portal */}
         {modalConfig && <ConfirmationModal {...modalConfig} onCancel={() => setModalConfig(null)} />}
 
         <Sidebar />
 
         <main className="md:ml-64 p-4 md:p-8 pb-24 md:pb-8 min-h-screen relative overflow-x-hidden">
-            {/* Header Mobile Only */}
             <div className="md:hidden flex items-center justify-between mb-6 pb-4 border-b border-white/10">
                  <Logo className="scale-75 origin-left" />
                  <div className="bg-white/10 px-3 py-1 rounded text-[10px] font-bold uppercase text-xeption-gold">Admin</div>
             </div>
 
-            {/* Dynamic Content */}
             {activeTab === 'dashboard' && renderDashboard()}
             
             {activeTab === 'pos' && (
-                // Reuse POS Render logic
                 <div className="animate-in fade-in h-[calc(100vh-100px)] grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* ... (POS UI Content from previous snippet, utilizing `handlePosSubmit` with modal) ... */}
-                    {/* Re-implementing POS UI briefly for context */}
                      <div className="lg:col-span-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
                          <div className="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center">
                              <h3 className="text-white font-bold uppercase text-sm flex items-center gap-2"><Box className="w-4 h-4 text-blue-400" /> Catalogue</h3>
@@ -558,7 +619,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         <h2 className="text-3xl font-tech font-bold uppercase text-white">Inventaire</h2>
                         <button onClick={() => setEditingProduct({id: `new_${Date.now()}`, name: '', description: '', price: 0, category: 'phone', image: 'https://via.placeholder.com/400', images: [], video: '', stock: 0, isPromo: false, specs: [], pros: [], cons: [], warrantyMonths: 0})} className="bg-xeption-gold text-black px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white rounded-sm"><Plus className="w-4 h-4" /> Nouveau</button>
                     </div>
-                    {/* Reuse Product Table UI */}
                     <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-2xl overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
@@ -582,7 +642,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             {activeTab === 'orders' && (
                 <div className="animate-in fade-in">
                     <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Commandes</h2>
-                    {/* Simplified Orders Table for space */}
                     <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-2xl overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[900px]">
                              <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
@@ -609,7 +668,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 </div>
             )}
 
-            {/* Other tabs render logic (Sav, Clients, Staff, Marketing, Guide) preserved but adapted to full layout */}
             {activeTab === 'sav' && <RepairTicketManagement />}
             
             {activeTab === 'staff' && (
@@ -647,7 +705,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                  </div>
             )}
              
-            {/* Guide rendering is just static HTML, omitted for brevity but conceptually the same */}
+            {activeTab === 'guide' && renderGuide()}
         </main>
 
         <BottomNav />
@@ -655,7 +713,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         {/* EDITOR OVERLAY (Full Screen) */}
         {editingProduct && (
             <div className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl overflow-y-auto animate-in slide-in-from-bottom-10">
-                {/* Same Editor UI as previous version ... */}
                 <div className="max-w-7xl mx-auto p-6 pb-20">
                      <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4 sticky top-0 bg-transparent z-10 pt-4">
                          <h2 className="text-2xl font-bold font-tech text-white uppercase">{editingProduct.id.startsWith('new') ? 'Création' : 'Édition'}</h2>

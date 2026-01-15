@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Product } from '../types';
 import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Image as ImageIcon } from 'lucide-react';
 
@@ -13,9 +13,18 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
   // Use main image as default, fallback to first in array if main is empty
   const [activeImage, setActiveImage] = useState(product.image);
   const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Combine main image + extra images for gallery list
   const galleryImages = [product.image, ...(product.images || [])].filter(Boolean);
+
+  const handlePlayVideo = () => {
+    const videoSection = document.getElementById('video-section');
+    videoSection?.scrollIntoView({ behavior: 'smooth' });
+    if (videoRef.current) {
+        videoRef.current.play();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F9F8F6]/85 backdrop-blur-sm text-gray-900 pb-20 animate-in slide-in-from-right duration-500 z-50 absolute inset-0 overflow-y-auto overflow-x-hidden supports-[backdrop-filter]:bg-[#F9F8F6]/75">
@@ -124,11 +133,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                  ))}
                  {product.video && (
                      <button
-                        onClick={() => {
-                             const videoSection = document.getElementById('video-section');
-                             videoSection?.scrollIntoView({ behavior: 'smooth' });
-                             setIsPlaying(true);
-                        }}
+                        onClick={handlePlayVideo}
                         className="w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 border-gray-300 bg-black flex items-center justify-center flex-shrink-0 hover:border-xeption-gold transition-colors group"
                      >
                          <Play className="text-white group-hover:text-xeption-gold" />
@@ -141,23 +146,29 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
       {/* 2. VIDEO SECTION (If exists) */}
       {product.video && (
           <div id="video-section" className="max-w-6xl mx-auto px-4 py-12">
-             <div className="bg-black rounded-xl overflow-hidden shadow-2xl relative aspect-video border border-gray-800">
+             <div className="bg-black rounded-xl overflow-hidden shadow-2xl relative aspect-video border border-gray-800 group">
                 {/* Simple video player */}
                 <video 
+                    ref={videoRef}
                     src={product.video} 
                     controls 
                     className="w-full h-full object-cover"
                     poster={product.image}
                     playsInline
-                    autoPlay={isPlaying}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onEnded={() => setIsPlaying(false)}
                 />
-                {!isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
-                        <div className="w-20 h-20 bg-xeption-gold/90 rounded-full flex items-center justify-center backdrop-blur-sm animate-pulse">
-                            <Play className="h-8 w-8 text-black ml-1" fill="black" />
-                        </div>
+                
+                {/* Custom Overlay Play Button - Disappears when playing */}
+                <div 
+                    className={`absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer transition-opacity duration-300 ${isPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                    onClick={() => videoRef.current?.play()}
+                >
+                    <div className="w-20 h-20 bg-xeption-gold/90 rounded-full flex items-center justify-center backdrop-blur-sm animate-pulse hover:scale-110 transition-transform">
+                        <Play className="h-8 w-8 text-black ml-1" fill="black" />
                     </div>
-                )}
+                </div>
              </div>
           </div>
       )}

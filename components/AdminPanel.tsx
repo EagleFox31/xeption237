@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard, Printer, CreditCard, Calculator, Wrench, ShieldCheck, ArrowRight, XCircle, RotateCcw, BookOpen, Info, AlertTriangle, Menu, LogOut, LayoutDashboard, HelpCircle, FileText, Smartphone, Shield } from 'lucide-react';
-import { Product, Order, Staff, Customer, CartItem } from '../types';
+import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard, Printer, CreditCard, Calculator, Wrench, ShieldCheck, ArrowRight, XCircle, RotateCcw, BookOpen, Info, AlertTriangle, Menu, LogOut, LayoutDashboard, HelpCircle, FileText, Smartphone, Shield, Layers } from 'lucide-react';
+import { Product, Order, Staff, Customer, CartItem, Category } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { generateProductDetails, generateMarketingVideo } from '../services/geminiService';
 import { uploadImageToCloudinary, uploadVideoToCloudinary } from '../services/uploadService';
@@ -59,13 +60,15 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, title, me
 
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories'>('dashboard');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
   // Data States
   const [orders, setOrders] = useState<Order[]>([]);
   const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newCatName, setNewCatName] = useState('');
   
   // Loading States
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -85,22 +88,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const [generatingVideo, setGeneratingVideo] = useState(false);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingGallery, setUploadingGallery] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{isOpen: boolean, title: string, message: string, onConfirm: () => void, type: 'danger' | 'info' | 'success'} | null>(null);
 
   // Refs
   const mainImageInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   // --- INITIAL DATA FETCHING ---
   useEffect(() => {
       const initData = async () => {
           setIsLoadingData(true);
-          await Promise.all([fetchOrders(), fetchStaff(), fetchCustomers()]);
+          await Promise.all([fetchOrders(), fetchStaff(), fetchCustomers(), fetchCategories()]);
           setIsLoadingData(false);
       };
       initData();
@@ -134,6 +133,33 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const fetchCustomers = async () => {
       const { data } = await supabase.from('customers').select('*').order('total_spent', { ascending: false });
       if (data) setCustomers(data as Customer[]);
+  };
+
+  const fetchCategories = async () => {
+      const { data } = await supabase.from('categories').select('*').order('name', { ascending: true });
+      if (data) setCategories(data as Category[]);
+  };
+
+  const handleAddCategory = async () => {
+      if (!newCatName.trim()) return;
+      const slug = newCatName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const { data, error } = await supabase.from('categories').insert([{ name: newCatName, slug }]).select();
+      if (!error && data) {
+          setCategories([...categories, data[0] as Category]);
+          setNewCatName('');
+      }
+  };
+
+  const handleDeleteCategory = (id: string) => {
+      showConfirm(
+          "Supprimer Type",
+          "Attention, assurez-vous qu'aucun produit n'est lié à ce type avant de supprimer.",
+          async () => {
+              const { error } = await supabase.from('categories').delete().eq('id', id);
+              if (!error) setCategories(categories.filter(c => c.id !== id));
+          },
+          'danger'
+      );
   };
 
   const showConfirm = (title: string, message: string, action: () => void, type: 'danger' | 'info' | 'success' = 'info') => {
@@ -283,13 +309,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
+    
+    // Safety check for category
+    if (!editingProduct.category) {
+        alert("Veuillez sélectionner une catégorie valide.");
+        return;
+    }
+
     const isNew = editingProduct.id.startsWith('new_');
     const productData = { ...editingProduct, id: isNew ? crypto.randomUUID() : editingProduct.id };
+    
     const { error } = await supabase.from('products').upsert(productData);
-    if (!error) {
-        onUpdateProducts(isNew ? [...products, productData] : products.map(p => p.id === productData.id ? productData : p));
-        setEditingProduct(null);
+    
+    if (error) {
+        console.error("Supabase Save Error:", error);
+        if (error.code === '23503') {
+            alert(`Erreur de catégorie : Le type "${editingProduct.category}" n'existe pas dans la base de données. Créez-le d'abord dans l'onglet 'Types'.`);
+        } else {
+            alert(`Erreur lors de la sauvegarde : ${error.message}`);
+        }
+        return;
     }
+
+    onUpdateProducts(isNew ? [...products, productData] : products.map(p => p.id === productData.id ? productData : p));
+    setEditingProduct(null);
   };
   
   const handleSaveStaff = async (e: React.FormEvent) => {
@@ -336,6 +379,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       { id: 'pos', label: 'Caisse (POS)', icon: CreditCard },
       { id: 'orders', label: 'Commandes', icon: ShoppingBag },
       { id: 'inventory', label: 'Inventaire', icon: Package },
+      { id: 'categories', label: 'Types (Dynamic)', icon: Layers },
       { id: 'sav', label: 'Atelier SAV', icon: Wrench },
       { id: 'clients', label: 'Clients CRM', icon: Users },
       { id: 'staff', label: 'Équipe', icon: Key },
@@ -457,6 +501,51 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     </div>
   );
 
+  const renderCategories = () => (
+    <div className="animate-in fade-in slide-in-from-bottom-5">
+        <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Gestion des Types (Types de Produits)</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
+                <h3 className="text-white font-bold uppercase mb-4 text-sm flex items-center gap-2"><Plus className="w-4 h-4 text-xeption-gold"/> Nouveau Type</h3>
+                <input 
+                    type="text" 
+                    value={newCatName} 
+                    onChange={e => setNewCatName(e.target.value)} 
+                    placeholder="Ex: Gaming Laptops" 
+                    className="w-full bg-black/50 border border-white/10 p-3 text-white rounded-sm mb-4"
+                />
+                <button 
+                    onClick={handleAddCategory}
+                    className="w-full bg-xeption-gold text-black font-bold uppercase py-3 rounded-sm text-xs tracking-widest hover:bg-white transition-all"
+                >
+                    Ajouter au Catalogue
+                </button>
+            </div>
+
+            <div className="md:col-span-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden">
+                <table className="w-full text-left">
+                    <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold">
+                        <tr><th className="px-6 py-4">Nom</th><th className="px-6 py-4">Slug</th><th className="px-6 py-4 text-right">Actions</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                        {categories.map(cat => (
+                            <tr key={cat.id} className="hover:bg-white/5 text-sm">
+                                <td className="px-6 py-4 font-bold text-white">{cat.name}</td>
+                                <td className="px-6 py-4 text-gray-500 font-mono text-xs">{cat.slug}</td>
+                                <td className="px-6 py-4 text-right">
+                                    <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-red-500 hover:bg-white/10 rounded">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+  );
+
   const renderGuide = () => (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-5 max-w-5xl">
         <div>
@@ -544,23 +633,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 </div>
             </div>
         </div>
-
-        {/* Aide Rapide */}
-        <div className="p-8 bg-xeption-gold/5 border border-xeption-gold/20 rounded-sm">
-            <h4 className="font-tech font-bold uppercase text-xeption-gold mb-4 flex items-center gap-2">
-                <HelpCircle className="w-4 h-4" /> FAQ Staff
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
-                <div>
-                    <p className="text-white font-bold mb-1">Le client a perdu sa facture ?</p>
-                    <p className="text-gray-400">Allez dans "Commandes", cherchez par nom, et cliquez sur "Imprimer" (Action future) ou ré-imprimez via le navigateur.</p>
-                </div>
-                <div>
-                    <p className="text-white font-bold mb-1">Un produit manque à l'inventaire ?</p>
-                    <p className="text-gray-400">Utilisez l'option "Auto-Fill IA" pour générer la description technique instantanément.</p>
-                </div>
-            </div>
-        </div>
     </div>
   );
 
@@ -578,6 +650,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
 
             {activeTab === 'dashboard' && renderDashboard()}
             
+            {activeTab === 'categories' && renderCategories()}
+
             {activeTab === 'pos' && (
                 <div className="animate-in fade-in h-[calc(100vh-100px)] grid grid-cols-1 lg:grid-cols-3 gap-6">
                      <div className="lg:col-span-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
@@ -617,7 +691,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 <div className="animate-in fade-in">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-3xl font-tech font-bold uppercase text-white">Inventaire</h2>
-                        <button onClick={() => setEditingProduct({id: `new_${Date.now()}`, name: '', description: '', price: 0, category: 'phone', image: 'https://via.placeholder.com/400', images: [], video: '', stock: 0, isPromo: false, specs: [], pros: [], cons: [], warrantyMonths: 0})} className="bg-xeption-gold text-black px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white rounded-sm"><Plus className="w-4 h-4" /> Nouveau</button>
+                        <button onClick={() => setEditingProduct({id: `new_${Date.now()}`, name: '', description: '', price: 0, category: categories[0]?.slug || '', image: 'https://via.placeholder.com/400', images: [], video: '', stock: 0, isPromo: false, specs: [], pros: [], cons: [], warrantyMonths: 0})} className="bg-xeption-gold text-black px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white rounded-sm"><Plus className="w-4 h-4" /> Nouveau</button>
                     </div>
                     <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-2xl overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[800px]">
@@ -729,6 +803,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                                  <div className="grid grid-cols-2 gap-3 mb-3">
                                      <input type="number" className="bg-black border border-white/10 p-3 text-white" placeholder="Prix" value={editingProduct.price} onChange={e=>setEditingProduct({...editingProduct, price: +e.target.value})} />
                                      <input type="number" className="bg-black border border-white/10 p-3 text-white" placeholder="Stock" value={editingProduct.stock} onChange={e=>setEditingProduct({...editingProduct, stock: +e.target.value})} />
+                                 </div>
+                                 <div className="mb-3">
+                                     <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Type (Catégorie)</label>
+                                     <select 
+                                        className="w-full bg-black border border-white/10 p-3 text-white rounded-sm"
+                                        value={editingProduct.category}
+                                        onChange={e => setEditingProduct({...editingProduct, category: e.target.value})}
+                                     >
+                                         <option value="">Sélectionner un type</option>
+                                         {categories.map(c => (
+                                             <option key={c.id} value={c.slug}>{c.name}</option>
+                                         ))}
+                                     </select>
                                  </div>
                                  <button type="button" onClick={handleAiGeneration} disabled={isGenerating} className="text-xs text-xeption-gold border border-xeption-gold/30 px-3 py-2 rounded uppercase font-bold flex items-center gap-2">{isGenerating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3"/>} Auto-Fill IA</button>
                              </div>

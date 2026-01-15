@@ -29,7 +29,7 @@ export interface Order {
   id: string;
   items: CartItem[]; // Stored as JSONB in Supabase
   total: number;
-  status: 'pending' | 'paid' | 'delivered';
+  status: 'pending' | 'confirmed' | 'shipped' | 'ready' | 'delivered' | 'cancelled';
   paymentMethod: 'OM' | 'MOMO' | 'CASH';
   customerName: string; // Mapped to customer_name in DB
   customerEmail?: string; // Mapped to customer_email in DB

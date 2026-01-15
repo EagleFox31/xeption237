@@ -47,12 +47,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
 
   // Fetch data on tab change & Initialize Auth
   useEffect(() => {
-      const initAuthAndData = async () => {
-          // Fix for RLS Policies: Ensure we have at least an anonymous session
+      const initData = async () => {
+          // On vérifie simplement si une session existe. 
+          // Si StaffLogin a réussi, la session est là.
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) {
-              console.log("AdminPanel: Initializing Anonymous Session for RLS...");
-              await supabase.auth.signInAnonymously();
+              console.warn("AdminPanel: Aucune session active. Les actions RLS risquent d'échouer.");
           }
 
           if (activeTab === 'orders' || activeTab === 'dashboard') {
@@ -66,7 +66,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
           }
       };
 
-      initAuthAndData();
+      initData();
   }, [activeTab]);
 
   const fetchOrders = async () => {

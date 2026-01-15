@@ -1,8 +1,9 @@
 
-import React, { useState, useMemo } from 'react';
-import { Product } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Product, Category } from '../types';
 import { ShoppingCart, Tag, Star } from 'lucide-react';
 import { optimizeImage } from '../utils/mediaOptimization';
+import { supabase } from '../services/supabaseClient';
 
 interface ProductListProps {
   products: Product[];
@@ -11,7 +12,17 @@ interface ProductListProps {
 }
 
 const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProductClick }) => {
-  const [filter, setFilter] = useState<'all' | 'phone' | 'computer' | 'accessory'>('all');
+  const [filter, setFilter] = useState<string>('all');
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  // Fetch categories to populate filters dynamically
+  useEffect(() => {
+    const fetchCats = async () => {
+      const { data } = await supabase.from('categories').select('*').order('name', { ascending: true });
+      if (data) setCategories(data as Category[]);
+    };
+    fetchCats();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     if (filter === 'all') return products;
@@ -33,17 +44,27 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
         </div>
         
         <div className="flex flex-wrap gap-2">
-          {(['all', 'phone', 'computer', 'accessory'] as const).map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat)}
+          <button
+              onClick={() => setFilter('all')}
               className={`px-5 py-2 rounded-none border border-transparent font-tech font-bold uppercase tracking-wider text-sm transition-all clip-path-slant backdrop-blur-md ${
-                filter === cat 
+                filter === 'all' 
                   ? 'bg-xeption-gold text-black border-xeption-gold shadow-[0_0_15px_rgba(255,215,0,0.3)]' 
                   : 'bg-black/60 text-gray-300 border-white/20 hover:border-white hover:text-white hover:bg-black/80'
               }`}
             >
-              {cat === 'all' ? 'Tout' : cat === 'phone' ? 'Phones' : cat === 'computer' ? 'Laptops' : 'Gear'}
+              Tout
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.slug}
+              onClick={() => setFilter(cat.slug)}
+              className={`px-5 py-2 rounded-none border border-transparent font-tech font-bold uppercase tracking-wider text-sm transition-all clip-path-slant backdrop-blur-md ${
+                filter === cat.slug 
+                  ? 'bg-xeption-gold text-black border-xeption-gold shadow-[0_0_15px_rgba(255,215,0,0.3)]' 
+                  : 'bg-black/60 text-gray-300 border-white/20 hover:border-white hover:text-white hover:bg-black/80'
+              }`}
+            >
+              {cat.name}
             </button>
           ))}
         </div>
@@ -69,14 +90,13 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
             {/* Image Container */}
             <div className="aspect-[4/3] bg-black/50 relative overflow-hidden border-b border-white/5">
               <img 
-                src={optimizeImage(product.image, 500)} // Optimisation: max width 500px, auto format
+                src={optimizeImage(product.image, 500)}
                 alt={product.name} 
-                loading="lazy" // Lazy loading natif
+                loading="lazy"
                 width="500"
                 height="375"
                 className="w-full h-full object-cover object-center group-hover:scale-105 group-hover:opacity-90 transition-all duration-500"
               />
-              {/* Overlay Gradient for readability at bottom of image */}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] to-transparent opacity-40"></div>
               
               <div className="absolute bottom-4 right-4 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-30">
@@ -92,7 +112,7 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
               </div>
             </div>
 
-            {/* Content - Increased opacity of background for better text contrast */}
+            {/* Content */}
             <div className="p-6 flex-1 flex flex-col relative">
               <div className="mb-2">
                 <h3 className="text-xl font-bold text-white font-tech uppercase tracking-wide group-hover:text-xeption-gold transition-colors truncate drop-shadow-md">
@@ -125,7 +145,6 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
               </div>
             </div>
             
-            {/* Tech Decoration Lines - Enhanced Glow */}
             <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-xeption-gold to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 box-shadow-[0_0_10px_#FFD700]"></div>
           </div>
         ))}

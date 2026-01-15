@@ -1,8 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard } from 'lucide-react';
 import { Product, Order, Staff, Customer } from '../types';
 import { supabase } from '../services/supabaseClient';
+import { generateProductDetails, generateMarketingVideo } from '../services/geminiService';
+import { uploadImageToSupabase, uploadVideoToCloudinary } from '../services/uploadService';
 
 interface AdminPanelProps {
   products: Product[];
@@ -10,7 +12,7 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'staff' | 'clients'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing'>('dashboard');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
   // Orders State
@@ -25,17 +27,46 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
 
-  // Fetch data on tab change
+  // AI Generation State
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Video Generation State
+  const [videoPrompt, setVideoPrompt] = useState("Cinematic product shot of the Dell XPS 14 9440 floating in a dark void. Elegant gold neon lighting highlights the aluminum edges and the keyboard. Background features subtle futuristic HUD elements and floating golden particles. High contrast, 4k resolution, sleek, premium tech advertisement style, slow camera pan, dark atmosphere.");
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+
+  // Upload States
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+
+  // Refs for file inputs
+  const mainImageInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch data on tab change & Initialize Auth
   useEffect(() => {
-      if (activeTab === 'orders' || activeTab === 'dashboard') {
-          fetchOrders();
-      }
-      if (activeTab === 'staff') {
-          fetchStaff();
-      }
-      if (activeTab === 'clients') {
-          fetchCustomers();
-      }
+      const initAuthAndData = async () => {
+          // Fix for RLS Policies: Ensure we have at least an anonymous session
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+              console.log("AdminPanel: Initializing Anonymous Session for RLS...");
+              await supabase.auth.signInAnonymously();
+          }
+
+          if (activeTab === 'orders' || activeTab === 'dashboard') {
+              fetchOrders();
+          }
+          if (activeTab === 'staff') {
+              fetchStaff();
+          }
+          if (activeTab === 'clients') {
+              fetchCustomers();
+          }
+      };
+
+      initAuthAndData();
   }, [activeTab]);
 
   const fetchOrders = async () => {
@@ -47,7 +78,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
               items: o.items,
               total: o.total,
               status: o.status,
-              paymentMethod: o.payment_method,
+              paymentMethod: o.customer_city?.includes('Retrait') ? 'CASH' : o.payment_method, // Fallback logic if needed
               customerName: o.customer_name,
               customerEmail: o.customer_email,
               customerPhone: o.customer_phone,
@@ -113,6 +144,107 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     }
   };
 
+  // --- Upload Handlers ---
+
+  const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!e.target.files || e.target.files.length === 0 || !editingProduct) return;
+      const file = e.target.files[0];
+      setUploadingImage(true);
+      try {
+          const url = await uploadImageToSupabase(file);
+          setEditingProduct({ ...editingProduct, image: url });
+      } catch (error: any) {
+          alert(error.message);
+      } finally {
+          setUploadingImage(false);
+      }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!e.target.files || e.target.files.length === 0 || !editingProduct) return;
+      setUploadingGallery(true);
+      const newImages = [...(editingProduct.images || [])];
+      
+      try {
+          // Upload all selected files concurrently
+          // Explicit cast to File to avoid TypeScript issues with FileList
+          const uploadPromises = Array.from(e.target.files).map((file) => uploadImageToSupabase(file as File));
+          const urls = await Promise.all(uploadPromises);
+          
+          setEditingProduct({ ...editingProduct, images: [...newImages, ...urls] });
+      } catch (error: any) {
+          console.error("Gallery Upload Error:", error);
+          alert("Erreur Upload: " + error.message + "\nVérifiez que le bucket Supabase est public ou que vous êtes connecté.");
+      } finally {
+          setUploadingGallery(false);
+      }
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!e.target.files || e.target.files.length === 0 || !editingProduct) return;
+      const file = e.target.files[0];
+      setUploadingVideo(true);
+      try {
+          const url = await uploadVideoToCloudinary(file);
+          setEditingProduct({ ...editingProduct, video: url });
+      } catch (error: any) {
+          alert(error.message);
+      } finally {
+          setUploadingVideo(false);
+      }
+  };
+
+
+  // --- AI Generator Handler ---
+  const handleAiGeneration = async () => {
+    if (!editingProduct?.name) {
+        alert("Entrez d'abord un nom de produit.");
+        return;
+    }
+    
+    setIsGenerating(true);
+    try {
+        const details = await generateProductDetails(editingProduct.name, editingProduct.category);
+        
+        setEditingProduct(prev => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                // Fallback to previous data if generated data is empty or null, though schema is stricter now
+                description: details.description || prev.description,
+                reviewShort: details.reviewShort || prev.reviewShort,
+                pros: (details.pros && details.pros.length > 0) ? details.pros : (prev.pros || []),
+                cons: (details.cons && details.cons.length > 0) ? details.cons : (prev.cons || []),
+                specs: (details.specs && details.specs.length > 0) ? details.specs : (prev.specs || [])
+            };
+        });
+    } catch (err: any) {
+        alert(err.message);
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+  
+  // --- Video Generator Handler ---
+  const handleVideoGeneration = async () => {
+      if (!videoPrompt) return;
+      setGeneratingVideo(true);
+      setGeneratedVideoUrl(null);
+      
+      try {
+          const url = await generateMarketingVideo(videoPrompt);
+          if (url) {
+              setGeneratedVideoUrl(url);
+          } else {
+              alert("La génération a échoué. Réessayez.");
+          }
+      } catch (err: any) {
+          alert("Erreur Veo: " + err.message);
+      } finally {
+          setGeneratingVideo(false);
+      }
+  };
+
   // --- Staff Handlers ---
 
   const handleDeleteStaff = async (id: string) => {
@@ -154,25 +286,52 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     }
   };
 
-  const handleAddImage = () => {
-      if (!editingProduct) return;
-      const currentImages = editingProduct.images || [];
-      setEditingProduct({ ...editingProduct, images: [...currentImages, ''] });
-  };
-
-  const handleImageChange = (index: number, value: string) => {
-      if (!editingProduct) return;
-      const currentImages = [...(editingProduct.images || [])];
-      currentImages[index] = value;
-      setEditingProduct({ ...editingProduct, images: currentImages });
-  };
-
+  // --- Dynamic Field Helpers ---
   const handleRemoveImage = (index: number) => {
       if (!editingProduct) return;
       const currentImages = [...(editingProduct.images || [])];
       currentImages.splice(index, 1);
       setEditingProduct({ ...editingProduct, images: currentImages });
   };
+  
+  // Specs Helpers
+  const handleAddSpec = () => {
+      if (!editingProduct) return;
+      const current = editingProduct.specs || [];
+      setEditingProduct({ ...editingProduct, specs: [...current, { label: '', value: '' }] });
+  };
+  const handleSpecChange = (index: number, field: 'label'|'value', txt: string) => {
+      if (!editingProduct) return;
+      const current = [...(editingProduct.specs || [])];
+      current[index] = { ...current[index], [field]: txt };
+      setEditingProduct({ ...editingProduct, specs: current });
+  };
+  const handleRemoveSpec = (index: number) => {
+      if (!editingProduct) return;
+      const current = [...(editingProduct.specs || [])];
+      current.splice(index, 1);
+      setEditingProduct({ ...editingProduct, specs: current });
+  };
+
+  // Pros/Cons Helpers
+  const handleArrayFieldChange = (field: 'pros'|'cons', index: number, value: string) => {
+      if (!editingProduct) return;
+      const current = [...(editingProduct[field] || [])];
+      current[index] = value;
+      setEditingProduct({ ...editingProduct, [field]: current });
+  };
+  const handleAddArrayField = (field: 'pros'|'cons') => {
+       if (!editingProduct) return;
+       const current = editingProduct[field] || [];
+       setEditingProduct({ ...editingProduct, [field]: [...current, ''] });
+  };
+  const handleRemoveArrayField = (field: 'pros'|'cons', index: number) => {
+      if (!editingProduct) return;
+      const current = [...(editingProduct[field] || [])];
+      current.splice(index, 1);
+      setEditingProduct({ ...editingProduct, [field]: current });
+  };
+
 
   const renderDashboard = () => (
     <>
@@ -183,12 +342,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 { label: 'Staff', value: staffMembers.length > 0 ? staffMembers.length.toString() : '-', sub: 'Actifs', icon: Users, color: 'text-blue-500' },
                 { label: 'Clients', value: customers.length > 0 ? customers.length.toString() : '-', sub: 'Dans le CRM', icon: Users, color: 'text-purple-500' },
             ].map((stat, i) => (
-                <div key={i} className="bg-xeption-highlight border border-white/5 p-6 relative overflow-hidden group hover:border-white/20 transition-all rounded-sm">
+                <div key={i} className="bg-[#18181b] border border-white/5 p-6 relative overflow-hidden group hover:border-white/20 transition-all rounded-sm shadow-lg">
                     <div className="absolute right-0 top-0 opacity-10 transform translate-x-1/3 -translate-y-1/3">
                         <stat.icon className={`w-32 h-32 ${stat.color}`} />
                     </div>
                     <div className="relative z-10">
-                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">{stat.label}</p>
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">{stat.label}</p>
                         <h3 className="text-4xl font-bold text-white font-tech">{stat.value} <span className="text-sm text-gray-600">{stat.sub}</span></h3>
                     </div>
                 </div>
@@ -196,7 +355,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-black/40 border border-white/10 p-6 rounded-sm">
+            <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
                 <h3 className="text-white font-tech uppercase font-bold mb-4 flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-xeption-red" /> Alertes Rupture
                 </h3>
@@ -205,23 +364,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         <p className="text-gray-500 italic">Tout est sous contrôle.</p>
                     ) : (
                         products.filter(p => p.stock < 5).map(p => (
-                            <div key={p.id} className="flex justify-between items-center bg-white/5 p-3 rounded hover:bg-white/10 transition-colors">
-                                <span className="text-white text-sm">{p.name}</span>
+                            <div key={p.id} className="flex justify-between items-center bg-black/40 p-3 rounded hover:bg-black/60 transition-colors border border-white/5">
+                                <span className="text-gray-200 text-sm">{p.name}</span>
                                 <span className="text-xeption-red font-bold text-xs px-2 py-1 bg-xeption-red/10 rounded">Reste: {p.stock}</span>
                             </div>
                         ))
                     )}
                 </div>
             </div>
-            <div className="bg-black/40 border border-white/10 p-6 rounded-sm">
+            <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
                 <h3 className="text-white font-tech uppercase font-bold mb-4 flex items-center gap-2">
                     <ShoppingBag className="w-5 h-5 text-xeption-gold" /> Dernières Commandes
                 </h3>
                 <div className="space-y-3">
                      {orders.slice(0,5).map((o) => (
-                        <div key={o.id} className="flex items-center justify-between bg-white/5 p-3 rounded hover:bg-white/10 transition-colors">
+                        <div key={o.id} className="flex items-center justify-between bg-black/40 p-3 rounded hover:bg-black/60 transition-colors border border-white/5">
                             <div>
-                                <span className="text-white text-sm block font-bold">{o.customerName}</span>
+                                <span className="text-gray-200 text-sm block font-bold">{o.customerName}</span>
                                 <span className="text-gray-500 text-xs block">{o.items.length} article(s)</span>
                             </div>
                             <span className="text-white font-mono text-sm">{o.total.toLocaleString()} FCFA</span>
@@ -238,7 +397,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         <div className="flex justify-between items-center mb-6">
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                <input type="text" placeholder="Chercher un produit..." className="bg-black/50 border border-white/10 pl-10 pr-4 py-2 text-sm text-white focus:border-xeption-gold outline-none rounded-sm w-64" />
+                <input type="text" placeholder="Chercher un produit..." className="bg-[#18181b] border border-white/10 pl-10 pr-4 py-2 text-sm text-white focus:border-xeption-gold outline-none rounded-sm w-64 shadow-md" />
             </div>
             <button 
                 onClick={() => setEditingProduct({
@@ -246,22 +405,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     name: '',
                     description: '',
                     price: 0,
-                    category: 'accessory',
+                    category: 'phone',
                     image: 'https://via.placeholder.com/400',
                     images: [],
                     video: '',
                     stock: 0,
-                    isPromo: false
+                    isPromo: false,
+                    specs: [],
+                    pros: [],
+                    cons: []
                 })}
-                className="bg-xeption-gold text-black px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white transition-colors"
+                className="bg-xeption-gold text-black px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white transition-colors shadow-lg"
             >
                 <Plus className="w-4 h-4" /> Nouveau Produit
             </button>
         </div>
 
-        <div className="bg-black/40 border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl">
             <table className="w-full text-left border-collapse">
-                <thead className="bg-white/5 text-gray-400 text-xs uppercase font-bold tracking-wider">
+                <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
                     <tr>
                         <th className="px-6 py-4">Image</th>
                         <th className="px-6 py-4">Produit</th>
@@ -273,9 +435,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
                     {products.map(product => (
-                        <tr key={product.id} className="hover:bg-white/5 transition-colors group">
+                        <tr key={product.id} className="hover:bg-white/5 transition-colors group bg-[#18181b]">
                             <td className="px-6 py-4">
-                                <div className="w-12 h-12 bg-white/5 rounded p-1 overflow-hidden relative">
+                                <div className="w-12 h-12 bg-black rounded p-1 overflow-hidden relative border border-white/10">
                                     <img src={product.image} alt="" className="w-full h-full object-contain" />
                                 </div>
                             </td>
@@ -332,9 +494,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                  <div className="w-8 h-8 border-2 border-xeption-gold border-t-transparent rounded-full animate-spin"></div>
              </div>
         ) : (
-            <div className="bg-black/40 border border-white/10 rounded-sm overflow-hidden">
+            <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-white/5 text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
                         <tr>
                             <th className="px-6 py-4">ID / Date</th>
                             <th className="px-6 py-4">Client</th>
@@ -346,7 +508,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     </thead>
                     <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
                         {orders.map(order => (
-                            <tr key={order.id} className="hover:bg-white/5 transition-colors group">
+                            <tr key={order.id} className="hover:bg-white/5 transition-colors group bg-[#18181b]">
                                 <td className="px-6 py-4">
                                     <span className="font-bold text-white block text-xs font-mono mb-1">#{order.id}</span>
                                     <span className="text-gray-500 text-xs">{order.date}</span>
@@ -432,9 +594,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                  <div className="w-8 h-8 border-2 border-xeption-gold border-t-transparent rounded-full animate-spin"></div>
              </div>
         ) : (
-            <div className="bg-black/40 border border-white/10 rounded-sm overflow-hidden">
+            <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-white/5 text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
                         <tr>
                             <th className="px-6 py-4">Client</th>
                             <th className="px-6 py-4">Contacts</th>
@@ -445,7 +607,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     </thead>
                     <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
                         {customers.map(client => (
-                            <tr key={client.id} className="hover:bg-white/5 transition-colors group">
+                            <tr key={client.id} className="hover:bg-white/5 transition-colors group bg-[#18181b]">
                                 <td className="px-6 py-4">
                                     <span className="font-bold text-white block">{client.name}</span>
                                     <span className="text-xs text-gray-500">Depuis le {new Date(client.created_at || '').toLocaleDateString()}</span>
@@ -492,7 +654,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             <button 
                 onClick={() => setEditingStaff({
                     id: `new_${Date.now()}`,
-                    username: '', // Added username for new staff
+                    username: '',
                     name: '',
                     email: '',
                     password: '123456',
@@ -505,9 +667,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             </button>
         </div>
 
-        <div className="bg-black/40 border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl">
             <table className="w-full text-left border-collapse">
-                <thead className="bg-white/5 text-gray-400 text-xs uppercase font-bold tracking-wider">
+                <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
                     <tr>
                         <th className="px-6 py-4">Username</th>
                         <th className="px-6 py-4">Nom Réel</th>
@@ -518,7 +680,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
                     {staffMembers.map(staff => (
-                        <tr key={staff.id} className="hover:bg-white/5 transition-colors">
+                        <tr key={staff.id} className="hover:bg-white/5 transition-colors bg-[#18181b]">
                             <td className="px-6 py-4 font-mono text-xeption-gold font-bold">{staff.username}</td>
                             <td className="px-6 py-4 font-bold text-white">{staff.name}</td>
                             <td className="px-6 py-4">
@@ -544,9 +706,468 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         </div>
     </div>
   );
+  
+  const renderMarketing = () => (
+      <div className="animate-in fade-in">
+        <h3 className="text-xl text-white font-tech font-bold uppercase mb-6 flex items-center gap-2">
+            <Clapperboard className="w-5 h-5 text-xeption-gold" />
+            Studio Vidéo (Veo Beta)
+        </h3>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
+                 <h4 className="text-gray-300 font-bold uppercase text-xs mb-4">Prompt de génération</h4>
+                 <textarea 
+                    value={videoPrompt}
+                    onChange={(e) => setVideoPrompt(e.target.value)}
+                    className="w-full h-48 bg-[#09090b] border border-white/10 text-white p-4 focus:border-xeption-gold focus:bg-black outline-none resize-none leading-relaxed text-sm mb-4"
+                    placeholder="Décrivez votre vidéo ici..."
+                 />
+                 
+                 <div className="flex justify-between items-center">
+                     <span className="text-xs text-gray-500 italic">Modèle: veo-3.1-fast-generate-preview (1080p)</span>
+                     <button 
+                        onClick={handleVideoGeneration}
+                        disabled={generatingVideo || !videoPrompt}
+                        className="bg-xeption-gold text-black px-6 py-3 font-tech font-bold uppercase tracking-wider hover:bg-white transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                     >
+                        {generatingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
+                        {generatingVideo ? 'Génération...' : 'Générer Vidéo'}
+                     </button>
+                 </div>
+            </div>
+            
+            <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl flex flex-col items-center justify-center min-h-[300px]">
+                {generatingVideo ? (
+                    <div className="text-center">
+                        <div className="w-16 h-16 border-4 border-xeption-gold border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-xeption-gold font-tech uppercase tracking-widest animate-pulse">Création du chef d'œuvre...</p>
+                        <p className="text-gray-500 text-xs mt-2">Cela peut prendre quelques secondes.</p>
+                    </div>
+                ) : generatedVideoUrl ? (
+                    <div className="w-full">
+                        <div className="aspect-video bg-black rounded border border-white/10 overflow-hidden mb-4 relative group">
+                            <video src={generatedVideoUrl} controls className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex justify-center">
+                            <a 
+                                href={generatedVideoUrl} 
+                                download="xeption_promo.mp4"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xeption-gold hover:text-white font-bold uppercase text-xs tracking-widest flex items-center gap-2 border border-xeption-gold/30 hover:bg-xeption-gold hover:text-black px-4 py-2 transition-colors rounded-sm"
+                            >
+                                <Download className="w-4 h-4" /> Télécharger MP4
+                            </a>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center text-gray-600">
+                        <Clapperboard className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                        <p className="uppercase font-bold text-xs tracking-widest">Aucune vidéo générée</p>
+                    </div>
+                )}
+            </div>
+        </div>
+      </div>
+  );
 
+  // RENDER FULL PAGE EDITOR
+  if (editingProduct) {
+      return (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 min-h-screen animate-in slide-in-from-right duration-300 relative z-10">
+             
+             {/* EDITOR EDITOR BACKGROUND FIX - Blocks the video */}
+             <div className="fixed inset-0 bg-[#09090b] z-[-1]" />
+
+             {/* Editor Header */}
+             <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-6 sticky top-20 bg-[#09090b] z-20 pt-4 shadow-xl">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => setEditingProduct(null)}
+                        className="p-2 border border-white/10 rounded-full hover:bg-white hover:text-black transition-colors"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div>
+                        <h2 className="text-2xl font-bold text-white font-tech uppercase">
+                            {editingProduct.id.startsWith('new_') ? 'Nouveau Produit' : 'Édition Produit'}
+                        </h2>
+                        <p className="text-gray-400 text-xs">Configurez les détails, specs et médias.</p>
+                    </div>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                    <button 
+                        type="button"
+                        onClick={() => setEditingProduct(null)}
+                        className="px-6 py-3 text-gray-400 hover:text-white transition-colors font-bold uppercase text-xs tracking-widest"
+                    >
+                        Annuler
+                    </button>
+                    <button 
+                        onClick={handleSaveProduct}
+                        className="px-8 py-3 bg-white text-black font-tech font-bold uppercase tracking-wider hover:bg-xeption-gold transition-colors shadow-lg flex items-center gap-2"
+                    >
+                        <Check className="w-4 h-4" /> Sauvegarder
+                    </button>
+                </div>
+             </div>
+
+             <form className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20">
+                
+                {/* Left Column: Main Info */}
+                <div className="lg:col-span-2 space-y-8">
+                    
+                    {/* Basic Info Card - Solid Dark Background */}
+                    <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
+                        <h3 className="text-white font-bold uppercase text-sm mb-6 flex items-center gap-2">
+                            <Box className="w-4 h-4 text-xeption-gold" /> Informations Générales
+                        </h3>
+                        
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Nom du produit</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={editingProduct.name}
+                                        onChange={e => setEditingProduct({...editingProduct, name: e.target.value})}
+                                        className="flex-1 bg-[#09090b] border border-white/10 text-white p-3 focus:border-xeption-gold focus:bg-black outline-none text-lg font-bold placeholder-gray-700"
+                                        placeholder="Ex: Samsung Galaxy S24 Ultra"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAiGeneration}
+                                        disabled={isGenerating || !editingProduct.name}
+                                        className="px-4 bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600 hover:text-white transition-all flex items-center gap-2 font-bold uppercase text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Remplir auto avec IA"
+                                    >
+                                        {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        <span className="hidden sm:inline">{isGenerating ? 'Génération...' : 'Auto-Fill IA'}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Prix (FCFA)</label>
+                                    <input 
+                                        type="number" 
+                                        required
+                                        value={editingProduct.price}
+                                        onChange={e => setEditingProduct({...editingProduct, price: parseInt(e.target.value) || 0})}
+                                        className="w-full bg-[#09090b] border border-white/10 text-white p-3 focus:border-xeption-gold focus:bg-black outline-none font-mono text-lg"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Stock</label>
+                                    <input 
+                                        type="number" 
+                                        required
+                                        value={editingProduct.stock}
+                                        onChange={e => setEditingProduct({...editingProduct, stock: parseInt(e.target.value) || 0})}
+                                        className="w-full bg-[#09090b] border border-white/10 text-white p-3 focus:border-xeption-gold focus:bg-black outline-none font-mono text-lg"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Catégorie</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    {['phone', 'computer', 'accessory', 'consumable'].map(cat => (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => setEditingProduct({...editingProduct, category: cat as any})}
+                                            className={`py-2 px-3 text-xs font-bold uppercase tracking-wider border transition-all ${
+                                                editingProduct.category === cat 
+                                                ? 'bg-white text-black border-white' 
+                                                : 'bg-[#27272a] text-gray-400 border-white/5 hover:border-white/30 hover:text-white'
+                                            }`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Description & Marketing - Solid Dark Background */}
+                    <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
+                        <h3 className="text-white font-bold uppercase text-sm mb-6 flex items-center gap-2">
+                            <Tag className="w-4 h-4 text-blue-400" /> Marketing & Contenu
+                        </h3>
+                        
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Description "Tape à l'œil"</label>
+                                <textarea 
+                                    value={editingProduct.description}
+                                    onChange={e => setEditingProduct({...editingProduct, description: e.target.value})}
+                                    className="w-full bg-[#09090b] border border-white/10 text-white p-4 focus:border-xeption-gold focus:bg-black outline-none h-32 resize-none leading-relaxed"
+                                    placeholder="Une description qui donne envie d'acheter..."
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Verdict Court (Review Short)</label>
+                                <input 
+                                    type="text" 
+                                    value={editingProduct.reviewShort || ''}
+                                    onChange={e => setEditingProduct({...editingProduct, reviewShort: e.target.value})}
+                                    className="w-full bg-[#09090b] border border-white/10 text-white p-3 focus:border-xeption-gold focus:bg-black outline-none italic text-gray-300"
+                                    placeholder="Ex: Le meilleur rapport qualité/prix de l'année."
+                                />
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Pros */}
+                                <div>
+                                    <label className="block text-xs text-green-500 uppercase font-bold mb-2 flex items-center gap-2"><Check className="w-3 h-3" /> On Valide (Pros)</label>
+                                    <div className="space-y-2">
+                                        {(editingProduct.pros || []).map((pro, idx) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    value={pro}
+                                                    onChange={(e) => handleArrayFieldChange('pros', idx, e.target.value)}
+                                                    className="flex-1 bg-[#09090b] border border-white/10 text-white p-2 text-xs focus:border-green-500 outline-none"
+                                                />
+                                                <button type="button" onClick={() => handleRemoveArrayField('pros', idx)} className="text-red-500 p-1 hover:bg-white/5"><X className="w-3 h-3" /></button>
+                                            </div>
+                                        ))}
+                                        <button type="button" onClick={() => handleAddArrayField('pros')} className="text-xs text-green-500 hover:underline flex items-center gap-1 mt-1">+ Ajouter</button>
+                                    </div>
+                                </div>
+
+                                {/* Cons */}
+                                <div>
+                                    <label className="block text-xs text-red-500 uppercase font-bold mb-2 flex items-center gap-2"><X className="w-3 h-3" /> On Aime Moins (Cons)</label>
+                                    <div className="space-y-2">
+                                        {(editingProduct.cons || []).map((con, idx) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    value={con}
+                                                    onChange={(e) => handleArrayFieldChange('cons', idx, e.target.value)}
+                                                    className="flex-1 bg-[#09090b] border border-white/10 text-white p-2 text-xs focus:border-red-500 outline-none"
+                                                />
+                                                <button type="button" onClick={() => handleRemoveArrayField('cons', idx)} className="text-red-500 p-1 hover:bg-white/5"><X className="w-3 h-3" /></button>
+                                            </div>
+                                        ))}
+                                        <button type="button" onClick={() => handleAddArrayField('cons')} className="text-xs text-red-500 hover:underline flex items-center gap-1 mt-1">+ Ajouter</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* Specs Technical - Solid Dark Background */}
+                    <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-white font-bold uppercase text-sm flex items-center gap-2">
+                                <List className="w-4 h-4 text-purple-400" /> Spécifications Techniques
+                            </h3>
+                            <button type="button" onClick={handleAddSpec} className="text-xs bg-white/10 hover:bg-white hover:text-black px-2 py-1 transition-colors uppercase font-bold">+ Ajouter Spec</button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            {(editingProduct.specs || []).map((spec, idx) => (
+                                <div key={idx} className="flex gap-4 items-center group">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Label (ex: Processeur)"
+                                        value={spec.label}
+                                        onChange={(e) => handleSpecChange(idx, 'label', e.target.value)}
+                                        className="w-1/3 bg-[#09090b] border border-white/10 text-gray-400 p-2 text-xs focus:border-purple-500 outline-none font-bold uppercase"
+                                    />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Valeur (ex: M2 Pro)"
+                                        value={spec.value}
+                                        onChange={(e) => handleSpecChange(idx, 'value', e.target.value)}
+                                        className="flex-1 bg-[#09090b] border border-white/10 text-white p-2 text-xs focus:border-purple-500 outline-none"
+                                    />
+                                    <button type="button" onClick={() => handleRemoveSpec(idx)} className="text-gray-600 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity"><Minus className="w-4 h-4" /></button>
+                                </div>
+                            ))}
+                            {(!editingProduct.specs || editingProduct.specs.length === 0) && (
+                                <p className="text-gray-600 text-xs italic text-center py-4">Aucune spécification technique. Utilisez l'IA pour générer.</p>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
+
+                {/* Right Column: Media & Meta */}
+                <div className="space-y-8">
+                     
+                     {/* Media Manager - Solid Dark Background */}
+                     <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm sticky top-32 shadow-xl">
+                        <h3 className="text-white font-bold uppercase text-sm mb-6 flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-pink-500" /> Galerie Média
+                        </h3>
+
+                        <div className="space-y-6">
+                            
+                            {/* Main Image */}
+                            <div>
+                                <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Image Principale</label>
+                                <div className="mb-2 w-full aspect-video bg-black rounded border border-white/10 overflow-hidden flex items-center justify-center relative group">
+                                    {editingProduct.image ? (
+                                        <img src={editingProduct.image} className="w-full h-full object-contain" />
+                                    ) : (
+                                        <ImageIcon className="text-gray-700 w-12 h-12" />
+                                    )}
+                                    {uploadingImage && (
+                                        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10">
+                                            <Loader2 className="w-8 h-8 text-xeption-gold animate-spin" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={editingProduct.image}
+                                        onChange={e => setEditingProduct({...editingProduct, image: e.target.value})}
+                                        className="flex-1 bg-[#09090b] border border-white/10 text-white p-2 text-xs focus:border-xeption-gold outline-none"
+                                        placeholder="URL ou Upload..."
+                                    />
+                                    <input 
+                                        type="file" 
+                                        ref={mainImageInputRef} 
+                                        onChange={handleMainImageUpload} 
+                                        className="hidden" 
+                                        accept="image/*"
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => mainImageInputRef.current?.click()}
+                                        className="bg-white/10 hover:bg-white/20 p-2 rounded text-white"
+                                        title="Uploader une image"
+                                    >
+                                        <Upload className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Video */}
+                            <div>
+                                <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Vidéo (Cloudinary)</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={editingProduct.video || ''}
+                                        onChange={e => setEditingProduct({...editingProduct, video: e.target.value})}
+                                        className="flex-1 bg-[#09090b] border border-white/10 text-white p-2 text-xs focus:border-xeption-gold outline-none"
+                                        placeholder="https://..."
+                                    />
+                                    <input 
+                                        type="file" 
+                                        ref={videoInputRef} 
+                                        onChange={handleVideoUpload} 
+                                        className="hidden" 
+                                        accept="video/*"
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => videoInputRef.current?.click()}
+                                        className="bg-white/10 hover:bg-white/20 p-2 rounded text-white flex items-center gap-1"
+                                        title="Uploader une vidéo"
+                                        disabled={uploadingVideo}
+                                    >
+                                        {uploadingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Gallery Images */}
+                            <div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="block text-xs text-gray-400 uppercase font-bold">Images Galerie ({editingProduct.images?.length || 0})</label>
+                                    {uploadingGallery && <span className="text-xs text-xeption-gold flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> Upload...</span>}
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 mb-2">
+                                    {(editingProduct.images || []).map((img, idx) => (
+                                        <div key={idx} className="aspect-square bg-black border border-white/10 relative group">
+                                            <img src={img} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleRemoveImage(idx)}
+                                                className="absolute top-0 right-0 bg-red-500 text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    
+                                    <input 
+                                        type="file" 
+                                        ref={galleryInputRef} 
+                                        onChange={handleGalleryUpload} 
+                                        className="hidden" 
+                                        accept="image/*"
+                                        multiple
+                                    />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => galleryInputRef.current?.click()}
+                                        className="aspect-square bg-[#09090b] border border-white/10 border-dashed flex items-center justify-center hover:bg-white/10 transition-colors text-gray-500 hover:text-white"
+                                    >
+                                        <Upload className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                     </div>
+
+                     {/* Promo Manager */}
+                     <div className="bg-xeption-gold/5 border border-xeption-gold/20 p-6 rounded-sm shadow-xl">
+                        <h3 className="text-xeption-gold font-bold uppercase text-sm mb-4 flex items-center gap-2">
+                            <Tag className="w-4 h-4" /> Offre Spéciale
+                        </h3>
+                        
+                        <label className="flex items-center gap-3 cursor-pointer mb-4">
+                            <input 
+                                type="checkbox" 
+                                checked={editingProduct.isPromo || false}
+                                onChange={e => setEditingProduct({...editingProduct, isPromo: e.target.checked})}
+                                className="w-5 h-5 accent-xeption-gold rounded cursor-pointer"
+                            />
+                            <span className="text-white text-sm font-bold">Activer la Promo</span>
+                        </label>
+                        
+                        {editingProduct.isPromo && (
+                            <div className="animate-in slide-in-from-top-2">
+                                    <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Ancien Prix (barré)</label>
+                                    <input 
+                                    type="number" 
+                                    value={editingProduct.oldPrice || ''}
+                                    onChange={e => setEditingProduct({...editingProduct, oldPrice: parseInt(e.target.value)})}
+                                    className="w-full bg-[#09090b] border border-white/10 text-white p-2 focus:border-xeption-gold outline-none font-mono"
+                                    placeholder="Ex: 100000"
+                                />
+                            </div>
+                        )}
+                     </div>
+
+                </div>
+
+             </form>
+          </div>
+      );
+  }
+
+  // RENDER NORMAL DASHBOARD
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 min-h-screen relative z-10">
+        
+        {/* DASHBOARD BACKGROUND FIX - Blocks the video */}
+        <div className="fixed inset-0 bg-[#09090b] z-[-1]" />
       
       {/* Admin Header */}
       <div className="flex flex-col md:flex-row justify-between items-end mb-10 border-b border-white/10 pb-6">
@@ -555,13 +1176,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 <div className="h-8 w-1 bg-xeption-red"></div>
                 <h2 className="text-4xl font-bold text-white font-tech uppercase">Staff Portal <span className="text-gray-600 text-lg align-middle ml-2">Manager</span></h2>
             </div>
-            <p className="text-gray-500 text-sm">Gérez le stock, les commandes et le catalogue en temps réel.</p>
+            <p className="text-gray-400 text-sm">Gérez le stock, les commandes et le catalogue en temps réel.</p>
           </div>
           
-          <div className="flex bg-black/50 border border-white/10 rounded-sm p-1 mt-4 md:mt-0 overflow-x-auto">
+          <div className="flex bg-[#18181b] border border-white/10 rounded-sm p-1 mt-4 md:mt-0 overflow-x-auto shadow-lg">
             {[
                 { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
                 { id: 'inventory', label: 'Inventaire', icon: Package },
+                { id: 'marketing', label: 'Studio Vidéo', icon: Clapperboard },
                 { id: 'orders', label: 'Commandes', icon: ShoppingBag },
                 { id: 'clients', label: 'Clients (CRM)', icon: Users },
                 { id: 'staff', label: 'Staff & Rôles', icon: Key },
@@ -581,205 +1203,34 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       {/* Content Area */}
       {activeTab === 'dashboard' && renderDashboard()}
       {activeTab === 'inventory' && renderInventory()}
+      {activeTab === 'marketing' && renderMarketing()}
       {activeTab === 'orders' && renderOrders()}
       {activeTab === 'clients' && renderClients()}
       {activeTab === 'staff' && renderStaff()}
 
-
-      {/* EDIT PRODUCT MODAL */}
-      {editingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-[#111] border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm shadow-2xl flex flex-col">
-                <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-[#111] z-10">
-                    <h3 className="text-xl font-bold text-white font-tech uppercase">
-                        {products.find(p => p.id === editingProduct.id) ? 'Modifier Produit' : 'Nouveau Produit'}
-                    </h3>
-                    <button onClick={() => setEditingProduct(null)} className="text-gray-500 hover:text-white"><X className="w-6 h-6" /></button>
-                </div>
-                
-                <form onSubmit={handleSaveProduct} className="p-8 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="md:col-span-2">
-                            <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Nom du produit</label>
-                            <input 
-                                type="text" 
-                                required
-                                value={editingProduct.name}
-                                onChange={e => setEditingProduct({...editingProduct, name: e.target.value})}
-                                className="w-full bg-black/50 border border-white/10 text-white p-3 focus:border-xeption-gold outline-none"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Prix (FCFA)</label>
-                            <input 
-                                type="number" 
-                                required
-                                value={editingProduct.price}
-                                onChange={e => setEditingProduct({...editingProduct, price: parseInt(e.target.value) || 0})}
-                                className="w-full bg-black/50 border border-white/10 text-white p-3 focus:border-xeption-gold outline-none font-mono"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Stock</label>
-                            <input 
-                                type="number" 
-                                required
-                                value={editingProduct.stock}
-                                onChange={e => setEditingProduct({...editingProduct, stock: parseInt(e.target.value) || 0})}
-                                className="w-full bg-black/50 border border-white/10 text-white p-3 focus:border-xeption-gold outline-none font-mono"
-                            />
-                        </div>
-                        
-                        <div>
-                            <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Catégorie</label>
-                            <select 
-                                value={editingProduct.category}
-                                onChange={e => setEditingProduct({...editingProduct, category: e.target.value as any})}
-                                className="w-full bg-black/50 border border-white/10 text-white p-3 focus:border-xeption-gold outline-none appearance-none"
-                            >
-                                <option value="phone">Smartphone</option>
-                                <option value="computer">Ordinateur</option>
-                                <option value="accessory">Accessoire</option>
-                                <option value="consumable">Consommable</option>
-                            </select>
-                        </div>
-
-                        <div className="md:col-span-2 space-y-4 border-t border-white/10 pt-4">
-                             <h4 className="text-white font-bold uppercase text-sm">Galerie & Média</h4>
-                             
-                             <div>
-                                <label className="block text-xs text-gray-500 uppercase font-bold mb-2 flex items-center gap-2"><ImageIcon className="w-3 h-3 text-xeption-gold" /> Image Principale (URL)</label>
-                                <div className="flex gap-4">
-                                    <input 
-                                        type="text" 
-                                        value={editingProduct.image}
-                                        onChange={e => setEditingProduct({...editingProduct, image: e.target.value})}
-                                        className="flex-1 bg-black/50 border border-white/10 text-white p-3 focus:border-xeption-gold outline-none text-xs"
-                                        placeholder="https://..."
-                                    />
-                                    <div className="w-12 h-12 bg-white/5 border border-white/10 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                        {editingProduct.image ? <img src={editingProduct.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-gray-600" />}
-                                    </div>
-                                </div>
-                             </div>
-
-                             <div>
-                                <label className="block text-xs text-gray-500 uppercase font-bold mb-2 flex items-center gap-2"><Video className="w-3 h-3 text-blue-500" /> Vidéo (URL MP4)</label>
-                                <input 
-                                    type="text" 
-                                    value={editingProduct.video || ''}
-                                    onChange={e => setEditingProduct({...editingProduct, video: e.target.value})}
-                                    className="w-full bg-black/50 border border-white/10 text-white p-3 focus:border-xeption-gold outline-none text-xs"
-                                    placeholder="https://.../video.mp4"
-                                />
-                             </div>
-
-                             <div>
-                                 <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Images Supplémentaires</label>
-                                 <div className="space-y-2">
-                                     {(editingProduct.images || []).map((img, idx) => (
-                                         <div key={idx} className="flex gap-2">
-                                             <input 
-                                                type="text" 
-                                                value={img}
-                                                onChange={(e) => handleImageChange(idx, e.target.value)}
-                                                className="flex-1 bg-black/50 border border-white/10 text-white p-2 text-xs focus:border-xeption-gold outline-none"
-                                             />
-                                             <button type="button" onClick={() => handleRemoveImage(idx)} className="text-red-500 hover:text-red-400 p-2"><X className="w-4 h-4" /></button>
-                                         </div>
-                                     ))}
-                                     <button type="button" onClick={handleAddImage} className="text-xs text-xeption-gold hover:underline flex items-center gap-1">+ Ajouter une image</button>
-                                 </div>
-                             </div>
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <label className="block text-xs text-gray-500 uppercase font-bold mb-2">Description courte</label>
-                            <textarea 
-                                value={editingProduct.description}
-                                onChange={e => setEditingProduct({...editingProduct, description: e.target.value})}
-                                className="w-full bg-black/50 border border-white/10 text-white p-3 focus:border-xeption-gold outline-none h-24 resize-none"
-                            />
-                        </div>
-
-                        <div className="md:col-span-2 bg-xeption-gold/5 border border-xeption-gold/20 p-4 rounded-sm">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Tag className="w-4 h-4 text-xeption-gold" />
-                                <span className="text-xeption-gold font-bold uppercase text-sm">Gestion Promo</span>
-                            </div>
-                            <div className="flex items-center gap-8">
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={editingProduct.isPromo || false}
-                                        onChange={e => setEditingProduct({...editingProduct, isPromo: e.target.checked})}
-                                        className="w-5 h-5 accent-xeption-gold rounded cursor-pointer"
-                                    />
-                                    <span className="text-white text-sm font-bold">Activer Promo</span>
-                                </label>
-                                
-                                {editingProduct.isPromo && (
-                                    <div className="flex-1">
-                                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Ancien Prix (barré)</label>
-                                         <input 
-                                            type="number" 
-                                            value={editingProduct.oldPrice || ''}
-                                            onChange={e => setEditingProduct({...editingProduct, oldPrice: parseInt(e.target.value)})}
-                                            className="w-full bg-black/50 border border-white/10 text-white p-2 focus:border-xeption-gold outline-none font-mono"
-                                            placeholder="Ex: 100000"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div className="flex justify-end gap-4 pt-6 border-t border-white/10">
-                        <button 
-                            type="button"
-                            onClick={() => setEditingProduct(null)}
-                            className="px-6 py-3 text-gray-400 hover:text-white transition-colors font-bold uppercase text-xs tracking-widest"
-                        >
-                            Annuler
-                        </button>
-                        <button 
-                            type="submit"
-                            className="px-8 py-3 bg-white text-black font-tech font-bold uppercase tracking-wider hover:bg-xeption-gold transition-colors shadow-lg"
-                        >
-                            Sauvegarder
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-      )}
-
-      {/* EDIT STAFF MODAL */}
+      {/* EDIT STAFF MODAL (Keep minimal modal for staff only) */}
       {editingStaff && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-             <div className="bg-[#111] border border-white/10 w-full max-w-md p-6 rounded-sm shadow-2xl">
+             <div className="bg-[#18181b] border border-white/10 w-full max-w-md p-6 rounded-sm shadow-2xl">
                  <h3 className="text-xl font-bold text-white font-tech uppercase mb-6">
                      {editingStaff.id.startsWith('new_') ? 'Nouveau Membre' : 'Modifier Membre'}
                  </h3>
                  <form onSubmit={handleSaveStaff} className="space-y-4">
                      <div>
-                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Username (Login)</label>
-                         <input required type="text" value={editingStaff.username} onChange={e => setEditingStaff({...editingStaff, username: e.target.value})} className="w-full bg-black/50 border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>
+                         <label className="block text-xs text-gray-400 uppercase font-bold mb-1">Username (Login)</label>
+                         <input required type="text" value={editingStaff.username} onChange={e => setEditingStaff({...editingStaff, username: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>
                      </div>
                      <div>
-                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Nom complet (Réel)</label>
-                         <input required type="text" value={editingStaff.name} onChange={e => setEditingStaff({...editingStaff, name: e.target.value})} className="w-full bg-black/50 border border-white/10 p-2 text-white outline-none focus:border-xeption-gold"/>
+                         <label className="block text-xs text-gray-400 uppercase font-bold mb-1">Nom complet (Réel)</label>
+                         <input required type="text" value={editingStaff.name} onChange={e => setEditingStaff({...editingStaff, name: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold"/>
                      </div>
                      <div>
-                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1 flex items-center gap-1"><Key className="w-3 h-3" /> Mot de Passe</label>
-                         <input required type="text" value={editingStaff.password || ''} onChange={e => setEditingStaff({...editingStaff, password: e.target.value})} className="w-full bg-black/50 border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>
+                         <label className="block text-xs text-gray-400 uppercase font-bold mb-1 flex items-center gap-1"><Key className="w-3 h-3" /> Mot de Passe</label>
+                         <input required type="text" value={editingStaff.password || ''} onChange={e => setEditingStaff({...editingStaff, password: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>
                      </div>
                      <div>
-                         <label className="block text-xs text-gray-500 uppercase font-bold mb-1">Rôle</label>
-                         <select value={editingStaff.role} onChange={e => setEditingStaff({...editingStaff, role: e.target.value as any})} className="w-full bg-black/50 border border-white/10 p-2 text-white outline-none focus:border-xeption-gold">
+                         <label className="block text-xs text-gray-400 uppercase font-bold mb-1">Rôle</label>
+                         <select value={editingStaff.role} onChange={e => setEditingStaff({...editingStaff, role: e.target.value as any})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold">
                              <option value="admin">Administrateur</option>
                              <option value="manager">Manager</option>
                              <option value="editor">Éditeur</option>

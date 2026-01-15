@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard } from 'lucide-react';
-import { Product, Order, Staff, Customer } from '../types';
+import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard, Printer, CreditCard, Calculator, Wrench, ShieldCheck } from 'lucide-react';
+import { Product, Order, Staff, Customer, CartItem } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { generateProductDetails, generateMarketingVideo } from '../services/geminiService';
 import { uploadImageToCloudinary, uploadVideoToCloudinary } from '../services/uploadService';
+import { generateInvoiceHTML } from '../utils/invoiceGenerator';
+import RepairTicketManagement from './RepairTicketManagement';
 
 interface AdminPanelProps {
   products: Product[];
@@ -12,7 +14,7 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav'>('dashboard');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
   // Orders State
@@ -26,6 +28,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   // Clients State
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
+
+  // POS State
+  const [posCart, setPosCart] = useState<CartItem[]>([]);
+  const [posSearch, setPosSearch] = useState('');
+  const [posCustomer, setPosCustomer] = useState({ name: '', phone: '', email: '' });
+  const [posPaymentMethod, setPosPaymentMethod] = useState<'CASH' | 'OM' | 'MOMO'>('CASH');
 
   // AI Generation State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -78,7 +86,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
               items: o.items,
               total: o.total,
               status: o.status,
-              paymentMethod: o.customer_city?.includes('Retrait') ? 'CASH' : o.payment_method, // Fallback logic if needed
+              paymentMethod: o.payment_method, 
               customerName: o.customer_name,
               customerEmail: o.customer_email,
               customerPhone: o.customer_phone,
@@ -106,6 +114,136 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       }
       setLoadingCustomers(false);
   };
+
+  // --- POS Logic ---
+
+  const addToPosCart = (product: Product) => {
+    setPosCart(prev => {
+      const exists = prev.find(item => item.id === product.id);
+      if (exists) {
+        return prev.map(item => 
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prev, { ...product, quantity: 1 }];
+    });
+  };
+
+  const removeFromPosCart = (id: string) => {
+    setPosCart(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updatePosQuantity = (id: string, delta: number) => {
+      setPosCart(prev => prev.map(item => {
+          if (item.id === id) {
+              const newQty = Math.max(1, item.quantity + delta);
+              return { ...item, quantity: newQty };
+          }
+          return item;
+      }));
+  };
+
+  const handlePosSubmit = async () => {
+      if (posCart.length === 0) return alert("Panier vide");
+      if (!posCustomer.name) return alert("Nom du client requis");
+
+      if (!confirm("Valider la vente et imprimer la facture ?")) return;
+
+      const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
+      const dbDate = new Date().toISOString();
+
+      try {
+          // 1. Create Order
+          const { error: orderError } = await supabase.from('orders').insert([{
+              id: newOrderId,
+              customer_name: posCustomer.name,
+              customer_email: posCustomer.email,
+              customer_phone: posCustomer.phone,
+              customer_city: 'Retrait Boutique (POS)',
+              delivery_mode: 'pickup',
+              total: total,
+              status: 'delivered', // Delivered immediately
+              payment_method: posPaymentMethod,
+              items: posCart,
+              date: dbDate
+          }]);
+
+          if (orderError) throw orderError;
+
+          // 2. Update Stock
+          for (const item of posCart) {
+              const product = products.find(p => p.id === item.id);
+              if (product) {
+                  const newStock = Math.max(0, product.stock - item.quantity);
+                  await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
+                  // Update local state to reflect stock change immediately
+                  onUpdateProducts(products.map(p => p.id === item.id ? { ...p, stock: newStock } : p));
+              }
+          }
+
+          // 3. Update/Create Customer
+           if (posCustomer.phone || posCustomer.email) {
+            // Simple check by phone first usually for POS, but email is cleaner for unique ID if available.
+            // Here we just insert log for simplicity or update based on email if provided
+            if (posCustomer.email) {
+                 const { data: existing } = await supabase.from('customers').select('*').eq('email', posCustomer.email).single();
+                 if (existing) {
+                      await supabase.from('customers').update({ 
+                          total_orders: (existing.total_orders || 0) + 1,
+                          total_spent: (existing.total_spent || 0) + total,
+                      }).eq('email', posCustomer.email);
+                 } else {
+                      await supabase.from('customers').insert([{
+                          id: crypto.randomUUID(),
+                          name: posCustomer.name,
+                          email: posCustomer.email,
+                          phone: posCustomer.phone,
+                          city: 'Yaoundé',
+                          total_orders: 1,
+                          total_spent: total
+                      }]);
+                 }
+            }
+          }
+
+          // 4. Print Invoice
+          const invoiceData = {
+              id: newOrderId,
+              items: posCart,
+              total: total,
+              status: 'delivered',
+              paymentMethod: posPaymentMethod,
+              customerName: posCustomer.name,
+              customerEmail: posCustomer.email,
+              customerPhone: posCustomer.phone,
+              customerCity: 'Retrait Boutique',
+              deliveryMode: 'pickup',
+              date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          };
+
+          const html = generateInvoiceHTML(invoiceData as any);
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+              printWindow.document.write(html);
+              printWindow.document.close();
+              printWindow.focus();
+              setTimeout(() => {
+                  printWindow.print();
+                  printWindow.close();
+              }, 500);
+          }
+
+          // Reset POS
+          setPosCart([]);
+          setPosCustomer({ name: '', phone: '', email: '' });
+          alert("Vente enregistrée avec succès !");
+
+      } catch (err: any) {
+          alert("Erreur POS: " + err.message);
+      }
+  };
+
 
   // --- Product Handlers ---
 
@@ -397,6 +535,145 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     </>
   );
 
+  const renderPOS = () => {
+    const filteredProducts = products.filter(p => p.name.toLowerCase().includes(posSearch.toLowerCase()));
+    const posTotal = posCart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+    return (
+      <div className="animate-in fade-in h-[calc(100vh-200px)] grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Left: Product Catalog */}
+          <div className="lg:col-span-2 bg-[#18181b] border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
+             <div className="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center">
+                 <h3 className="text-white font-bold uppercase text-sm flex items-center gap-2">
+                    <Box className="w-4 h-4 text-blue-400" /> Catalogue Boutique
+                 </h3>
+                 <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                    <input 
+                        type="text" 
+                        value={posSearch}
+                        onChange={(e) => setPosSearch(e.target.value)}
+                        placeholder="Scanner ou chercher..." 
+                        className="bg-black/50 border border-white/10 pl-10 pr-4 py-2 text-sm text-white focus:border-xeption-gold outline-none rounded-sm w-64"
+                        autoFocus
+                    />
+                 </div>
+             </div>
+             
+             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start">
+                 {filteredProducts.map(p => (
+                     <button 
+                        key={p.id}
+                        onClick={() => addToPosCart(p)}
+                        className="bg-black/40 border border-white/5 p-3 rounded-sm hover:border-xeption-gold/50 hover:bg-white/5 transition-all text-left group flex flex-col h-full"
+                        disabled={p.stock <= 0}
+                     >
+                        <div className="aspect-square bg-black rounded-sm mb-2 overflow-hidden relative">
+                             <img src={p.image} className="w-full h-full object-cover opacity-80 group-hover:opacity-100" />
+                             {p.stock <= 0 && <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-xs text-red-500 font-bold uppercase">Rupture</div>}
+                             <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] text-white font-mono font-bold">
+                                {p.price.toLocaleString()}
+                             </div>
+                        </div>
+                        <h4 className="text-xs font-bold text-gray-200 line-clamp-2 mb-1">{p.name}</h4>
+                        <span className="text-[10px] text-gray-500 mt-auto">Stock: {p.stock}</span>
+                     </button>
+                 ))}
+             </div>
+          </div>
+
+          {/* Right: Cart & Checkout */}
+          <div className="bg-[#18181b] border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-white/10 bg-black/40">
+                  <h3 className="text-white font-bold uppercase text-sm flex items-center gap-2">
+                    <ShoppingBag className="w-4 h-4 text-xeption-gold" /> Panier Comptoir
+                 </h3>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  {posCart.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-2 opacity-50">
+                          <Calculator className="w-12 h-12" />
+                          <p className="text-xs uppercase font-bold">En attente d'articles...</p>
+                      </div>
+                  ) : (
+                      posCart.map(item => (
+                          <div key={item.id} className="flex justify-between items-center bg-black/40 p-3 rounded-sm border border-white/5">
+                              <div className="flex-1">
+                                  <div className="text-xs font-bold text-white line-clamp-1">{item.name}</div>
+                                  <div className="text-[10px] text-gray-500">{item.price.toLocaleString()} x {item.quantity}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                  <div className="flex items-center bg-black border border-white/10 rounded">
+                                      <button onClick={() => updatePosQuantity(item.id, -1)} className="p-1 hover:text-white text-gray-500"><Minus className="w-3 h-3"/></button>
+                                      <span className="w-6 text-center text-xs font-mono">{item.quantity}</span>
+                                      <button onClick={() => updatePosQuantity(item.id, 1)} className="p-1 hover:text-white text-gray-500"><Plus className="w-3 h-3"/></button>
+                                  </div>
+                                  <button onClick={() => removeFromPosCart(item.id)} className="text-red-500/50 hover:text-red-500"><X className="w-4 h-4"/></button>
+                              </div>
+                          </div>
+                      ))
+                  )}
+              </div>
+
+              <div className="p-4 bg-black/20 border-t border-white/10 space-y-4">
+                  
+                  {/* Customer Info Mini Form */}
+                  <div className="space-y-2">
+                      <input 
+                        type="text" 
+                        placeholder="Nom du Client *" 
+                        className="w-full bg-black/50 border border-white/10 px-3 py-2 text-xs text-white focus:border-xeption-gold outline-none rounded-sm"
+                        value={posCustomer.name}
+                        onChange={e => setPosCustomer({...posCustomer, name: e.target.value})}
+                      />
+                       <input 
+                        type="text" 
+                        placeholder="Tél / Email (Optionnel)" 
+                        className="w-full bg-black/50 border border-white/10 px-3 py-2 text-xs text-white focus:border-xeption-gold outline-none rounded-sm"
+                        value={posCustomer.phone}
+                        onChange={e => setPosCustomer({...posCustomer, phone: e.target.value})}
+                      />
+                  </div>
+
+                  {/* Payment Method Selector */}
+                  <div className="grid grid-cols-3 gap-2">
+                      {['CASH', 'OM', 'MOMO'].map(m => (
+                          <button
+                            key={m}
+                            onClick={() => setPosPaymentMethod(m as any)}
+                            className={`py-2 text-[10px] font-bold uppercase border rounded-sm transition-all ${
+                                posPaymentMethod === m 
+                                ? 'bg-xeption-gold text-black border-xeption-gold' 
+                                : 'bg-transparent text-gray-500 border-white/10 hover:border-white/30'
+                            }`}
+                          >
+                              {m}
+                          </button>
+                      ))}
+                  </div>
+
+                  {/* Total & Action */}
+                  <div className="pt-2 border-t border-white/10">
+                      <div className="flex justify-between items-end mb-4">
+                          <span className="text-gray-400 text-xs font-bold uppercase">Total à Payer</span>
+                          <span className="text-2xl font-bold font-mono text-white">{posTotal.toLocaleString()} <span className="text-sm text-xeption-gold">FCFA</span></span>
+                      </div>
+                      
+                      <button 
+                        onClick={handlePosSubmit}
+                        className="w-full bg-green-600 hover:bg-green-500 text-white font-bold uppercase py-4 rounded-sm shadow-lg flex items-center justify-center gap-2 transition-all"
+                      >
+                          <Printer className="w-5 h-5" /> Valider & Imprimer
+                      </button>
+                  </div>
+              </div>
+          </div>
+      </div>
+    );
+  };
+
   const renderInventory = () => (
     <div className="animate-in fade-in">
         <div className="flex justify-between items-center mb-6">
@@ -418,7 +695,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     isPromo: false,
                     specs: [],
                     pros: [],
-                    cons: []
+                    cons: [],
+                    warrantyMonths: 0
                 })}
                 className="bg-xeption-gold text-black px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white transition-colors shadow-lg"
             >
@@ -493,7 +771,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             <ShoppingBag className="w-5 h-5 text-xeption-gold" />
             Gestion des Commandes
         </h3>
-        
+        {/* ... Orders Table ... (Code remains same as provided, just ensuring context) */}
         {loadingOrders ? (
              <div className="flex justify-center py-20">
                  <div className="w-8 h-8 border-2 border-xeption-gold border-t-transparent rounded-full animate-spin"></div>
@@ -514,6 +792,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
                         {orders.map(order => (
                             <tr key={order.id} className="hover:bg-white/5 transition-colors group bg-[#18181b]">
+                                {/* ... table rows content ... */}
                                 <td className="px-6 py-4">
                                     <span className="font-bold text-white block text-xs font-mono mb-1">#{order.id}</span>
                                     <span className="text-gray-500 text-xs">{order.date}</span>
@@ -522,10 +801,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                                     <span className="block text-white font-bold">{order.customerName}</span>
                                     <span className="text-xs text-gray-500 block font-mono">{order.customerPhone}</span>
                                     {order.customerEmail && <span className="text-[10px] text-xeption-gold block font-mono mt-1">{order.customerEmail}</span>}
-                                    <div className="flex items-center gap-1 mt-1 text-[10px] uppercase text-gray-400">
-                                        {order.deliveryMode === 'delivery' ? <Truck className="w-3 h-3"/> : <Store className="w-3 h-3"/>}
-                                        <span className="truncate max-w-[150px]">{order.customerCity || 'Retrait Boutique'}</span>
-                                    </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col gap-1">
@@ -593,8 +868,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             <Users className="w-5 h-5 text-purple-500" />
             Carnet d'Adresses (CRM)
         </h3>
-        
-        {loadingCustomers ? (
+        {/* ... Clients Table content (same as provided) ... */}
+         {loadingCustomers ? (
              <div className="flex justify-center py-20">
                  <div className="w-8 h-8 border-2 border-xeption-gold border-t-transparent rounded-full animate-spin"></div>
              </div>
@@ -671,7 +946,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 <UserPlus className="w-4 h-4" /> Ajouter Membre
             </button>
         </div>
-
+        
+        {/* ... Staff Table Content ... */}
         <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl">
             <table className="w-full text-left border-collapse">
                 <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
@@ -739,8 +1015,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                      </button>
                  </div>
             </div>
-            
-            <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl flex flex-col items-center justify-center min-h-[300px]">
+            {/* ... Video Preview (code preserved) ... */}
+             <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl flex flex-col items-center justify-center min-h-[300px]">
                 {generatingVideo ? (
                     <div className="text-center">
                         <div className="w-16 h-16 border-4 border-xeption-gold border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -895,6 +1171,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                                     ))}
                                 </div>
                             </div>
+
+                            {/* WARRANTY FIELD ADDED */}
+                            <div className="bg-white/5 border border-white/10 p-4 rounded-sm">
+                                <label className="block text-xs text-xeption-gold uppercase font-bold mb-2 flex items-center gap-2">
+                                    <ShieldCheck className="w-4 h-4" /> Garantie SAV (Mois)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    value={editingProduct.warrantyMonths || 0}
+                                    onChange={e => setEditingProduct({...editingProduct, warrantyMonths: parseInt(e.target.value) || 0})}
+                                    className="w-full bg-[#09090b] border border-white/10 text-white p-3 focus:border-xeption-gold focus:bg-black outline-none font-mono text-lg"
+                                    placeholder="0 pour pas de garantie"
+                                />
+                                <p className="text-[10px] text-gray-500 mt-2">Définit la durée pendant laquelle un client peut ouvrir un ticket SAV valide.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -971,7 +1263,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
 
                     {/* Specs Technical - Solid Dark Background */}
                     <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
-                        <div className="flex justify-between items-center mb-6">
+                        {/* ... Specs content ... */}
+                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-white font-bold uppercase text-sm flex items-center gap-2">
                                 <List className="w-4 h-4 text-purple-400" /> Spécifications Techniques
                             </h3>
@@ -1014,9 +1307,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         <h3 className="text-white font-bold uppercase text-sm mb-6 flex items-center gap-2">
                             <ImageIcon className="w-4 h-4 text-pink-500" /> Galerie Média
                         </h3>
-
+                        {/* ... Image/Video inputs ... */}
                         <div className="space-y-6">
-                            
                             {/* Main Image */}
                             <div>
                                 <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Image Principale</label>
@@ -1057,7 +1349,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                                     </button>
                                 </div>
                             </div>
-
                             {/* Video */}
                             <div>
                                 <label className="block text-xs text-gray-400 uppercase font-bold mb-2">Vidéo (Cloudinary)</label>
@@ -1185,6 +1476,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
           <div className="flex bg-[#18181b] border border-white/10 rounded-sm p-1 mt-4 md:mt-0 overflow-x-auto shadow-lg">
             {[
                 { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
+                { id: 'pos', label: 'Caisse (POS)', icon: CreditCard },
+                { id: 'sav', label: 'SAV / Réparations', icon: Wrench },
                 { id: 'inventory', label: 'Inventaire', icon: Package },
                 { id: 'marketing', label: 'Studio Vidéo', icon: Clapperboard },
                 { id: 'orders', label: 'Commandes', icon: ShoppingBag },
@@ -1205,13 +1498,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
 
       {/* Content Area */}
       {activeTab === 'dashboard' && renderDashboard()}
+      {activeTab === 'pos' && renderPOS()}
+      {activeTab === 'sav' && <RepairTicketManagement />}
       {activeTab === 'inventory' && renderInventory()}
       {activeTab === 'marketing' && renderMarketing()}
       {activeTab === 'orders' && renderOrders()}
       {activeTab === 'clients' && renderClients()}
       {activeTab === 'staff' && renderStaff()}
 
-      {/* EDIT STAFF MODAL (Keep minimal modal for staff only) */}
+      {/* EDIT STAFF MODAL */}
       {editingStaff && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
              <div className="bg-[#18181b] border border-white/10 w-full max-w-md p-6 rounded-sm shadow-2xl">
@@ -1224,7 +1519,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                          <input required type="text" value={editingStaff.name} onChange={e => setEditingStaff({...editingStaff, name: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>
                          <p className="text-[10px] text-gray-500 mt-1">Ce nom sera utilisé pour la connexion.</p>
                      </div>
-                     {/* Removed extra "Name" field to avoid schema error */}
                      <div>
                          <label className="block text-xs text-gray-400 uppercase font-bold mb-1 flex items-center gap-1"><Key className="w-3 h-3" /> Mot de Passe</label>
                          <input required type="text" value={editingStaff.password || ''} onChange={e => setEditingStaff({...editingStaff, password: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>

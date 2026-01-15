@@ -17,6 +17,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, onNavigate, curr
     { id: 'home', label: 'Accueil' },
     { id: 'shop', label: 'Le Shop' },
     { id: 'troc', label: 'Troc Zone' },
+    { id: 'sav', label: 'SAV' }, // Ajout du SAV
     { id: 'admin', label: 'Staff' },
   ];
 

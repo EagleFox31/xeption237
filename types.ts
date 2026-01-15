@@ -17,6 +17,8 @@ export interface Product {
   specs?: { label: string; value: string }[]; // "Geek Details"
   pros?: string[];
   cons?: string[];
+  // SAV
+  warrantyMonths?: number; // Durée de garantie en mois (défaut 0 ou null)
 }
 
 export interface CartItem extends Product {
@@ -63,6 +65,19 @@ export interface Staff {
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+}
+
+export interface RepairTicket {
+  id: string;
+  orderId: string;
+  productId: string;
+  productName: string;
+  customerName: string;
+  customerPhone: string;
+  issueDescription: string;
+  status: 'open' | 'received' | 'in_progress' | 'completed' | 'rejected';
+  createdAt: string;
+  warrantyStatus: 'active' | 'expired';
 }
 
 export enum PaymentMethod {

@@ -9,6 +9,7 @@ import Checkout from './components/Checkout';
 import TrocSection from './components/TrocSection';
 import AdminPanel from './components/AdminPanel';
 import StaffLogin from './components/StaffLogin'; // Import Login
+import RepairSection from './components/RepairSection'; // Import Repair
 import { Product, CartItem } from './types';
 import { supabase } from './services/supabaseClient';
 import { optimizeVideo, optimizeImage } from './utils/mediaOptimization';
@@ -74,6 +75,9 @@ const App: React.FC = () => {
             break;
         case 'troc':
             document.title = "Troc Zone | Xeption Network";
+            break;
+        case 'sav':
+            document.title = "SAV & Garantie | Xeption Network";
             break;
         case 'admin':
             document.title = "Staff Portal | Xeption Network";
@@ -224,6 +228,12 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </div>
+        )}
+
+        {page === 'sav' && (
+             <div className="pt-8 min-h-screen">
+                 <RepairSection />
+             </div>
         )}
 
         {page === 'admin' && (

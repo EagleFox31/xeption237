@@ -106,7 +106,31 @@ const Checkout: React.FC<CheckoutProps> = ({
 
       if (orderError) throw orderError;
 
-      // 2. CRM LOGIC: Save or Update Customer
+      // 2. UPDATE STOCK (Critical Logic Added)
+      for (const item of cart) {
+        // Fetch current stock first to be safe (avoid race condition issues slightly better than blind update)
+        const { data: productData, error: fetchError } = await supabase
+            .from('products')
+            .select('stock')
+            .eq('id', item.id)
+            .single();
+
+        if (!fetchError && productData) {
+            const newStock = Math.max(0, productData.stock - item.quantity);
+            
+            const { error: updateError } = await supabase
+                .from('products')
+                .update({ stock: newStock })
+                .eq('id', item.id);
+                
+            if (updateError) {
+                console.error(`Erreur mise à jour stock pour ${item.name}:`, updateError);
+                // Non-blocking error for the user, but logged for admin
+            }
+        }
+      }
+
+      // 3. CRM LOGIC: Save or Update Customer
       if (formData.email) {
         try {
           const { data: existingCustomer } = await supabase
@@ -140,7 +164,7 @@ const Checkout: React.FC<CheckoutProps> = ({
         }
       }
 
-      // 3. Prepare Invoice Data & Email
+      // 4. Prepare Invoice Data & Email
       if (formData.email) {
         const invoiceData = {
           id: newOrderId,

@@ -4,7 +4,7 @@ import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Ta
 import { Product, Order, Staff, Customer } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { generateProductDetails, generateMarketingVideo } from '../services/geminiService';
-import { uploadImageToSupabase, uploadVideoToCloudinary } from '../services/uploadService';
+import { uploadImageToCloudinary, uploadVideoToCloudinary } from '../services/uploadService';
 
 interface AdminPanelProps {
   products: Product[];
@@ -151,7 +151,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       const file = e.target.files[0];
       setUploadingImage(true);
       try {
-          const url = await uploadImageToSupabase(file);
+          // Changed to Cloudinary
+          const url = await uploadImageToCloudinary(file);
           setEditingProduct({ ...editingProduct, image: url });
       } catch (error: any) {
           alert(error.message);
@@ -166,15 +167,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       const newImages = [...(editingProduct.images || [])];
       
       try {
-          // Upload all selected files concurrently
-          // Explicit cast to File to avoid TypeScript issues with FileList
-          const uploadPromises = Array.from(e.target.files).map((file) => uploadImageToSupabase(file as File));
+          // Upload all selected files concurrently using Cloudinary
+          const uploadPromises = Array.from(e.target.files).map((file) => uploadImageToCloudinary(file as File));
           const urls = await Promise.all(uploadPromises);
           
           setEditingProduct({ ...editingProduct, images: [...newImages, ...urls] });
       } catch (error: any) {
           console.error("Gallery Upload Error:", error);
-          alert("Erreur Upload: " + error.message + "\nVérifiez que le bucket Supabase est public ou que vous êtes connecté.");
+          alert("Erreur Upload: " + error.message);
       } finally {
           setUploadingGallery(false);
       }

@@ -8,7 +8,7 @@ import { supabase } from '../services/supabaseClient';
 import { generateInvoiceHTML } from '../utils/invoiceGenerator';
 import {
   X, Smartphone, CheckCircle, ShieldCheck, Minus, Plus, ShoppingBag,
-  ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, Download
+  ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, Download, FileText
 } from 'lucide-react';
 
 interface CheckoutProps {
@@ -27,6 +27,7 @@ const Checkout: React.FC<CheckoutProps> = ({
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [deliveryMode, setDeliveryMode] = useState<'delivery' | 'pickup'>('delivery');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPdfGenerating, setIsPdfGenerating] = useState(false); // New state for PDF loader
   const [lastOrderHtml, setLastOrderHtml] = useState<string | null>(null);
 
   // ✅ hCaptcha
@@ -106,9 +107,8 @@ const Checkout: React.FC<CheckoutProps> = ({
 
       if (orderError) throw orderError;
 
-      // 2. UPDATE STOCK (Critical Logic Added)
+      // 2. UPDATE STOCK
       for (const item of cart) {
-        // Fetch current stock first to be safe (avoid race condition issues slightly better than blind update)
         const { data: productData, error: fetchError } = await supabase
             .from('products')
             .select('stock')
@@ -117,20 +117,15 @@ const Checkout: React.FC<CheckoutProps> = ({
 
         if (!fetchError && productData) {
             const newStock = Math.max(0, productData.stock - item.quantity);
-            
             const { error: updateError } = await supabase
                 .from('products')
                 .update({ stock: newStock })
                 .eq('id', item.id);
-                
-            if (updateError) {
-                console.error(`Erreur mise à jour stock pour ${item.name}:`, updateError);
-                // Non-blocking error for the user, but logged for admin
-            }
+            if (updateError) console.error(`Erreur mise à jour stock pour ${item.name}:`, updateError);
         }
       }
 
-      // 3. CRM LOGIC: Save or Update Customer
+      // 3. CRM LOGIC
       if (formData.email) {
         try {
           const { data: existingCustomer } = await supabase
@@ -199,6 +194,22 @@ const Checkout: React.FC<CheckoutProps> = ({
         } else {
           console.log("✅ Réponse Edge Function:", data);
         }
+      } else {
+          // Si pas d'email, on génère quand même le HTML pour le téléchargement PDF
+          const invoiceData = {
+            id: newOrderId,
+            items: cart,
+            total: total,
+            status: 'pending',
+            paymentMethod: selectedPayment,
+            customerName: formData.name,
+            customerEmail: formData.email,
+            customerPhone: formData.phone,
+            customerCity: deliveryMode === 'pickup' ? 'Retrait Boutique' : formData.city,
+            deliveryMode: deliveryMode,
+            date: displayDate
+          };
+          setLastOrderHtml(generateInvoiceHTML(invoiceData as any));
       }
 
       // ✅ reset captcha après succès
@@ -214,20 +225,57 @@ const Checkout: React.FC<CheckoutProps> = ({
     }
   };
 
-  const handleDownloadInvoice = () => {
+  const handleDownloadInvoice = async () => {
     if (!lastOrderHtml) return;
+    
+    setIsPdfGenerating(true);
 
-    const blob = new Blob([lastOrderHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    // Format: Facture_Xeption_NomClient_Timestamp.html
-    const safeName = formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    link.download = `Facture_Xeption_${safeName}_${Date.now()}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    try {
+        // Create container
+        const element = document.createElement('div');
+        element.innerHTML = lastOrderHtml;
+        // Fix width for A4 PDF rendering
+        element.style.width = '700px'; 
+        element.style.padding = '20px';
+        element.style.background = 'white';
+
+        // Offscreen container to avoid visual glitch during render
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-10000px';
+        container.style.top = '0';
+        container.appendChild(element);
+        document.body.appendChild(container);
+
+        const safeName = formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'client';
+        const opt = {
+            margin:       10,
+            filename:     `Facture_Xeption_${safeName}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // @ts-ignore
+        await window.html2pdf().set(opt).from(element).save();
+        
+        document.body.removeChild(container);
+
+    } catch (err) {
+        console.error("PDF Gen Error:", err);
+        // Fallback HTML si le PDF échoue
+        const blob = new Blob([lastOrderHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const safeName = formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        link.download = `Facture_Xeption_${safeName}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } finally {
+        setIsPdfGenerating(false);
+    }
   };
 
   const StepIndicator = () => (
@@ -499,9 +547,11 @@ const Checkout: React.FC<CheckoutProps> = ({
           {lastOrderHtml && (
             <button
               onClick={handleDownloadInvoice}
-              className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-xeption-gold hover:text-white transition-colors py-2 border border-xeption-gold/30 hover:bg-xeption-gold hover:text-black rounded-sm p-3 mt-4"
+              disabled={isPdfGenerating}
+              className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-xeption-gold hover:text-white transition-colors py-2 border border-xeption-gold/30 hover:bg-xeption-gold hover:text-black rounded-sm p-3 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Download className="w-4 h-4" /> Télécharger la facture
+              {isPdfGenerating ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4" />} 
+              {isPdfGenerating ? 'Génération PDF...' : 'Télécharger la facture (PDF)'}
             </button>
           )}
         </div>

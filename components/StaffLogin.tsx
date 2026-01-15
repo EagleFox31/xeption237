@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Lock, User, Key, ShieldCheck, Loader2, AlertTriangle } from 'lucide-react';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import Logo from './Logo';
 import { supabase } from '../services/supabaseClient';
 
@@ -13,47 +14,68 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Clé HCaptcha (Requis par Supabase Security)
+  const HCAPTCHA_SITE_KEY = "0d0cfd40-72aa-4570-a4fa-e8f263ce1d24";
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<any>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!captchaToken) {
+        setError("Sécurité Supabase : Veuillez valider le captcha.");
+        return;
+    }
+
     setIsLoading(true);
 
     try {
-        // 1. Récupération des infos Staff (notamment l'email)
+        // 1. Vérif Table Staff
         const { data, error: dbError } = await supabase
             .from('staff')
             .select('*')
             .eq('name', name)
-            .eq('password', password) // Vérification locale optionnelle, mais pratique pour UX
+            .eq('password', password)
             .single();
 
         if (dbError || !data) {
-            throw new Error('Identifiants incorrects ou introuvables.');
+            throw new Error('Identifiants incorrects.');
         }
 
         if (!data.email) {
-            throw new Error("Ce membre du staff n'a pas d'email configuré pour l'authentification.");
+            throw new Error("Compte staff incomplet (Email manquant).");
         }
 
-        // 2. Authentification Supabase Auth (Sans Captcha)
-        // Les membres du staff sont des utilisateurs authentifiés
+        // 2. Connexion Auth avec Token Captcha (OBLIGATOIRE)
         const { error: authError } = await supabase.auth.signInWithPassword({
             email: data.email,
-            password: password
+            password: password,
+            options: { captchaToken } // Le token est envoyé ici
         });
 
         if (authError) {
-            console.error("Auth Supabase Error:", authError);
-            throw new Error("Erreur système Auth: " + authError.message);
+            throw authError;
         }
 
-        // Si succès
+        // Succès
+        captchaRef.current?.resetCaptcha();
         onLogin();
 
     } catch (err: any) {
-        setError(err.message || 'Erreur de connexion');
-        console.error("Login failed", err);
+        console.error("Erreur Connexion:", err);
+        // Traduction des erreurs courantes Supabase
+        if (err.message.includes('captcha')) {
+             setError("Erreur Captcha : Veuillez réessayer.");
+        } else if (err.message.includes('Invalid login')) {
+             setError("Email ou mot de passe invalide.");
+        } else {
+             setError(err.message || "Erreur de connexion");
+        }
+        
+        captchaRef.current?.resetCaptcha();
+        setCaptchaToken(null);
     } finally {
         setIsLoading(false);
     }
@@ -76,7 +98,7 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
                     <Lock className="w-4 h-4 text-xeption-gold" />
                     Accès Staff
                 </h2>
-                <p className="text-gray-500 text-xs mt-2">Identifiants requis pour l'administration</p>
+                <p className="text-gray-500 text-xs mt-2">Zone d'administration sécurisée</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -110,6 +132,17 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
                     </div>
                 </div>
 
+                {/* HCaptcha Widget - Obligatoire si Bot Protection est activé sur Supabase */}
+                <div className="flex justify-center my-4 scale-90 origin-center">
+                    <HCaptcha
+                        ref={captchaRef}
+                        sitekey={HCAPTCHA_SITE_KEY}
+                        onVerify={(token) => setCaptchaToken(token)}
+                        onExpire={() => setCaptchaToken(null)}
+                        theme="dark"
+                    />
+                </div>
+
                 {error && (
                     <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 text-xs text-center font-bold uppercase tracking-wide animate-in shake flex items-center justify-center gap-2">
                         <AlertTriangle className="w-4 h-4" />
@@ -119,7 +152,7 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
 
                 <button 
                     type="submit" 
-                    disabled={isLoading}
+                    disabled={isLoading || !captchaToken}
                     className="w-full bg-xeption-gold text-black font-tech font-bold uppercase tracking-wider py-4 hover:bg-white transition-all shadow-[0_0_20px_rgba(255,215,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     {isLoading ? (

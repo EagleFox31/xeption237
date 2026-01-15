@@ -261,8 +261,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       if (!editingStaff) return;
 
       const isNew = editingStaff.id.startsWith('new_');
+      
+      // FIX: On retire la propriété 'username' qui n'existe pas en base.
+      // On conserve uniquement les champs valides pour Supabase.
+      const { username, ...cleanData } = editingStaff as any;
+      
       const staffData = {
-          ...editingStaff,
+          ...cleanData,
           id: isNew ? undefined : editingStaff.id
       };
       
@@ -654,7 +659,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             <button 
                 onClick={() => setEditingStaff({
                     id: `new_${Date.now()}`,
-                    username: '',
+                    username: '', // legacy
                     name: '',
                     email: '',
                     password: '123456',
@@ -671,8 +676,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             <table className="w-full text-left border-collapse">
                 <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
                     <tr>
-                        <th className="px-6 py-4">Username</th>
-                        <th className="px-6 py-4">Nom Réel</th>
+                        <th className="px-6 py-4">Nom (Login)</th>
                         <th className="px-6 py-4">Rôle</th>
                         <th className="px-6 py-4">Contact</th>
                         <th className="px-6 py-4 text-right">Actions</th>
@@ -681,7 +685,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
                     {staffMembers.map(staff => (
                         <tr key={staff.id} className="hover:bg-white/5 transition-colors bg-[#18181b]">
-                            <td className="px-6 py-4 font-mono text-xeption-gold font-bold">{staff.username}</td>
                             <td className="px-6 py-4 font-bold text-white">{staff.name}</td>
                             <td className="px-6 py-4">
                                 <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold ${
@@ -1217,13 +1220,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                  </h3>
                  <form onSubmit={handleSaveStaff} className="space-y-4">
                      <div>
-                         <label className="block text-xs text-gray-400 uppercase font-bold mb-1">Username (Login)</label>
-                         <input required type="text" value={editingStaff.username} onChange={e => setEditingStaff({...editingStaff, username: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>
+                         <label className="block text-xs text-gray-400 uppercase font-bold mb-1">Nom d'utilisateur (Login)</label>
+                         <input required type="text" value={editingStaff.name} onChange={e => setEditingStaff({...editingStaff, name: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>
+                         <p className="text-[10px] text-gray-500 mt-1">Ce nom sera utilisé pour la connexion.</p>
                      </div>
-                     <div>
-                         <label className="block text-xs text-gray-400 uppercase font-bold mb-1">Nom complet (Réel)</label>
-                         <input required type="text" value={editingStaff.name} onChange={e => setEditingStaff({...editingStaff, name: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold"/>
-                     </div>
+                     {/* Removed extra "Name" field to avoid schema error */}
                      <div>
                          <label className="block text-xs text-gray-400 uppercase font-bold mb-1 flex items-center gap-1"><Key className="w-3 h-3" /> Mot de Passe</label>
                          <input required type="text" value={editingStaff.password || ''} onChange={e => setEditingStaff({...editingStaff, password: e.target.value})} className="w-full bg-[#09090b] border border-white/10 p-2 text-white outline-none focus:border-xeption-gold font-mono"/>

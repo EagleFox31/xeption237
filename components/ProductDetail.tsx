@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
 import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Share2, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
+import { optimizeImage } from '../utils/mediaOptimization';
 
 interface ProductDetailProps {
   product: Product;
@@ -19,11 +20,48 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
   // Combine main image + extra images for gallery list
   const galleryImages = [product.image, ...(product.images || [])].filter(Boolean);
 
-  // SEO: Dynamic Page Title
+  // SEO: Dynamic Page Title & Structured Data (JSON-LD)
   useEffect(() => {
     document.title = `${product.name} | Xeption Network`;
+
+    // Create JSON-LD for Google Rich Snippets
+    const structuredData = {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "image": [product.image, ...(product.images || [])],
+      "description": product.description,
+      "brand": {
+        "@type": "Brand",
+        "name": "Xeption Certified" 
+      },
+      "offers": {
+        "@type": "Offer",
+        "url": `${window.location.origin}/?product=${product.id}`,
+        "priceCurrency": "XAF",
+        "price": product.price,
+        "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "itemCondition": "https://schema.org/NewCondition",
+        "seller": {
+            "@type": "Organization",
+            "name": "Xeption Network"
+        }
+      }
+    };
+
+    // Inject Script into Head
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(structuredData);
+    script.id = 'product-json-ld';
+    document.head.appendChild(script);
+
     return () => {
         // Cleanup title handled in App parent or stays until new nav
+        const existingScript = document.getElementById('product-json-ld');
+        if (existingScript) {
+            document.head.removeChild(existingScript);
+        }
     };
   }, [product]);
 
@@ -144,7 +182,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                 <div className="absolute w-64 h-64 md:w-96 md:h-96 bg-gradient-to-tr from-xeption-gold/30 to-orange-200/50 rounded-full blur-[60px] group-hover:blur-[80px] transition-all duration-700 mix-blend-multiply"></div>
                 
                 <img 
-                    src={activeImage} 
+                    src={optimizeImage(activeImage, 1000)} // Optimisation Main Image max 1000px
                     alt={product.name} 
                     className="relative z-10 max-h-full max-w-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform transition-transform duration-500 ease-out animate-in zoom-in-95"
                     key={activeImage} // Force re-render animation on change
@@ -159,7 +197,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                         onClick={() => setActiveImage(img)}
                         className={`relative w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all ${activeImage === img ? 'border-xeption-gold shadow-lg scale-105' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
                      >
-                        <img src={img} className="w-full h-full object-cover" alt="" />
+                        <img 
+                          src={optimizeImage(img, 150)} // Optimisation Thumbnails: Petit format (150px)
+                          className="w-full h-full object-cover" 
+                          alt="" 
+                          loading="lazy"
+                        />
                      </button>
                  ))}
                  {product.video && (
@@ -184,8 +227,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                     src={product.video} 
                     controls 
                     className="w-full h-full object-cover"
-                    poster={product.image}
+                    poster={optimizeImage(product.image, 1200)}
                     playsInline
+                    preload="metadata" // Don't download video until played
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
                     onEnded={() => setIsPlaying(false)}

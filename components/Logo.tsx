@@ -1,12 +1,13 @@
 
 import React from 'react';
+import { optimizeImage } from '../utils/mediaOptimization';
 
 const Logo: React.FC<{ className?: string }> = ({ className = "" }) => {
   return (
     <div className={`flex items-center gap-3 select-none ${className}`}>
       <div className="relative w-12 h-12 flex items-center justify-center">
         <img 
-          src="https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png" 
+          src={optimizeImage("https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png", 100)} // Optimisation à 100px
           alt="Xeption Logo" 
           className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(255,215,0,0.6)] animate-pulse-slow"
         />

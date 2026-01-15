@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Product } from '../types';
 import { ShoppingCart, Tag, Star } from 'lucide-react';
+import { optimizeImage } from '../utils/mediaOptimization';
 
 interface ProductListProps {
   products: Product[];
@@ -68,8 +69,11 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
             {/* Image Container */}
             <div className="aspect-[4/3] bg-black/50 relative overflow-hidden border-b border-white/5">
               <img 
-                src={product.image} 
+                src={optimizeImage(product.image, 500)} // Optimisation: max width 500px, auto format
                 alt={product.name} 
+                loading="lazy" // Lazy loading natif
+                width="500"
+                height="375"
                 className="w-full h-full object-cover object-center group-hover:scale-105 group-hover:opacity-90 transition-all duration-500"
               />
               {/* Overlay Gradient for readability at bottom of image */}

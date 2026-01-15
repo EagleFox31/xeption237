@@ -190,12 +190,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
             </div>
 
             {/* Gallery Thumbnails */}
-            <div className="flex gap-3 overflow-x-auto pb-2 w-full justify-center px-4">
+            <div className="flex gap-3 overflow-x-auto pb-4 w-full justify-start md:justify-center px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
                  {galleryImages.map((img, idx) => (
                      <button 
                         key={idx}
                         onClick={() => setActiveImage(img)}
-                        className={`relative w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all ${activeImage === img ? 'border-xeption-gold shadow-lg scale-105' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
+                        className={`relative w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all snap-center ${activeImage === img ? 'border-xeption-gold shadow-lg scale-105' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
                      >
                         <img 
                           src={optimizeImage(img, 150)} // Optimisation Thumbnails: Petit format (150px)
@@ -208,7 +208,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                  {product.video && (
                      <button
                         onClick={handlePlayVideo}
-                        className="w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 border-gray-300 bg-black flex items-center justify-center flex-shrink-0 hover:border-xeption-gold transition-colors group"
+                        className="w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 border-gray-300 bg-black flex items-center justify-center flex-shrink-0 hover:border-xeption-gold transition-colors group snap-center"
                      >
                          <Play className="text-white group-hover:text-xeption-gold" />
                      </button>

@@ -9,7 +9,6 @@ import Checkout from './components/Checkout';
 import TrocSection from './components/TrocSection';
 import AdminPanel from './components/AdminPanel';
 import StaffLogin from './components/StaffLogin'; // Import Login
-import { PRODUCTS as DEFAULT_PRODUCTS } from './constants';
 import { Product, CartItem } from './types';
 import { supabase } from './services/supabaseClient';
 
@@ -37,23 +36,31 @@ const App: React.FC = () => {
         if (data && data.length > 0) {
           setProducts(data as Product[]);
         } else {
-            setProducts(DEFAULT_PRODUCTS);
+            setProducts([]);
         }
       } catch (error) {
         console.error('Error fetching products:', error);
-        setProducts(DEFAULT_PRODUCTS);
+        setProducts([]);
       }
     };
 
     fetchProducts();
   }, []);
 
-  // Set video playback rate to be very slow
+  // Control video playback based on page
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.25; // 25% speed for ultra slow cinematic effect
+      // Always ensure speed is consistent
+      videoRef.current.playbackRate = 0.35;
+
+      if (page === 'admin') {
+        videoRef.current.pause();
+      } else {
+        // Attempt to play if not in admin
+        videoRef.current.play().catch(e => console.log("Video auto-play prevented:", e));
+      }
     }
-  }, []);
+  }, [page]);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -113,14 +120,16 @@ const App: React.FC = () => {
             muted 
             playsInline
             poster="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
-            className="w-full h-full object-cover opacity-60 mix-blend-overlay md:mix-blend-normal md:opacity-100" 
+            className="w-full h-full object-cover opacity-90 md:opacity-100" 
           >
-            <source src="https://res.cloudinary.com/dli0kdkg9/video/upload/v1768411339/xeption4_ckhpcy.mp4" type="video/mp4" />
+            {/* Added q_auto:best to force High Definition rendering without aggressive compression */}
+            <source src="https://res.cloudinary.com/dli0kdkg9/video/upload/q_auto:best/v1768438828/xption7_zrgro4.mp4" type="video/mp4" />
           </video>
           
-          <div className="absolute inset-0 bg-black/50"></div>
+          {/* Reduced overlay opacity from bg-black/50 to bg-black/20 for brighter video */}
+          <div className="absolute inset-0 bg-black/20"></div>
           
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,215,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.05)_1px,transparent_1px)] bg-[size:60px_60px] opacity-20"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,215,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.05)_1px,transparent_1px)] bg-[size:60px_60px] opacity-10"></div>
       </div>
 
       <Header 
@@ -131,7 +140,7 @@ const App: React.FC = () => {
       />
 
       {/* Main content z-10 to float above video */}
-      <main className="pb-20 relative z-10">
+      <main className="pt-20 pb-20 relative z-10">
         {page === 'home' && (
           <>
             <Hero onShopNow={() => setPage('shop')} />
@@ -146,7 +155,7 @@ const App: React.FC = () => {
           <div className="pt-8 min-h-screen">
             <div className="text-center mb-12">
                <h1 className="text-4xl font-bold text-white drop-shadow-lg">La Boutique <span className="text-xeption-gold">237</span></h1>
-               <p className="text-gray-300 mt-2 font-medium">Choisis ton matos, on livre au calme.</p>
+               <p className="text-gray-300 mt-2 font-medium bg-black/40 inline-block px-4 py-1 rounded-full backdrop-blur-md border border-white/10">Choisis ton matos, on livre au calme.</p>
             </div>
             <ProductList products={products} onAddToCart={addToCart} onProductClick={handleProductClick} />
           </div>

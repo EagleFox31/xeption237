@@ -4,27 +4,27 @@ import { Order, CartItem } from '../types';
 export const generateInvoiceHTML = (order: Order): string => {
   const { id, customerName, customerEmail, customerPhone, customerCity, items, total, date, deliveryMode, paymentMethod } = order;
 
-  // Base Styles for White & Electric Gold Theme
   const colors = {
-    bg: '#FFFFFF',        // Pure white background
-    card: '#FFFFFF',      // White card
-    surface: '#FBFBFB',   // Subtle off-white for contrast
-    gold: '#FFD700',      // Electric Gold (Vibrant)
-    goldDark: '#B8860B',  // Deep Gold
-    text: '#000000',      // Solid black for clarity
-    textMuted: '#555555', // Dark grey for secondary text
-    border: '#EEEEEE'     // Ultra light border
+    bg: '#FFFFFF',
+    gold: '#FFD700',
+    goldDark: '#B8860B',
+    text: '#000000',
+    textMuted: '#666666',
+    border: '#E5E5E5'
   };
 
   const itemsHtml = items.map(item => `
     <tr style="border-bottom: 1px solid ${colors.border};">
-      <td style="padding: 24px 16px; color: ${colors.text}; font-family: 'Helvetica', sans-serif;">
-        <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px; text-transform: uppercase;">${item.name}</div>
-        <div style="font-size: 11px; color: ${colors.goldDark}; text-transform: uppercase; letter-spacing: 2px;">Réf: ${item.category}</div>
+      <td style="padding: 12px 8px; vertical-align: top;">
+        <div style="font-weight: bold; font-size: 13px; text-transform: uppercase;">${item.name}</div>
+        <div style="font-size: 10px; color: ${colors.textMuted};">${item.category}</div>
       </td>
-      <td style="padding: 24px 16px; color: ${colors.text}; font-family: 'Helvetica', sans-serif; text-align: center; font-weight: bold;">${item.quantity}</td>
-      <td style="padding: 24px 16px; color: ${colors.text}; font-family: 'Helvetica', sans-serif; text-align: right; font-weight: bold; font-size: 18px;">
-        ${item.price.toLocaleString('fr-FR')} <span style="font-size: 10px; color: ${colors.goldDark};">FCFA</span>
+      <td style="padding: 12px 8px; text-align: center; font-size: 13px;">${item.quantity}</td>
+      <td style="padding: 12px 8px; text-align: right; font-weight: bold; font-size: 14px;">
+        ${item.price.toLocaleString('fr-FR')} <span style="font-size: 9px;">FCFA</span>
+      </td>
+      <td style="padding: 12px 8px; text-align: right; font-weight: bold; font-size: 14px;">
+        ${(item.price * item.quantity).toLocaleString('fr-FR')} <span style="font-size: 9px;">FCFA</span>
       </td>
     </tr>
   `).join('');
@@ -34,148 +34,104 @@ export const generateInvoiceHTML = (order: Order): string => {
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Facture Officielle Xeption Network</title>
+  <style>
+    @media print {
+      @page { size: A4; margin: 10mm; }
+      body { -webkit-print-color-adjust: exact; }
+      .no-print { display: none; }
+    }
+    body { margin: 0; padding: 20px; font-family: 'Helvetica', Arial, sans-serif; color: ${colors.text}; line-height: 1.4; }
+    .header { border-bottom: 3px solid ${colors.gold}; padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .logo-box { text-align: left; }
+    .invoice-title { text-align: right; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px; }
+    .section-title { font-size: 10px; font-weight: bold; text-transform: uppercase; color: ${colors.goldDark}; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid ${colors.border}; padding-bottom: 4px; }
+    .info-text { font-size: 12px; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+    th { background: #F9F9F9; text-transform: uppercase; font-size: 10px; padding: 10px 8px; border-bottom: 2px solid ${colors.text}; text-align: left; }
+    .totals { margin-left: auto; width: 250px; }
+    .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; }
+    .total-final { border-top: 2px solid ${colors.gold}; padding-top: 10px; margin-top: 10px; font-size: 20px; font-weight: 900; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid ${colors.border}; text-align: center; font-size: 10px; color: ${colors.textMuted}; }
+  </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: ${colors.bg}; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
-  
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${colors.bg}; width: 100%;">
-    <tr>
-      <td align="center" style="padding: 40px 10px;">
-        
-        <!-- Electric Gold Border Container -->
-        <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: ${colors.card}; border: 4px solid ${colors.gold}; box-shadow: 0 30px 60px rgba(0,0,0,0.08); border-radius: 0px; max-width: 600px; width: 100%;">
-          
-          <!-- Brand Header -->
-          <tr>
-            <td style="padding: 50px 40px; text-align: center; border-bottom: 1px solid ${colors.border};">
-              <img src="https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png" alt="XEPTION" width="80" style="display: block; margin: 0 auto 15px auto;">
-              <h1 style="margin: 0; color: ${colors.text}; letter-spacing: 10px; font-size: 36px; text-transform: uppercase; font-weight: 900;">XEPTION</h1>
-              <div style="color: ${colors.goldDark}; font-size: 12px; text-transform: uppercase; letter-spacing: 8px; margin-top: 8px; font-weight: 700;">NETWORK</div>
-            </td>
-          </tr>
+<body>
+  <div class="header">
+    <div class="logo-box">
+      <div style="font-weight: 900; font-size: 24px; letter-spacing: 4px;">XEPTION</div>
+      <div style="font-size: 10px; font-weight: bold; letter-spacing: 3px; color: ${colors.goldDark};">NETWORK - BOUTIQUE 2063</div>
+    </div>
+    <div class="invoice-title">
+      <div style="font-size: 20px; font-weight: 900;">FACTURE</div>
+      <div style="font-family: monospace; font-size: 14px;">#${id}</div>
+    </div>
+  </div>
 
-          <!-- Welcome Message -->
-          <tr>
-            <td style="padding: 40px 40px 10px 40px; text-align: center;">
-              <h2 style="color: ${colors.text}; margin: 0 0 10px 0; font-size: 28px; text-transform: uppercase; letter-spacing: -0.5px; font-weight: 800;">Merci pour votre achat</h2>
-              <p style="color: ${colors.textMuted}; font-size: 16px; line-height: 1.6; margin: 0;">
-                M. <strong>${customerName}</strong>, votre commande est validée par nos experts.
-              </p>
-            </td>
-          </tr>
+  <div class="grid">
+    <div>
+      <div class="section-title">Émetteur</div>
+      <div class="info-text"><strong>Xeption Network CM</strong></div>
+      <div class="info-text">Mfoundi Mall, Yaoundé</div>
+      <div class="info-text">Tél: (+237) 699 00 00 00</div>
+      <div class="info-text">support@xeptionnetwork.shop</div>
+    </div>
+    <div>
+      <div class="section-title">Client / Facturé à</div>
+      <div class="info-text"><strong>${customerName}</strong></div>
+      <div class="info-text">${customerPhone}</div>
+      <div class="info-text">${customerEmail || 'N/A'}</div>
+      <div class="info-text">${customerCity || 'Yaoundé'}</div>
+    </div>
+  </div>
 
-          <!-- Order Summary Grid -->
-          <tr>
-            <td style="padding: 30px 40px;">
-              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${colors.surface}; border: 1px solid ${colors.border};">
-                <tr>
-                  <td width="50%" style="padding: 25px; border-right: 1px solid ${colors.border}; vertical-align: top;">
-                    <div style="font-size: 11px; color: ${colors.textMuted}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">ID Commande</div>
-                    <div style="color: ${colors.text}; font-weight: 900; font-size: 20px; font-family: 'Courier New', Courier, monospace;">#${id}</div>
-                    
-                    <div style="font-size: 11px; color: ${colors.textMuted}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; margin-top: 25px; font-weight: bold;">Date</div>
-                    <div style="color: ${colors.text}; font-weight: bold; font-size: 15px;">${date}</div>
-                  </td>
-                  <td width="50%" style="padding: 25px; vertical-align: top;">
-                    <div style="font-size: 11px; color: ${colors.textMuted}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">Informations de Livraison</div>
-                    <div style="color: ${colors.text}; font-weight: 900; font-size: 16px;">${customerName}</div>
-                    <div style="color: ${colors.textMuted}; font-size: 13px; margin-top: 6px;">Tél: ${customerPhone}</div>
-                    <div style="color: ${colors.textMuted}; font-size: 13px; font-style: italic;">${customerCity}</div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+  <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+    <div>
+      <div class="section-title">Date d'émission</div>
+      <div class="info-text">${date}</div>
+    </div>
+    <div>
+      <div class="section-title">Mode de Retrait</div>
+      <div class="info-text" style="text-transform: uppercase;">${deliveryMode === 'pickup' ? 'Boutique' : 'Livraison'}</div>
+    </div>
+    <div>
+      <div class="section-title">Mode de Paiement</div>
+      <div class="info-text">${paymentMethod}</div>
+    </div>
+  </div>
 
-          <!-- Items Table -->
-          <tr>
-            <td style="padding: 0 40px;">
-              <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                <thead>
-                  <tr style="background-color: ${colors.text};">
-                    <th align="left" style="color: ${colors.gold}; font-size: 11px; text-transform: uppercase; padding: 15px 20px; letter-spacing: 2px; font-weight: 900;">Article</th>
-                    <th align="center" style="color: ${colors.gold}; font-size: 11px; text-transform: uppercase; padding: 15px 20px; letter-spacing: 2px; font-weight: 900;">Quantité</th>
-                    <th align="right" style="color: ${colors.gold}; font-size: 11px; text-transform: uppercase; padding: 15px 20px; letter-spacing: 2px; font-weight: 900;">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${itemsHtml}
-                </tbody>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Payment Details & Total -->
-          <tr>
-            <td style="padding: 40px;">
-              <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="right">
-                    <table border="0" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td style="padding: 8px 0; color: ${colors.textMuted}; font-size: 15px; text-align: right;">Mode :</td>
-                        <td style="padding: 8px 0 8px 25px; color: ${colors.text}; font-weight: bold; text-align: right; text-transform: uppercase;">${deliveryMode}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 8px 0; color: ${colors.textMuted}; font-size: 15px; text-align: right;">Paiement :</td>
-                        <td style="padding: 8px 0 8px 25px; color: ${colors.text}; font-weight: bold; text-align: right;">${paymentMethod}</td>
-                      </tr>
-                      <tr>
-                        <td colspan="2" style="padding-top: 35px;">
-                          <div style="border-top: 5px solid ${colors.gold}; padding: 20px 0;">
-                            <span style="color: ${colors.textMuted}; font-size: 14px; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; vertical-align: middle;">Net à Payer</span>
-                            <span style="color: ${colors.text}; font-size: 38px; font-weight: 900; margin-left: 20px; vertical-align: middle;">
-                              ${total.toLocaleString('fr-FR')} <span style="font-size: 14px;">FCFA</span>
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Footer Action & Info -->
-          <tr>
-            <td style="padding: 50px 40px; text-align: center; background-color: ${colors.text};">
-              <div style="margin-bottom: 30px;">
-                <p style="color: ${colors.gold}; font-size: 16px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 3px;">XEPTION CARE</p>
-                <p style="color: #FFFFFF; font-size: 14px; opacity: 0.8; margin: 0; line-height: 1.5;">Notre équipe logistique vous contactera sous peu pour finaliser la remise en main propre.</p>
-              </div>
-              
-              <table align="center" border="0" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td style="background-color: ${colors.gold}; padding: 18px 45px;">
-                    <a href="mailto:support@xeptionetwork.shop" style="color: ${colors.text}; text-decoration: none; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px;">Contacter Support</a>
-                  </td>
-                </tr>
-              </table>
-
-              <p style="color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 45px; letter-spacing: 2px; text-transform: uppercase; font-weight: bold;">
-                TRIGENYS GROUP &bull; XEPTION NETWORK &bull; CAMEROUN 237
-              </p>
-            </td>
-          </tr>
-
-        </table>
-
-        <!-- Security Badge -->
-        <table width="600" border="0" cellspacing="0" cellpadding="0">
-          <tr>
-            <td style="padding: 30px 0; text-align: center;">
-              <p style="color: #BBBBBB; font-size: 12px; margin: 0; font-weight: 500;">
-                Transaction 100% sécurisée par l'infrastructure Xeption.
-              </p>
-            </td>
-          </tr>
-        </table>
-
-      </td>
-    </tr>
+  <table>
+    <thead>
+      <tr>
+        <th>Désignation Article</th>
+        <th style="text-align: center;">Qté</th>
+        <th style="text-align: right;">Prix Unitaire</th>
+        <th style="text-align: right;">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsHtml}
+    </tbody>
   </table>
+
+  <div class="totals">
+    <div class="total-row">
+      <span>Sous-total HT</span>
+      <span>${total.toLocaleString('fr-FR')} FCFA</span>
+    </div>
+    <div class="total-row">
+      <span>TVA (0%)</span>
+      <span>0 FCFA</span>
+    </div>
+    <div class="total-row total-final">
+      <span>NET À PAYER</span>
+      <span>${total.toLocaleString('fr-FR')} FCFA</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Merci pour votre confiance. Les articles sous garantie bénéficient d'une assistance prioritaire au SAV.<br>
+    <strong>TRIGENYS GROUP &bull; XEPTION NETWORK &bull; BOUTIQUE 2063 MFOUNDI MALL</strong></p>
+  </div>
 </body>
 </html>
   `;

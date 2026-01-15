@@ -1,24 +1,29 @@
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string; // ex: 'phones-gaming'
+  icon?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
   oldPrice?: number;
-  category: 'phone' | 'computer' | 'accessory' | 'consumable';
-  image: string; // Image principale
-  images?: string[]; // Galerie d'images
-  video?: string; // URL Vidéo (mp4)
+  category: string; // Changé de l'énumération fixe vers string pour la dynamicité
+  image: string;
+  images?: string[];
+  video?: string;
   stock: number;
   isPromo?: boolean;
-  // New detailed fields
-  rating?: number; // Sur 10
-  reviewShort?: string; // "Le verdict pour les pressés"
-  specs?: { label: string; value: string }[]; // "Geek Details"
+  rating?: number;
+  reviewShort?: string;
+  specs?: { label: string; value: string }[];
   pros?: string[];
   cons?: string[];
-  // SAV
-  warrantyMonths?: number; // Durée de garantie en mois (défaut 0 ou null)
+  warrantyMonths?: number;
 }
 
 export interface CartItem extends Product {
@@ -27,15 +32,15 @@ export interface CartItem extends Product {
 
 export interface Order {
   id: string;
-  items: CartItem[]; // Stored as JSONB in Supabase
+  items: CartItem[];
   total: number;
   status: 'pending' | 'confirmed' | 'shipped' | 'ready' | 'delivered' | 'cancelled';
   paymentMethod: 'OM' | 'MOMO' | 'CASH';
-  customerName: string; // Mapped to customer_name in DB
-  customerEmail?: string; // Mapped to customer_email in DB
-  customerPhone: string; // Mapped to customer_phone in DB
-  customerCity?: string; // Mapped to customer_city
-  deliveryMode: 'delivery' | 'pickup'; // Mapped to delivery_mode
+  customerName: string;
+  customerEmail?: string;
+  customerPhone: string;
+  customerCity?: string;
+  deliveryMode: 'delivery' | 'pickup';
   date: string;
 }
 
@@ -52,7 +57,7 @@ export interface Customer {
 
 export interface Staff {
   id: string;
-  username: string; // Added for login
+  username: string;
   name: string;
   email?: string;
   password?: string;

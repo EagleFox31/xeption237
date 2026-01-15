@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Package, TrendingUp, Users, AlertCircle, Edit, Trash2, Plus, Search, Tag, Check, X, Image as ImageIcon, Box, ShoppingBag, Truck, Store, Video, UserPlus, Key, Mail, Phone, MapPin, ArrowLeft, Sparkles, Loader2, List, Minus, Upload, Film, Play, Download, Clapperboard, Printer, CreditCard, Calculator, Wrench, ShieldCheck, ArrowRight, XCircle, RotateCcw, BookOpen, Info, AlertTriangle, Menu, LogOut, LayoutDashboard } from 'lucide-react';
 import { Product, Order, Staff, Customer, CartItem } from '../types';
@@ -28,7 +29,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, title, me
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className={`w-full max-w-md bg-[#18181b] border p-6 rounded-lg shadow-2xl transform transition-all scale-100 ${
+      <div className={`w-full max-w-md bg-black/90 backdrop-blur-xl border p-6 rounded-lg shadow-2xl transform transition-all scale-100 ${
         type === 'danger' ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 'border-xeption-gold/50 shadow-[0_0_30px_rgba(255,215,0,0.2)]'
       }`}>
         <div className="flex items-center gap-3 mb-4">
@@ -376,7 +377,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   ];
 
   const Sidebar = () => (
-      <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-black border-r border-white/10 z-50">
+      <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-black/40 backdrop-blur-xl border-r border-white/10 z-50">
           <div className="p-6 border-b border-white/10 flex justify-center">
              <div className="scale-75 origin-center"><Logo /></div>
           </div>
@@ -411,7 +412,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   );
 
   const BottomNav = () => (
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-black/90 backdrop-blur-xl border-t border-white/10 z-50 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-black/80 backdrop-blur-xl border-t border-white/10 z-50 pb-safe">
           <div className="flex overflow-x-auto no-scrollbar py-2 px-2 gap-2">
               {MENU_ITEMS.map(item => (
                   <button
@@ -442,7 +443,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 { label: 'Staff Actif', value: staffMembers.length.toString(), sub: 'Membres', icon: Users, color: 'text-blue-500' },
                 { label: 'Base Clients', value: customers.length.toString(), sub: 'Enregistrés', icon: Users, color: 'text-purple-500' },
             ].map((stat, i) => (
-                <div key={i} className="bg-[#18181b] border border-white/5 p-6 relative overflow-hidden group hover:border-white/20 transition-all rounded-sm shadow-lg">
+                <div key={i} className="bg-black/40 backdrop-blur-md border border-white/5 p-6 relative overflow-hidden group hover:border-white/20 transition-all rounded-sm shadow-lg">
                     <div className="absolute right-0 top-0 opacity-10 transform translate-x-1/3 -translate-y-1/3">
                         <stat.icon className={`w-32 h-32 ${stat.color}`} />
                     </div>
@@ -455,7 +456,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
+            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm shadow-xl">
                 <h3 className="text-white font-tech uppercase font-bold mb-4 flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-xeption-red" /> Alertes Rupture
                 </h3>
@@ -464,7 +465,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         <p className="text-gray-500 italic text-sm">Stock optimal.</p>
                     ) : (
                         products.filter(p => p.stock < 5).map(p => (
-                            <div key={p.id} className="flex justify-between items-center bg-black/40 p-3 rounded hover:bg-black/60 transition-colors border border-white/5">
+                            <div key={p.id} className="flex justify-between items-center bg-white/5 p-3 rounded hover:bg-black/60 transition-colors border border-white/5">
                                 <span className="text-gray-200 text-sm font-bold truncate pr-2">{p.name}</span>
                                 <span className="text-xeption-red font-bold text-xs px-2 py-1 bg-xeption-red/10 rounded whitespace-nowrap">Reste: {p.stock}</span>
                             </div>
@@ -472,13 +473,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     )}
                 </div>
             </div>
-            <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm shadow-xl">
+            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm shadow-xl">
                 <h3 className="text-white font-tech uppercase font-bold mb-4 flex items-center gap-2">
                     <ShoppingBag className="w-5 h-5 text-xeption-gold" /> Dernières Ventes
                 </h3>
                 <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                      {orders.slice(0,5).map((o) => (
-                        <div key={o.id} className="flex items-center justify-between bg-black/40 p-3 rounded hover:bg-black/60 transition-colors border border-white/5">
+                        <div key={o.id} className="flex items-center justify-between bg-white/5 p-3 rounded hover:bg-black/60 transition-colors border border-white/5">
                             <div className="flex-1 min-w-0">
                                 <span className="text-gray-200 text-sm block font-bold truncate">{o.customerName}</span>
                                 <span className={`text-[10px] font-bold uppercase ${o.status === 'delivered' ? 'text-green-500' : 'text-gray-500'}`}>{o.status}</span>
@@ -497,7 +498,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
 
   // --- MAIN LAYOUT STRUCTURE ---
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-xeption-gold selection:text-black">
+    <div className="min-h-screen text-white font-sans selection:bg-xeption-gold selection:text-black">
         {/* Modal Portal */}
         {modalConfig && <ConfirmationModal {...modalConfig} onCancel={() => setModalConfig(null)} />}
 
@@ -518,7 +519,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 <div className="animate-in fade-in h-[calc(100vh-100px)] grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* ... (POS UI Content from previous snippet, utilizing `handlePosSubmit` with modal) ... */}
                     {/* Re-implementing POS UI briefly for context */}
-                     <div className="lg:col-span-2 bg-[#18181b] border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
+                     <div className="lg:col-span-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
                          <div className="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center">
                              <h3 className="text-white font-bold uppercase text-sm flex items-center gap-2"><Box className="w-4 h-4 text-blue-400" /> Catalogue</h3>
                              <input type="text" value={posSearch} onChange={(e) => setPosSearch(e.target.value)} placeholder="Chercher..." className="bg-black/50 border border-white/10 px-3 py-1 text-sm text-white rounded-sm w-48" />
@@ -533,7 +534,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                              ))}
                          </div>
                      </div>
-                     <div className="bg-[#18181b] border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
+                     <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
                         <div className="p-4 border-b border-white/10 bg-black/40"><h3 className="text-white font-bold uppercase text-sm">Panier</h3></div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
                              {posCart.map(item => (
@@ -558,14 +559,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         <button onClick={() => setEditingProduct({id: `new_${Date.now()}`, name: '', description: '', price: 0, category: 'phone', image: 'https://via.placeholder.com/400', images: [], video: '', stock: 0, isPromo: false, specs: [], pros: [], cons: [], warrantyMonths: 0})} className="bg-xeption-gold text-black px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white rounded-sm"><Plus className="w-4 h-4" /> Nouveau</button>
                     </div>
                     {/* Reuse Product Table UI */}
-                    <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl overflow-x-auto">
+                    <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-2xl overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
                                 <tr><th className="px-6 py-4">Produit</th><th className="px-6 py-4">Prix</th><th className="px-6 py-4">Stock</th><th className="px-6 py-4 text-right">Actions</th></tr>
                             </thead>
                             <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
                                 {products.map(product => (
-                                    <tr key={product.id} className="hover:bg-white/5 transition-colors bg-[#18181b]">
+                                    <tr key={product.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-6 py-4 flex items-center gap-4"><img src={product.image} className="w-10 h-10 object-contain bg-black rounded p-1"/><div><span className="font-bold text-white block">{product.name}</span><span className="text-xs text-gray-500 capitalize">{product.category}</span></div></td>
                                         <td className="px-6 py-4 font-mono text-white">{product.price.toLocaleString()}</td>
                                         <td className="px-6 py-4"><span className={`px-2 py-1 rounded text-xs font-bold ${product.stock > 5 ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>{product.stock}</span></td>
@@ -582,14 +583,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 <div className="animate-in fade-in">
                     <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Commandes</h2>
                     {/* Simplified Orders Table for space */}
-                    <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl overflow-x-auto">
+                    <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-2xl overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[900px]">
                              <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider">
                                 <tr><th className="px-6 py-4">ID</th><th className="px-6 py-4">Client</th><th className="px-6 py-4">Status</th><th className="px-6 py-4">Montant</th><th className="px-6 py-4 text-right">Actions</th></tr>
                             </thead>
                             <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
                                 {orders.map(o => (
-                                    <tr key={o.id} className="hover:bg-white/5 transition-colors bg-[#18181b]">
+                                    <tr key={o.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-6 py-4 font-mono text-xs font-bold text-white">#{o.id}</td>
                                         <td className="px-6 py-4"><div><span className="block font-bold text-white">{o.customerName}</span><span className="text-xs text-gray-500">{o.deliveryMode === 'pickup' ? 'Retrait' : 'Livraison'}</span></div></td>
                                         <td className="px-6 py-4"><span className="uppercase font-bold text-[10px] px-2 py-1 rounded bg-white/5">{o.status}</span></td>
@@ -614,10 +615,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             {activeTab === 'staff' && (
                 <div className="animate-in fade-in">
                     <div className="flex justify-between items-center mb-6"><h2 className="text-3xl font-tech font-bold uppercase text-white">Équipe</h2><button onClick={() => setEditingStaff({id: `new_${Date.now()}`, username: '', name: '', email: '', password: '123456', role: 'editor', phone: ''})} className="bg-white/10 text-white px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white hover:text-black rounded-sm"><UserPlus className="w-4 h-4" /> Ajouter</button></div>
-                    <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl">
+                    <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-2xl">
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider"><tr><th className="px-6 py-4">Nom</th><th className="px-6 py-4">Rôle</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
-                            <tbody className="divide-y divide-white/5 text-gray-300 text-sm">{staffMembers.map(s => (<tr key={s.id} className="bg-[#18181b] hover:bg-white/5"><td className="px-6 py-4 font-bold text-white">{s.name}</td><td className="px-6 py-4"><span className="px-2 py-1 rounded bg-white/5 text-xs font-bold uppercase">{s.role}</span></td><td className="px-6 py-4 text-right"><button onClick={() => handleDeleteStaff(s.id)} className="text-red-500 hover:bg-white/10 p-2 rounded"><Trash2 className="w-4 h-4" /></button></td></tr>))}</tbody>
+                            <tbody className="divide-y divide-white/5 text-gray-300 text-sm">{staffMembers.map(s => (<tr key={s.id} className="hover:bg-white/5"><td className="px-6 py-4 font-bold text-white">{s.name}</td><td className="px-6 py-4"><span className="px-2 py-1 rounded bg-white/5 text-xs font-bold uppercase">{s.role}</span></td><td className="px-6 py-4 text-right"><button onClick={() => handleDeleteStaff(s.id)} className="text-red-500 hover:bg-white/10 p-2 rounded"><Trash2 className="w-4 h-4" /></button></td></tr>))}</tbody>
                         </table>
                     </div>
                 </div>
@@ -626,10 +627,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             {activeTab === 'clients' && (
                  <div className="animate-in fade-in">
                     <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Clients (CRM)</h2>
-                    <div className="bg-[#18181b] border border-white/10 rounded-sm overflow-hidden shadow-2xl">
+                    <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-2xl">
                          <table className="w-full text-left border-collapse">
                             <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider"><tr><th className="px-6 py-4">Nom</th><th className="px-6 py-4">Contact</th><th className="px-6 py-4">Dépenses</th></tr></thead>
-                            <tbody className="divide-y divide-white/5 text-gray-300 text-sm">{customers.map(c => (<tr key={c.id} className="bg-[#18181b] hover:bg-white/5"><td className="px-6 py-4 font-bold text-white">{c.name}</td><td className="px-6 py-4">{c.email}<br/><span className="text-xs text-gray-500">{c.phone}</span></td><td className="px-6 py-4 font-mono text-xeption-gold">{(c.total_spent||0).toLocaleString()}</td></tr>))}</tbody>
+                            <tbody className="divide-y divide-white/5 text-gray-300 text-sm">{customers.map(c => (<tr key={c.id} className="hover:bg-white/5"><td className="px-6 py-4 font-bold text-white">{c.name}</td><td className="px-6 py-4">{c.email}<br/><span className="text-xs text-gray-500">{c.phone}</span></td><td className="px-6 py-4 font-mono text-xeption-gold">{(c.total_spent||0).toLocaleString()}</td></tr>))}</tbody>
                          </table>
                     </div>
                  </div>
@@ -638,7 +639,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             {activeTab === 'marketing' && (
                  <div className="animate-in fade-in">
                     <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Marketing Studio</h2>
-                    <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm">
+                    <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
                         <textarea value={videoPrompt} onChange={e=>setVideoPrompt(e.target.value)} className="w-full bg-black/50 border border-white/10 p-4 text-white rounded-sm h-32 mb-4" placeholder="Prompt vidéo..." />
                         <button onClick={handleVideoGeneration} disabled={generatingVideo} className="bg-xeption-gold text-black px-6 py-2 font-bold uppercase rounded-sm flex items-center gap-2">{generatingVideo ? <Loader2 className="w-4 h-4 animate-spin"/> : <Film className="w-4 h-4"/>} Générer</button>
                         {generatedVideoUrl && <div className="mt-4"><video src={generatedVideoUrl} controls className="w-full rounded border border-white/10" /></div>}
@@ -653,10 +654,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
 
         {/* EDITOR OVERLAY (Full Screen) */}
         {editingProduct && (
-            <div className="fixed inset-0 z-[60] bg-[#09090b] overflow-y-auto animate-in slide-in-from-bottom-10">
+            <div className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl overflow-y-auto animate-in slide-in-from-bottom-10">
                 {/* Same Editor UI as previous version ... */}
                 <div className="max-w-7xl mx-auto p-6 pb-20">
-                     <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4 sticky top-0 bg-[#09090b] z-10 pt-4">
+                     <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4 sticky top-0 bg-transparent z-10 pt-4">
                          <h2 className="text-2xl font-bold font-tech text-white uppercase">{editingProduct.id.startsWith('new') ? 'Création' : 'Édition'}</h2>
                          <div className="flex gap-4">
                              <button onClick={() => setEditingProduct(null)} className="text-gray-400 font-bold text-sm uppercase">Annuler</button>
@@ -665,7 +666,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                      </div>
                      <form className="grid grid-cols-1 md:grid-cols-2 gap-8">
                          <div className="space-y-4">
-                             <div className="bg-[#18181b] p-6 border border-white/10 rounded-sm">
+                             <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm">
                                  <h3 className="text-white font-bold uppercase mb-4 text-sm">Base</h3>
                                  <input className="w-full bg-black border border-white/10 p-3 mb-3 text-white" placeholder="Nom" value={editingProduct.name} onChange={e=>setEditingProduct({...editingProduct, name: e.target.value})} />
                                  <div className="grid grid-cols-2 gap-3 mb-3">
@@ -674,7 +675,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                                  </div>
                                  <button type="button" onClick={handleAiGeneration} disabled={isGenerating} className="text-xs text-xeption-gold border border-xeption-gold/30 px-3 py-2 rounded uppercase font-bold flex items-center gap-2">{isGenerating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3"/>} Auto-Fill IA</button>
                              </div>
-                             <div className="bg-[#18181b] p-6 border border-white/10 rounded-sm">
+                             <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm">
                                 <h3 className="text-white font-bold uppercase mb-4 text-sm">Media</h3>
                                 <div className="aspect-video bg-black mb-3 flex items-center justify-center border border-white/10 relative">
                                     {editingProduct.image ? <img src={editingProduct.image} className="max-h-full"/> : <ImageIcon className="text-gray-700"/>}
@@ -685,7 +686,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                              </div>
                          </div>
                          <div className="space-y-4">
-                             <div className="bg-[#18181b] p-6 border border-white/10 rounded-sm">
+                             <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm">
                                  <h3 className="text-white font-bold uppercase mb-4 text-sm">Marketing</h3>
                                  <textarea className="w-full bg-black border border-white/10 p-3 h-32 text-white text-sm" placeholder="Description" value={editingProduct.description} onChange={e=>setEditingProduct({...editingProduct, description: e.target.value})} />
                              </div>
@@ -698,7 +699,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         {/* STAFF EDITOR MODAL */}
         {editingStaff && (
              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                 <div className="bg-[#18181b] border border-white/10 p-6 rounded-sm w-full max-w-md">
+                 <div className="bg-black/90 backdrop-blur-xl border border-white/10 p-6 rounded-sm w-full max-w-md">
                      <h3 className="text-xl font-bold font-tech text-white uppercase mb-4">{editingStaff.id.startsWith('new') ? 'Ajouter' : 'Modifier'} Staff</h3>
                      <form onSubmit={handleSaveStaff} className="space-y-4">
                          <input className="w-full bg-black border border-white/10 p-3 text-white rounded-sm" placeholder="Nom" value={editingStaff.name} onChange={e=>setEditingStaff({...editingStaff, name: e.target.value})} />

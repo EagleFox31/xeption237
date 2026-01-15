@@ -35,6 +35,18 @@ const App: React.FC = () => {
         
         if (data && data.length > 0) {
           setProducts(data as Product[]);
+          
+          // DEEP LINKING CHECK: Check for ?product=ID in URL after products load
+          const params = new URLSearchParams(window.location.search);
+          const productId = params.get('product');
+          if (productId) {
+            const foundProduct = (data as Product[]).find(p => p.id === productId);
+            if (foundProduct) {
+                setSelectedProduct(foundProduct);
+                // Clean URL without refresh
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+          }
         } else {
             setProducts([]);
         }
@@ -46,6 +58,29 @@ const App: React.FC = () => {
 
     fetchProducts();
   }, []);
+
+  // SEO: Update Document Title based on page
+  useEffect(() => {
+    if (selectedProduct) {
+        // Handled in ProductDetail component usually, but fallback here
+        return; 
+    }
+    
+    const baseTitle = "Xeption Network | Le Ndamba du Digital";
+    switch(page) {
+        case 'shop':
+            document.title = "Le Shop | Xeption Network";
+            break;
+        case 'troc':
+            document.title = "Troc Zone | Xeption Network";
+            break;
+        case 'admin':
+            document.title = "Staff Portal | Xeption Network";
+            break;
+        default:
+            document.title = baseTitle;
+    }
+  }, [page, selectedProduct]);
 
   // Control video playback based on page
   useEffect(() => {
@@ -99,6 +134,8 @@ const App: React.FC = () => {
 
   const closeProductDetail = () => {
     setSelectedProduct(null);
+    // Restore default title when closing modal
+    document.title = "Xeption Network | Le Ndamba du Digital";
   };
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);

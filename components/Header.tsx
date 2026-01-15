@@ -26,8 +26,8 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, onNavigate, curr
   };
 
   return (
-    // Added 'supports' query for better glassmorphism and reinforced z-index/sticky
-    <header className="sticky top-0 z-[100] w-full bg-black/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300 supports-[backdrop-filter]:bg-black/60">
+    // Changed sticky to fixed, added top-0 left-0 right-0 to ensure it stays at top
+    <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-black/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300 supports-[backdrop-filter]:bg-black/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}

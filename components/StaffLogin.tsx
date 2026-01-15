@@ -16,28 +16,43 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+    setIsLoading(true);
 
     try {
-        // Query Supabase 'staff' table by 'name' column
-        // On cherche la correspondance exacte avec le nom dans la base de données (ex: "Le Boss")
-        const { data, error } = await supabase
+        // 1. Récupération des infos Staff (notamment l'email)
+        const { data, error: dbError } = await supabase
             .from('staff')
             .select('*')
             .eq('name', name)
-            .eq('password', password)
+            .eq('password', password) // Vérification locale optionnelle, mais pratique pour UX
             .single();
 
-        if (error || !data) {
-            console.error("Supabase error:", error);
-            throw new Error('Identifiants incorrects');
+        if (dbError || !data) {
+            throw new Error('Identifiants incorrects ou introuvables.');
         }
 
-        // Login success
+        if (!data.email) {
+            throw new Error("Ce membre du staff n'a pas d'email configuré pour l'authentification.");
+        }
+
+        // 2. Authentification Supabase Auth (Sans Captcha)
+        // Les membres du staff sont des utilisateurs authentifiés
+        const { error: authError } = await supabase.auth.signInWithPassword({
+            email: data.email,
+            password: password
+        });
+
+        if (authError) {
+            console.error("Auth Supabase Error:", authError);
+            throw new Error("Erreur système Auth: " + authError.message);
+        }
+
+        // Si succès
         onLogin();
-    } catch (err) {
-        setError('Nom ou mot de passe incorrect');
+
+    } catch (err: any) {
+        setError(err.message || 'Erreur de connexion');
         console.error("Login failed", err);
     } finally {
         setIsLoading(false);
@@ -53,7 +68,7 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
 
         <div className="w-full max-w-md bg-black/40 backdrop-blur-xl border border-white/10 p-8 sm:p-10 rounded-sm shadow-2xl relative z-10 animate-in fade-in zoom-in duration-500">
             
-            <div className="text-center mb-10">
+            <div className="text-center mb-8">
                 <div className="flex justify-center mb-6 transform scale-125">
                     <Logo />
                 </div>
@@ -110,7 +125,7 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
                     {isLoading ? (
                         <>
                             <Loader2 className="w-5 h-5 animate-spin" />
-                            Vérification...
+                            Connexion...
                         </>
                     ) : (
                         'Se Connecter'

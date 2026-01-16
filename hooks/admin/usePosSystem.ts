@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { Product, CartItem, Order } from '../../types';
 import { supabase } from '../../services/supabaseClient';
-import { generateInvoiceHTML } from '../../utils/invoiceGenerator';
 
 interface UsePosSystemProps {
     products: Product[];
@@ -31,9 +30,7 @@ export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePos
 
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
-        const dbDate = new Date().toISOString();
-
-        // 1. DB Insert
+        
         await supabase.from('orders').insert([{
             id: newOrderId,
             customer_name: customer.name,
@@ -45,23 +42,22 @@ export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePos
             status: 'delivered',
             payment_method: paymentMethod,
             items: cart,
-            date: dbDate
+            date: new Date().toISOString()
         }]);
 
-        // 2. Stock Update
+        // Stock Update
         for (const item of cart) {
             const product = products.find(p => p.id === item.id);
             if (product) {
                 const newStock = Math.max(0, product.stock - item.quantity);
                 await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
-                // Optimistic UI update via parent
+                // Optimistic
                 const updatedList = products.map(p => p.id === item.id ? { ...p, stock: newStock } : p);
                 onUpdateProducts(updatedList);
             }
         }
 
-        // 3. Success State
-        const confirmedOrder: Order = {
+        setLastOrder({
             id: newOrderId,
             items: [...cart],
             total: total,
@@ -73,30 +69,19 @@ export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePos
             customerCity: 'Retrait Boutique',
             deliveryMode: 'pickup',
             date: new Date().toLocaleDateString('fr-FR')
-        };
-
-        setLastOrder(confirmedOrder);
+        });
         
-        // Reset Form
         setCart([]);
         setCustomer({ name: '', phone: '', email: '' });
-        
-        // Background refresh
         refreshData();
     };
 
     return {
-        cart,
-        setCart,
-        search,
-        setSearch,
-        customer,
-        setCustomer,
-        paymentMethod,
-        setPaymentMethod,
-        lastOrder,
-        setLastOrder,
-        addToCart,
-        submitSale
+        cart, setCart,
+        search, setSearch,
+        customer, setCustomer,
+        paymentMethod, setPaymentMethod,
+        lastOrder, setLastOrder,
+        addToCart, submitSale
     };
 };

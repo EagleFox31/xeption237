@@ -12,8 +12,6 @@ interface UseInventoryManagerProps {
 
 export const useInventoryManager = ({ products, onUpdateProducts }: UseInventoryManagerProps) => {
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [uploadingImage, setUploadingImage] = useState(false);
 
     const startCreate = (categories: Category[]) => {
         setEditingProduct({
@@ -61,39 +59,11 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         onUpdateProducts(products.filter(p => p.id !== id));
     };
 
-    // --- Sub-actions for the Editor ---
-    // Note: These manipulate the `editingProduct` state directly
-    const handleImageUpload = async (file: File) => {
-        if (!editingProduct) return;
-        setUploadingImage(true);
-        try {
-            const url = await uploadImageToCloudinary(file);
-            setEditingProduct({ ...editingProduct, image: url });
-        } finally {
-            setUploadingImage(false);
-        }
-    };
-
-    const handleAiGeneration = async () => {
-        if (!editingProduct?.name) return;
-        setIsGenerating(true);
-        try {
-            const details = await generateProductDetails(editingProduct.name, editingProduct.category);
-            setEditingProduct(prev => prev ? ({ ...prev, ...details }) : null);
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
     return {
         editingProduct,
         setEditingProduct,
-        isGenerating,
-        uploadingImage,
         startCreate,
         saveProduct,
-        deleteProduct,
-        handleImageUpload,
-        handleAiGeneration
+        deleteProduct
     };
 };

@@ -10,7 +10,6 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // --- FETCHERS ---
     const fetchOrders = useCallback(async () => {
         const { data } = await supabase.from('orders').select('*').order('date', { ascending: false });
         if (data) {
@@ -50,7 +49,6 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         await Promise.all([fetchOrders(), fetchStaff(), fetchCustomers(), fetchCategories()]);
     }, [fetchOrders, fetchStaff, fetchCustomers, fetchCategories]);
 
-    // --- INITIAL LOAD & REALTIME ---
     useEffect(() => {
         const init = async () => {
             setIsLoading(true);
@@ -59,59 +57,43 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         };
         init();
 
-        // Realtime Subscription
         const channel = supabase.channel('admin-db-changes')
-        .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'orders' },
-            (payload) => {
-                const newOrder = payload.new as any;
-                addNotification({
-                    id: crypto.randomUUID(),
-                    type: 'order',
-                    title: 'Nouvelle Commande !',
-                    message: `Commande #${newOrder.id} reçue. Montant: ${newOrder.total} FCFA`,
-                    timestamp: new Date(),
-                    read: false,
-                    linkToTab: 'orders'
-                });
-                fetchOrders(); 
-            }
-        )
-        .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'repair_tickets' },
-            (payload) => {
-                const newTicket = payload.new as any;
-                addNotification({
-                    id: crypto.randomUUID(),
-                    type: 'ticket',
-                    title: 'Nouveau Ticket SAV',
-                    message: `Ticket #${newTicket.id} créé pour ${newTicket.product_name}.`,
-                    timestamp: new Date(),
-                    read: false,
-                    linkToTab: 'sav'
-                });
-            }
-        )
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+            const newOrder = payload.new as any;
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'order',
+                title: 'Nouvelle Commande !',
+                message: `Commande #${newOrder.id} reçue. Montant: ${newOrder.total} FCFA`,
+                timestamp: new Date(),
+                read: false,
+                linkToTab: 'orders'
+            });
+            fetchOrders(); 
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'repair_tickets' }, (payload) => {
+            const newTicket = payload.new as any;
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'ticket',
+                title: 'Nouveau Ticket SAV',
+                message: `Ticket #${newTicket.id} créé pour ${newTicket.product_name}.`,
+                timestamp: new Date(),
+                read: false,
+                linkToTab: 'sav'
+            });
+        })
         .subscribe();
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        return () => { supabase.removeChannel(channel); };
     }, [addNotification, fetchOrders, refreshAll]);
 
     return {
-        orders,
-        setOrders, // Exposed for optimistic updates
-        staffMembers,
-        setStaffMembers,
+        orders, setOrders,
+        staffMembers, setStaffMembers,
         customers,
-        categories,
-        setCategories,
+        categories, setCategories,
         isLoading,
-        refreshAll,
-        fetchOrders, // Exposed if specific refresh needed
-        fetchCustomers
+        refreshAll
     };
 };

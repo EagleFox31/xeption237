@@ -1,14 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
-import { Product, Order, Staff, Customer, CartItem, Category, AdminNotification } from '../../types';
+import React, { useState } from 'react';
+import { Product, AdminNotification } from '../../types';
 import { supabase } from '../../services/supabaseClient';
 import { generateMarketingVideo } from '../../services/geminiService';
-import { generateInvoiceHTML } from '../../utils/invoiceGenerator';
 
-// Layout
+// Layout & Components
 import Sidebar from './layout/Sidebar';
 import BottomNav from './layout/BottomNav';
 import Logo from '../Logo';
+import ConfirmationModal from './modals/ConfirmationModal';
+import ProductEditorOverlay from './modals/ProductEditorOverlay';
+import StaffEditorModal from './modals/StaffEditorModal';
+import NotificationToast from './notifications/NotificationToast';
+import NotificationDrawer from './notifications/NotificationDrawer';
 
 // Tabs
 import DashboardTab from './tabs/DashboardTab';
@@ -23,12 +27,11 @@ import MarketingTab from './tabs/MarketingTab';
 import GuideTab from './tabs/GuideTab';
 import InvoicesTab from './tabs/InvoicesTab';
 
-// Modals & Notifications
-import ConfirmationModal from './modals/ConfirmationModal';
-import ProductEditorOverlay from './modals/ProductEditorOverlay';
-import StaffEditorModal from './modals/StaffEditorModal';
-import NotificationToast from './notifications/NotificationToast';
-import NotificationDrawer from './notifications/NotificationDrawer';
+// Hooks (The SRP Magic)
+import { useAdminNotifications } from '../../hooks/admin/useAdminNotifications';
+import { useAdminData } from '../../hooks/admin/useAdminData';
+import { usePosSystem } from '../../hooks/admin/usePosSystem';
+import { useInventoryManager } from '../../hooks/admin/useInventoryManager';
 
 interface AdminPanelProps {
   products: Product[];
@@ -36,378 +39,82 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  
-  // Data States
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [newCatName, setNewCatName] = useState('');
-  
-  // Notification States
-  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
-  const [currentToast, setCurrentToast] = useState<AdminNotification | null>(null);
-  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
-  
-  // Editor States
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
-
-  // POS State
-  const [posCart, setPosCart] = useState<CartItem[]>([]);
-  const [posSearch, setPosSearch] = useState('');
-  const [posCustomer, setPosCustomer] = useState({ name: '', phone: '', email: '' });
-  const [posPaymentMethod] = useState<'CASH' | 'OM' | 'MOMO'>('CASH');
-
-  // Marketing State
-  const [videoPrompt, setVideoPrompt] = useState("Cinematic product shot of the Dell XPS 14 9440 floating in a dark void. Elegant gold neon lighting highlights the aluminum edges and the keyboard. Background features subtle futuristic HUD elements and floating golden particles. High contrast, 4k resolution, sleek, premium tech advertisement style, slow camera pan, dark atmosphere.");
-  const [generatingVideo, setGeneratingVideo] = useState(false);
-  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
-
-  // Modal State
+  // 1. UI State (Navigation & Modals)
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices'>('dashboard');
   const [modalConfig, setModalConfig] = useState<{isOpen: boolean, title: string, message: string, onConfirm: () => void, type: 'danger' | 'info' | 'success'} | null>(null);
+  
+  // 2. Logic Hooks
+  const notifs = useAdminNotifications();
+  const data = useAdminData(notifs.addNotification);
+  const pos = usePosSystem({ products, onUpdateProducts, refreshData: data.refreshAll });
+  const inventory = useInventoryManager({ products, onUpdateProducts });
 
-  // --- SOUND UTILS ---
-  const playNotificationSound = () => {
-      try {
-          const audio = new Audio('https://res.cloudinary.com/dli0kdkg9/video/upload/v1709736806/notification_sound_b4qj3f.mp3'); // Exemple de son, à remplacer si besoin
-          audio.volume = 0.5;
-          audio.play().catch(e => console.log("Audio play failed (user interaction needed)", e));
-      } catch (e) {
-          console.error("Audio error", e);
-      }
-  };
-
-  // --- INITIAL DATA FETCHING ---
-  useEffect(() => {
-      const initData = async () => {
-          await Promise.all([fetchOrders(), fetchStaff(), fetchCustomers(), fetchCategories()]);
-      };
-      initData();
-      
-      // Setup Realtime Subscription
-      const channel = supabase.channel('admin-db-changes')
-        .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'orders' },
-            (payload) => {
-                const newOrder = payload.new as any;
-                // Ignore POS orders generated by admin themselves (assuming POS ID format starts with POS)
-                if (newOrder.id.startsWith('POS')) return;
-
-                const notif: AdminNotification = {
-                    id: crypto.randomUUID(),
-                    type: 'order',
-                    title: 'Nouvelle Commande !',
-                    message: `Commande #${newOrder.id} reçue. Montant: ${newOrder.total} FCFA`,
-                    timestamp: new Date(),
-                    read: false,
-                    linkToTab: 'orders'
-                };
-                addNotification(notif);
-                fetchOrders(); // Refresh Data
-            }
-        )
-        .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'repair_tickets' },
-            (payload) => {
-                const newTicket = payload.new as any;
-                const notif: AdminNotification = {
-                    id: crypto.randomUUID(),
-                    type: 'ticket',
-                    title: 'Nouveau Ticket SAV',
-                    message: `Ticket #${newTicket.id} créé pour ${newTicket.product_name}.`,
-                    timestamp: new Date(),
-                    read: false,
-                    linkToTab: 'sav'
-                };
-                addNotification(notif);
-                // SavTab manages its own fetching usually, but global refresh could be here
-            }
-        )
-        .subscribe();
-
-      return () => {
-          supabase.removeChannel(channel);
-      };
-
-  }, []);
-
-  const addNotification = (notif: AdminNotification) => {
-      setNotifications(prev => [notif, ...prev]);
-      setCurrentToast(notif);
-      playNotificationSound();
-  };
-
-  const markAsRead = (id: string) => {
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  };
-
-  const handleNotificationClick = (notif: AdminNotification) => {
-      markAsRead(notif.id);
-      if (notif.linkToTab) {
-          setActiveTab(notif.linkToTab);
-      }
-      setIsNotifDrawerOpen(false);
-      setCurrentToast(null);
-  };
-
-  const clearAllNotifications = () => {
-      setNotifications([]);
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-
-  // --- FETCHERS ---
-  const fetchOrders = async () => {
-      const { data } = await supabase.from('orders').select('*').order('date', { ascending: false });
-      if (data) {
-          const formattedOrders = data.map((o: any) => ({
-              id: o.id,
-              items: o.items,
-              total: o.total,
-              status: o.status,
-              paymentMethod: o.payment_method, 
-              customerName: o.customer_name,
-              customerEmail: o.customer_email,
-              customerPhone: o.customer_phone,
-              customerCity: o.customer_city,
-              deliveryMode: o.delivery_mode || 'delivery',
-              date: new Date(o.date).toLocaleDateString('fr-FR')
-          }));
-          setOrders(formattedOrders);
-      }
-  };
-
-  const fetchStaff = async () => {
-      const { data } = await supabase.from('staff').select('*').order('created_at', { ascending: false });
-      if (data) setStaffMembers(data as Staff[]);
-  };
-
-  const fetchCustomers = async () => {
-      const { data } = await supabase.from('customers').select('*').order('total_spent', { ascending: false });
-      if (data) setCustomers(data as Customer[]);
-  };
-
-  const fetchCategories = async () => {
-      const { data } = await supabase.from('categories').select('*').order('name', { ascending: true });
-      if (data) setCategories(data as Category[]);
-  };
-
-  // --- ACTIONS ---
-
-  const showConfirm = (title: string, message: string, action: () => void, type: 'danger' | 'info' | 'success' = 'info') => {
-      setModalConfig({
-          isOpen: true,
-          title,
-          message,
-          onConfirm: () => {
-              action();
-              setModalConfig(null);
-          },
-          type
-      });
-  };
-
-  const handleAddCategory = async () => {
-      if (!newCatName.trim()) return;
-      const slug = newCatName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const { data, error } = await supabase.from('categories').insert([{ name: newCatName, slug }]).select();
-      if (!error && data) {
-          setCategories([...categories, data[0] as Category]);
-          setNewCatName('');
-      }
-  };
-
-  const handleDeleteCategory = (id: string) => {
-      showConfirm("Supprimer Type", "Attention, assurez-vous qu'aucun produit n'est lié à ce type avant de supprimer.", async () => {
-          const { error } = await supabase.from('categories').delete().eq('id', id);
-          if (!error) setCategories(categories.filter(c => c.id !== id));
-      }, 'danger');
-  };
-
-  const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
-    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-    if (!error) {
-        setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    }
-  };
-
-  const handleCancelOrder = (order: Order) => {
-      showConfirm("Annulation Commande", `Êtes-vous sûr d'annuler la commande #${order.id} ? Le stock sera automatiquement restauré.`, async () => {
-          try {
-              for (const item of order.items) {
-                  const { data: productData } = await supabase.from('products').select('stock').eq('id', item.id).single();
-                  if (productData) {
-                      const newStock = productData.stock + item.quantity;
-                      await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
-                      onUpdateProducts(products.map(p => p.id === item.id ? { ...p, stock: newStock } : p));
-                  }
-              }
-              await updateOrderStatus(order.id, 'cancelled');
-          } catch (err: any) {
-              console.error(err);
-          }
-      }, 'danger');
-  };
-
-  const handleDeleteProduct = (id: string) => {
-    showConfirm("Supprimer Produit", "Attention, cette action est irréversible. Le produit disparaîtra du catalogue.", async () => {
-        const { error } = await supabase.from('products').delete().eq('id', id);
-        if (!error) onUpdateProducts(products.filter(p => p.id !== id));
-    }, 'danger');
-  };
-
-  const handleSaveProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingProduct) return;
-    if (!editingProduct.category) { alert("Veuillez sélectionner une catégorie valide."); return; }
-
-    const isNew = editingProduct.id.startsWith('new_');
-    const productData = { ...editingProduct, id: isNew ? crypto.randomUUID() : editingProduct.id };
-    
-    const { error } = await supabase.from('products').upsert(productData);
-    if (error) {
-        alert(error.code === '23503' ? `Erreur de catégorie : Le type "${editingProduct.category}" n'existe pas.` : `Erreur : ${error.message}`);
-        return;
-    }
-
-    onUpdateProducts(isNew ? [...products, productData] : products.map(p => p.id === productData.id ? productData : p));
-    setEditingProduct(null);
-  };
-
-  const handleDeleteStaff = (id: string) => {
-      showConfirm("Supprimer Staff", "Voulez-vous vraiment retirer ce membre de l'équipe ?", async () => {
-          const { error } = await supabase.from('staff').delete().eq('id', id);
-          if (!error) setStaffMembers(staffMembers.filter(s => s.id !== id));
-      }, 'danger');
-  };
-
+  // 3. Independent Logic (Still local for now as it's simple or specific)
+  // Staff Editing
+  const [editingStaff, setEditingStaff] = useState<any | null>(null);
   const handleSaveStaff = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!editingStaff) return;
       const isNew = editingStaff.id.startsWith('new_');
-      const { username, ...cleanData } = editingStaff as any;
+      const { username, ...cleanData } = editingStaff;
       const staffData = { ...cleanData, id: isNew ? undefined : editingStaff.id };
-      if (isNew) delete (staffData as any).id;
-      const { data, error } = await supabase.from('staff').upsert(staffData).select();
-      if (!error && data) {
-          fetchStaff();
+      const { data: res, error } = await supabase.from('staff').upsert(staffData).select();
+      if (!error && res) {
+          data.setStaffMembers(prev => isNew ? [...prev, res[0]] : prev.map(s => s.id === res[0].id ? res[0] : s)); // Simple optim update
+          data.fetchOrders(); // Refresh to be sure
           setEditingStaff(null);
       }
   };
-
-  // POS Logic
-  const addToPosCart = (product: Product) => {
-    setPosCart(prev => {
-      const exists = prev.find(item => item.id === product.id);
-      if (exists) return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-      return [...prev, { ...product, quantity: 1 }];
-    });
+  const handleDeleteStaff = (id: string) => {
+      showConfirm("Supprimer Staff", "Confirmation ?", async () => {
+          await supabase.from('staff').delete().eq('id', id);
+          data.setStaffMembers(prev => prev.filter(s => s.id !== id));
+      }, 'danger');
   };
 
-  const handlePosSubmit = () => {
-      if (posCart.length === 0) return alert("Panier vide");
-      if (!posCustomer.name) return alert("Nom du client requis");
-      if (!posCustomer.phone) return alert("Numéro de téléphone requis pour le suivi CRM");
+  // Categories Logic (Simple enough to keep here or move later)
+  const [newCatName, setNewCatName] = useState('');
+  const handleAddCategory = async () => {
+      if (!newCatName.trim()) return;
+      const slug = newCatName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const { data: res, error } = await supabase.from('categories').insert([{ name: newCatName, slug }]).select();
+      if (!error && res) {
+          data.setCategories([...data.categories, res[0]]);
+          setNewCatName('');
+      }
+  };
+  const handleDeleteCategory = (id: string) => {
+      showConfirm("Supprimer Type", "Attention aux produits liés.", async () => {
+          await supabase.from('categories').delete().eq('id', id);
+          data.setCategories(data.categories.filter(c => c.id !== id));
+      }, 'danger');
+  };
 
-      showConfirm("Valider la Vente", `Confirmer la vente de ${posCart.reduce((a,b)=>a+b.quantity,0)} articles pour ${posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString()} FCFA ?`, async () => {
-          const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-          const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
-          
-          try {
-              // 1. Créer la commande
-              await supabase.from('orders').insert([{
-                  id: newOrderId,
-                  customer_name: posCustomer.name,
-                  customer_email: posCustomer.email,
-                  customer_phone: posCustomer.phone,
-                  customer_city: 'Retrait Boutique (POS)',
-                  delivery_mode: 'pickup',
-                  total: total,
-                  status: 'delivered', 
-                  payment_method: posPaymentMethod,
-                  items: posCart,
-                  date: new Date().toISOString()
-              }]);
-
-              // 2. Mettre à jour le stock
-              for (const item of posCart) {
-                  const product = products.find(p => p.id === item.id);
-                  if (product) {
-                      const newStock = Math.max(0, product.stock - item.quantity);
-                      await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
-                      onUpdateProducts(products.map(p => p.id === item.id ? { ...p, stock: newStock } : p));
-                  }
+  // Orders Actions
+  const updateOrderStatus = async (orderId: string, newStatus: any) => {
+      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+      if (!error) {
+          data.setOrders(data.orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      }
+  };
+  const handleCancelOrder = (order: any) => {
+      showConfirm("Annuler Commande", "Le stock sera restauré.", async () => {
+          for (const item of order.items) {
+              const { data: pData } = await supabase.from('products').select('stock').eq('id', item.id).single();
+              if (pData) {
+                  const newStock = pData.stock + item.quantity;
+                  await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
+                  // Update local catalog if needed
               }
-
-              // 3. CRM LOGIC
-              let existingCustomer = null;
-              if (posCustomer.email) {
-                 const { data } = await supabase.from('customers').select('*').eq('email', posCustomer.email).maybeSingle();
-                 existingCustomer = data;
-              }
-              if (!existingCustomer && posCustomer.phone) {
-                  const { data } = await supabase.from('customers').select('*').eq('phone', posCustomer.phone).maybeSingle();
-                  existingCustomer = data;
-              }
-
-              if (existingCustomer) {
-                 await supabase.from('customers').update({
-                    total_orders: (existingCustomer.total_orders || 0) + 1,
-                    total_spent: (existingCustomer.total_spent || 0) + total,
-                    phone: posCustomer.phone || existingCustomer.phone, 
-                    email: posCustomer.email || existingCustomer.email,
-                    name: posCustomer.name 
-                 }).eq('id', existingCustomer.id);
-              } else {
-                 await supabase.from('customers').insert([{
-                    id: crypto.randomUUID(),
-                    name: posCustomer.name,
-                    email: posCustomer.email,
-                    phone: posCustomer.phone,
-                    total_orders: 1,
-                    total_spent: total,
-                    created_at: new Date().toISOString()
-                 }]);
-              }
-
-              // 4. Génération Facture
-              const invoiceData = {
-                  id: newOrderId,
-                  items: posCart,
-                  total: total,
-                  status: 'delivered',
-                  paymentMethod: posPaymentMethod,
-                  customerName: posCustomer.name,
-                  customerEmail: posCustomer.email,
-                  customerPhone: posCustomer.phone,
-                  customerCity: 'Retrait Boutique',
-                  deliveryMode: 'pickup',
-                  date: new Date().toLocaleDateString('fr-FR')
-              };
-              const html = generateInvoiceHTML(invoiceData as any);
-              const printWindow = window.open('', '_blank');
-              if (printWindow) {
-                  printWindow.document.write(html);
-                  printWindow.document.close();
-                  setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
-              }
-
-              setPosCart([]);
-              setPosCustomer({ name: '', phone: '', email: '' });
-              fetchOrders();
-              fetchCustomers(); 
-
-          } catch (err: any) {
-              alert(err.message);
           }
-      }, 'success');
+          await updateOrderStatus(order.id, 'cancelled');
+      }, 'danger');
   };
 
+  // Marketing Video Logic
+  const [videoPrompt, setVideoPrompt] = useState("");
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const handleVideoGeneration = async () => {
       if (!videoPrompt) return;
       setGeneratingVideo(true);
@@ -417,29 +124,68 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       } finally { setGeneratingVideo(false); }
   };
 
+  // 4. Helpers
+  const showConfirm = (title: string, message: string, action: () => void, type: 'danger' | 'info' | 'success' = 'info') => {
+      setModalConfig({
+          isOpen: true, title, message, type,
+          onConfirm: () => { action(); setModalConfig(null); }
+      });
+  };
+
+  const handleNotificationClick = (n: AdminNotification) => {
+      notifs.markAsRead(n.id);
+      if (n.linkToTab) setActiveTab(n.linkToTab as any);
+      notifs.setIsNotifDrawerOpen(false);
+      notifs.closeToast();
+  };
+
+  // 5. Wrappers for Inventory Hook to use Modal
+  const onSaveProduct = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+          await inventory.saveProduct();
+      } catch (err: any) {
+          alert(err.message);
+      }
+  };
+  const onDeleteProductClick = (id: string) => {
+      showConfirm("Supprimer Produit", "Irréversible.", async () => {
+          try { await inventory.deleteProduct(id); } catch(e) { console.error(e); }
+      }, 'danger');
+  };
+
+  // 6. Wrappers for POS Hook to use Modal
+  const onPosSubmitClick = () => {
+      try {
+          if (pos.cart.length === 0) throw new Error("Panier vide");
+          showConfirm("Valider Vente", `Total: ${pos.cart.reduce((a,b)=>a+(b.price*b.quantity),0).toLocaleString()} FCFA`, async () => {
+              try { await pos.submitSale(); } catch(e:any) { alert(e.message); }
+          }, 'success');
+      } catch(e:any) { alert(e.message); }
+  };
+
   return (
     <div className="min-h-screen text-white font-sans selection:bg-xeption-gold selection:text-black">
         {modalConfig && <ConfirmationModal {...modalConfig} onCancel={() => setModalConfig(null)} />}
-        
-        {/* Notification System */}
+
         <NotificationToast 
-            notification={currentToast} 
-            onClose={() => setCurrentToast(null)} 
-            onClick={() => handleNotificationClick(currentToast!)} 
+            notification={notifs.currentToast} 
+            onClose={notifs.closeToast} 
+            onClick={() => notifs.currentToast && handleNotificationClick(notifs.currentToast)} 
         />
         <NotificationDrawer 
-            isOpen={isNotifDrawerOpen} 
-            onClose={() => setIsNotifDrawerOpen(false)} 
-            notifications={notifications} 
-            onClearAll={clearAllNotifications}
+            isOpen={notifs.isNotifDrawerOpen} 
+            onClose={notifs.toggleDrawer} 
+            notifications={notifs.notifications} 
+            onClearAll={notifs.clearAll}
             onNotificationClick={handleNotificationClick}
         />
 
         <Sidebar 
             activeTab={activeTab} 
             onTabChange={setActiveTab} 
-            unreadCount={unreadCount}
-            onToggleNotifications={() => setIsNotifDrawerOpen(true)}
+            unreadCount={notifs.unreadCount}
+            onToggleNotifications={notifs.toggleDrawer}
         />
 
         <main className="md:ml-64 p-4 md:p-8 pb-24 md:pb-8 min-h-screen relative overflow-x-hidden">
@@ -448,15 +194,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                  <div className="bg-white/10 px-3 py-1 rounded text-[10px] font-bold uppercase text-xeption-gold">Admin</div>
             </div>
 
-            {activeTab === 'dashboard' && <DashboardTab orders={orders} staffMembers={staffMembers} customers={customers} products={products} />}
-            {activeTab === 'categories' && <CategoriesTab categories={categories} newCatName={newCatName} setNewCatName={setNewCatName} onAddCategory={handleAddCategory} onDeleteCategory={handleDeleteCategory} />}
-            {activeTab === 'pos' && <PosTab products={products} posCart={posCart} posSearch={posSearch} setPosSearch={setPosSearch} posCustomer={posCustomer} setPosCustomer={setPosCustomer} addToPosCart={addToPosCart} onPosSubmit={handlePosSubmit} />}
-            {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={setEditingProduct} onDeleteProduct={handleDeleteProduct} onCreateProduct={() => setEditingProduct({id: `new_${Date.now()}`, name: '', description: '', price: 0, category: categories[0]?.slug || '', image: 'https://via.placeholder.com/400', images: [], video: '', stock: 0, isPromo: false, specs: [], pros: [], cons: [], warrantyMonths: 0})} />}
-            {activeTab === 'orders' && <OrdersTab orders={orders} onUpdateStatus={updateOrderStatus} onCancelOrder={handleCancelOrder} />}
-            {activeTab === 'invoices' && <InvoicesTab orders={orders} />} 
+            {/* TAB CONTENT */}
+            {activeTab === 'dashboard' && <DashboardTab orders={data.orders} staffMembers={data.staffMembers} customers={data.customers} products={products} />}
+            {activeTab === 'categories' && <CategoriesTab categories={data.categories} newCatName={newCatName} setNewCatName={setNewCatName} onAddCategory={handleAddCategory} onDeleteCategory={handleDeleteCategory} />}
+            
+            {activeTab === 'pos' && (
+                <PosTab 
+                    products={products} 
+                    posCart={pos.cart} 
+                    posSearch={pos.search} 
+                    setPosSearch={pos.setSearch} 
+                    posCustomer={pos.customer} 
+                    setPosCustomer={pos.setCustomer} 
+                    addToPosCart={pos.addToCart} 
+                    onPosSubmit={onPosSubmitClick} 
+                    lastOrder={pos.lastOrder}
+                    onDismissSuccess={() => pos.setLastOrder(null)}
+                />
+            )}
+
+            {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={inventory.setEditingProduct} onDeleteProduct={onDeleteProductClick} onCreateProduct={() => inventory.startCreate(data.categories)} />}
+            
+            {activeTab === 'orders' && <OrdersTab orders={data.orders} onUpdateStatus={updateOrderStatus} onCancelOrder={handleCancelOrder} />}
+            {activeTab === 'invoices' && <InvoicesTab orders={data.orders} />} 
             {activeTab === 'sav' && <SavTab />}
-            {activeTab === 'staff' && <StaffTab staffMembers={staffMembers} onAddStaff={() => setEditingStaff({id: `new_${Date.now()}`, username: '', name: '', email: '', password: '123456', role: 'editor', phone: ''})} onDeleteStaff={handleDeleteStaff} />}
-            {activeTab === 'clients' && <ClientsTab customers={customers} />}
+            {activeTab === 'staff' && <StaffTab staffMembers={data.staffMembers} onAddStaff={() => setEditingStaff({id: `new_${Date.now()}`, username: '', name: '', email: '', password: '123456', role: 'editor', phone: ''})} onDeleteStaff={handleDeleteStaff} />}
+            {activeTab === 'clients' && <ClientsTab customers={data.customers} />}
             {activeTab === 'marketing' && <MarketingTab videoPrompt={videoPrompt} setVideoPrompt={setVideoPrompt} generatingVideo={generatingVideo} generatedVideoUrl={generatedVideoUrl} onGenerateVideo={handleVideoGeneration} />}
             {activeTab === 'guide' && <GuideTab />}
         </main>
@@ -464,17 +227,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         <BottomNav 
             activeTab={activeTab} 
             onTabChange={setActiveTab} 
-            unreadCount={unreadCount}
-            onToggleNotifications={() => setIsNotifDrawerOpen(true)}
+            unreadCount={notifs.unreadCount}
+            onToggleNotifications={notifs.toggleDrawer}
         />
 
-        {editingProduct && (
+        {/* MODALS */}
+        {inventory.editingProduct && (
             <ProductEditorOverlay 
-                product={editingProduct} 
-                categories={categories}
-                onClose={() => setEditingProduct(null)} 
-                onSave={handleSaveProduct} 
-                onChange={(updates) => setEditingProduct(prev => prev ? ({ ...prev, ...updates }) : null)} 
+                product={inventory.editingProduct} 
+                categories={data.categories}
+                onClose={() => inventory.setEditingProduct(null)} 
+                onSave={onSaveProduct} 
+                onChange={(updates) => inventory.setEditingProduct(prev => prev ? ({ ...prev, ...updates }) : null)} 
             />
         )}
         

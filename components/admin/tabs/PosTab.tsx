@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Box, User, Phone, Mail } from 'lucide-react';
+import React, { useState } from 'react';
+import { Box, User, Phone, Mail, ShoppingCart, Grid } from 'lucide-react';
 import { Product, CartItem } from '../../../types';
 
 interface PosTabProps {
@@ -18,17 +18,48 @@ const PosTab: React.FC<PosTabProps> = ({
     products, posCart, posSearch, setPosSearch, 
     posCustomer, setPosCustomer, addToPosCart, onPosSubmit 
 }) => {
+  // État pour gérer la vue mobile (Catalogue vs Panier)
+  const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
+
+  const totalAmount = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalItems = posCart.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
-    <div className="animate-in fade-in h-[calc(100vh-100px)] grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* CATALOGUE */}
-        <div className="lg:col-span-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center">
+    <div className="animate-in fade-in h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] flex flex-col lg:grid lg:grid-cols-3 gap-6 relative">
+        
+        {/* MOBILE TOGGLE SWITCHER */}
+        <div className="lg:hidden flex bg-black/40 p-1 rounded-sm mb-2 border border-white/10 shrink-0">
+           <button 
+             onClick={() => setMobileView('catalog')} 
+             className={`flex-1 py-3 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${mobileView === 'catalog' ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}
+           >
+             <Grid className="w-4 h-4" /> Catalogue
+           </button>
+           <button 
+             onClick={() => setMobileView('cart')} 
+             className={`flex-1 py-3 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${mobileView === 'cart' ? 'bg-xeption-gold text-black' : 'text-gray-400 hover:text-white'}`}
+           >
+              <ShoppingCart className="w-4 h-4" /> Panier ({totalItems})
+           </button>
+        </div>
+
+        {/* CATALOGUE (Visible si Desktop OU si mobileView == 'catalog') */}
+        <div className={`lg:col-span-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex-col overflow-hidden ${mobileView === 'cart' ? 'hidden lg:flex' : 'flex'} h-full`}>
+            <div className="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center shrink-0">
                 <h3 className="text-white font-bold uppercase text-sm flex items-center gap-2"><Box className="w-4 h-4 text-blue-400" /> Catalogue</h3>
-                <input type="text" value={posSearch} onChange={(e) => setPosSearch(e.target.value)} placeholder="Chercher produit..." className="bg-black/50 border border-white/10 px-3 py-1 text-sm text-white rounded-sm w-48 focus:border-xeption-gold outline-none" />
+                <input type="text" value={posSearch} onChange={(e) => setPosSearch(e.target.value)} placeholder="Chercher produit..." className="bg-black/50 border border-white/10 px-3 py-1 text-sm text-white rounded-sm w-32 md:w-48 focus:border-xeption-gold outline-none" />
             </div>
-            <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start">
+            <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start pb-20 lg:pb-4">
                 {products.filter(p=>p.name.toLowerCase().includes(posSearch.toLowerCase())).map(p => (
-                    <button key={p.id} onClick={() => addToPosCart(p)} disabled={p.stock<=0} className="bg-black/40 border border-white/5 p-3 rounded-sm hover:border-xeption-gold/50 text-left flex flex-col h-full group transition-all">
+                    <button 
+                        key={p.id} 
+                        onClick={() => {
+                            addToPosCart(p);
+                            // Petit feedback visuel ou auto-switch optionnel (ici on reste sur catalogue pour enchainer)
+                        }} 
+                        disabled={p.stock<=0} 
+                        className="bg-black/40 border border-white/5 p-3 rounded-sm hover:border-xeption-gold/50 text-left flex flex-col h-full group transition-all active:scale-95"
+                    >
                         <div className="aspect-square bg-black rounded-sm mb-2 relative overflow-hidden">
                             <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.name}/>
                             {p.stock<=0 && <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-xs text-red-500 font-bold backdrop-blur-sm">Rupture</div>}
@@ -43,11 +74,12 @@ const PosTab: React.FC<PosTabProps> = ({
             </div>
         </div>
 
-        {/* PANIER & CLIENT */}
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-white/10 bg-black/40"><h3 className="text-white font-bold uppercase text-sm">Panier En Cours</h3></div>
+        {/* PANIER & CLIENT (Visible si Desktop OU si mobileView == 'cart') */}
+        <div className={`bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex-col overflow-hidden ${mobileView === 'catalog' ? 'hidden lg:flex' : 'flex'} h-full`}>
+            <div className="p-4 border-b border-white/10 bg-black/40 shrink-0"><h3 className="text-white font-bold uppercase text-sm">Panier En Cours</h3></div>
             
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-black/20">
+            {/* Zone Scrollable des articles : flex-1 pour prendre tout l'espace disponible */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-black/20 min-h-0">
                     {posCart.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50">
                             <Box className="w-8 h-8 mb-2" />
@@ -55,20 +87,24 @@ const PosTab: React.FC<PosTabProps> = ({
                         </div>
                     ) : (
                         posCart.map(item => (
-                            <div key={item.id} className="flex justify-between items-center bg-black/40 p-2 rounded-sm border border-white/5 hover:border-white/20 transition-colors">
+                            <div key={item.id} className="flex justify-between items-center bg-black/40 p-3 rounded-sm border border-white/5 hover:border-white/20 transition-colors">
                                 <div className="flex-1">
-                                    <div className="text-xs font-bold text-white line-clamp-1">{item.name}</div>
-                                    <div className="text-[10px] text-gray-500">{item.price.toLocaleString()} x <span className="text-xeption-gold font-bold">{item.quantity}</span></div>
+                                    <div className="text-xs font-bold text-white line-clamp-2 mb-1">{item.name}</div>
+                                    <div className="text-[10px] text-gray-500 font-mono">
+                                        {item.price.toLocaleString()} x <span className="text-xeption-gold font-bold text-sm">{item.quantity}</span>
+                                    </div>
                                 </div>
-                                <div className="text-right text-xs font-bold text-white pl-2">
-                                    {(item.price * item.quantity).toLocaleString()}
+                                <div className="text-right pl-2 flex flex-col items-end">
+                                    <span className="text-xs font-bold text-white mb-1">{(item.price * item.quantity).toLocaleString()}</span>
+                                    {/* Petit bouton optionnel pour retirer un item si besoin ici */}
                                 </div>
                             </div>
                         ))
                     )}
             </div>
 
-            <div className="p-4 bg-black/40 border-t border-white/10 space-y-3">
+            {/* Zone Formulaire Client : Fixe en bas */}
+            <div className="p-4 bg-black/40 border-t border-white/10 space-y-3 shrink-0 z-10 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
                 <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">Informations Client</div>
                 
                 <div className="relative">
@@ -97,7 +133,7 @@ const PosTab: React.FC<PosTabProps> = ({
                         <Mail className="absolute left-3 top-2.5 w-3 h-3 text-gray-500" />
                         <input 
                             type="email" 
-                            placeholder="Email (Optionnel)" 
+                            placeholder="Email" 
                             className="w-full bg-black/50 border border-white/10 pl-8 pr-3 py-2 text-xs text-white rounded-sm focus:border-xeption-gold outline-none" 
                             value={posCustomer.email} 
                             onChange={e => setPosCustomer({...posCustomer, email: e.target.value})} 
@@ -110,7 +146,7 @@ const PosTab: React.FC<PosTabProps> = ({
                 <div className="flex justify-between items-end">
                     <span className="text-gray-400 text-xs font-bold uppercase">Total à payer</span>
                     <span className="text-2xl font-bold font-mono text-white tracking-tighter">
-                        {posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString()} <span className="text-xs text-xeption-gold align-top">FCFA</span>
+                        {totalAmount.toLocaleString()} <span className="text-xs text-xeption-gold align-top">FCFA</span>
                     </span>
                 </div>
                 

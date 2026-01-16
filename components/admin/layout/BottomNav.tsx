@@ -1,30 +1,25 @@
 
 import React from 'react';
-import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText } from 'lucide-react';
+import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText, Bell } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
   onTabChange: (tab: any) => void;
+  unreadCount: number;
+  onToggleNotifications: () => void;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, unreadCount, onToggleNotifications }) => {
   const MENU_ITEMS = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { id: 'pos', label: 'Caisse (POS)', icon: CreditCard },
+      { id: 'pos', label: 'Caisse', icon: CreditCard },
       { id: 'orders', label: 'Commandes', icon: ShoppingBag },
-      { id: 'invoices', label: 'Factures', icon: FileText }, // Ajout ici
-      { id: 'inventory', label: 'Inventaire', icon: Package },
-      { id: 'categories', label: 'Types (Dynamic)', icon: Layers },
-      { id: 'sav', label: 'Atelier SAV', icon: Wrench },
-      { id: 'clients', label: 'Clients CRM', icon: Users },
-      { id: 'staff', label: 'Équipe', icon: Key },
-      { id: 'marketing', label: 'Studio Vidéo', icon: Clapperboard },
-      { id: 'guide', label: 'Guide Staff', icon: BookOpen }
+      { id: 'sav', label: 'SAV', icon: Wrench },
   ];
 
   return (
       <nav className="md:hidden fixed bottom-0 left-0 w-full bg-black/80 backdrop-blur-xl border-t border-white/10 z-50 pb-safe">
-          <div className="flex overflow-x-auto no-scrollbar py-2 px-2 gap-2">
+          <div className="flex overflow-x-auto no-scrollbar py-2 px-2 gap-2 justify-between">
               {MENU_ITEMS.map(item => (
                   <button
                       key={item.id}
@@ -34,9 +29,21 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
                       }`}
                   >
                       <item.icon className={`w-5 h-5 mb-1 ${activeTab === item.id ? 'fill-current' : ''}`} />
-                      <span className="text-[9px] font-bold uppercase tracking-tight">{item.label.split(' ')[0]}</span>
+                      <span className="text-[9px] font-bold uppercase tracking-tight">{item.label}</span>
                   </button>
               ))}
+              
+              {/* Mobile Notification Trigger */}
+              <button
+                  onClick={onToggleNotifications}
+                  className="flex flex-col items-center justify-center min-w-[70px] p-2 rounded-lg text-gray-500 relative"
+              >
+                  <Bell className="w-5 h-5 mb-1" />
+                  <span className="text-[9px] font-bold uppercase tracking-tight">Alertes</span>
+                  {unreadCount > 0 && (
+                      <span className="absolute top-2 right-4 w-2 h-2 bg-xeption-red rounded-full animate-pulse"></span>
+                  )}
+              </button>
           </div>
       </nav>
   );

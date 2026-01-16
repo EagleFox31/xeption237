@@ -17,9 +17,9 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, onNavigate, curr
     { id: 'home', label: 'Accueil' },
     { id: 'shop', label: 'Le Shop' },
     { id: 'troc', label: 'Troc Zone' },
-    { id: 'tracking', label: 'Suivi' }, // Ajout du lien Suivi
+    { id: 'tracking', label: 'Suivi' },
     { id: 'sav', label: 'SAV' },
-    { id: 'admin', label: 'Staff' },
+    // Staff removed from public header
   ];
 
   const handleNav = (page: string) => {

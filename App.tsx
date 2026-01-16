@@ -302,7 +302,7 @@ const App: React.FC = () => {
         onNavigate={handleNavigate}
       />
 
-      <AiConsultant />
+      {page !== 'admin' && <AiConsultant />}
     </div>
   );
 };

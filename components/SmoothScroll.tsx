@@ -14,7 +14,6 @@ const SmoothScroll: React.FC<SmoothScrollProps> = ({ children }) => {
       gestureOrientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 1,
-      smoothTouch: false, // Generally better to keep native touch scroll on mobile
       touchMultiplier: 2,
     });
 

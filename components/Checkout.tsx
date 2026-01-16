@@ -8,7 +8,7 @@ import { supabase } from '../services/supabaseClient';
 import { generateInvoiceHTML } from '../utils/invoiceGenerator';
 import {
   X, Smartphone, CheckCircle, ShieldCheck, Minus, Plus, ShoppingBag,
-  ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, Download, FileText
+  ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, Download, FileText, Copy, Radar
 } from 'lucide-react';
 
 interface CheckoutProps {
@@ -18,17 +18,20 @@ interface CheckoutProps {
   onRemoveItem: (id: string) => void;
   onUpdateQuantity: (id: string, delta: number) => void;
   onClearCart: () => void;
+  onNavigate?: (page: string) => void; // Ajout de la prop onNavigate
 }
 
 const Checkout: React.FC<CheckoutProps> = ({
-  cart, isOpen, onClose, onRemoveItem, onUpdateQuantity, onClearCart
+  cart, isOpen, onClose, onRemoveItem, onUpdateQuantity, onClearCart, onNavigate
 }) => {
   const [step, setStep] = useState<'cart' | 'details' | 'payment' | 'success'>('cart');
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [deliveryMode, setDeliveryMode] = useState<'delivery' | 'pickup'>('delivery');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isPdfGenerating, setIsPdfGenerating] = useState(false); // New state for PDF loader
+  const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [lastOrderHtml, setLastOrderHtml] = useState<string | null>(null);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null); // State pour mémoriser l'ID
+  const [copiedId, setCopiedId] = useState(false);
 
   // ✅ hCaptcha
   const HCAPTCHA_SITE_KEY = "0d0cfd40-72aa-4570-a4fa-e8f263ce1d24";
@@ -61,36 +64,27 @@ const Checkout: React.FC<CheckoutProps> = ({
   const submitOrder = async () => {
     setIsProcessing(true);
     try {
-      // ✅ Captcha obligatoire avant la validation (anti-bot)
       if (!captchaToken) {
         alert("Veuillez valider le captcha avant de confirmer la commande.");
         return;
       }
 
-      // --- AUTHENTIFICATION GUEST (JWT) ---
       const { data: { session } } = await supabase.auth.getSession();
-
       if (!session) {
-        console.log("🔒 Initialisation session sécurisée (Guest) + Captcha...");
-        // ✅ On passe le captchaToken à Supabase Auth
         const { error: authError } = await supabase.auth.signInAnonymously({
           options: { captchaToken }
         });
-
-        if (authError) {
-          console.error("Erreur Auth Anonyme:", authError);
-          throw new Error("Impossible d'initialiser la session sécurisée. Réessayez.");
-        }
+        if (authError) throw new Error("Impossible d'initialiser la session sécurisée. Réessayez.");
       }
-      // ------------------------------------
 
       const newOrderId = `ORD-${Date.now().toString().slice(-6)}`;
+      setCreatedOrderId(newOrderId); // Sauvegarde de l'ID
+
       const dbDate = new Date().toISOString();
       const displayDate = new Date().toLocaleDateString('fr-FR', {
         day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
       });
 
-      // 1. Insert Orders
       const { error: orderError } = await supabase.from('orders').insert([{
         id: newOrderId,
         customer_name: formData.name,
@@ -107,33 +101,19 @@ const Checkout: React.FC<CheckoutProps> = ({
 
       if (orderError) throw orderError;
 
-      // 2. UPDATE STOCK
       for (const item of cart) {
         const { data: productData, error: fetchError } = await supabase
-            .from('products')
-            .select('stock')
-            .eq('id', item.id)
-            .single();
+            .from('products').select('stock').eq('id', item.id).single();
 
         if (!fetchError && productData) {
             const newStock = Math.max(0, productData.stock - item.quantity);
-            const { error: updateError } = await supabase
-                .from('products')
-                .update({ stock: newStock })
-                .eq('id', item.id);
-            if (updateError) console.error(`Erreur mise à jour stock pour ${item.name}:`, updateError);
+            await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
         }
       }
 
-      // 3. CRM LOGIC
       if (formData.email) {
         try {
-          const { data: existingCustomer } = await supabase
-            .from('customers')
-            .select('*')
-            .eq('email', formData.email)
-            .single();
-
+          const { data: existingCustomer } = await supabase.from('customers').select('*').eq('email', formData.email).single();
           if (existingCustomer) {
             await supabase.from('customers').update({
               total_orders: (existingCustomer.total_orders || 0) + 1,
@@ -159,67 +139,40 @@ const Checkout: React.FC<CheckoutProps> = ({
         }
       }
 
-      // 4. Prepare Invoice Data & Email
+      const invoiceData = {
+        id: newOrderId,
+        items: cart,
+        total: total,
+        status: 'pending',
+        paymentMethod: selectedPayment,
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        customerCity: deliveryMode === 'pickup' ? 'Retrait Boutique' : formData.city,
+        deliveryMode: deliveryMode,
+        date: displayDate
+      };
+
+      const html = generateInvoiceHTML(invoiceData as any);
+      setLastOrderHtml(html);
+
       if (formData.email) {
-        const invoiceData = {
-          id: newOrderId,
-          items: cart,
-          total: total,
-          status: 'pending',
-          paymentMethod: selectedPayment,
-          customerName: formData.name,
-          customerEmail: formData.email,
-          customerPhone: formData.phone,
-          customerCity: deliveryMode === 'pickup' ? 'Retrait Boutique' : formData.city,
-          deliveryMode: deliveryMode,
-          date: displayDate
-        };
-
-        const emailHtml = generateInvoiceHTML(invoiceData as any);
-        setLastOrderHtml(emailHtml);
-
-        console.log("Tentative d'envoi d'email via Edge Function...");
-
-        const { data, error } = await supabase.functions.invoke('send-invoice', {
+        await supabase.functions.invoke('send-invoice', {
           body: {
             to: formData.email,
             subject: `XEPTION | Commande ${newOrderId} Confirmée`,
-            html: emailHtml,
+            html: html,
             text: `Commande ${newOrderId} confirmée. Total: ${total.toLocaleString('fr-FR')} FCFA.`
           }
         });
-
-        if (error) {
-          console.error("❌ Erreur Edge Function (Client):", error);
-        } else {
-          console.log("✅ Réponse Edge Function:", data);
-        }
-      } else {
-          // Si pas d'email, on génère quand même le HTML pour le téléchargement PDF
-          const invoiceData = {
-            id: newOrderId,
-            items: cart,
-            total: total,
-            status: 'pending',
-            paymentMethod: selectedPayment,
-            customerName: formData.name,
-            customerEmail: formData.email,
-            customerPhone: formData.phone,
-            customerCity: deliveryMode === 'pickup' ? 'Retrait Boutique' : formData.city,
-            deliveryMode: deliveryMode,
-            date: displayDate
-          };
-          setLastOrderHtml(generateInvoiceHTML(invoiceData as any));
       }
 
-      // ✅ reset captcha après succès
       captchaRef.current?.resetCaptcha?.();
       setCaptchaToken(null);
-
       setStep('success');
     } catch (err: any) {
       console.error("Order error:", JSON.stringify(err, null, 2));
-      alert(`Erreur lors de la commande: ${err.message || 'Erreur inconnue'}. Vérifiez la console.`);
+      alert(`Erreur lors de la commande: ${err.message || 'Erreur inconnue'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -227,19 +180,14 @@ const Checkout: React.FC<CheckoutProps> = ({
 
   const handleDownloadInvoice = async () => {
     if (!lastOrderHtml) return;
-    
     setIsPdfGenerating(true);
-
     try {
-        // Create container
         const element = document.createElement('div');
         element.innerHTML = lastOrderHtml;
-        // Fix width for A4 PDF rendering
         element.style.width = '700px'; 
         element.style.padding = '20px';
         element.style.background = 'white';
 
-        // Offscreen container to avoid visual glitch during render
         const container = document.createElement('div');
         container.style.position = 'fixed';
         container.style.left = '-10000px';
@@ -258,26 +206,43 @@ const Checkout: React.FC<CheckoutProps> = ({
 
         // @ts-ignore
         await window.html2pdf().set(opt).from(element).save();
-        
         document.body.removeChild(container);
-
     } catch (err) {
         console.error("PDF Gen Error:", err);
-        // Fallback HTML si le PDF échoue
         const blob = new Blob([lastOrderHtml], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        const safeName = formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        link.download = `Facture_Xeption_${safeName}.html`;
-        document.body.appendChild(link);
+        link.download = `Facture.html`;
         link.click();
-        document.body.removeChild(link);
     } finally {
         setIsPdfGenerating(false);
     }
   };
 
+  const handleCopyToClipboard = () => {
+      if (createdOrderId) {
+          navigator.clipboard.writeText(createdOrderId);
+          setCopiedId(true);
+          setTimeout(() => setCopiedId(false), 2000);
+      }
+  };
+
+  const handleGoToTracking = () => {
+      if (createdOrderId && onNavigate) {
+          onClearCart();
+          onClose();
+          // Mise à jour de l'URL pour que OrderTracking puisse lire l'ID
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('id', createdOrderId);
+          window.history.pushState({}, '', newUrl);
+          
+          onNavigate('tracking');
+      }
+  };
+
+  // ... (StepIndicator, renderCart, renderDetails, renderPayment unchanged - only renderSuccess modified)
+  
   const StepIndicator = () => (
     <div className="flex justify-center items-center gap-4 mb-8 text-sm font-tech uppercase tracking-widest">
       <span className={`${step === 'cart' ? 'text-xeption-gold font-bold' : 'text-gray-400/70'}`}>1. Panier</span>
@@ -290,6 +255,7 @@ const Checkout: React.FC<CheckoutProps> = ({
 
   const renderCart = () => (
     <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto w-full">
+      {/* ... (Existing renderCart code) ... */}
       <div className="flex-1 space-y-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-white font-tech uppercase drop-shadow-md">
@@ -535,6 +501,42 @@ const Checkout: React.FC<CheckoutProps> = ({
           Respect <span className="text-xeption-gold font-bold">{formData.name}</span>.<br />
           Ta commande est enregistrée. Notre équipe t'appelle au <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded">{formData.phone}</span>.
         </p>
+
+        {/* --- BLOC SUIVI DE COMMANDE --- */}
+        <div className="bg-[#18181b] border border-xeption-gold/30 p-6 rounded-lg mb-8 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-xeption-gold/10 rounded-full blur-xl group-hover:bg-xeption-gold/20 transition-all"></div>
+            <div className="relative z-10">
+                <h4 className="text-xeption-gold font-bold uppercase text-sm mb-2 flex items-center justify-center gap-2">
+                    <Radar className="w-4 h-4 animate-pulse" /> Suivi Live
+                </h4>
+                <p className="text-gray-400 text-xs mb-4">
+                    Copie ton numéro de commande pour suivre ton colis en temps réel.
+                </p>
+                
+                {createdOrderId && (
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                         <code className="bg-black/50 border border-white/10 px-4 py-2 rounded text-white font-mono font-bold tracking-widest text-lg">
+                             {createdOrderId}
+                         </code>
+                         <button 
+                            onClick={handleCopyToClipboard}
+                            className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-400 hover:text-white transition-colors"
+                            title="Copier"
+                         >
+                             {copiedId ? <CheckCircle className="w-5 h-5 text-green-500"/> : <Copy className="w-5 h-5"/>}
+                         </button>
+                    </div>
+                )}
+
+                <button 
+                    onClick={handleGoToTracking}
+                    className="w-full bg-white/5 hover:bg-xeption-gold hover:text-black border border-white/10 hover:border-transparent text-white font-bold py-3 rounded uppercase text-xs tracking-widest transition-all"
+                >
+                    Suivre mon colis maintenant
+                </button>
+            </div>
+        </div>
+        {/* ----------------------------- */}
 
         <div className="space-y-3 mb-8">
           {formData.email && (

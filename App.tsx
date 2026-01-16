@@ -147,6 +147,11 @@ const App: React.FC = () => {
     document.title = "Xeption Network | Le Ndamba du Digital";
   };
 
+  const handleNavigate = (newPage: string) => {
+      setPage(newPage);
+      setSelectedProduct(null);
+  };
+
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   const bgVideoUrl = "https://res.cloudinary.com/dli0kdkg9/video/upload/v1768438828/xption7_zrgro4.mp4";
@@ -182,7 +187,7 @@ const App: React.FC = () => {
       <Header 
         cartCount={cartCount} 
         onOpenCart={() => setIsCartOpen(true)}
-        onNavigate={(p) => { setPage(p); setSelectedProduct(null); }}
+        onNavigate={handleNavigate}
         currentPage={page}
       />
 
@@ -294,6 +299,7 @@ const App: React.FC = () => {
         onRemoveItem={removeFromCart}
         onClearCart={clearCart}
         onUpdateQuantity={updateQuantity}
+        onNavigate={handleNavigate}
       />
 
       <AiConsultant />

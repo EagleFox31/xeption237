@@ -219,6 +219,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const handlePosSubmit = () => {
       if (posCart.length === 0) return alert("Panier vide");
       if (!posCustomer.name) return alert("Nom du client requis");
+      // NEW: Validation du numéro de téléphone
+      if (!posCustomer.phone) return alert("Numéro de téléphone requis pour le suivi CRM");
 
       showConfirm("Valider la Vente", `Confirmer la vente de ${posCart.reduce((a,b)=>a+b.quantity,0)} articles pour ${posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString()} FCFA ?`, async () => {
           const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -251,32 +253,37 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
               }
 
               // 3. CRM LOGIC (Mise à jour ou création du client)
-              // On utilise l'email comme clé unique si présent, sinon on ignore pour l'instant (ou on pourrait utiliser le téléphone)
+              // On check d'abord par email (priorité), sinon par téléphone
+              let existingCustomer = null;
+              
               if (posCustomer.email) {
-                  const { data: existingCustomer } = await supabase
-                    .from('customers')
-                    .select('*')
-                    .eq('email', posCustomer.email)
-                    .single();
+                 const { data } = await supabase.from('customers').select('*').eq('email', posCustomer.email).maybeSingle();
+                 existingCustomer = data;
+              }
+              
+              if (!existingCustomer && posCustomer.phone) {
+                  const { data } = await supabase.from('customers').select('*').eq('phone', posCustomer.phone).maybeSingle();
+                  existingCustomer = data;
+              }
 
-                  if (existingCustomer) {
-                     await supabase.from('customers').update({
-                        total_orders: (existingCustomer.total_orders || 0) + 1,
-                        total_spent: (existingCustomer.total_spent || 0) + total,
-                        phone: posCustomer.phone || existingCustomer.phone, // Mise à jour téléphone si fourni
-                        name: posCustomer.name // Mise à jour nom
-                     }).eq('email', posCustomer.email);
-                  } else {
-                     await supabase.from('customers').insert([{
-                        id: crypto.randomUUID(),
-                        name: posCustomer.name,
-                        email: posCustomer.email,
-                        phone: posCustomer.phone,
-                        total_orders: 1,
-                        total_spent: total,
-                        created_at: new Date().toISOString()
-                     }]);
-                  }
+              if (existingCustomer) {
+                 await supabase.from('customers').update({
+                    total_orders: (existingCustomer.total_orders || 0) + 1,
+                    total_spent: (existingCustomer.total_spent || 0) + total,
+                    phone: posCustomer.phone || existingCustomer.phone, 
+                    email: posCustomer.email || existingCustomer.email,
+                    name: posCustomer.name 
+                 }).eq('id', existingCustomer.id);
+              } else {
+                 await supabase.from('customers').insert([{
+                    id: crypto.randomUUID(),
+                    name: posCustomer.name,
+                    email: posCustomer.email,
+                    phone: posCustomer.phone,
+                    total_orders: 1,
+                    total_spent: total,
+                    created_at: new Date().toISOString()
+                 }]);
               }
 
               // 4. Génération Facture

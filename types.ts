@@ -85,6 +85,16 @@ export interface RepairTicket {
   warrantyStatus: 'active' | 'expired';
 }
 
+export interface AdminNotification {
+  id: string;
+  type: 'order' | 'ticket' | 'alert';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+  linkToTab?: string; // Pour rediriger vers l'onglet concerné (ex: 'orders')
+}
+
 export enum PaymentMethod {
   OM = 'Orange Money',
   MOMO = 'MTN Mobile Money',

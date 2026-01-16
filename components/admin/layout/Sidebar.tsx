@@ -1,19 +1,21 @@
 
 import React from 'react';
 import Logo from '../../Logo';
-import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText } from 'lucide-react';
+import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText, Bell } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: any) => void;
+  unreadCount: number;
+  onToggleNotifications: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, unreadCount, onToggleNotifications }) => {
   const MENU_ITEMS = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'pos', label: 'Caisse (POS)', icon: CreditCard },
       { id: 'orders', label: 'Commandes', icon: ShoppingBag },
-      { id: 'invoices', label: 'Factures', icon: FileText }, // Ajout ici
+      { id: 'invoices', label: 'Factures', icon: FileText },
       { id: 'inventory', label: 'Inventaire', icon: Package },
       { id: 'categories', label: 'Types (Dynamic)', icon: Layers },
       { id: 'sav', label: 'Atelier SAV', icon: Wrench },
@@ -25,11 +27,29 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
 
   return (
       <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-black/40 backdrop-blur-xl border-r border-white/10 z-50">
-          <div className="p-6 border-b border-white/10 flex justify-center">
+          <div className="p-6 border-b border-white/10 flex justify-center relative">
              <div className="scale-75 origin-center"><Logo /></div>
           </div>
           
-          <div className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+          {/* Notification Button embedded near top */}
+          <div className="px-4 py-2">
+            <button 
+                onClick={onToggleNotifications}
+                className="w-full bg-white/5 hover:bg-white/10 border border-white/5 rounded-md p-3 flex items-center justify-between group transition-all"
+            >
+                <div className="flex items-center gap-3">
+                    <Bell className="w-4 h-4 text-gray-400 group-hover:text-xeption-gold transition-colors" />
+                    <span className="text-xs font-bold uppercase text-gray-400 group-hover:text-white">Notifications</span>
+                </div>
+                {unreadCount > 0 && (
+                    <span className="bg-xeption-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_#ff0033] animate-pulse">
+                        {unreadCount}
+                    </span>
+                )}
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto py-2 px-3 space-y-1">
               {MENU_ITEMS.map(item => (
                   <button
                       key={item.id}

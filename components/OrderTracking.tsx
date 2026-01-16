@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Package, Truck, CheckCircle, Clock, MapPin, ShoppingBag, ArrowRight, XCircle, Store } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { Order } from '../types';
@@ -10,10 +10,23 @@ const OrderTracking: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleTrack = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orderId.trim()) return;
+  // Check URL params on mount for auto-tracking
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const idFromUrl = params.get('id');
+    
+    if (idFromUrl) {
+      setOrderId(idFromUrl);
+      fetchOrder(idFromUrl);
+      
+      // Clean URL
+      // const newUrl = window.location.pathname;
+      // window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
 
+  const fetchOrder = async (id: string) => {
+    if (!id.trim()) return;
     setLoading(true);
     setError('');
     setOrder(null);
@@ -22,7 +35,7 @@ const OrderTracking: React.FC = () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .eq('id', orderId.trim())
+        .eq('id', id.trim())
         .single();
 
       if (error || !data) {
@@ -49,6 +62,11 @@ const OrderTracking: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTrack = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await fetchOrder(orderId);
   };
 
   // Helper pour déterminer l'état de la timeline

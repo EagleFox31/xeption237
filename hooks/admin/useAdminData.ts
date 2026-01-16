@@ -57,21 +57,29 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         };
         init();
 
+        // Configuration Realtime robuste avec Logs
+        console.log("Initializing Realtime Subscription...");
         const channel = supabase.channel('admin-db-changes')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+            console.log("🔴 REALTIME EVENT RECEIVED (Order):", payload);
             const newOrder = payload.new as any;
+            
+            // Notification immédiate
             addNotification({
                 id: crypto.randomUUID(),
                 type: 'order',
                 title: 'Nouvelle Commande !',
-                message: `Commande #${newOrder.id} reçue. Montant: ${newOrder.total} FCFA`,
+                message: `Commande #${newOrder.id || '???'} reçue. Montant: ${(newOrder.total || 0).toLocaleString()} FCFA`,
                 timestamp: new Date(),
                 read: false,
                 linkToTab: 'orders'
             });
+            
+            // Mise à jour des données en arrière-plan
             fetchOrders(); 
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'repair_tickets' }, (payload) => {
+            console.log("🔴 REALTIME EVENT RECEIVED (Ticket):", payload);
             const newTicket = payload.new as any;
             addNotification({
                 id: crypto.randomUUID(),
@@ -83,9 +91,17 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
                 linkToTab: 'sav'
             });
         })
-        .subscribe();
+        .subscribe((status) => {
+            console.log(`Realtime Status: ${status}`);
+            if (status === 'SUBSCRIBED') {
+                console.log("✅ Admin Panel est connecté aux notifications en direct.");
+            }
+        });
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { 
+            console.log("Cleaning up Realtime...");
+            supabase.removeChannel(channel); 
+        };
     }, [addNotification, fetchOrders, refreshAll]);
 
     return {

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import Logo from '../../Logo';
-import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, LucideIcon } from 'lucide-react';
+import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -13,6 +13,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'pos', label: 'Caisse (POS)', icon: CreditCard },
       { id: 'orders', label: 'Commandes', icon: ShoppingBag },
+      { id: 'invoices', label: 'Factures', icon: FileText }, // Ajout ici
       { id: 'inventory', label: 'Inventaire', icon: Package },
       { id: 'categories', label: 'Types (Dynamic)', icon: Layers },
       { id: 'sav', label: 'Atelier SAV', icon: Wrench },

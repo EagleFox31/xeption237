@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { Box, User, Phone, Mail, ShoppingCart, Grid } from 'lucide-react';
-import { Product, CartItem } from '../../../types';
+import { Box, User, Phone, Mail, ShoppingCart, Grid, CheckCircle, Printer, ArrowRight } from 'lucide-react';
+import { Product, CartItem, Order } from '../../../types';
+import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
 
 interface PosTabProps {
   products: Product[];
@@ -12,11 +13,14 @@ interface PosTabProps {
   setPosCustomer: (val: { name: string; phone: string; email: string }) => void;
   addToPosCart: (product: Product) => void;
   onPosSubmit: () => void;
+  lastOrder: Order | null; // Nouvelle prop
+  onDismissSuccess: () => void; // Nouvelle prop
 }
 
 const PosTab: React.FC<PosTabProps> = ({ 
     products, posCart, posSearch, setPosSearch, 
-    posCustomer, setPosCustomer, addToPosCart, onPosSubmit 
+    posCustomer, setPosCustomer, addToPosCart, onPosSubmit,
+    lastOrder, onDismissSuccess 
 }) => {
   // État pour gérer la vue mobile (Catalogue vs Panier)
   const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
@@ -24,6 +28,70 @@ const PosTab: React.FC<PosTabProps> = ({
   const totalAmount = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalItems = posCart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const handlePrint = () => {
+      if (!lastOrder) return;
+      const html = generateInvoiceHTML(lastOrder);
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+          printWindow.document.write(html);
+          printWindow.document.close();
+          setTimeout(() => { 
+              printWindow.focus(); 
+              printWindow.print(); 
+              printWindow.close(); 
+          }, 500);
+      }
+  };
+
+  // --- ECRAN DE SUCCES ---
+  if (lastOrder) {
+      return (
+          <div className="h-full flex items-center justify-center animate-in zoom-in-95 duration-300">
+              <div className="bg-black/80 backdrop-blur-xl border border-xeption-gold/30 p-8 rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-md w-full text-center relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-xeption-gold to-transparent"></div>
+                  
+                  <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30">
+                      <CheckCircle className="w-10 h-10 text-green-500" />
+                  </div>
+                  
+                  <h2 className="text-3xl font-tech font-bold uppercase text-white mb-2">Vente Validée !</h2>
+                  <p className="text-gray-400 text-sm mb-6">Commande #{lastOrder.id} enregistrée.</p>
+                  
+                  <div className="bg-white/5 rounded p-4 mb-8 border border-white/5">
+                      <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-400">Client</span>
+                          <span className="text-white font-bold">{lastOrder.customerName}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-400">Articles</span>
+                          <span className="text-white">{lastOrder.items.length}</span>
+                      </div>
+                      <div className="flex justify-between text-xl border-t border-white/10 pt-2 mt-2">
+                          <span className="text-xeption-gold font-bold uppercase">Total</span>
+                          <span className="text-white font-mono font-bold">{lastOrder.total.toLocaleString()} FCFA</span>
+                      </div>
+                  </div>
+
+                  <div className="space-y-3">
+                      <button 
+                          onClick={handlePrint}
+                          className="w-full bg-white text-black font-bold uppercase py-4 rounded-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors"
+                      >
+                          <Printer className="w-5 h-5" /> Imprimer Facture
+                      </button>
+                      <button 
+                          onClick={onDismissSuccess}
+                          className="w-full bg-xeption-gold/10 text-xeption-gold border border-xeption-gold/30 font-bold uppercase py-4 rounded-sm flex items-center justify-center gap-2 hover:bg-xeption-gold hover:text-black transition-all"
+                      >
+                          Nouvelle Vente <ArrowRight className="w-5 h-5" />
+                      </button>
+                  </div>
+              </div>
+          </div>
+      );
+  }
+
+  // --- ECRAN POS STANDARD ---
   return (
     <div className="animate-in fade-in h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] flex flex-col lg:grid lg:grid-cols-3 gap-6 relative">
         
@@ -55,7 +123,6 @@ const PosTab: React.FC<PosTabProps> = ({
                         key={p.id} 
                         onClick={() => {
                             addToPosCart(p);
-                            // Petit feedback visuel ou auto-switch optionnel (ici on reste sur catalogue pour enchainer)
                         }} 
                         disabled={p.stock<=0} 
                         className="bg-black/40 border border-white/5 p-3 rounded-sm hover:border-xeption-gold/50 text-left flex flex-col h-full group transition-all active:scale-95"
@@ -96,7 +163,6 @@ const PosTab: React.FC<PosTabProps> = ({
                                 </div>
                                 <div className="text-right pl-2 flex flex-col items-end">
                                     <span className="text-xs font-bold text-white mb-1">{(item.price * item.quantity).toLocaleString()}</span>
-                                    {/* Petit bouton optionnel pour retirer un item si besoin ici */}
                                 </div>
                             </div>
                         ))
@@ -154,7 +220,7 @@ const PosTab: React.FC<PosTabProps> = ({
                     onClick={onPosSubmit} 
                     className="w-full bg-green-600 hover:bg-green-500 text-white font-bold uppercase py-3 rounded-sm shadow-lg hover:shadow-green-500/20 transition-all active:scale-95"
                 >
-                    Valider & Imprimer
+                    Valider la Vente
                 </button>
             </div>
         </div>

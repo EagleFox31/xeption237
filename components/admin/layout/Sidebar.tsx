@@ -1,6 +1,6 @@
 
 import React from 'react';
-import Logo from '../../Logo';
+import Logo from '../../Logo'; // Path corrigé: ../../
 import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText, Bell } from 'lucide-react';
 
 interface SidebarProps {

@@ -119,7 +119,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
               customerPhone: o.customer_phone,
               customerCity: o.customer_city,
               deliveryMode: o.delivery_mode || 'delivery',
-              date: new Date(o.date).toLocaleDateString('fr-FR')
+              date: new Date(o.date).toLocaleDateString('fr-FR'),
+              createdAt: o.date // Stocker la date brute pour le tri précis
           }));
           setOrders(formattedOrders);
       }
@@ -486,7 +487,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     <ShoppingBag className="w-5 h-5 text-xeption-gold" /> Dernières Ventes
                 </h3>
                 <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                     {orders.slice(0,5).map((o) => (
+                     {[...orders]
+                        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+                        .slice(0,5).map((o) => (
                         <div key={o.id} className="flex items-center justify-between bg-white/5 p-3 rounded hover:bg-black/60 transition-colors border border-white/5">
                             <div className="flex-1 min-w-0">
                                 <span className="text-gray-200 text-sm block font-bold truncate">{o.customerName}</span>

@@ -42,6 +42,7 @@ export interface Order {
   customerCity?: string;
   deliveryMode: 'delivery' | 'pickup';
   date: string;
+  createdAt?: string; // Ajouté pour le tri
 }
 
 export interface Customer {

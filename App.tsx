@@ -14,6 +14,7 @@ import OrderTracking from './components/OrderTracking';
 import { Product, CartItem } from './types';
 import { supabase } from './services/supabaseClient';
 import { optimizeVideo, optimizeImage } from './utils/mediaOptimization';
+import { Lock } from 'lucide-react';
 
 const App: React.FC = () => {
   const [page, setPage] = useState('home');
@@ -277,11 +278,19 @@ const App: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left">
              <div className="mb-6 md:mb-0">
                 <h3 className="text-xl font-bold text-white mb-2 font-tech uppercase">Xeption Network</h3>
-                <p className="text-gray-400 text-sm flex items-center justify-center md:justify-start">
-                  Made 
-                  <span className="font-pinyon text-3xl text-xeption-gold italic mx-2 relative top-1">by</span> 
-                  Trigenys Group
-                </p>
+                <div className="flex flex-col items-center md:items-start">
+                    <p className="text-gray-400 text-sm flex items-center justify-center md:justify-start">
+                    Made 
+                    <span className="font-pinyon text-3xl text-xeption-gold italic mx-2 relative top-1">by</span> 
+                    Trigenys Group
+                    </p>
+                    <button 
+                        onClick={() => handleNavigate('admin')} 
+                        className="text-[10px] text-gray-700 hover:text-xeption-gold transition-colors uppercase font-bold tracking-widest mt-2 flex items-center gap-1 opacity-50 hover:opacity-100"
+                    >
+                        <Lock className="w-3 h-3" /> Accès Staff
+                    </button>
+                </div>
              </div>
              <div className="flex space-x-6">
                 <a href="https://web.facebook.com/xeptioon/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Facebook</a>

@@ -21,6 +21,7 @@ import ClientsTab from './tabs/ClientsTab';
 import StaffTab from './tabs/StaffTab';
 import MarketingTab from './tabs/MarketingTab';
 import GuideTab from './tabs/GuideTab';
+import InvoicesTab from './tabs/InvoicesTab'; // Nouvel onglet
 
 // Modals
 import ConfirmationModal from './modals/ConfirmationModal';
@@ -224,6 +225,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
           const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
           
           try {
+              // 1. Créer la commande
               await supabase.from('orders').insert([{
                   id: newOrderId,
                   customer_name: posCustomer.name,
@@ -238,6 +240,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                   date: new Date().toISOString()
               }]);
 
+              // 2. Mettre à jour le stock
               for (const item of posCart) {
                   const product = products.find(p => p.id === item.id);
                   if (product) {
@@ -247,6 +250,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                   }
               }
 
+              // 3. CRM LOGIC (Mise à jour ou création du client)
+              // On utilise l'email comme clé unique si présent, sinon on ignore pour l'instant (ou on pourrait utiliser le téléphone)
+              if (posCustomer.email) {
+                  const { data: existingCustomer } = await supabase
+                    .from('customers')
+                    .select('*')
+                    .eq('email', posCustomer.email)
+                    .single();
+
+                  if (existingCustomer) {
+                     await supabase.from('customers').update({
+                        total_orders: (existingCustomer.total_orders || 0) + 1,
+                        total_spent: (existingCustomer.total_spent || 0) + total,
+                        phone: posCustomer.phone || existingCustomer.phone, // Mise à jour téléphone si fourni
+                        name: posCustomer.name // Mise à jour nom
+                     }).eq('email', posCustomer.email);
+                  } else {
+                     await supabase.from('customers').insert([{
+                        id: crypto.randomUUID(),
+                        name: posCustomer.name,
+                        email: posCustomer.email,
+                        phone: posCustomer.phone,
+                        total_orders: 1,
+                        total_spent: total,
+                        created_at: new Date().toISOString()
+                     }]);
+                  }
+              }
+
+              // 4. Génération Facture
               const invoiceData = {
                   id: newOrderId,
                   items: posCart,
@@ -271,7 +304,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
               setPosCart([]);
               setPosCustomer({ name: '', phone: '', email: '' });
               fetchOrders();
-              fetchCustomers();
+              fetchCustomers(); // Refresh CRM list
 
           } catch (err: any) {
               alert(err.message);
@@ -305,6 +338,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             {activeTab === 'pos' && <PosTab products={products} posCart={posCart} posSearch={posSearch} setPosSearch={setPosSearch} posCustomer={posCustomer} setPosCustomer={setPosCustomer} addToPosCart={addToPosCart} onPosSubmit={handlePosSubmit} />}
             {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={setEditingProduct} onDeleteProduct={handleDeleteProduct} onCreateProduct={() => setEditingProduct({id: `new_${Date.now()}`, name: '', description: '', price: 0, category: categories[0]?.slug || '', image: 'https://via.placeholder.com/400', images: [], video: '', stock: 0, isPromo: false, specs: [], pros: [], cons: [], warrantyMonths: 0})} />}
             {activeTab === 'orders' && <OrdersTab orders={orders} onUpdateStatus={updateOrderStatus} onCancelOrder={handleCancelOrder} />}
+            {activeTab === 'invoices' && <InvoicesTab orders={orders} />} {/* Nouvel onglet Factures */}
             {activeTab === 'sav' && <SavTab />}
             {activeTab === 'staff' && <StaffTab staffMembers={staffMembers} onAddStaff={() => setEditingStaff({id: `new_${Date.now()}`, username: '', name: '', email: '', password: '123456', role: 'editor', phone: ''})} onDeleteStaff={handleDeleteStaff} />}
             {activeTab === 'clients' && <ClientsTab customers={customers} />}

@@ -29,6 +29,33 @@ const App: React.FC = () => {
   // Video Ref for speed control
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // --- 1. PERSISTANCE & AUTHENTIFICATION ---
+  useEffect(() => {
+    // A. Restaurer la page précédente au chargement
+    const savedPage = sessionStorage.getItem('xeption_last_page');
+    if (savedPage) {
+      setPage(savedPage);
+    }
+
+    // B. Vérifier la session Supabase active (Persistance Login)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsAuthenticated(true);
+      }
+    });
+
+    // C. Écouter les changements d'auth (Expiration, Déconnexion, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+      if (!session && page === 'admin') {
+        // Optionnel : Rediriger si la session expire pendant qu'on est sur l'admin
+        // setPage('home'); 
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Fetch products from Supabase on mount
   useEffect(() => {
     const fetchProducts = async () => {
@@ -158,6 +185,8 @@ const App: React.FC = () => {
   const handleNavigate = (newPage: string) => {
       setPage(newPage);
       setSelectedProduct(null);
+      // Sauvegarde la position lors de la navigation
+      sessionStorage.setItem('xeption_last_page', newPage);
   };
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);

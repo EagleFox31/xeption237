@@ -68,8 +68,8 @@ const App: React.FC = () => {
           // CORRECTION: Mapping des champs DB (snake_case) vers Frontend (camelCase)
           const formattedProducts: Product[] = data.map((p: any) => ({
              ...p,
-             warrantyMonths: p.warranty_months, // Fix: warranty_months -> warrantyMonths
-             isFeatured: p.is_featured // Fix: is_featured -> isFeatured
+             warrantyMonths: p.warranty_months, 
+             isFeatured: p.is_featured || false // Fix: assure un booléen
           }));
 
           setProducts(formattedProducts);
@@ -250,7 +250,8 @@ const App: React.FC = () => {
             <div id="featured-products">
                <ProductList products={displayFeatured} onAddToCart={addToCart} onProductClick={handleProductClick} />
             </div>
-            <TrocSection />
+            {/* PASSAGE DE LA FONCTION DE NAVIGATION ICI */}
+            <TrocSection onNavigate={handleNavigate} />
           </>
         )}
 

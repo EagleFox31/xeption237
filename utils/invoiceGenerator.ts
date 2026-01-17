@@ -58,7 +58,6 @@ export const generateInvoiceHTML = (order: Order): string => {
         <td valign="top">
           <img src="https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png" width="60" style="display: block; margin-bottom: 10px;">
           <div style="font-size: 24px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">XEPTION</div>
-          <div style="font-size: 10px; font-weight: 700; color: ${colors.goldDark}; text-transform: uppercase; letter-spacing: 4px;">237</div>
         </td>
         <td align="right" valign="top">
           <div style="font-size: 18px; font-weight: 900; text-transform: uppercase; color: ${colors.goldDark}; margin-bottom: 5px;">Facture</div>

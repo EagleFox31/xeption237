@@ -56,7 +56,7 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch products from Supabase on mount
+  // Fetch products from Supabase on mount AND Realtime Subscription
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -65,23 +65,24 @@ const App: React.FC = () => {
         if (error) throw error;
         
         if (data && data.length > 0) {
-          // CORRECTION: Mapping des champs DB (snake_case) vers Frontend (camelCase)
           const formattedProducts: Product[] = data.map((p: any) => ({
              ...p,
-             warrantyMonths: p.warranty_months, 
-             isFeatured: p.is_featured || false // Fix: assure un booléen
+             // MAPPING ROBUSTE : Vérifie snake_case (DB standard) OU camelCase (DB legacy/custom)
+             // Si p.old_price existe, on le prend. Sinon on essaie p.oldPrice.
+             oldPrice: p.old_price || p.oldPrice || null, 
+             isPromo: p.is_promo || p.isPromo || false,
+             warrantyMonths: p.warranty_months || p.warrantyMonths || 0, 
+             isFeatured: p.is_featured || p.isFeatured || false
           }));
-
           setProducts(formattedProducts);
           
-          // DEEP LINKING CHECK: Check for ?product=ID in URL after products load
+          // DEEP LINKING CHECK
           const params = new URLSearchParams(window.location.search);
           const productId = params.get('product');
           if (productId) {
             const foundProduct = formattedProducts.find(p => p.id === productId);
             if (foundProduct) {
                 setSelectedProduct(foundProduct);
-                // Clean URL without refresh
                 window.history.replaceState({}, '', window.location.pathname);
             }
           }
@@ -95,12 +96,49 @@ const App: React.FC = () => {
     };
 
     fetchProducts();
+
+    // --- REALTIME MAGIC ---
+    // Écoute les changements sur la table 'products' pour synchroniser tous les utilisateurs connectés
+    const channel = supabase.channel('public:products')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+          console.log('🔄 Product Change Detected:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+              const newProduct = payload.new as any;
+              const formatted: Product = {
+                  ...newProduct,
+                  oldPrice: newProduct.old_price || newProduct.oldPrice,
+                  isPromo: newProduct.is_promo || newProduct.isPromo,
+                  warrantyMonths: newProduct.warranty_months || newProduct.warrantyMonths,
+                  isFeatured: newProduct.is_featured || newProduct.isFeatured || false
+              };
+              setProducts(prev => [formatted, ...prev]);
+          } 
+          else if (payload.eventType === 'UPDATE') {
+              const updatedProduct = payload.new as any;
+              const formatted: Product = {
+                  ...updatedProduct,
+                  oldPrice: updatedProduct.old_price || updatedProduct.oldPrice,
+                  isPromo: updatedProduct.is_promo || updatedProduct.isPromo,
+                  warrantyMonths: updatedProduct.warranty_months || updatedProduct.warrantyMonths,
+                  isFeatured: updatedProduct.is_featured || updatedProduct.isFeatured || false
+              };
+              setProducts(prev => prev.map(p => p.id === formatted.id ? formatted : p));
+          } 
+          else if (payload.eventType === 'DELETE') {
+              setProducts(prev => prev.filter(p => p.id !== payload.old.id));
+          }
+      })
+      .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
   }, []);
 
   // SEO: Update Document Title based on page
   useEffect(() => {
     if (selectedProduct) {
-        // Handled in ProductDetail component usually, but fallback here
         return; 
     }
     

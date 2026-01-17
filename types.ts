@@ -27,6 +27,14 @@ export interface Product {
   warrantyMonths?: number;
 }
 
+export interface TradeInModel {
+  id: string;
+  category: 'phone' | 'laptop';
+  brand: string;
+  model_name: string;
+  base_price: number;
+}
+
 export interface CartItem extends Product {
   quantity: number;
 }

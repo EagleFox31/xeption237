@@ -1,16 +1,17 @@
 
 import React from 'react';
 import Logo from '../../Logo'; // Path corrigé: ../../
-import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText, Bell } from 'lucide-react';
+import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText, Bell, RefreshCw, LogOut } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: any) => void;
   unreadCount: number;
   onToggleNotifications: () => void;
+  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, unreadCount, onToggleNotifications }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, unreadCount, onToggleNotifications, onLogout }) => {
   const MENU_ITEMS = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'pos', label: 'Caisse (POS)', icon: CreditCard },
@@ -18,6 +19,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, unreadCount, 
       { id: 'invoices', label: 'Factures', icon: FileText },
       { id: 'inventory', label: 'Inventaire', icon: Package },
       { id: 'categories', label: 'Types (Dynamic)', icon: Layers },
+      { id: 'argus', label: 'Argus Troc', icon: RefreshCw },
       { id: 'sav', label: 'Atelier SAV', icon: Wrench },
       { id: 'clients', label: 'Clients CRM', icon: Users },
       { id: 'staff', label: 'Équipe', icon: Key },
@@ -49,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, unreadCount, 
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-2 px-3 space-y-1">
+          <div className="flex-1 overflow-y-auto py-2 px-3 space-y-1 custom-scrollbar">
               {MENU_ITEMS.map(item => (
                   <button
                       key={item.id}
@@ -66,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, unreadCount, 
               ))}
           </div>
 
-          <div className="p-4 border-t border-white/10">
+          <div className="p-4 border-t border-white/10 space-y-3">
               <div className="bg-white/5 rounded p-3 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-xeption-gold/20 flex items-center justify-center text-xeption-gold font-bold">A</div>
                   <div>
@@ -74,6 +76,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, unreadCount, 
                       <p className="text-gray-500 text-[10px] flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> En ligne</p>
                   </div>
               </div>
+              
+              <button 
+                onClick={onLogout}
+                className="w-full flex items-center justify-center gap-2 text-red-500 hover:text-white hover:bg-red-500/10 border border-transparent hover:border-red-500/20 py-2 rounded transition-all text-xs font-bold uppercase tracking-wider"
+              >
+                  <LogOut className="w-4 h-4" /> Déconnexion
+              </button>
           </div>
       </aside>
   );

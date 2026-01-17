@@ -78,10 +78,10 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
             className="group relative bg-[#0f0f0f]/80 backdrop-blur-2xl border border-white/10 hover:border-xeption-gold/50 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-[0_0_30px_rgba(255,215,0,0.15)] hover:-translate-y-2 cursor-pointer rounded-xl"
             onClick={() => onProductClick && onProductClick(product)}
           >
-            {/* Promo Tag */}
+            {/* Promo Tag - Visible et Rouge */}
             {product.isPromo && (
-              <div className="absolute top-0 right-0 z-20">
-                 <div className="bg-xeption-red text-white text-[10px] font-bold px-3 py-1 font-tech uppercase tracking-widest shadow-[0_0_10px_#ff0033] rounded-bl-xl">
+              <div className="absolute top-3 right-3 z-20 animate-pulse-slow">
+                 <div className="bg-red-600 text-white text-xs font-bold px-3 py-1.5 font-tech uppercase tracking-widest shadow-[0_0_15px_rgba(255,0,0,0.6)] rounded-sm border border-red-400">
                     Promo
                  </div>
               </div>
@@ -126,9 +126,10 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
               
               <div className="flex items-end justify-between mt-auto border-t border-white/10 pt-4">
                 <div className="flex flex-col">
+                  {/* PRIX BARRÉ ROUGE */}
                   {product.oldPrice && (
-                    <span className="text-xs text-gray-500 line-through font-mono">
-                      {product.oldPrice.toLocaleString('fr-FR')} FCFA
+                    <span className="text-sm text-red-500 font-bold line-through font-mono decoration-2 decoration-red-500 mb-0.5">
+                      {product.oldPrice.toLocaleString('fr-FR')}
                     </span>
                   )}
                   <div className="flex items-baseline gap-1">

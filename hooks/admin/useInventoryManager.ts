@@ -25,6 +25,7 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
             video: '',
             stock: 0,
             isPromo: false,
+            isFeatured: false, // Default value
             specs: [],
             pros: [],
             cons: [],
@@ -39,9 +40,23 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         const isNew = editingProduct.id.startsWith('new_');
         const productData = { ...editingProduct, id: isNew ? crypto.randomUUID() : editingProduct.id };
 
-        const { error } = await supabase.from('products').upsert(productData);
+        // MAPPING: Frontend (camelCase) -> DB (snake_case)
+        const dbPayload = {
+            ...productData,
+            warranty_months: productData.warrantyMonths, // Important: Mapping explicite
+            is_featured: productData.isFeatured // Important: Mapping explicite
+        };
+        
+        // On nettoie les clés camelCase pour éviter que Supabase ne râle si le mode strict est activé (optionnel mais propre)
+        delete (dbPayload as any).warrantyMonths;
+        delete (dbPayload as any).isFeatured;
+
+        const { error } = await supabase.from('products').upsert(dbPayload);
+        
         if (error) {
+            console.error("Save error:", error);
             if (error.code === '23503') throw new Error(`La catégorie "${editingProduct.category}" n'existe pas.`);
+            if (error.message.includes('column')) throw new Error(`Erreur de colonne DB: ${error.message}. Vérifiez le snake_case.`);
             throw error;
         }
 
@@ -59,11 +74,26 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         onUpdateProducts(products.filter(p => p.id !== id));
     };
 
+    const toggleFeatured = async (product: Product) => {
+        const newValue = !product.isFeatured;
+        
+        // UPDATE DB using snake_case column name
+        const { error } = await supabase.from('products')
+            .update({ is_featured: newValue }) 
+            .eq('id', product.id);
+        
+        if (error) throw error;
+
+        // Update local state immediately for snappy UI
+        onUpdateProducts(products.map(p => p.id === product.id ? { ...p, isFeatured: newValue } : p));
+    };
+
     return {
         editingProduct,
         setEditingProduct,
         startCreate,
         saveProduct,
-        deleteProduct
+        deleteProduct,
+        toggleFeatured
     };
 };

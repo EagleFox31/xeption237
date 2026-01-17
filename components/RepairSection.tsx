@@ -117,7 +117,7 @@ const RepairSection: React.FC = () => {
     <div className="pt-24 pb-20 px-4 min-h-screen max-w-4xl mx-auto">
         <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-lg mb-4">
-                Service Après-Vente <span className="text-xeption-gold">237</span>
+                Service Après-Vente <span className="text-xeption-gold">Xeption</span>
             </h1>
             <p className="text-gray-300 max-w-2xl mx-auto">
                 Un problème avec ton matos ? Vérifie ta garantie en 2 secondes et ouvre un dossier avant de passer nous voir au Mfoundi Mall.

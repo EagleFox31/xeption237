@@ -58,7 +58,7 @@ export const generateInvoiceHTML = (order: Order): string => {
         <td valign="top">
           <img src="https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png" width="60" style="display: block; margin-bottom: 10px;">
           <div style="font-size: 24px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">XEPTION</div>
-          <div style="font-size: 10px; font-weight: 700; color: ${colors.goldDark}; text-transform: uppercase; letter-spacing: 4px;">NETWORK 237</div>
+          <div style="font-size: 10px; font-weight: 700; color: ${colors.goldDark}; text-transform: uppercase; letter-spacing: 4px;">237</div>
         </td>
         <td align="right" valign="top">
           <div style="font-size: 18px; font-weight: 900; text-transform: uppercase; color: ${colors.goldDark}; margin-bottom: 5px;">Facture</div>
@@ -73,7 +73,7 @@ export const generateInvoiceHTML = (order: Order): string => {
       <tr>
         <td width="50%" valign="top" style="padding-right: 20px;">
           <div style="font-size: 10px; color: ${colors.textMuted}; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 2px;">Vendeur</div>
-          <div style="font-weight: bold;">Xeption Network</div>
+          <div style="font-weight: bold;">Xeption</div>
           <div style="font-size: 12px; color: ${colors.textMuted};">Mfoundi Mall, Boutique 2063</div>
           <div style="font-size: 12px; color: ${colors.textMuted};">Yaoundé, Cameroun</div>
           <div style="font-size: 12px; color: ${colors.textMuted};">+237 699 00 00 00</div>
@@ -132,7 +132,7 @@ export const generateInvoiceHTML = (order: Order): string => {
     <div style="margin-top: 40px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;" class="footer">
       <div style="font-size: 12px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase;">Merci pour votre confiance !</div>
       <div style="font-size: 10px; color: ${colors.textMuted}; margin-bottom: 10px;">Les marchandises vendues ne sont ni reprises ni échangées après 3 jours. Garantie valide sur présentation de cette facture.</div>
-      <div style="font-size: 10px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">TRIGENYS GROUP &bull; XEPTION NETWORK</div>
+      <div style="font-size: 10px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">TRIGENYS GROUP &bull; XEPTION</div>
     </div>
 
   </div>

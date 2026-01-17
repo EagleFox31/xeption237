@@ -102,27 +102,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                  <div className="bg-white/10 px-3 py-1 rounded text-[10px] font-bold uppercase text-xeption-gold">Admin</div>
             </div>
 
-            {/* ROUTER */}
-            {activeTab === 'dashboard' && <DashboardTab orders={data.orders} staffMembers={data.staffMembers} customers={data.customers} products={products} />}
-            {activeTab === 'pos' && <PosTab products={products} posCart={pos.cart} posSearch={pos.search} setPosSearch={pos.setSearch} posCustomer={pos.customer} setPosCustomer={pos.setCustomer} addToPosCart={pos.addToCart} onPosSubmit={onPosSubmit} lastOrder={pos.lastOrder} onDismissSuccess={() => pos.setLastOrder(null)} />}
-            {activeTab === 'orders' && <OrdersTab orders={data.orders} onUpdateStatus={ordersMgr.updateStatus} onCancelOrder={onCancelOrder} />}
-            {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={inventory.setEditingProduct} onDeleteProduct={onDeleteProduct} onCreateProduct={() => inventory.startCreate(data.categories)} />}
-            {activeTab === 'categories' && <CategoriesTab categories={data.categories} newCatName={catsMgr.newCatName} setNewCatName={catsMgr.setNewCatName} onAddCategory={catsMgr.addCategory} onDeleteCategory={onDeleteCategory} />}
-            {activeTab === 'staff' && <StaffTab staffMembers={data.staffMembers} onAddStaff={() => staffMgr.openEditor()} onDeleteStaff={onDeleteStaff} />}
-            {activeTab === 'marketing' && <MarketingTab videoPrompt={marketing.videoPrompt} setVideoPrompt={marketing.setVideoPrompt} generatingVideo={marketing.generatingVideo} generatedVideoUrl={marketing.generatedVideoUrl} onGenerateVideo={marketing.generateVideo} />}
-            {activeTab === 'invoices' && <InvoicesTab orders={data.orders} />} 
-            {activeTab === 'sav' && <SavTab />}
-            {activeTab === 'clients' && <ClientsTab customers={data.customers} />}
-            {activeTab === 'guide' && <GuideTab />}
+            {/* ROUTER / CONDITIONAL RENDERER */}
+            {/* Si un produit est en cours d'édition, on affiche l'éditeur à la place des onglets */}
+            {inventory.editingProduct ? (
+                <ProductEditorOverlay 
+                    product={inventory.editingProduct} 
+                    categories={data.categories} 
+                    onClose={() => inventory.setEditingProduct(null)} 
+                    onSave={onSaveProduct} 
+                    onChange={(u) => inventory.setEditingProduct(p => p ? ({ ...p, ...u }) : null)} 
+                />
+            ) : (
+                <>
+                    {activeTab === 'dashboard' && <DashboardTab orders={data.orders} staffMembers={data.staffMembers} customers={data.customers} products={products} />}
+                    {activeTab === 'pos' && <PosTab products={products} posCart={pos.cart} posSearch={pos.search} setPosSearch={pos.setSearch} posCustomer={pos.customer} setPosCustomer={pos.setCustomer} addToPosCart={pos.addToCart} onPosSubmit={onPosSubmit} lastOrder={pos.lastOrder} onDismissSuccess={() => pos.setLastOrder(null)} />}
+                    {activeTab === 'orders' && <OrdersTab orders={data.orders} onUpdateStatus={ordersMgr.updateStatus} onCancelOrder={onCancelOrder} />}
+                    {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={inventory.setEditingProduct} onDeleteProduct={onDeleteProduct} onCreateProduct={() => inventory.startCreate(data.categories)} />}
+                    {activeTab === 'categories' && <CategoriesTab categories={data.categories} newCatName={catsMgr.newCatName} setNewCatName={catsMgr.setNewCatName} onAddCategory={catsMgr.addCategory} onDeleteCategory={onDeleteCategory} />}
+                    {activeTab === 'staff' && <StaffTab staffMembers={data.staffMembers} onAddStaff={() => staffMgr.openEditor()} onDeleteStaff={onDeleteStaff} />}
+                    {activeTab === 'marketing' && <MarketingTab videoPrompt={marketing.videoPrompt} setVideoPrompt={marketing.setVideoPrompt} generatingVideo={marketing.generatingVideo} generatedVideoUrl={marketing.generatedVideoUrl} onGenerateVideo={marketing.generateVideo} />}
+                    {activeTab === 'invoices' && <InvoicesTab orders={data.orders} />} 
+                    {activeTab === 'sav' && <SavTab />}
+                    {activeTab === 'clients' && <ClientsTab customers={data.customers} />}
+                    {activeTab === 'guide' && <GuideTab />}
+                </>
+            )}
         </main>
 
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} unreadCount={notifs.unreadCount} onToggleNotifications={notifs.toggleDrawer} />
 
-        {/* MODALS */}
-        {inventory.editingProduct && (
-            <ProductEditorOverlay product={inventory.editingProduct} categories={data.categories} onClose={() => inventory.setEditingProduct(null)} onSave={onSaveProduct} onChange={(u) => inventory.setEditingProduct(p => p ? ({ ...p, ...u }) : null)} />
-        )}
-        
+        {/* MODALS (Toujours en overlay pour le staff) */}
         {staffMgr.editingStaff && (
             <StaffEditorModal staff={staffMgr.editingStaff as any} onClose={staffMgr.closeEditor} onSave={staffMgr.saveStaff} onChange={(u) => staffMgr.setEditingStaff(p => p ? ({ ...p, ...u }) : null)} />
         )}

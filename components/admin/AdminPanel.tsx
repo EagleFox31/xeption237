@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Product, AdminNotification, Order } from '../../types';
+import { supabase } from '../../services/supabaseClient'; // Import supabase
 
 // UI Composition
 import Sidebar from './layout/Sidebar';
@@ -16,6 +17,7 @@ import PosTab from './tabs/PosTab';
 import OrdersTab from './tabs/OrdersTab';
 import InventoryTab from './tabs/InventoryTab';
 import CategoriesTab from './tabs/CategoriesTab';
+import ArgusTab from './tabs/ArgusTab';
 import SavTab from './tabs/SavTab';
 import ClientsTab from './tabs/ClientsTab';
 import StaffTab from './tabs/StaffTab';
@@ -37,6 +39,7 @@ import { useMarketingStudio } from '../../hooks/admin/useMarketingStudio';
 // Editor Modals
 import ProductEditorOverlay from './modals/ProductEditorOverlay';
 import StaffEditorModal from './modals/StaffEditorModal';
+import { LogOut } from 'lucide-react';
 
 interface AdminPanelProps {
   products: Product[];
@@ -45,7 +48,7 @@ interface AdminPanelProps {
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
   // 1. Navigation State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices' | 'argus'>('dashboard');
   
   // 2. Core Services
   const confirm = useConfirmModal();
@@ -91,6 +94,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const onDeleteCategory = (id: string) => confirm.danger("Supprimer Type", "Attention aux produits liés.", async () => { try { await catsMgr.deleteCategory(id); } catch(e:any) { alert(e.message); } });
   const onDeleteStaff = (id: string) => confirm.danger("Supprimer Staff", "Accès révoqué.", async () => { try { await staffMgr.deleteStaff(id); } catch(e) { console.error(e); } });
 
+  // Auth Logout
+  const handleLogout = async () => {
+      confirm.danger("Déconnexion", "Fermer la session sécurisée ?", async () => {
+          await supabase.auth.signOut();
+          window.location.reload(); // Force refresh to clear state and show login
+      });
+  };
+
   return (
     <div className="min-h-screen text-white font-sans selection:bg-xeption-gold selection:text-black">
         {/* LAYERS */}
@@ -98,12 +109,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         <NotificationToast notification={notifs.currentToast} onClose={notifs.closeToast} onClick={() => notifs.currentToast && handleNotifyClick(notifs.currentToast)} />
         <NotificationDrawer isOpen={notifs.isNotifDrawerOpen} onClose={notifs.toggleDrawer} notifications={notifs.notifications} onClearAll={notifs.clearAll} onNotificationClick={handleNotifyClick} />
 
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} unreadCount={notifs.unreadCount} onToggleNotifications={notifs.toggleDrawer} />
+        <Sidebar 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab} 
+            unreadCount={notifs.unreadCount} 
+            onToggleNotifications={notifs.toggleDrawer} 
+            onLogout={handleLogout}
+        />
 
         <main className="md:ml-64 p-4 md:p-8 pb-24 md:pb-8 min-h-screen relative overflow-x-hidden">
             <div className="md:hidden flex items-center justify-between mb-6 pb-4 border-b border-white/10">
                  <Logo className="scale-75 origin-left" />
-                 <div className="bg-white/10 px-3 py-1 rounded text-[10px] font-bold uppercase text-xeption-gold">Admin</div>
+                 <button onClick={handleLogout} className="text-red-500 p-2"><LogOut className="w-5 h-5"/></button>
             </div>
 
             {/* ROUTER / CONDITIONAL RENDERER */}
@@ -123,6 +140,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     {activeTab === 'orders' && <OrdersTab orders={data.orders} onUpdateStatus={ordersMgr.updateStatus} onCancelOrder={onCancelOrder} />}
                     {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={inventory.setEditingProduct} onDeleteProduct={onDeleteProduct} onCreateProduct={() => inventory.startCreate(data.categories)} onToggleFeatured={onToggleFeatured} />}
                     {activeTab === 'categories' && <CategoriesTab categories={data.categories} newCatName={catsMgr.newCatName} setNewCatName={catsMgr.setNewCatName} onAddCategory={catsMgr.addCategory} onDeleteCategory={onDeleteCategory} />}
+                    {activeTab === 'argus' && <ArgusTab />} 
                     {activeTab === 'staff' && <StaffTab staffMembers={data.staffMembers} onAddStaff={() => staffMgr.openEditor()} onDeleteStaff={onDeleteStaff} />}
                     {activeTab === 'marketing' && <MarketingTab videoPrompt={marketing.videoPrompt} setVideoPrompt={marketing.setVideoPrompt} generatingVideo={marketing.generatingVideo} generatedVideoUrl={marketing.generatedVideoUrl} onGenerateVideo={marketing.generateVideo} />}
                     {activeTab === 'invoices' && <InvoicesTab orders={data.orders} />} 

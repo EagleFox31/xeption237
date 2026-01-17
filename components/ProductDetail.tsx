@@ -85,7 +85,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
   };
 
   return (
-    <div className="fixed inset-0 z-[50] bg-[#F9F8F6]/85 backdrop-blur-sm animate-in slide-in-from-right duration-500 supports-[backdrop-filter]:bg-[#F9F8F6]/75">
+    <div className="fixed inset-0 z-[150] bg-[#F9F8F6]/85 backdrop-blur-sm animate-in slide-in-from-right duration-500 supports-[backdrop-filter]:bg-[#F9F8F6]/75">
       
       {/* 
           SCROLL CONTAINER 
@@ -116,6 +116,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
               <div className="particle w-96 h-96 bottom-0 left-0 bg-orange-500/10 blur-[120px] animate-pulse" style={{ animationDelay: '3s' }}></div>
           </div>
 
+          {/* Back Button (FIXED & ENHANCED) */}
+          <button 
+              onClick={onBack}
+              className="fixed top-4 left-4 md:top-8 md:left-8 z-[160] flex items-center gap-3 px-5 py-3 bg-white/90 backdrop-blur-xl border border-gray-200/50 rounded-full text-black hover:bg-black hover:text-xeption-gold hover:border-black transition-all shadow-[0_10px_30px_rgba(0,0,0,0.1)] group active:scale-95"
+          >
+              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-bold font-tech uppercase tracking-widest text-xs">Retour au Catalogue</span>
+          </button>
+
           {/* 1. HERO SECTION */}
           <div className="relative min-h-[70vh] w-full flex flex-col md:flex-row items-center pt-24 px-4 sm:px-6 max-w-7xl mx-auto gap-8 md:gap-12">
             
@@ -123,14 +132,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
             <div className="absolute inset-0 z-0 opacity-10 pointer-events-none overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_49%,rgba(0,0,0,0.2)_50%,transparent_51%)] bg-[size:100%_40px] [transform:perspective(500px)_rotateX(60deg)_scale(2)] origin-bottom"></div>
             </div>
-
-            {/* Back Button */}
-            <button 
-                onClick={onBack}
-                className="fixed top-6 left-6 z-40 p-3 bg-white/60 backdrop-blur-md border border-white/50 rounded-full hover:bg-white hover:border-xeption-gold hover:text-xeption-gold text-black shadow-lg transition-all group"
-            >
-                <ArrowLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform" />
-            </button>
 
             {/* Left: Text Info */}
             <div className="w-full md:w-1/2 space-y-6 z-10 order-2 md:order-1 text-gray-900">
@@ -160,10 +161,22 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
 
                 <div className="flex items-center space-x-6 pt-4">
                     <div>
-                        <span className="block text-sm text-gray-600 uppercase font-bold tracking-wider">Prix Actuel</span>
-                        <div className="flex items-baseline space-x-2">
-                            <span className="text-4xl font-bold text-black font-mono">{product.price.toLocaleString('fr-FR')}</span>
-                            <span className="text-xeption-goldDim font-bold">FCFA</span>
+                        <span className="block text-sm text-gray-600 uppercase font-bold tracking-wider mb-1">Prix Actuel</span>
+                        
+                        {/* PRIX BARRÉ ROUGE & TAG PROMO */}
+                        <div className="flex flex-col">
+                            {product.oldPrice && (
+                                <div className="flex items-center gap-3 mb-1">
+                                    <span className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold uppercase rounded-sm tracking-wider shadow-sm">Promo</span>
+                                    <span className="text-xl text-red-500 font-bold line-through font-mono decoration-red-500 decoration-2">
+                                        {product.oldPrice.toLocaleString('fr-FR')} FCFA
+                                    </span>
+                                </div>
+                            )}
+                            <div className="flex items-baseline space-x-2">
+                                <span className="text-4xl font-bold text-black font-mono">{product.price.toLocaleString('fr-FR')}</span>
+                                <span className="text-xeption-goldDim font-bold">FCFA</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -334,7 +347,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
       <div className="absolute bottom-0 left-0 w-full p-4 bg-white/90 backdrop-blur-xl border-t border-white/50 md:hidden z-50 shadow-[0_-5px_30px_rgba(0,0,0,0.1)]">
           <div className="flex justify-between items-center gap-4">
               <div className="flex flex-col">
-                  <span className="text-xs text-gray-500 uppercase font-bold">Total</span>
+                  {product.oldPrice && (
+                      <div className="flex items-center gap-2">
+                          <span className="text-[9px] bg-red-600 text-white px-1.5 rounded font-bold uppercase">Promo</span>
+                          <span className="text-[10px] text-red-500 font-bold line-through decoration-red-500 decoration-2">
+                              {product.oldPrice.toLocaleString('fr-FR')}
+                          </span>
+                      </div>
+                  )}
                   <span className="text-xl font-bold text-black">{product.price.toLocaleString('fr-FR')} <span className="text-xs text-xeption-goldDim">FCFA</span></span>
               </div>
               <button 

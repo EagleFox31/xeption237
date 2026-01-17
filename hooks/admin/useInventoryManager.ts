@@ -43,11 +43,15 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         // MAPPING: Frontend (camelCase) -> DB (snake_case)
         const dbPayload = {
             ...productData,
+            old_price: productData.oldPrice,
+            is_promo: productData.isPromo,
             warranty_months: productData.warrantyMonths, 
-            is_featured: productData.isFeatured ?? false // CORRECTION: Force false si undefined
+            is_featured: productData.isFeatured ?? false
         };
         
         // On nettoie les clés camelCase pour éviter que Supabase ne râle si le mode strict est activé
+        delete (dbPayload as any).oldPrice;
+        delete (dbPayload as any).isPromo;
         delete (dbPayload as any).warrantyMonths;
         delete (dbPayload as any).isFeatured;
 

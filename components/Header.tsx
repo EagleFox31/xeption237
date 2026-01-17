@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ShoppingCart, Menu, X, Smartphone, Zap, Search } from 'lucide-react';
+import { ShoppingCart, Menu, X, Smartphone, Zap, Search, Lock } from 'lucide-react';
 import Logo from './Logo';
 
 interface HeaderProps {
@@ -19,7 +19,6 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, onNavigate, curr
     { id: 'troc', label: 'Troc Zone' },
     { id: 'tracking', label: 'Suivi' },
     { id: 'sav', label: 'SAV' },
-    // Staff removed from public header
   ];
 
   const handleNav = (page: string) => {
@@ -61,7 +60,17 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, onNavigate, curr
           </nav>
 
           {/* Right Icons */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-4 md:space-x-6">
+             
+             {/* Staff Access Shortcut (Desktop) */}
+             <button 
+                onClick={() => handleNav('admin')}
+                className="hidden md:block p-2 text-gray-600 hover:text-xeption-gold transition-colors opacity-70 hover:opacity-100"
+                title="Accès ERP Staff"
+             >
+                <Lock className="h-5 w-5" />
+             </button>
+
              {/* Cart Trigger */}
             <button 
               onClick={onOpenCart}
@@ -90,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, onNavigate, curr
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-black/95 backdrop-blur-xl border-t border-gray-800 animate-in slide-in-from-top-5 absolute w-full left-0 border-b border-xeption-gold/20">
+        <div className="md:hidden bg-black/95 backdrop-blur-xl border-t border-gray-800 animate-in slide-in-from-top-5 absolute w-full left-0 border-b border-xeption-gold/20 h-screen">
           <div className="px-4 pt-4 pb-6 space-y-2">
             {navItems.map((item) => (
               <button
@@ -105,6 +114,14 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, onNavigate, curr
                 {item.label}
               </button>
             ))}
+            
+            {/* Staff Link Mobile */}
+            <button 
+                onClick={() => handleNav('admin')}
+                className="block w-full text-left px-4 py-3 rounded-lg text-sm font-tech uppercase font-bold tracking-wider text-gray-600 hover:text-xeption-gold hover:bg-white/5 border-t border-white/5 mt-4 flex items-center gap-2"
+            >
+                <Lock className="w-4 h-4" /> Accès Staff ERP
+            </button>
           </div>
         </div>
       )}

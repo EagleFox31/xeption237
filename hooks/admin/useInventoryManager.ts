@@ -43,11 +43,11 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         // MAPPING: Frontend (camelCase) -> DB (snake_case)
         const dbPayload = {
             ...productData,
-            warranty_months: productData.warrantyMonths, // Important: Mapping explicite
-            is_featured: productData.isFeatured // Important: Mapping explicite
+            warranty_months: productData.warrantyMonths, 
+            is_featured: productData.isFeatured ?? false // CORRECTION: Force false si undefined
         };
         
-        // On nettoie les clés camelCase pour éviter que Supabase ne râle si le mode strict est activé (optionnel mais propre)
+        // On nettoie les clés camelCase pour éviter que Supabase ne râle si le mode strict est activé
         delete (dbPayload as any).warrantyMonths;
         delete (dbPayload as any).isFeatured;
 
@@ -56,7 +56,7 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         if (error) {
             console.error("Save error:", error);
             if (error.code === '23503') throw new Error(`La catégorie "${editingProduct.category}" n'existe pas.`);
-            if (error.message.includes('column')) throw new Error(`Erreur de colonne DB: ${error.message}. Vérifiez le snake_case.`);
+            if (error.message.includes('column')) throw new Error(`Colonne manquante en DB : ${error.message}. Lance le script SQL.`);
             throw error;
         }
 

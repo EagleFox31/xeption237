@@ -1,7 +1,12 @@
+
 import React from 'react';
 import { RefreshCw, Smartphone, Check } from 'lucide-react';
 
-const TrocSection: React.FC = () => {
+interface TrocSectionProps {
+  onNavigate?: (page: string) => void;
+}
+
+const TrocSection: React.FC<TrocSectionProps> = ({ onNavigate }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
       <div className="relative bg-black/40 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl">
@@ -45,7 +50,10 @@ const TrocSection: React.FC = () => {
               ))}
             </ul>
 
-            <button className="bg-white/90 backdrop-blur text-black px-8 py-3 font-tech font-bold uppercase tracking-widest hover:bg-xeption-gold transition-colors shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+            <button 
+              onClick={() => onNavigate && onNavigate('troc')}
+              className="bg-white/90 backdrop-blur text-black px-8 py-3 font-tech font-bold uppercase tracking-widest hover:bg-xeption-gold transition-colors shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+            >
               Estimer mon appareil
             </button>
           </div>

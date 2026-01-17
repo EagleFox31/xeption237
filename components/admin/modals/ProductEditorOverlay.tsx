@@ -1,7 +1,7 @@
 
 import React, { useRef, useState } from 'react';
 import { Product, Category } from '../../../types';
-import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload } from 'lucide-react';
+import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star } from 'lucide-react';
 import { uploadImageToCloudinary, uploadVideoToCloudinary } from '../../../services/uploadService';
 import { generateProductDetails } from '../../../services/geminiService';
 
@@ -22,6 +22,21 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
   const mainImageInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // --- HELPER FORMATAGE PRIX ---
+  const formatPriceDisplay = (value: number | undefined) => {
+      if (value === undefined || value === null || value === 0) return '';
+      return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  };
+
+  const handlePriceChange = (value: string, field: 'price' | 'oldPrice') => {
+      // On retire les espaces pour avoir le nombre brut
+      const rawValue = value.replace(/\s/g, '');
+      // On vérifie si c'est bien des chiffres (ou vide)
+      if (rawValue === '' || /^\d+$/.test(rawValue)) {
+          onChange({ [field]: Number(rawValue) });
+      }
+  };
 
   // --- HANDLERS MEDIA ---
 
@@ -152,6 +167,28 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                             </div>
                         </div>
 
+                         {/* OPTION FEATURED / PÉPITE */}
+                         <div className="bg-white/5 border border-white/5 p-4 rounded-sm flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-full ${product.isFeatured ? 'bg-xeption-gold text-black' : 'bg-white/10 text-gray-400'}`}>
+                                    <Star className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h4 className="text-white text-xs font-bold uppercase">Mettre à la Une</h4>
+                                    <p className="text-[10px] text-gray-400">Afficher dans les "Pépites" en page d'accueil.</p>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer" 
+                                    checked={product.isFeatured || false}
+                                    onChange={e => onChange({ isFeatured: e.target.checked })}
+                                />
+                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-xeption-gold"></div>
+                            </label>
+                        </div>
+
                         <div>
                             <div className="flex justify-between items-center mb-1.5">
                                 <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Description Marketing</label>
@@ -258,11 +295,11 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                         <div>
                             <label className="text-[10px] uppercase font-bold text-gray-500 mb-1.5 block tracking-widest">Prix de Vente (FCFA)</label>
                             <input 
-                                type="number" 
+                                type="text" 
                                 className="w-full bg-black/40 border border-white/10 p-4 text-white text-2xl font-tech font-bold focus:border-xeption-gold outline-none transition-all rounded-sm" 
                                 placeholder="0" 
-                                value={product.price} 
-                                onChange={e => onChange({ price: +e.target.value })} 
+                                value={formatPriceDisplay(product.price)} 
+                                onChange={e => handlePriceChange(e.target.value, 'price')} 
                             />
                         </div>
 
@@ -284,11 +321,11 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                                 <div className="animate-in slide-in-from-top-2">
                                     <label className="text-[10px] uppercase font-bold text-gray-500 mb-1.5 block tracking-widest">Ancien Prix (Prix barré)</label>
                                     <input 
-                                        type="number" 
+                                        type="text" 
                                         className="w-full bg-black/40 border border-red-500/30 p-4 text-gray-400 font-mono line-through focus:border-xeption-red outline-none transition-all rounded-sm" 
-                                        placeholder="ex: 850000" 
-                                        value={product.oldPrice || ''} 
-                                        onChange={e => onChange({ oldPrice: +e.target.value })} 
+                                        placeholder="ex: 850 000" 
+                                        value={formatPriceDisplay(product.oldPrice)} 
+                                        onChange={e => handlePriceChange(e.target.value, 'oldPrice')} 
                                     />
                                 </div>
                             )}

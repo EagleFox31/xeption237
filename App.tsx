@@ -38,13 +38,20 @@ const App: React.FC = () => {
         if (error) throw error;
         
         if (data && data.length > 0) {
-          setProducts(data as Product[]);
+          // CORRECTION: Mapping des champs DB (snake_case) vers Frontend (camelCase)
+          const formattedProducts: Product[] = data.map((p: any) => ({
+             ...p,
+             warrantyMonths: p.warranty_months, // Fix: warranty_months -> warrantyMonths
+             isFeatured: p.is_featured // Fix: is_featured -> isFeatured
+          }));
+
+          setProducts(formattedProducts);
           
           // DEEP LINKING CHECK: Check for ?product=ID in URL after products load
           const params = new URLSearchParams(window.location.search);
           const productId = params.get('product');
           if (productId) {
-            const foundProduct = (data as Product[]).find(p => p.id === productId);
+            const foundProduct = formattedProducts.find(p => p.id === productId);
             if (foundProduct) {
                 setSelectedProduct(foundProduct);
                 // Clean URL without refresh
@@ -70,22 +77,22 @@ const App: React.FC = () => {
         return; 
     }
     
-    const baseTitle = "Xeption Network | Le Ndamba du Digital";
+    const baseTitle = "Xeption | Le Ndamba du Digital";
     switch(page) {
         case 'shop':
-            document.title = "Le Shop | Xeption Network";
+            document.title = "Le Shop | Xeption";
             break;
         case 'troc':
-            document.title = "Troc Zone | Xeption Network";
+            document.title = "Troc Zone | Xeption";
             break;
         case 'tracking':
-            document.title = "Suivi de Commande | Xeption Network";
+            document.title = "Suivi de Commande | Xeption";
             break;
         case 'sav':
-            document.title = "SAV & Garantie | Xeption Network";
+            document.title = "SAV & Garantie | Xeption";
             break;
         case 'admin':
-            document.title = "Staff Portal | Xeption Network";
+            document.title = "Staff Portal | Xeption";
             break;
         default:
             document.title = baseTitle;
@@ -145,7 +152,7 @@ const App: React.FC = () => {
   const closeProductDetail = () => {
     setSelectedProduct(null);
     // Restore default title when closing modal
-    document.title = "Xeption Network | Le Ndamba du Digital";
+    document.title = "Xeption | Le Ndamba du Digital";
   };
 
   const handleNavigate = (newPage: string) => {
@@ -157,6 +164,20 @@ const App: React.FC = () => {
 
   const bgVideoUrl = "https://res.cloudinary.com/dli0kdkg9/video/upload/v1768438828/xption7_zrgro4.mp4";
   const bgPosterUrl = "https://images.unsplash.com/photo-1634152962476-4b8a00e1915c?q=80&w=1280&auto=format&fit=crop";
+
+  // LOGIQUE PÉPITES (FEATURED)
+  // 1. On prend d'abord ceux qui ont isFeatured = true
+  const pinnedProducts = products.filter(p => p.isFeatured);
+  // 2. Si on en a moins de 3, on complète avec les plus récents qui ne sont pas déjà épinglés
+  let displayFeatured = [...pinnedProducts];
+  if (displayFeatured.length < 3) {
+      const remainingSlots = 3 - displayFeatured.length;
+      const fillers = products.filter(p => !p.isFeatured).slice(0, remainingSlots);
+      displayFeatured = [...displayFeatured, ...fillers];
+  } else {
+      // Si on en a plus de 3, on coupe à 3 (ou on peut en montrer plus, ici on garde 3 pour l'accueil)
+      displayFeatured = displayFeatured.slice(0, 3);
+  }
 
   return (
     <div className="min-h-screen text-white font-sans selection:bg-xeption-gold selection:text-black relative overflow-x-hidden">
@@ -198,7 +219,7 @@ const App: React.FC = () => {
           <>
             <Hero onShopNow={() => setPage('shop')} />
             <div id="featured-products">
-               <ProductList products={products.slice(0, 3)} onAddToCart={addToCart} onProductClick={handleProductClick} />
+               <ProductList products={displayFeatured} onAddToCart={addToCart} onProductClick={handleProductClick} />
             </div>
             <TrocSection />
           </>
@@ -277,7 +298,7 @@ const App: React.FC = () => {
         <footer className="bg-black/80 backdrop-blur-xl border-t border-gray-800 py-12 relative z-10">
           <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left">
              <div className="mb-6 md:mb-0">
-                <h3 className="text-xl font-bold text-white mb-2 font-tech uppercase">Xeption Network</h3>
+                <h3 className="text-xl font-bold text-white mb-2 font-tech uppercase">Xeption</h3>
                 <div className="flex flex-col items-center md:items-start">
                     <p className="text-gray-400 text-sm flex items-center justify-center md:justify-start">
                     Made 
@@ -292,9 +313,10 @@ const App: React.FC = () => {
                     </button>
                 </div>
              </div>
-             <div className="flex space-x-6">
+             <div className="flex space-x-6 flex-wrap justify-center gap-y-4">
                 <a href="https://web.facebook.com/xeptioon/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Facebook</a>
                 <a href="https://www.instagram.com/xeption_corp/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Instagram</a>
+                <a href="https://www.tiktok.com/@xeption237?_r=1&_t=ZM-939Ae3o3r2J" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">TikTok</a>
                 <a href="https://wa.me/237699000000" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
              </div>
           </div>

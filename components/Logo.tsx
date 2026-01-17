@@ -19,7 +19,7 @@ const Logo: React.FC<{ className?: string }> = ({ className = "" }) => {
         </span>
         <div className="flex justify-between items-center w-full">
            <span className="text-[0.6rem] font-sans font-bold tracking-[0.4em] text-xeption-gold uppercase">
-            Network
+            237
           </span>
           <span className="block w-1.5 h-1.5 bg-xeption-red rounded-full shadow-[0_0_10px_#ff0033]"></span>
         </div>

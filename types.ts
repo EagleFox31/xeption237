@@ -18,6 +18,7 @@ export interface Product {
   video?: string;
   stock: number;
   isPromo?: boolean;
+  isFeatured?: boolean; // NOUVEAU : Pour épingler en page d'accueil
   rating?: number;
   reviewShort?: string;
   specs?: { label: string; value: string }[];

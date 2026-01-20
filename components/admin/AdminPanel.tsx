@@ -18,7 +18,8 @@ import OrdersTab from './tabs/OrdersTab';
 import InventoryTab from './tabs/InventoryTab';
 import CategoriesTab from './tabs/CategoriesTab';
 import BrandsTab from './tabs/BrandsTab'; 
-import PacksTab from './tabs/PacksTab'; // NOUVEAU
+import PacksTab from './tabs/PacksTab';
+import DeliveryTab from './tabs/DeliveryTab'; // NEW
 import ArgusTab from './tabs/ArgusTab';
 import SavTab from './tabs/SavTab';
 import ClientsTab from './tabs/ClientsTab';
@@ -32,7 +33,7 @@ import { useAdminNotifications } from '../../hooks/admin/useAdminNotifications';
 import { useAdminData } from '../../hooks/admin/useAdminData';
 import { usePosSystem } from '../../hooks/admin/usePosSystem';
 import { useInventoryManager } from '../../hooks/admin/useInventoryManager';
-import { usePacksManager } from '../../hooks/admin/usePacksManager'; // NOUVEAU
+import { usePacksManager } from '../../hooks/admin/usePacksManager'; 
 import { useConfirmModal } from '../../hooks/admin/useConfirmModal';
 import { useOrdersManager } from '../../hooks/admin/useOrdersManager';
 import { useStaffManager } from '../../hooks/admin/useStaffManager';
@@ -42,7 +43,7 @@ import { useMarketingStudio } from '../../hooks/admin/useMarketingStudio';
 
 // Editor Modals
 import ProductEditorOverlay from './modals/ProductEditorOverlay';
-import PackEditorOverlay from './modals/PackEditorOverlay'; // NOUVEAU
+import PackEditorOverlay from './modals/PackEditorOverlay'; 
 import StaffEditorModal from './modals/StaffEditorModal';
 import { LogOut } from 'lucide-react';
 
@@ -53,7 +54,7 @@ interface AdminPanelProps {
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
   // 1. Navigation State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'packs' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices' | 'argus' | 'brands'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'packs' | 'delivery' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices' | 'argus' | 'brands'>('dashboard');
   
   // 2. Core Services
   const confirm = useConfirmModal();
@@ -63,7 +64,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   // 3. Domain Logic Managers
   const pos = usePosSystem({ products, onUpdateProducts, refreshData: data.refreshAll });
   const inventory = useInventoryManager({ products, onUpdateProducts });
-  const packsMgr = usePacksManager(products); // NOUVEAU
+  const packsMgr = usePacksManager(products); 
   const ordersMgr = useOrdersManager({ products, onUpdateProducts, orders: data.orders, setOrders: data.setOrders });
   const staffMgr = useStaffManager({ staffMembers: data.staffMembers, setStaffMembers: data.setStaffMembers });
   const catsMgr = useCategoriesManager({ categories: data.categories, setCategories: data.setCategories });
@@ -162,6 +163,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     {activeTab === 'orders' && <OrdersTab orders={data.orders} onUpdateStatus={ordersMgr.updateStatus} onCancelOrder={onCancelOrder} />}
                     {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={inventory.setEditingProduct} onDeleteProduct={onDeleteProduct} onCreateProduct={() => inventory.startCreate(data.categories)} onToggleFeatured={onToggleFeatured} />}
                     {activeTab === 'packs' && <PacksTab packs={packsMgr.packs} products={products} onCreatePack={packsMgr.startCreate} onEditPack={packsMgr.setEditingPack} onDeletePack={onDeletePack} getHydratedItems={packsMgr.getHydratedItems} />}
+                    {activeTab === 'delivery' && <DeliveryTab />}
                     {activeTab === 'categories' && <CategoriesTab categories={data.categories} newCatName={catsMgr.newCatName} setNewCatName={catsMgr.setNewCatName} onAddCategory={catsMgr.addCategory} onDeleteCategory={onDeleteCategory} />}
                     {activeTab === 'brands' && <BrandsTab brands={data.brands} ranges={data.ranges} brandMgr={brandMgr} />} 
                     {activeTab === 'argus' && <ArgusTab />} 

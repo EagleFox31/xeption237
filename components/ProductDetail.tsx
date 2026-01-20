@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
-import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Share2, Link as LinkIcon, CheckCircle2, Sparkles, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Share2, Link as LinkIcon, CheckCircle2, Sparkles, ShieldCheck, Star, MapPin } from 'lucide-react';
 import { optimizeImage } from '../utils/mediaOptimization';
 
 interface ProductDetailProps {
@@ -83,6 +83,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
           console.error("Failed to copy link", err);
       }
   };
+
+  // Fake product specific reviews for "Local Proof"
+  const LOCAL_REVIEWS = [
+      { name: "Cédric K.", loc: "Douala, Akwa", txt: "Je l'utilise depuis 2 jours, il est très rapide." },
+      { name: "Mireille S.", loc: "Yaoundé, Odza", txt: "Exactement comme sur la photo. Merci Xeption." }
+  ];
 
   return (
     <div className="fixed inset-0 z-[150] bg-[#F9F8F6]/85 backdrop-blur-sm animate-in slide-in-from-right duration-500 supports-[backdrop-filter]:bg-[#F9F8F6]/75">
@@ -344,7 +350,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
 
           {/* 4. GEEK ZONE (Specs Detail) */}
           {product.specs && (
-              <div className="max-w-5xl mx-auto px-4 pb-24 relative z-10">
+              <div className="max-w-5xl mx-auto px-4 pb-12 relative z-10">
                   <div className="flex items-center gap-4 mb-8">
                       <Cpu className="h-8 w-8 text-gray-600" />
                       <h2 className="text-3xl font-bold text-black font-tech uppercase">Détails Techniques</h2>
@@ -364,6 +370,28 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                   </div>
               </div>
           )}
+
+          {/* 5. LOCAL PRODUCT PROOF */}
+          <div className="max-w-5xl mx-auto px-4 pb-24 relative z-10">
+              <h3 className="text-lg font-bold uppercase text-gray-800 mb-6 font-tech flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-xeption-gold" /> Ils ont acheté ce modèle
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {LOCAL_REVIEWS.map((review, i) => (
+                      <div key={i} className="bg-white/70 border border-gray-200 p-4 rounded-lg flex gap-3 shadow-sm">
+                          <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold">{review.name.charAt(0)}</div>
+                          <div>
+                              <div className="flex items-center gap-2">
+                                  <span className="font-bold text-sm text-black">{review.name}</span>
+                                  <span className="text-[10px] text-gray-500 flex items-center gap-0.5"><MapPin className="w-3 h-3"/> {review.loc}</span>
+                              </div>
+                              <div className="flex mb-1"><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/></div>
+                              <p className="text-xs text-gray-600 italic">"{review.txt}"</p>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
       </div>
 
       {/* Mobile Sticky Footer - Outside scroll container to stay fixed */}

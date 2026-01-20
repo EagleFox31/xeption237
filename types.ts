@@ -60,6 +60,15 @@ export interface Pack {
   isFeatured?: boolean;
 }
 
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  delay: string;
+  price: number;
+  type: 'express' | 'standard';
+  active: boolean;
+}
+
 export interface TradeInModel {
   id: string;
   category: 'phone' | 'laptop';

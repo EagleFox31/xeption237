@@ -45,7 +45,7 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         const dbPayload = {
             ...productData,
             old_price: productData.oldPrice,
-            is_promo: productData.isPromo,
+            ispromo: productData.isPromo, // Correction: is_promo -> ispromo
             warranty_months: productData.warrantyMonths, 
             is_featured: productData.isFeatured ?? false,
             product_range: productData.productRange || null,

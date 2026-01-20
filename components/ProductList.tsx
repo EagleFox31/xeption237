@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product, Category } from '../types';
-import { ShoppingCart, Tag, Star } from 'lucide-react';
+import { ShoppingCart, Sparkles } from 'lucide-react';
 import { optimizeImage } from '../utils/mediaOptimization';
 import { supabase } from '../services/supabaseClient';
 
@@ -9,9 +9,10 @@ interface ProductListProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
   onProductClick?: (product: Product) => void;
+  title?: string; // Titre personnalisable
 }
 
-const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProductClick }) => {
+const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProductClick, title = "Nos Pépites" }) => {
   const [filter, setFilter] = useState<string>('all');
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -39,7 +40,11 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
              <span className="text-xeption-gold font-tech font-bold tracking-widest uppercase shadow-[0_0_10px_rgba(255,215,0,0.5)]">Catalogue</span>
            </div>
            <h2 className="text-4xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-xl">
-            Nos <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Pépites</span>
+            {title === "Nos Pépites" ? (
+                <>Nos <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Pépites</span></>
+            ) : (
+                <span className="text-white">{title}</span>
+            )}
           </h2>
         </div>
         
@@ -78,11 +83,20 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
             className="group relative bg-[#0f0f0f]/80 backdrop-blur-2xl border border-white/10 hover:border-xeption-gold/50 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-[0_0_30px_rgba(255,215,0,0.15)] hover:-translate-y-2 cursor-pointer rounded-xl"
             onClick={() => onProductClick && onProductClick(product)}
           >
-            {/* Promo Tag - Visible et Rouge */}
+            {/* Promo Tag - Visible et Rouge (Top Right) */}
             {product.isPromo && (
               <div className="absolute top-3 right-3 z-20 animate-pulse-slow">
                  <div className="bg-red-600 text-white text-xs font-bold px-3 py-1.5 font-tech uppercase tracking-widest shadow-[0_0_15px_rgba(255,0,0,0.6)] rounded-sm border border-red-400">
                     Promo
+                 </div>
+              </div>
+            )}
+
+            {/* Condition Tag - NEW (Top Left) */}
+            {product.condition === 'new' && (
+              <div className="absolute top-3 left-3 z-20">
+                 <div className="bg-emerald-500 text-white text-[10px] font-bold px-3 py-1.5 font-tech uppercase tracking-widest shadow-[0_0_15px_rgba(16,185,129,0.4)] rounded-sm border border-emerald-400 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> Neuf
                  </div>
               </div>
             )}

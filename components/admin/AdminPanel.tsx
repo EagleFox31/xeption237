@@ -17,6 +17,7 @@ import PosTab from './tabs/PosTab';
 import OrdersTab from './tabs/OrdersTab';
 import InventoryTab from './tabs/InventoryTab';
 import CategoriesTab from './tabs/CategoriesTab';
+import BrandsTab from './tabs/BrandsTab'; // NOUVEAU
 import ArgusTab from './tabs/ArgusTab';
 import SavTab from './tabs/SavTab';
 import ClientsTab from './tabs/ClientsTab';
@@ -34,6 +35,7 @@ import { useConfirmModal } from '../../hooks/admin/useConfirmModal';
 import { useOrdersManager } from '../../hooks/admin/useOrdersManager';
 import { useStaffManager } from '../../hooks/admin/useStaffManager';
 import { useCategoriesManager } from '../../hooks/admin/useCategoriesManager';
+import { useBrandsManager } from '../../hooks/admin/useBrandsManager'; // NOUVEAU
 import { useMarketingStudio } from '../../hooks/admin/useMarketingStudio';
 
 // Editor Modals
@@ -48,7 +50,7 @@ interface AdminPanelProps {
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
   // 1. Navigation State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices' | 'argus'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices' | 'argus' | 'brands'>('dashboard');
   
   // 2. Core Services
   const confirm = useConfirmModal();
@@ -61,6 +63,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const ordersMgr = useOrdersManager({ products, onUpdateProducts, orders: data.orders, setOrders: data.setOrders });
   const staffMgr = useStaffManager({ staffMembers: data.staffMembers, setStaffMembers: data.setStaffMembers });
   const catsMgr = useCategoriesManager({ categories: data.categories, setCategories: data.setCategories });
+  const brandMgr = useBrandsManager({ brands: data.brands, setBrands: data.setBrands, ranges: data.ranges, setRanges: data.setRanges }); // NOUVEAU
   const marketing = useMarketingStudio();
 
   // 4. Wiring Handlers (View -> Logic -> Feedback)
@@ -128,7 +131,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             {inventory.editingProduct ? (
                 <ProductEditorOverlay 
                     product={inventory.editingProduct} 
-                    categories={data.categories} 
+                    categories={data.categories}
+                    brands={data.brands} // PASSAGE DONNEES
+                    ranges={data.ranges} // PASSAGE DONNEES
                     onClose={() => inventory.setEditingProduct(null)} 
                     onSave={onSaveProduct} 
                     onChange={(u) => inventory.setEditingProduct(p => p ? ({ ...p, ...u }) : null)} 
@@ -140,6 +145,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     {activeTab === 'orders' && <OrdersTab orders={data.orders} onUpdateStatus={ordersMgr.updateStatus} onCancelOrder={onCancelOrder} />}
                     {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={inventory.setEditingProduct} onDeleteProduct={onDeleteProduct} onCreateProduct={() => inventory.startCreate(data.categories)} onToggleFeatured={onToggleFeatured} />}
                     {activeTab === 'categories' && <CategoriesTab categories={data.categories} newCatName={catsMgr.newCatName} setNewCatName={catsMgr.setNewCatName} onAddCategory={catsMgr.addCategory} onDeleteCategory={onDeleteCategory} />}
+                    {activeTab === 'brands' && <BrandsTab brands={data.brands} ranges={data.ranges} brandMgr={brandMgr} />} 
                     {activeTab === 'argus' && <ArgusTab />} 
                     {activeTab === 'staff' && <StaffTab staffMembers={data.staffMembers} onAddStaff={() => staffMgr.openEditor()} onDeleteStaff={onDeleteStaff} />}
                     {activeTab === 'marketing' && <MarketingTab videoPrompt={marketing.videoPrompt} setVideoPrompt={marketing.setVideoPrompt} generatingVideo={marketing.generatingVideo} generatedVideoUrl={marketing.generatedVideoUrl} onGenerateVideo={marketing.generateVideo} />}

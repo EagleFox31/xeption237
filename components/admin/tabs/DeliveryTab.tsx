@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { DeliveryZone } from '../../../types';
-import { Truck, Plus, Trash2, MapPin, Save, Loader2 } from 'lucide-react';
+import { Truck, Plus, Trash2, MapPin, Save, Loader2, Check } from 'lucide-react';
 import TableShell from '../shared/TableShell';
 
 const DeliveryTab: React.FC = () => {
     const [zones, setZones] = useState<DeliveryZone[]>([]);
     const [loading, setLoading] = useState(false);
+    const [savingId, setSavingId] = useState<string | null>(null);
     
     // State pour création
     const [newZone, setNewZone] = useState<Partial<DeliveryZone>>({
@@ -38,12 +39,35 @@ const DeliveryTab: React.FC = () => {
         }
     };
 
-    const handleUpdateZone = async (id: string, updates: Partial<DeliveryZone>) => {
-        // Optimistic UI update
+    // Modification locale uniquement (pour les inputs texte/nombre)
+    const handleLocalChange = (id: string, updates: Partial<DeliveryZone>) => {
         setZones(zones.map(z => z.id === id ? { ...z, ...updates } : z));
+    };
+
+    // Sauvegarde en base de données (déclenchée par le bouton)
+    const handleSaveZone = async (zone: DeliveryZone) => {
+        setSavingId(zone.id);
+        const { error } = await supabase.from('delivery_zones').update({
+            name: zone.name,
+            delay: zone.delay,
+            price: zone.price,
+            type: zone.type,
+            active: zone.active
+        }).eq('id', zone.id);
         
-        // DB update (debounce could be better, but direct update for admin is fine)
-        await supabase.from('delivery_zones').update(updates).eq('id', id);
+        // Petit délai pour l'effet visuel
+        setTimeout(() => setSavingId(null), 500);
+        
+        if (error) {
+            alert("Erreur lors de la sauvegarde.");
+        }
+    };
+
+    // Cas spécial : Checkbox (Sauvegarde immédiate pour UX fluide)
+    const handleToggleActive = async (zone: DeliveryZone) => {
+        const newValue = !zone.active;
+        handleLocalChange(zone.id, { active: newValue }); // Update UI
+        await supabase.from('delivery_zones').update({ active: newValue }).eq('id', zone.id); // Update DB
     };
 
     const handleDeleteZone = async (id: string) => {
@@ -131,22 +155,22 @@ const DeliveryTab: React.FC = () => {
                                 <td className="px-6 py-4">
                                     <input 
                                         value={zone.name} 
-                                        onChange={(e) => handleUpdateZone(zone.id, { name: e.target.value })}
-                                        className="bg-transparent border-b border-transparent focus:border-white/30 outline-none w-full font-bold text-white"
+                                        onChange={(e) => handleLocalChange(zone.id, { name: e.target.value })}
+                                        className="bg-transparent border-b border-transparent focus:border-white/30 outline-none w-full font-bold text-white transition-colors"
                                     />
                                 </td>
                                 <td className="px-6 py-4">
                                     <input 
                                         value={zone.delay} 
-                                        onChange={(e) => handleUpdateZone(zone.id, { delay: e.target.value })}
-                                        className="bg-transparent border-b border-transparent focus:border-white/30 outline-none w-full text-gray-400"
+                                        onChange={(e) => handleLocalChange(zone.id, { delay: e.target.value })}
+                                        className="bg-transparent border-b border-transparent focus:border-white/30 outline-none w-full text-gray-400 transition-colors"
                                     />
                                 </td>
                                 <td className="px-6 py-4">
                                     <select 
                                         value={zone.type}
-                                        onChange={(e) => handleUpdateZone(zone.id, { type: e.target.value as any })}
-                                        className="bg-black/20 border border-white/10 rounded text-xs px-2 py-1 outline-none"
+                                        onChange={(e) => handleLocalChange(zone.id, { type: e.target.value as any })}
+                                        className="bg-black/20 border border-white/10 rounded text-xs px-2 py-1 outline-none text-gray-300"
                                     >
                                         <option value="standard">Standard</option>
                                         <option value="express">Express</option>
@@ -157,8 +181,8 @@ const DeliveryTab: React.FC = () => {
                                         <input 
                                             type="number" 
                                             value={zone.price}
-                                            onChange={(e) => handleUpdateZone(zone.id, { price: parseInt(e.target.value) || 0 })}
-                                            className="bg-transparent text-right font-mono text-xeption-gold font-bold focus:bg-black/50 focus:border-b border-xeption-gold outline-none w-24 py-1"
+                                            onChange={(e) => handleLocalChange(zone.id, { price: parseInt(e.target.value) || 0 })}
+                                            className="bg-transparent text-right font-mono text-xeption-gold font-bold focus:bg-black/50 focus:border-b border-xeption-gold outline-none w-24 py-1 transition-colors"
                                         />
                                         <span className="text-xs text-gray-600">FCFA</span>
                                     </div>
@@ -167,14 +191,34 @@ const DeliveryTab: React.FC = () => {
                                     <input 
                                         type="checkbox" 
                                         checked={zone.active}
-                                        onChange={(e) => handleUpdateZone(zone.id, { active: e.target.checked })}
+                                        onChange={() => handleToggleActive(zone)}
                                         className="accent-xeption-gold w-4 h-4 cursor-pointer"
                                     />
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <button onClick={() => handleDeleteZone(zone.id)} className="text-gray-600 hover:text-red-500 transition-colors p-2">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    <div className="flex items-center justify-end gap-2">
+                                        {/* Bouton Sauvegarder */}
+                                        <button 
+                                            onClick={() => handleSaveZone(zone)}
+                                            className={`p-2 rounded transition-all ${
+                                                savingId === zone.id 
+                                                ? 'text-green-500 bg-green-500/10' 
+                                                : 'text-xeption-gold hover:bg-xeption-gold/10 hover:scale-110'
+                                            }`}
+                                            title="Enregistrer les modifications"
+                                        >
+                                            {savingId === zone.id ? <Check className="w-4 h-4 animate-bounce" /> : <Save className="w-4 h-4" />}
+                                        </button>
+                                        
+                                        {/* Bouton Supprimer */}
+                                        <button 
+                                            onClick={() => handleDeleteZone(zone.id)} 
+                                            className="text-gray-600 hover:text-red-500 hover:bg-red-500/10 transition-all p-2 rounded"
+                                            title="Supprimer la zone"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

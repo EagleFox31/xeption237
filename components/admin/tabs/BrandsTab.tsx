@@ -1,15 +1,16 @@
 
 import React from 'react';
-import { Plus, Trash2, Tag, Layers, ChevronRight } from 'lucide-react';
-import { Brand, ProductRange } from '../../../types';
+import { Plus, Trash2, Tag, Layers, ChevronRight, Smartphone } from 'lucide-react';
+import { Brand, ProductRange, Category } from '../../../types';
 
 interface BrandsTabProps {
   brands: Brand[];
   ranges: ProductRange[];
-  brandMgr: any; // On passe le hook manager
+  categories: Category[]; // Nouvelle prop pour la liste des catégories
+  brandMgr: any; // Hook manager
 }
 
-const BrandsTab: React.FC<BrandsTabProps> = ({ brands, ranges, brandMgr }) => {
+const BrandsTab: React.FC<BrandsTabProps> = ({ brands, ranges, categories, brandMgr }) => {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-5">
         <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Gestion Marques & Gammes</h2>
@@ -76,19 +77,35 @@ const BrandsTab: React.FC<BrandsTabProps> = ({ brands, ranges, brandMgr }) => {
                     <h3 className="text-white font-bold uppercase mb-4 text-sm flex items-center gap-2">
                         <Layers className="w-4 h-4 text-blue-400"/> Ajouter Gamme pour <span className="text-xeption-gold">{brands.find(b => b.id === brandMgr.selectedBrandForRange)?.name || '...'}</span>
                     </h3>
-                    <div className="flex gap-2">
-                        <input 
-                            type="text" 
-                            value={brandMgr.newRangeName} 
-                            onChange={(e: any) => brandMgr.setNewRangeName(e.target.value)} 
-                            placeholder="Ex: Galaxy S, iPhone Pro" 
-                            className="flex-1 bg-black/50 border border-white/10 p-3 text-white rounded-sm text-sm"
-                        />
+                    
+                    {/* INPUTS AJOUT GAMME */}
+                    <div className="space-y-3">
+                        <div className="flex gap-2">
+                            {/* SELECTEUR TYPE (NEW) */}
+                            <select
+                                className="bg-black/50 border border-white/10 p-3 text-white rounded-sm text-xs w-1/3 outline-none"
+                                value={brandMgr.selectedCategoryForRange}
+                                onChange={(e) => brandMgr.setSelectedCategoryForRange(e.target.value)}
+                            >
+                                <option value="">-- Type --</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                                ))}
+                            </select>
+
+                            <input 
+                                type="text" 
+                                value={brandMgr.newRangeName} 
+                                onChange={(e: any) => brandMgr.setNewRangeName(e.target.value)} 
+                                placeholder="Ex: Galaxy S, iPhone Pro" 
+                                className="flex-1 bg-black/50 border border-white/10 p-3 text-white rounded-sm text-sm"
+                            />
+                        </div>
                         <button 
                             onClick={brandMgr.addRange}
-                            className="bg-blue-500 text-white font-bold uppercase px-4 rounded-sm text-xs tracking-widest hover:bg-blue-400 transition-all"
+                            className="w-full bg-blue-500 text-white font-bold uppercase py-3 rounded-sm text-xs tracking-widest hover:bg-blue-400 transition-all flex items-center justify-center gap-2"
                         >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-4 h-4" /> Créer la Gamme
                         </button>
                     </div>
                 </div>
@@ -110,7 +127,14 @@ const BrandsTab: React.FC<BrandsTabProps> = ({ brands, ranges, brandMgr }) => {
                                 ) : (
                                     ranges.filter(r => r.brand_id === brandMgr.selectedBrandForRange).map(range => (
                                         <tr key={range.id} className="hover:bg-white/5 text-sm">
-                                            <td className="px-6 py-4 font-bold text-gray-200">{range.name}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-gray-200">{range.name}</div>
+                                                {range.category && (
+                                                    <span className="text-[10px] text-gray-500 uppercase flex items-center gap-1 mt-1">
+                                                        <Smartphone className="w-3 h-3" /> {categories.find(c => c.slug === range.category)?.name || range.category}
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 text-right">
                                                 <button onClick={() => brandMgr.deleteRange(range.id)} className="p-2 text-red-500 hover:bg-white/10 rounded">
                                                     <Trash2 className="w-4 h-4" />

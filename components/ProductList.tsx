@@ -101,17 +101,23 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
               </div>
             )}
             
-            {/* Image Container - Aspect ratio un peu plus carré pour la densité */}
-            <div className="aspect-[4/3] bg-black/50 relative overflow-hidden border-b border-white/5">
+            {/* 
+                CORRECTION IMAGE PORTRAIT :
+                1. aspect-square (au lieu de 4/3) pour donner plus de hauteur
+                2. object-contain (au lieu de cover) pour afficher toute l'image sans rogner
+                3. p-4 pour aérer l'image (éviter qu'elle touche les bords)
+            */}
+            <div className="aspect-square bg-black/50 relative overflow-hidden border-b border-white/5 p-4 flex items-center justify-center">
               <img 
-                src={optimizeImage(product.image, 400)} // Optimisation plus aggressive pour petites cartes
+                src={optimizeImage(product.image, 400)} 
                 alt={product.name} 
                 loading="lazy"
                 width="400"
-                height="300"
-                className="w-full h-full object-cover object-center group-hover:scale-105 group-hover:opacity-90 transition-all duration-500"
+                height="400"
+                className="w-full h-full object-contain object-center group-hover:scale-105 group-hover:opacity-90 transition-all duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] to-transparent opacity-30"></div>
+              {/* Fond dégradé subtil derrière pour donner de la profondeur même avec object-contain */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03),transparent_70%)] opacity-50 pointer-events-none"></div>
               
               <div className="absolute bottom-2 right-2 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-30">
                  <button 

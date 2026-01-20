@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
-import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Share2, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Share2, Link as LinkIcon, CheckCircle2, Sparkles, ShieldCheck } from 'lucide-react';
 import { optimizeImage } from '../utils/mediaOptimization';
 
 interface ProductDetailProps {
@@ -33,7 +33,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
       "description": product.description,
       "brand": {
         "@type": "Brand",
-        "name": "Xeption Certified" 
+        "name": product.condition === 'new' ? "Brand New" : "Xeption Certified"
       },
       "offers": {
         "@type": "Offer",
@@ -41,7 +41,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
         "priceCurrency": "XAF",
         "price": product.price,
         "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-        "itemCondition": "https://schema.org/NewCondition",
+        "itemCondition": product.condition === 'new' ? "https://schema.org/NewCondition" : "https://schema.org/RefurbishedCondition",
         "seller": {
             "@type": "Organization",
             "name": "Xeption Network"
@@ -136,10 +136,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
             {/* Left: Text Info */}
             <div className="w-full md:w-1/2 space-y-6 z-10 order-2 md:order-1 text-gray-900">
                 <div className="flex items-center justify-between">
-                    <div className="inline-flex items-center space-x-2 bg-white/60 border border-xeption-gold/30 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
-                        <Award className="h-4 w-4 text-xeption-gold" />
-                        <span className="text-xeption-goldDim text-xs font-bold uppercase tracking-[0.2em] font-tech">Xeption Certified</span>
-                    </div>
+                    
+                    {/* CONDITION BADGE */}
+                    {product.condition === 'new' ? (
+                        <div className="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
+                            <Sparkles className="h-4 w-4 text-emerald-600" />
+                            <span className="text-emerald-700 text-xs font-bold uppercase tracking-[0.2em] font-tech">Produit Neuf Scellé</span>
+                        </div>
+                    ) : (
+                        <div className="inline-flex items-center space-x-2 bg-white/60 border border-xeption-gold/30 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
+                            <Award className="h-4 w-4 text-xeption-gold" />
+                            <span className="text-xeption-goldDim text-xs font-bold uppercase tracking-[0.2em] font-tech">Xeption Certified</span>
+                        </div>
+                    )}
                     
                     {/* Share Button */}
                     <button 
@@ -181,6 +190,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                     </div>
                 </div>
 
+                {/* GARANTIE INFO */}
+                {product.warrantyMonths && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-black/5 inline-flex px-3 py-2 rounded-lg">
+                        <ShieldCheck className="w-4 h-4 text-green-600" />
+                        <span className="uppercase font-bold tracking-wide">
+                            Garantie {product.warrantyMonths} Mois {product.condition === 'new' ? 'Constructeur' : 'Xeption'} inclus
+                        </span>
+                    </div>
+                )}
+
                 {/* Desktop Add to Cart */}
                 <div className="hidden md:flex space-x-4 pt-4">
                     <button 
@@ -196,8 +215,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
             {/* Right: Gallery & Hero Image */}
             <div className="w-full md:w-1/2 flex flex-col items-center justify-center order-1 md:order-2 z-10">
                 <div className="relative h-80 md:h-[500px] w-full flex items-center justify-center group mb-6">
-                    {/* Glowing Circle */}
-                    <div className="absolute w-64 h-64 md:w-96 md:h-96 bg-gradient-to-tr from-xeption-gold/30 to-orange-200/50 rounded-full blur-[60px] group-hover:blur-[80px] transition-all duration-700 mix-blend-multiply"></div>
+                    {/* Glowing Circle - Green if New, Gold if Refurb */}
+                    <div className={`absolute w-64 h-64 md:w-96 md:h-96 rounded-full blur-[60px] group-hover:blur-[80px] transition-all duration-700 mix-blend-multiply ${
+                        product.condition === 'new' 
+                        ? 'bg-gradient-to-tr from-emerald-400/30 to-green-200/50' 
+                        : 'bg-gradient-to-tr from-xeption-gold/30 to-orange-200/50'
+                    }`}></div>
                     
                     <img 
                         src={optimizeImage(activeImage, 1000)} // Optimisation Main Image max 1000px

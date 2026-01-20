@@ -1,7 +1,7 @@
 
 import React from 'react';
-import Logo from '../../Logo'; // Path corrigé: ../../
-import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText, Bell, RefreshCw, LogOut } from 'lucide-react';
+import Logo from '../../Logo'; 
+import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText, Bell, RefreshCw, LogOut, Tag } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -18,7 +18,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, unreadCount, 
       { id: 'orders', label: 'Commandes', icon: ShoppingBag },
       { id: 'invoices', label: 'Factures', icon: FileText },
       { id: 'inventory', label: 'Inventaire', icon: Package },
-      { id: 'categories', label: 'Types (Dynamic)', icon: Layers },
+      { id: 'categories', label: 'Types', icon: Layers },
+      { id: 'brands', label: 'Marques & Gammes', icon: Tag },
       { id: 'argus', label: 'Argus Troc', icon: RefreshCw },
       { id: 'sav', label: 'Atelier SAV', icon: Wrench },
       { id: 'clients', label: 'Clients CRM', icon: Users },

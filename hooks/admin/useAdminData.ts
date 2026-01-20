@@ -1,13 +1,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { Order, Staff, Customer, Category, AdminNotification } from '../../types';
+import { Order, Staff, Customer, Category, Brand, ProductRange, AdminNotification } from '../../types';
 
 export const useAdminData = (addNotification: (n: AdminNotification) => void) => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
+    const [ranges, setRanges] = useState<ProductRange[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchOrders = useCallback(async () => {
@@ -45,9 +47,17 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         if (data) setCategories(data as Category[]);
     }, []);
 
+    const fetchBrandsAndRanges = useCallback(async () => {
+        const { data: brandsData } = await supabase.from('brands').select('*').order('name', { ascending: true });
+        if (brandsData) setBrands(brandsData as Brand[]);
+
+        const { data: rangesData } = await supabase.from('product_ranges').select('*').order('name', { ascending: true });
+        if (rangesData) setRanges(rangesData as ProductRange[]);
+    }, []);
+
     const refreshAll = useCallback(async () => {
-        await Promise.all([fetchOrders(), fetchStaff(), fetchCustomers(), fetchCategories()]);
-    }, [fetchOrders, fetchStaff, fetchCustomers, fetchCategories]);
+        await Promise.all([fetchOrders(), fetchStaff(), fetchCustomers(), fetchCategories(), fetchBrandsAndRanges()]);
+    }, [fetchOrders, fetchStaff, fetchCustomers, fetchCategories, fetchBrandsAndRanges]);
 
     useEffect(() => {
         const init = async () => {
@@ -57,14 +67,10 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         };
         init();
 
-        // Configuration Realtime robuste avec Logs
-        console.log("Initializing Realtime Subscription...");
+        // Configuration Realtime robuste
         const channel = supabase.channel('admin-db-changes')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
-            console.log("🔴 REALTIME EVENT RECEIVED (Order):", payload);
             const newOrder = payload.new as any;
-            
-            // Notification immédiate
             addNotification({
                 id: crypto.randomUUID(),
                 type: 'order',
@@ -74,12 +80,9 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
                 read: false,
                 linkToTab: 'orders'
             });
-            
-            // Mise à jour des données en arrière-plan
             fetchOrders(); 
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'repair_tickets' }, (payload) => {
-            console.log("🔴 REALTIME EVENT RECEIVED (Ticket):", payload);
             const newTicket = payload.new as any;
             addNotification({
                 id: crypto.randomUUID(),
@@ -91,15 +94,9 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
                 linkToTab: 'sav'
             });
         })
-        .subscribe((status) => {
-            console.log(`Realtime Status: ${status}`);
-            if (status === 'SUBSCRIBED') {
-                console.log("✅ Admin Panel est connecté aux notifications en direct.");
-            }
-        });
+        .subscribe();
 
         return () => { 
-            console.log("Cleaning up Realtime...");
             supabase.removeChannel(channel); 
         };
     }, [addNotification, fetchOrders, refreshAll]);
@@ -109,6 +106,8 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         staffMembers, setStaffMembers,
         customers,
         categories, setCategories,
+        brands, setBrands,
+        ranges, setRanges,
         isLoading,
         refreshAll
     };

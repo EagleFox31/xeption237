@@ -7,7 +7,7 @@ import ProductDetail from './components/ProductDetail';
 import AiConsultant from './components/AiConsultant';
 import Checkout from './components/Checkout';
 import TrocSection from './components/TrocSection';
-import AdminPanel from './components/admin/AdminPanel'; // Changement ici vers le nouveau panel modulaire
+import AdminPanel from './components/admin/AdminPanel'; 
 import StaffLogin from './components/StaffLogin'; 
 import RepairSection from './components/RepairSection'; 
 import OrderTracking from './components/OrderTracking'; 
@@ -31,26 +31,19 @@ const App: React.FC = () => {
 
   // --- 1. PERSISTANCE & AUTHENTIFICATION ---
   useEffect(() => {
-    // A. Restaurer la page précédente au chargement
     const savedPage = sessionStorage.getItem('xeption_last_page');
     if (savedPage) {
       setPage(savedPage);
     }
 
-    // B. Vérifier la session Supabase active (Persistance Login)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setIsAuthenticated(true);
       }
     });
 
-    // C. Écouter les changements d'auth (Expiration, Déconnexion, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
-      if (!session && page === 'admin') {
-        // Optionnel : Rediriger si la session expire pendant qu'on est sur l'admin
-        // setPage('home'); 
-      }
     });
 
     return () => subscription.unsubscribe();
@@ -67,12 +60,13 @@ const App: React.FC = () => {
         if (data && data.length > 0) {
           const formattedProducts: Product[] = data.map((p: any) => ({
              ...p,
-             // MAPPING ROBUSTE : Vérifie snake_case (DB standard) OU camelCase (DB legacy/custom)
-             // Si p.old_price existe, on le prend. Sinon on essaie p.oldPrice.
              oldPrice: p.old_price || p.oldPrice || null, 
              isPromo: p.is_promo || p.isPromo || false,
              warrantyMonths: p.warranty_months || p.warrantyMonths || 0, 
-             isFeatured: p.is_featured || p.isFeatured || false
+             isFeatured: p.is_featured || p.isFeatured || false,
+             // Mappage Marque & Gamme
+             brand: p.brand || null,
+             productRange: p.product_range || p.productRange || null
           }));
           setProducts(formattedProducts);
           
@@ -98,11 +92,8 @@ const App: React.FC = () => {
     fetchProducts();
 
     // --- REALTIME MAGIC ---
-    // Écoute les changements sur la table 'products' pour synchroniser tous les utilisateurs connectés
     const channel = supabase.channel('public:products')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
-          console.log('🔄 Product Change Detected:', payload);
-          
           if (payload.eventType === 'INSERT') {
               const newProduct = payload.new as any;
               const formatted: Product = {
@@ -110,7 +101,9 @@ const App: React.FC = () => {
                   oldPrice: newProduct.old_price || newProduct.oldPrice,
                   isPromo: newProduct.is_promo || newProduct.isPromo,
                   warrantyMonths: newProduct.warranty_months || newProduct.warrantyMonths,
-                  isFeatured: newProduct.is_featured || newProduct.isFeatured || false
+                  isFeatured: newProduct.is_featured || newProduct.isFeatured || false,
+                  brand: newProduct.brand,
+                  productRange: newProduct.product_range || newProduct.productRange
               };
               setProducts(prev => [formatted, ...prev]);
           } 
@@ -121,7 +114,9 @@ const App: React.FC = () => {
                   oldPrice: updatedProduct.old_price || updatedProduct.oldPrice,
                   isPromo: updatedProduct.is_promo || updatedProduct.isPromo,
                   warrantyMonths: updatedProduct.warranty_months || updatedProduct.warrantyMonths,
-                  isFeatured: updatedProduct.is_featured || updatedProduct.isFeatured || false
+                  isFeatured: updatedProduct.is_featured || updatedProduct.isFeatured || false,
+                  brand: updatedProduct.brand,
+                  productRange: updatedProduct.product_range || updatedProduct.productRange
               };
               setProducts(prev => prev.map(p => p.id === formatted.id ? formatted : p));
           } 
@@ -138,42 +133,26 @@ const App: React.FC = () => {
 
   // SEO: Update Document Title based on page
   useEffect(() => {
-    if (selectedProduct) {
-        return; 
-    }
+    if (selectedProduct) return;
     
     const baseTitle = "Xeption | Le Ndamba du Digital";
     switch(page) {
-        case 'shop':
-            document.title = "Le Shop | Xeption";
-            break;
-        case 'troc':
-            document.title = "Troc Zone | Xeption";
-            break;
-        case 'tracking':
-            document.title = "Suivi de Commande | Xeption";
-            break;
-        case 'sav':
-            document.title = "SAV & Garantie | Xeption";
-            break;
-        case 'admin':
-            document.title = "Staff Portal | Xeption";
-            break;
-        default:
-            document.title = baseTitle;
+        case 'shop': document.title = "Le Shop | Xeption"; break;
+        case 'troc': document.title = "Troc Zone | Xeption"; break;
+        case 'tracking': document.title = "Suivi de Commande | Xeption"; break;
+        case 'sav': document.title = "SAV & Garantie | Xeption"; break;
+        case 'admin': document.title = "Staff Portal | Xeption"; break;
+        default: document.title = baseTitle;
     }
   }, [page, selectedProduct]);
 
   // Control video playback based on page
   useEffect(() => {
     if (videoRef.current) {
-      // Always ensure speed is consistent
       videoRef.current.playbackRate = 0.35;
-
       if (page === 'admin') {
         videoRef.current.pause();
       } else {
-        // Attempt to play if not in admin
         videoRef.current.play().catch(e => console.log("Video auto-play prevented:", e));
       }
     }
@@ -216,14 +195,12 @@ const App: React.FC = () => {
 
   const closeProductDetail = () => {
     setSelectedProduct(null);
-    // Restore default title when closing modal
     document.title = "Xeption | Le Ndamba du Digital";
   };
 
   const handleNavigate = (newPage: string) => {
       setPage(newPage);
       setSelectedProduct(null);
-      // Sauvegarde la position lors de la navigation
       sessionStorage.setItem('xeption_last_page', newPage);
   };
 
@@ -233,17 +210,13 @@ const App: React.FC = () => {
   const bgPosterUrl = "https://images.unsplash.com/photo-1634152962476-4b8a00e1915c?q=80&w=1280&auto=format&fit=crop";
 
   // LOGIQUE PÉPITES (FEATURED)
-  // 1. On prend d'abord ceux qui ont isFeatured = true
   const pinnedProducts = products.filter(p => p.isFeatured);
-  // 2. Si on en a moins de 3, on complète avec les plus récents qui ne sont pas déjà épinglés
   let displayFeatured = [...pinnedProducts];
+  
   if (displayFeatured.length < 3) {
       const remainingSlots = 3 - displayFeatured.length;
       const fillers = products.filter(p => !p.isFeatured).slice(0, remainingSlots);
       displayFeatured = [...displayFeatured, ...fillers];
-  } else {
-      // Si on en a plus de 3, on coupe à 3 (ou on peut en montrer plus, ici on garde 3 pour l'accueil)
-      displayFeatured = displayFeatured.slice(0, 3);
   }
 
   return (
@@ -269,7 +242,6 @@ const App: React.FC = () => {
           </video>
           
           <div className="absolute inset-0 bg-black/20"></div>
-          
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,215,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.05)_1px,transparent_1px)] bg-[size:60px_60px] opacity-10"></div>
       </div>
 
@@ -286,9 +258,13 @@ const App: React.FC = () => {
           <>
             <Hero onShopNow={() => setPage('shop')} />
             <div id="featured-products">
-               <ProductList products={displayFeatured} onAddToCart={addToCart} onProductClick={handleProductClick} />
+               <ProductList 
+                  products={displayFeatured} 
+                  onAddToCart={addToCart} 
+                  onProductClick={handleProductClick} 
+                  title="Nos Pépites"
+               />
             </div>
-            {/* PASSAGE DE LA FONCTION DE NAVIGATION ICI */}
             <TrocSection onNavigate={handleNavigate} />
           </>
         )}
@@ -299,7 +275,12 @@ const App: React.FC = () => {
                <h1 className="text-4xl font-bold text-white drop-shadow-lg">La Boutique <span className="text-xeption-gold">237</span></h1>
                <p className="text-gray-300 mt-2 font-medium bg-black/40 inline-block px-4 py-1 rounded-full backdrop-blur-md border border-white/10">Choisis ton matos, on livre au calme.</p>
             </div>
-            <ProductList products={products} onAddToCart={addToCart} onProductClick={handleProductClick} />
+            <ProductList 
+                products={products} 
+                onAddToCart={addToCart} 
+                onProductClick={handleProductClick} 
+                title="Catalogue Complet" 
+            />
           </div>
         )}
 
@@ -352,7 +333,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Product Detail Overlay */}
       {selectedProduct && (
         <ProductDetail 
           product={selectedProduct} 
@@ -361,7 +341,6 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Footer */}
       {!selectedProduct && (
         <footer className="bg-black/80 backdrop-blur-xl border-t border-gray-800 py-12 relative z-10">
           <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left">

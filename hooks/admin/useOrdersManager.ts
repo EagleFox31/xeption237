@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Order, Product } from '../../types';
 

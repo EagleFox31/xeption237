@@ -159,13 +159,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             ) : (
                 <>
                     {activeTab === 'dashboard' && <DashboardTab orders={data.orders} staffMembers={data.staffMembers} customers={data.customers} products={products} />}
-                    {activeTab === 'pos' && <PosTab products={products} posCart={pos.cart} posSearch={pos.search} setPosSearch={pos.setSearch} posCustomer={pos.customer} setPosCustomer={pos.setCustomer} addToPosCart={pos.addToCart} onPosSubmit={onPosSubmit} lastOrder={pos.lastOrder} onDismissSuccess={() => pos.setLastOrder(null)} />}
+                    {activeTab === 'pos' && <PosTab products={products} categories={data.categories} posCart={pos.cart} posSearch={pos.search} setPosSearch={pos.setSearch} posCustomer={pos.customer} setPosCustomer={pos.setCustomer} addToPosCart={pos.addToCart} onPosSubmit={onPosSubmit} lastOrder={pos.lastOrder} onDismissSuccess={() => pos.setLastOrder(null)} />}
                     {activeTab === 'orders' && <OrdersTab orders={data.orders} onUpdateStatus={ordersMgr.updateStatus} onCancelOrder={onCancelOrder} />}
                     {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={inventory.setEditingProduct} onDeleteProduct={onDeleteProduct} onCreateProduct={() => inventory.startCreate(data.categories)} onToggleFeatured={onToggleFeatured} />}
                     {activeTab === 'packs' && <PacksTab packs={packsMgr.packs} products={products} onCreatePack={packsMgr.startCreate} onEditPack={packsMgr.setEditingPack} onDeletePack={onDeletePack} getHydratedItems={packsMgr.getHydratedItems} />}
                     {activeTab === 'delivery' && <DeliveryTab />}
                     {activeTab === 'categories' && <CategoriesTab categories={data.categories} newCatName={catsMgr.newCatName} setNewCatName={catsMgr.setNewCatName} onAddCategory={catsMgr.addCategory} onDeleteCategory={onDeleteCategory} />}
-                    {activeTab === 'brands' && <BrandsTab brands={data.brands} ranges={data.ranges} brandMgr={brandMgr} />} 
+                    {activeTab === 'brands' && <BrandsTab brands={data.brands} ranges={data.ranges} brandMgr={brandMgr} categories={data.categories} />} 
                     {activeTab === 'argus' && <ArgusTab />} 
                     {activeTab === 'staff' && <StaffTab staffMembers={data.staffMembers} onAddStaff={() => staffMgr.openEditor()} onDeleteStaff={onDeleteStaff} />}
                     {activeTab === 'marketing' && <MarketingTab videoPrompt={marketing.videoPrompt} setVideoPrompt={marketing.setVideoPrompt} generatingVideo={marketing.generatingVideo} generatedVideoUrl={marketing.generatedVideoUrl} onGenerateVideo={marketing.generateVideo} />}

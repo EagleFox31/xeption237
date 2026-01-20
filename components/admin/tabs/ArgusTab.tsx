@@ -67,73 +67,73 @@ const ArgusTab: React.FC = () => {
     });
 
     return (
-        <div className="animate-in fade-in space-y-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div>
-                    <h2 className="text-3xl font-tech font-bold uppercase text-white flex items-center gap-3">
-                        <RefreshCw className="text-xeption-gold w-8 h-8" /> Gestion Argus
-                    </h2>
-                    <p className="text-gray-400 text-sm mt-1">
-                        Base de prix pour le simulateur de reprise. Le "Prix de Base" correspond au <strong>Grade A</strong>.
-                    </p>
+        <div className="animate-in fade-in h-[calc(100vh-140px)] flex flex-col gap-6">
+            <div className="shrink-0 space-y-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                    <div>
+                        <h2 className="text-3xl font-tech font-bold uppercase text-white flex items-center gap-3">
+                            <RefreshCw className="text-xeption-gold w-8 h-8" /> Gestion Argus
+                        </h2>
+                        <p className="text-gray-400 text-sm mt-1">
+                            Base de prix pour le simulateur de reprise. Le "Prix de Base" correspond au <strong>Grade A</strong>.
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            {/* ADD FORM */}
-            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
-                <h3 className="text-white font-bold uppercase mb-4 text-xs flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-green-500" /> Ajouter un modèle
-                </h3>
-                <form onSubmit={handleAddModel} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                    <div>
-                        <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Type</label>
-                        <select 
-                            value={newModel.category}
-                            onChange={e => setNewModel({...newModel, category: e.target.value as any})}
-                            className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm"
-                        >
-                            <option value="phone">Smartphone</option>
-                            <option value="laptop">Ordinateur</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Marque</label>
-                        <input 
-                            type="text" 
-                            placeholder="Ex: Apple, Samsung"
-                            value={newModel.brand}
-                            onChange={e => setNewModel({...newModel, brand: e.target.value})}
-                            className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm"
-                        />
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Modèle</label>
-                        <input 
-                            type="text" 
-                            placeholder="Ex: iPhone 15 Pro Max 256Go"
-                            value={newModel.model_name}
-                            onChange={e => setNewModel({...newModel, model_name: e.target.value})}
-                            className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Prix Base (Grade A)</label>
-                        <input 
-                            type="number" 
-                            placeholder="FCFA"
-                            value={newModel.base_price}
-                            onChange={e => setNewModel({...newModel, base_price: e.target.value})}
-                            className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm font-mono text-xeption-gold"
-                        />
-                    </div>
-                    <button type="submit" className="md:col-span-5 w-full bg-white/10 hover:bg-xeption-gold hover:text-black text-white font-bold uppercase py-3 rounded-sm transition-all text-xs tracking-widest mt-2">
-                        Enregistrer dans l'Argus
-                    </button>
-                </form>
-            </div>
+                {/* ADD FORM */}
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
+                    <h3 className="text-white font-bold uppercase mb-4 text-xs flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-green-500" /> Ajouter un modèle
+                    </h3>
+                    <form onSubmit={handleAddModel} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                        <div>
+                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Type</label>
+                            <select 
+                                value={newModel.category}
+                                onChange={e => setNewModel({...newModel, category: e.target.value as any})}
+                                className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm"
+                            >
+                                <option value="phone">Smartphone</option>
+                                <option value="laptop">Ordinateur</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Marque</label>
+                            <input 
+                                type="text" 
+                                placeholder="Ex: Apple, Samsung"
+                                value={newModel.brand}
+                                onChange={e => setNewModel({...newModel, brand: e.target.value})}
+                                className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm"
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Modèle</label>
+                            <input 
+                                type="text" 
+                                placeholder="Ex: iPhone 15 Pro Max 256Go"
+                                value={newModel.model_name}
+                                onChange={e => setNewModel({...newModel, model_name: e.target.value})}
+                                className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Prix Base (Grade A)</label>
+                            <input 
+                                type="number" 
+                                placeholder="FCFA"
+                                value={newModel.base_price}
+                                onChange={e => setNewModel({...newModel, base_price: e.target.value})}
+                                className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm font-mono text-xeption-gold"
+                            />
+                        </div>
+                        <button type="submit" className="md:col-span-5 w-full bg-white/10 hover:bg-xeption-gold hover:text-black text-white font-bold uppercase py-3 rounded-sm transition-all text-xs tracking-widest mt-2">
+                            Enregistrer dans l'Argus
+                        </button>
+                    </form>
+                </div>
 
-            {/* LISTING */}
-            <div className="space-y-4">
+                {/* FILTERS & SEARCH */}
                 <div className="flex justify-between items-center bg-black/40 p-4 border border-white/10 rounded-sm">
                     <div className="flex gap-2">
                         <button onClick={() => setFilterCategory('all')} className={`px-4 py-2 text-xs font-bold uppercase rounded-sm ${filterCategory === 'all' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}>Tout</button>
@@ -151,10 +151,13 @@ const ArgusTab: React.FC = () => {
                         />
                     </div>
                 </div>
+            </div>
 
-                <TableShell>
+            {/* LISTING */}
+            <div className="flex-1 min-h-0 relative">
+                <TableShell className="h-full overflow-y-auto border-t border-white/10">
                     <table className="w-full text-left">
-                        <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold">
+                        <thead className="sticky top-0 z-20 bg-[#0c0c0e] text-gray-400 text-xs uppercase font-bold shadow-md">
                             <tr>
                                 <th className="px-6 py-4">Type</th>
                                 <th className="px-6 py-4">Marque</th>

@@ -88,8 +88,8 @@ const PosTab: React.FC<PosTabProps> = ({
            <button onClick={() => setMobileView('cart')} className={`flex-1 py-3 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${mobileView === 'cart' ? 'bg-xeption-gold text-black' : 'text-gray-400 hover:text-white'}`}><ShoppingCart className="w-4 h-4" /> Panier ({totalItems})</button>
         </div>
 
-        {/* CATALOGUE (Left) */}
-        <div className={`lg:col-span-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex-col overflow-hidden ${mobileView === 'cart' ? 'hidden lg:flex' : 'flex'} h-full`}>
+        {/* CATALOGUE (Left) - Scrollable Area */}
+        <div className={`lg:col-span-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden ${mobileView === 'cart' ? 'hidden lg:flex' : 'flex'} h-full`}>
             
             {/* HEADER STICKY : RECHERCHE & FILTRES */}
             <div className="p-4 border-b border-white/10 bg-[#0c0c0e] shrink-0 sticky top-0 z-20 shadow-md">
@@ -122,7 +122,7 @@ const PosTab: React.FC<PosTabProps> = ({
                     </div>
                 </div>
 
-                {/* Ligne 2: Catégories (Chips) */}
+                {/* Ligne 2: Catégories (Chips) - Horizontal Scroll */}
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mask-right">
                     <button 
                         onClick={() => setSelectedCategory('all')} 
@@ -142,7 +142,7 @@ const PosTab: React.FC<PosTabProps> = ({
                 </div>
             </div>
 
-            {/* GRILLE PRODUITS */}
+            {/* GRILLE PRODUITS - SCROLLABLE */}
             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 content-start pb-20 lg:pb-4 custom-scrollbar">
                 {filteredProducts.length === 0 ? (
                     <div className="col-span-full text-center py-20 text-gray-500">
@@ -179,13 +179,14 @@ const PosTab: React.FC<PosTabProps> = ({
             </div>
         </div>
 
-        {/* PANIER (Right) */}
+        {/* PANIER (Right) - Fixed Height & Scrollable Items */}
         <div className={`bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex-col overflow-hidden ${mobileView === 'catalog' ? 'hidden lg:flex' : 'flex'} h-full`}>
             <div className="p-4 border-b border-white/10 bg-[#0c0c0e] shrink-0 flex justify-between items-center">
                 <h3 className="text-white font-bold uppercase text-sm">Panier</h3>
                 <span className="bg-white/10 text-[10px] font-bold px-2 py-0.5 rounded text-white">{totalItems} items</span>
             </div>
             
+            {/* Scrollable Cart Items */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-black/20 min-h-0 custom-scrollbar">
                     {posCart.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50">
@@ -209,6 +210,7 @@ const PosTab: React.FC<PosTabProps> = ({
                     )}
             </div>
 
+            {/* Footer Fixe */}
             <div className="p-4 bg-[#0c0c0e] border-t border-white/10 space-y-3 shrink-0 z-10 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
                 <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">Client</div>
                 

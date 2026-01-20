@@ -62,10 +62,10 @@ const AiConsultant: React.FC = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 w-full sm:w-[420px] h-[85vh] sm:h-[650px] z-50 bg-[#070707] border border-white/5 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
+        <div className="fixed bottom-0 right-0 w-full h-[85dvh] landscape:h-[100dvh] sm:w-[400px] sm:h-[600px] sm:landscape:h-[600px] sm:max-h-[calc(100vh-32px)] sm:bottom-4 sm:right-4 z-50 bg-[#070707] border border-white/5 sm:rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
           
           {/* Header */}
-          <div className="bg-black/90 backdrop-blur-xl border-b border-white/5 p-5 flex justify-between items-center relative overflow-hidden">
+          <div className="bg-black/90 backdrop-blur-xl border-b border-white/5 p-4 sm:p-5 flex justify-between items-center relative overflow-hidden shrink-0">
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-xeption-gold to-transparent opacity-50"></div>
             
             <div className="flex items-center space-x-3 relative z-10">
@@ -82,14 +82,14 @@ const AiConsultant: React.FC = () => {
             </div>
             <button 
               onClick={() => setIsOpen(false)}
-              className="text-gray-500 hover:text-xeption-gold transition-colors p-2"
+              className="text-gray-500 hover:text-xeption-gold transition-colors p-2 bg-white/5 rounded-full hover:bg-white/10"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-tech-pattern bg-repeat scroll-smooth">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 bg-tech-pattern bg-repeat scroll-smooth">
             {messages.map((msg, idx) => (
               <div 
                 key={idx} 
@@ -131,7 +131,7 @@ const AiConsultant: React.FC = () => {
           </div>
 
           {/* Input Area */}
-          <div className="p-5 bg-black border-t border-white/5">
+          <div className="p-4 sm:p-5 bg-black border-t border-white/5 shrink-0">
             <div className="flex items-center space-x-3">
               <input
                 type="text"
@@ -139,17 +139,17 @@ const AiConsultant: React.FC = () => {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="Dis-moi ton budget ou ta recherche..."
-                className="flex-1 bg-xeption-dark border border-white/5 text-white px-5 py-4 focus:outline-none focus:border-xeption-gold/40 font-mono text-sm placeholder-gray-700 transition-all"
+                className="flex-1 bg-xeption-dark border border-white/5 text-white px-4 sm:px-5 py-3 sm:py-4 focus:outline-none focus:border-xeption-gold/40 font-mono text-xs sm:text-sm placeholder-gray-700 transition-all rounded-sm"
               />
               <button
                 onClick={handleSend}
                 disabled={isLoading || !input.trim()}
-                className="bg-xeption-gold hover:bg-white text-black p-4 transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed shadow-[0_0_15px_rgba(255,215,0,0.1)] active:scale-95"
+                className="bg-xeption-gold hover:bg-white text-black p-3 sm:p-4 transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed shadow-[0_0_15px_rgba(255,215,0,0.1)] active:scale-95 rounded-sm"
               >
-                <Send className="h-5 w-5" />
+                <Send className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
-            <p className="text-[9px] text-gray-600 mt-3 text-center uppercase tracking-widest font-bold opacity-50">
+            <p className="text-[9px] text-gray-600 mt-2 sm:mt-3 text-center uppercase tracking-widest font-bold opacity-50">
               Propulsé par Gemini &bull; Trigenys Expert AI
             </p>
           </div>

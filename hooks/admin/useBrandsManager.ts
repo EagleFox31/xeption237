@@ -14,6 +14,7 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
     const [newBrandName, setNewBrandName] = useState('');
     const [newRangeName, setNewRangeName] = useState('');
     const [selectedBrandForRange, setSelectedBrandForRange] = useState<string>('');
+    const [selectedCategoryForRange, setSelectedCategoryForRange] = useState<string>(''); // Nouveau State
 
     // --- MARQUES ---
     const addBrand = async () => {
@@ -45,15 +46,22 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
         if (!newRangeName.trim() || !selectedBrandForRange) return;
         const slug = newRangeName.toLowerCase().replace(/[^a-z0-9]/g, '-');
         
-        const { data, error } = await supabase.from('product_ranges').insert([{ 
+        // Construction du payload avec ou sans catégorie
+        const payload: any = { 
             name: newRangeName, 
             slug, 
             brand_id: selectedBrandForRange 
-        }]).select();
+        };
+        if (selectedCategoryForRange) {
+            payload.category = selectedCategoryForRange;
+        }
+
+        const { data, error } = await supabase.from('product_ranges').insert([payload]).select();
 
         if (!error && data) {
             setRanges(prev => [...prev, data[0] as ProductRange]);
             setNewRangeName('');
+            // On ne reset pas la catégorie sélectionnée pour faciliter l'ajout en chaîne
         } else {
             throw error || new Error("Erreur ajout gamme");
         }
@@ -70,6 +78,8 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
 
     return { 
         newBrandName, setNewBrandName, addBrand, deleteBrand,
-        newRangeName, setNewRangeName, selectedBrandForRange, setSelectedBrandForRange, addRange, deleteRange
+        newRangeName, setNewRangeName, selectedBrandForRange, setSelectedBrandForRange, 
+        selectedCategoryForRange, setSelectedCategoryForRange, // Export des nouveaux handlers
+        addRange, deleteRange
     };
 };

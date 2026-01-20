@@ -15,6 +15,7 @@ export interface Brand {
 export interface ProductRange {
   id: string;
   brand_id: string; // Lien vers la marque
+  category?: string; // Lien vers le type (slug) - NOUVEAU
   name: string;
   slug: string;
 }

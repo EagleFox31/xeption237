@@ -43,6 +43,23 @@ export interface Product {
   warrantyMonths?: number;
 }
 
+export interface PackItem {
+  productId: string;
+  quantity: number;
+  product?: Product; // Pour l'affichage
+}
+
+export interface Pack {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  price: number;
+  validUntil?: string;
+  items: PackItem[];
+  isFeatured?: boolean;
+}
+
 export interface TradeInModel {
   id: string;
   category: 'phone' | 'laptop';

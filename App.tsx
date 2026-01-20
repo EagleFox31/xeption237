@@ -3,6 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductList from './components/ProductList';
+import PackList from './components/PackList';
+import TrustBar from './components/TrustBar'; 
+import DeliveryEstimator from './components/DeliveryEstimator'; 
+import SocialProof from './components/SocialProof'; // IMPORT
 import ProductDetail from './components/ProductDetail';
 import AiConsultant from './components/AiConsultant';
 import Checkout from './components/Checkout';
@@ -11,7 +15,7 @@ import AdminPanel from './components/admin/AdminPanel';
 import StaffLogin from './components/StaffLogin'; 
 import RepairSection from './components/RepairSection'; 
 import OrderTracking from './components/OrderTracking'; 
-import { Product, CartItem } from './types';
+import { Product, CartItem, Pack } from './types';
 import { supabase } from './services/supabaseClient';
 import { optimizeVideo, optimizeImage } from './utils/mediaOptimization';
 import { Lock } from 'lucide-react';
@@ -19,6 +23,7 @@ import { Lock } from 'lucide-react';
 const App: React.FC = () => {
   const [page, setPage] = useState('home');
   const [products, setProducts] = useState<Product[]>([]);
+  const [packs, setPacks] = useState<Pack[]>([]); 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -49,92 +54,80 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch products from Supabase on mount AND Realtime Subscription
+  // Fetch products AND Packs from Supabase on mount AND Realtime Subscription
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase.from('products').select('*');
+        // Products
+        const { data: productData, error: productError } = await supabase.from('products').select('*');
+        if (productError) throw productError;
         
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          const formattedProducts: Product[] = data.map((p: any) => ({
+        let formattedProducts: Product[] = [];
+        if (productData) {
+          formattedProducts = productData.map((p: any) => ({
              ...p,
              oldPrice: p.old_price || p.oldPrice || null, 
              isPromo: p.is_promo || p.isPromo || false,
              warrantyMonths: p.warranty_months || p.warrantyMonths || 0, 
              isFeatured: p.is_featured || p.isFeatured || false,
-             // Mappage Marque & Gamme
              brand: p.brand || null,
              productRange: p.product_range || p.productRange || null
           }));
           setProducts(formattedProducts);
-          
-          // DEEP LINKING CHECK
-          const params = new URLSearchParams(window.location.search);
-          const productId = params.get('product');
-          if (productId) {
+        }
+
+        // Packs (Active only or all, filtered by valid_until in rendering if needed)
+        const { data: packData, error: packError } = await supabase.from('packs').select('*');
+        if (!packError && packData) {
+            const formattedPacks: Pack[] = packData.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                image: p.image,
+                price: p.price,
+                validUntil: p.valid_until,
+                items: p.items || [], // JSONB
+                isFeatured: p.is_featured
+            }));
+            setPacks(formattedPacks);
+        }
+
+        // DEEP LINKING
+        const params = new URLSearchParams(window.location.search);
+        const productId = params.get('product');
+        if (productId && formattedProducts.length > 0) {
             const foundProduct = formattedProducts.find(p => p.id === productId);
             if (foundProduct) {
                 setSelectedProduct(foundProduct);
                 window.history.replaceState({}, '', window.location.pathname);
             }
-          }
-        } else {
-            setProducts([]);
         }
+
       } catch (error) {
-        console.error('Error fetching products:', error);
-        setProducts([]);
+        console.error('Error fetching data:', error);
       }
     };
 
-    fetchProducts();
+    fetchData();
 
     // --- REALTIME MAGIC ---
-    const channel = supabase.channel('public:products')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
-          if (payload.eventType === 'INSERT') {
-              const newProduct = payload.new as any;
-              const formatted: Product = {
-                  ...newProduct,
-                  oldPrice: newProduct.old_price || newProduct.oldPrice,
-                  isPromo: newProduct.is_promo || newProduct.isPromo,
-                  warrantyMonths: newProduct.warranty_months || newProduct.warrantyMonths,
-                  isFeatured: newProduct.is_featured || newProduct.isFeatured || false,
-                  brand: newProduct.brand,
-                  productRange: newProduct.product_range || newProduct.productRange
-              };
-              setProducts(prev => [formatted, ...prev]);
-          } 
-          else if (payload.eventType === 'UPDATE') {
-              const updatedProduct = payload.new as any;
-              const formatted: Product = {
-                  ...updatedProduct,
-                  oldPrice: updatedProduct.old_price || updatedProduct.oldPrice,
-                  isPromo: updatedProduct.is_promo || updatedProduct.isPromo,
-                  warrantyMonths: updatedProduct.warranty_months || updatedProduct.warrantyMonths,
-                  isFeatured: updatedProduct.is_featured || updatedProduct.isFeatured || false,
-                  brand: updatedProduct.brand,
-                  productRange: updatedProduct.product_range || updatedProduct.productRange
-              };
-              setProducts(prev => prev.map(p => p.id === formatted.id ? formatted : p));
-          } 
-          else if (payload.eventType === 'DELETE') {
-              setProducts(prev => prev.filter(p => p.id !== payload.old.id));
-          }
-      })
+    const productChannel = supabase.channel('public:products')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData())
+      .subscribe();
+      
+    const packChannel = supabase.channel('public:packs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'packs' }, () => fetchData())
       .subscribe();
 
     return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(productChannel);
+        supabase.removeChannel(packChannel);
     };
   }, []);
 
-  // SEO: Update Document Title based on page
+  // SEO
   useEffect(() => {
     if (selectedProduct) return;
-    
     const baseTitle = "Xeption | Le Ndamba du Digital";
     switch(page) {
         case 'shop': document.title = "Le Shop | Xeption"; break;
@@ -146,7 +139,7 @@ const App: React.FC = () => {
     }
   }, [page, selectedProduct]);
 
-  // Control video playback based on page
+  // Video Control
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = 0.35;
@@ -169,6 +162,28 @@ const App: React.FC = () => {
       return [...prev, { ...product, quantity: 1 }];
     });
     setIsCartOpen(true);
+  };
+
+  // Logique pour ajouter un PACK au panier comme un produit unique
+  const addPackToCart = (pack: Pack) => {
+      // Conversion du Pack en "Produit Virtuel" pour compatibilité CartItem
+      const packAsProduct: Product = {
+          id: `pack_${pack.id}`, // ID unique pour éviter conflit
+          name: `[PACK] ${pack.name}`,
+          description: pack.description,
+          price: pack.price, // Prix remisé du pack
+          image: pack.image,
+          category: 'packs',
+          stock: 99, // On suppose dispo (gestion stock pack complexe pour MVP)
+          condition: 'new',
+          // On pourrait lister les produits dans la description technique si besoin
+          specs: pack.items.map(i => {
+              const p = products.find(prod => prod.id === i.productId);
+              return { label: `${i.quantity}x`, value: p?.name || 'Item Inconnu' };
+          })
+      };
+
+      addToCart(packAsProduct);
   };
 
   const updateQuantity = (id: string, delta: number) => {
@@ -209,10 +224,8 @@ const App: React.FC = () => {
   const bgVideoUrl = "https://res.cloudinary.com/dli0kdkg9/video/upload/v1768438828/xption7_zrgro4.mp4";
   const bgPosterUrl = "https://images.unsplash.com/photo-1634152962476-4b8a00e1915c?q=80&w=1280&auto=format&fit=crop";
 
-  // LOGIQUE PÉPITES (FEATURED)
   const pinnedProducts = products.filter(p => p.isFeatured);
   let displayFeatured = [...pinnedProducts];
-  
   if (displayFeatured.length < 3) {
       const remainingSlots = 3 - displayFeatured.length;
       const fillers = products.filter(p => !p.isFeatured).slice(0, remainingSlots);
@@ -222,25 +235,19 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen text-white font-sans selection:bg-xeption-gold selection:text-black relative overflow-x-hidden">
       
-      {/* GLOBAL BACKGROUND - Z-INDEX 0 */}
+      {/* GLOBAL BACKGROUND */}
       <div 
           className="fixed inset-0 z-0 w-full h-full bg-cover bg-center pointer-events-none"
-          style={{
-              backgroundImage: `url('${optimizeImage(bgPosterUrl, 1280)}')`
-          }}
+          style={{ backgroundImage: `url('${optimizeImage(bgPosterUrl, 1280)}')` }}
       >
           <video 
             ref={videoRef}
-            autoPlay 
-            loop 
-            muted 
-            playsInline
+            autoPlay loop muted playsInline
             poster={optimizeImage(bgPosterUrl, 1280)}
             className="w-full h-full object-cover opacity-90 md:opacity-100" 
           >
             <source src={optimizeVideo(bgVideoUrl)} type="video/mp4" />
           </video>
-          
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,215,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.05)_1px,transparent_1px)] bg-[size:60px_60px] opacity-10"></div>
       </div>
@@ -250,13 +257,20 @@ const App: React.FC = () => {
         onOpenCart={() => setIsCartOpen(true)}
         onNavigate={handleNavigate}
         currentPage={page}
+        products={products} 
+        onProductSelect={handleProductClick} 
       />
 
-      {/* Main content z-10 to float above video */}
       <main className="pt-20 pb-20 relative z-10">
         {page === 'home' && (
           <>
             <Hero onShopNow={() => setPage('shop')} />
+            
+            <TrustBar />
+            
+            {/* DELIVERY ESTIMATOR */}
+            <DeliveryEstimator />
+
             <div id="featured-products">
                <ProductList 
                   products={displayFeatured} 
@@ -265,7 +279,18 @@ const App: React.FC = () => {
                   title="Nos Pépites"
                />
             </div>
+            
+            {/* PACKS SECTION */}
+            <PackList 
+                packs={packs} 
+                products={products} 
+                onAddPackToCart={addPackToCart} 
+            />
+
             <TrocSection onNavigate={handleNavigate} />
+
+            {/* SOCIAL PROOF - Moved to the bottom */}
+            <SocialProof />
           </>
         )}
 

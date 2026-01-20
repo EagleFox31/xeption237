@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ArrowRight, Star, Cpu } from 'lucide-react';
 
@@ -7,7 +8,8 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ onShopNow }) => {
   return (
-    <div className="relative overflow-hidden min-h-[85vh] flex items-center justify-center">
+    // Ajout de pb-20 md:pb-32 pour pousser le contenu vers le haut et laisser de la place à la barre
+    <div className="relative overflow-hidden min-h-[85vh] flex items-center justify-center pb-20 md:pb-32">
       {/* Background Overlay - Removed dark gradient so video is clearer */}
       <div className="absolute inset-0 z-0 bg-transparent"></div>
 

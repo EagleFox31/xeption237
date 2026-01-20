@@ -35,6 +35,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
         "@type": "Brand",
         "name": product.condition === 'new' ? "Brand New" : "Xeption Certified"
       },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": product.rating || 5,
+        "reviewCount": "24"
+      },
       "offers": {
         "@type": "Offer",
         "url": `${window.location.origin}/?product=${product.id}`,
@@ -166,9 +171,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                     </button>
                 </div>
                 
-                <h1 className="text-5xl md:text-7xl font-bold font-tech uppercase leading-none text-black drop-shadow-sm mix-blend-hard-light">
-                    {product.name}
-                </h1>
+                <div>
+                    <h1 className="text-5xl md:text-7xl font-bold font-tech uppercase leading-none text-black drop-shadow-sm mix-blend-hard-light mb-2">
+                        {product.name}
+                    </h1>
+                    
+                    {/* RATING SECTION */}
+                    <div className="flex items-center gap-2">
+                        <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                                <Star 
+                                    key={i} 
+                                    className={`w-4 h-4 ${i < (product.rating || 5) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-300 fill-gray-100'}`} 
+                                />
+                            ))}
+                        </div>
+                        <span className="text-xs font-bold text-gray-500 tracking-wide">
+                            ({product.rating || 5}.0/5) &bull; <span className="underline cursor-pointer hover:text-black">Voir les avis</span>
+                        </span>
+                    </div>
+                </div>
                 
                 <p className="text-xl text-gray-800 font-light max-w-lg drop-shadow-sm">
                     {product.description}

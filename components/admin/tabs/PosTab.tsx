@@ -88,7 +88,7 @@ const PosTab: React.FC<PosTabProps> = ({
            <button onClick={() => setMobileView('cart')} className={`flex-1 py-3 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${mobileView === 'cart' ? 'bg-xeption-gold text-black' : 'text-gray-400 hover:text-white'}`}><ShoppingCart className="w-4 h-4" /> Panier ({totalItems})</button>
         </div>
 
-        {/* CATALOGUE (Left) - Scrollable Area */}
+        {/* CATALOGUE (Left) - SCROLLABLE AREA */}
         <div className={`lg:col-span-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden ${mobileView === 'cart' ? 'hidden lg:flex' : 'flex'} h-full`}>
             
             {/* HEADER STICKY : RECHERCHE & FILTRES */}
@@ -179,8 +179,8 @@ const PosTab: React.FC<PosTabProps> = ({
             </div>
         </div>
 
-        {/* PANIER (Right) - Fixed Height & Scrollable Items */}
-        <div className={`bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex-col overflow-hidden ${mobileView === 'catalog' ? 'hidden lg:flex' : 'flex'} h-full`}>
+        {/* PANIER (Right) - FIXED HEIGHT & SCROLLABLE ITEMS */}
+        <div className={`bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden ${mobileView === 'catalog' ? 'hidden lg:flex' : 'flex'} h-full`}>
             <div className="p-4 border-b border-white/10 bg-[#0c0c0e] shrink-0 flex justify-between items-center">
                 <h3 className="text-white font-bold uppercase text-sm">Panier</h3>
                 <span className="bg-white/10 text-[10px] font-bold px-2 py-0.5 rounded text-white">{totalItems} items</span>

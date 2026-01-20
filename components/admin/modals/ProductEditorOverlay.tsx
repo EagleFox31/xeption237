@@ -1,19 +1,21 @@
 
 import React, { useRef, useState } from 'react';
-import { Product, Category } from '../../../types';
-import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star } from 'lucide-react';
+import { Product, Category, Brand, ProductRange } from '../../../types';
+import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star, Smartphone, RefreshCw } from 'lucide-react';
 import { uploadImageToCloudinary, uploadVideoToCloudinary } from '../../../services/uploadService';
 import { generateProductDetails } from '../../../services/geminiService';
 
 interface ProductEditorOverlayProps {
   product: Product;
   categories: Category[];
+  brands?: Brand[]; 
+  ranges?: ProductRange[]; 
   onClose: () => void;
   onSave: (e: React.FormEvent) => void;
   onChange: (updates: Partial<Product>) => void;
 }
 
-const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, categories, onClose, onSave, onChange }) => {
+const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, categories, brands = [], ranges = [], onClose, onSave, onChange }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -30,16 +32,17 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
   };
 
   const handlePriceChange = (value: string, field: 'price' | 'oldPrice') => {
-      // On retire les espaces pour avoir le nombre brut
       const rawValue = value.replace(/\s/g, '');
-      // On vérifie si c'est bien des chiffres (ou vide)
       if (rawValue === '' || /^\d+$/.test(rawValue)) {
           onChange({ [field]: Number(rawValue) });
       }
   };
 
-  // --- HANDLERS MEDIA ---
+  // --- LOGIC MARQUE / GAMME ---
+  const isTechProduct = ['smartphones', 'phones', 'laptops', 'ordinateurs', 'tablettes'].some(slug => product.category.toLowerCase().includes(slug));
+  const availableRanges = ranges.filter(r => r.brand_id === product.brand);
 
+  // --- HANDLERS MEDIA ---
   const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!e.target.files?.[0]) return;
       setUploadingImage(true);
@@ -50,11 +53,12 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
   };
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (!e.target.files?.[0]) return;
+      const filesList = e.target.files;
+      if (!filesList || filesList.length === 0) return;
+      
       setUploadingGallery(true);
       try {
-          // On peut gérer le multi-upload en boucle si multiple={true} est activé sur l'input
-          const files = Array.from(e.target.files);
+          const files = Array.from(filesList) as File[];
           const newUrls = await Promise.all(files.map(file => uploadImageToCloudinary(file)));
           
           const currentImages = product.images || [];
@@ -77,7 +81,6 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
   };
 
   // --- AI HANDLER ---
-
   const handleAiGeneration = async () => {
       if (!product.name) return;
       setIsGenerating(true);
@@ -131,6 +134,24 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                     </h3>
                     
                     <div className="space-y-4">
+                        {/* TOGGLE CONDITION */}
+                        <div className="flex bg-black/50 p-1 rounded-sm border border-white/10 w-full mb-2">
+                            <button
+                                type="button"
+                                onClick={() => onChange({ condition: 'refurbished' })}
+                                className={`flex-1 py-2 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${product.condition === 'refurbished' ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50' : 'text-gray-500 hover:text-gray-300'}`}
+                            >
+                                <RefreshCw className="w-3 h-3" /> Reconditionné
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => onChange({ condition: 'new' })}
+                                className={`flex-1 py-2 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${product.condition === 'new' ? 'bg-green-500/20 text-green-500 border border-green-500/50' : 'text-gray-500 hover:text-gray-300'}`}
+                            >
+                                <Sparkles className="w-3 h-3" /> Neuf
+                            </button>
+                        </div>
+
                         <div>
                             <label className="text-[10px] uppercase font-bold text-gray-500 mb-1.5 block tracking-widest">Nom Commercial</label>
                             <input 
@@ -166,6 +187,45 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                                 />
                             </div>
                         </div>
+
+                        {/* --- SELECTEURS MARQUE & GAMME (Conditionnels) --- */}
+                        {isTechProduct && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 bg-white/5 p-4 rounded border border-white/5">
+                                <div>
+                                    <label className="text-[10px] uppercase font-bold text-xeption-gold mb-1.5 flex items-center gap-1 tracking-widest">
+                                        <Smartphone className="w-3 h-3" /> Marque (Obligatoire)
+                                    </label>
+                                    <select 
+                                        className="w-full bg-black/40 border border-white/10 p-3 text-white focus:border-xeption-gold outline-none transition-all rounded-sm text-sm"
+                                        value={product.brand || ''}
+                                        onChange={e => onChange({ brand: e.target.value, productRange: '' })} // Reset range on brand change
+                                        required
+                                    >
+                                        <option value="">-- Sélectionner Marque --</option>
+                                        {brands.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase font-bold text-xeption-gold mb-1.5 flex items-center gap-1 tracking-widest">
+                                        <Tag className="w-3 h-3" /> Gamme / Série (Obligatoire)
+                                    </label>
+                                    <select 
+                                        className="w-full bg-black/40 border border-white/10 p-3 text-white focus:border-xeption-gold outline-none transition-all rounded-sm text-sm disabled:opacity-50"
+                                        value={product.productRange || ''}
+                                        onChange={e => onChange({ productRange: e.target.value })}
+                                        disabled={!product.brand}
+                                        required
+                                    >
+                                        <option value="">-- Sélectionner Gamme --</option>
+                                        {availableRanges.map(r => (
+                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
 
                          {/* OPTION FEATURED / PÉPITE */}
                          <div className="bg-white/5 border border-white/5 p-4 rounded-sm flex items-center justify-between">

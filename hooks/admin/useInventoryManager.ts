@@ -20,12 +20,13 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
             description: '',
             price: 0,
             category: categories[0]?.slug || '',
+            condition: 'refurbished', // Valeur par défaut demandée
             image: 'https://via.placeholder.com/400',
             images: [],
             video: '',
             stock: 0,
             isPromo: false,
-            isFeatured: false, // Default value
+            isFeatured: false, 
             specs: [],
             pros: [],
             cons: [],
@@ -46,14 +47,18 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
             old_price: productData.oldPrice,
             is_promo: productData.isPromo,
             warranty_months: productData.warrantyMonths, 
-            is_featured: productData.isFeatured ?? false
+            is_featured: productData.isFeatured ?? false,
+            product_range: productData.productRange || null,
+            brand: productData.brand || null,
+            condition: productData.condition || 'refurbished' // Assurance mapping
         };
         
-        // On nettoie les clés camelCase pour éviter que Supabase ne râle si le mode strict est activé
+        // On nettoie les clés camelCase
         delete (dbPayload as any).oldPrice;
         delete (dbPayload as any).isPromo;
         delete (dbPayload as any).warrantyMonths;
         delete (dbPayload as any).isFeatured;
+        delete (dbPayload as any).productRange;
 
         const { error } = await supabase.from('products').upsert(dbPayload);
         
@@ -81,14 +86,12 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
     const toggleFeatured = async (product: Product) => {
         const newValue = !product.isFeatured;
         
-        // UPDATE DB using snake_case column name
         const { error } = await supabase.from('products')
             .update({ is_featured: newValue }) 
             .eq('id', product.id);
         
         if (error) throw error;
 
-        // Update local state immediately for snappy UI
         onUpdateProducts(products.map(p => p.id === product.id ? { ...p, isFeatured: newValue } : p));
     };
 

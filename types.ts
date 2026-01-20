@@ -6,19 +6,35 @@ export interface Category {
   icon?: string;
 }
 
+export interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface ProductRange {
+  id: string;
+  brand_id: string; // Lien vers la marque
+  name: string;
+  slug: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
   oldPrice?: number;
-  category: string; // Changé de l'énumération fixe vers string pour la dynamicité
+  category: string; // Slug de la catégorie
+  brand?: string; // ID ou Slug de la marque
+  productRange?: string; // ID ou Slug de la gamme
+  condition?: 'new' | 'refurbished'; // Nouvel état
   image: string;
   images?: string[];
   video?: string;
   stock: number;
   isPromo?: boolean;
-  isFeatured?: boolean; // NOUVEAU : Pour épingler en page d'accueil
+  isFeatured?: boolean; 
   rating?: number;
   reviewShort?: string;
   specs?: { label: string; value: string }[];
@@ -51,7 +67,7 @@ export interface Order {
   customerCity?: string;
   deliveryMode: 'delivery' | 'pickup';
   date: string;
-  createdAt?: string; // Ajouté pour le tri
+  createdAt?: string; 
 }
 
 export interface Customer {
@@ -102,7 +118,7 @@ export interface AdminNotification {
   message: string;
   timestamp: Date;
   read: boolean;
-  linkToTab?: string; // Pour rediriger vers l'onglet concerné (ex: 'orders')
+  linkToTab?: string; 
 }
 
 export enum PaymentMethod {

@@ -17,7 +17,8 @@ import PosTab from './tabs/PosTab';
 import OrdersTab from './tabs/OrdersTab';
 import InventoryTab from './tabs/InventoryTab';
 import CategoriesTab from './tabs/CategoriesTab';
-import BrandsTab from './tabs/BrandsTab'; // NOUVEAU
+import BrandsTab from './tabs/BrandsTab'; 
+import PacksTab from './tabs/PacksTab'; // NOUVEAU
 import ArgusTab from './tabs/ArgusTab';
 import SavTab from './tabs/SavTab';
 import ClientsTab from './tabs/ClientsTab';
@@ -31,15 +32,17 @@ import { useAdminNotifications } from '../../hooks/admin/useAdminNotifications';
 import { useAdminData } from '../../hooks/admin/useAdminData';
 import { usePosSystem } from '../../hooks/admin/usePosSystem';
 import { useInventoryManager } from '../../hooks/admin/useInventoryManager';
+import { usePacksManager } from '../../hooks/admin/usePacksManager'; // NOUVEAU
 import { useConfirmModal } from '../../hooks/admin/useConfirmModal';
 import { useOrdersManager } from '../../hooks/admin/useOrdersManager';
 import { useStaffManager } from '../../hooks/admin/useStaffManager';
 import { useCategoriesManager } from '../../hooks/admin/useCategoriesManager';
-import { useBrandsManager } from '../../hooks/admin/useBrandsManager'; // NOUVEAU
+import { useBrandsManager } from '../../hooks/admin/useBrandsManager'; 
 import { useMarketingStudio } from '../../hooks/admin/useMarketingStudio';
 
 // Editor Modals
 import ProductEditorOverlay from './modals/ProductEditorOverlay';
+import PackEditorOverlay from './modals/PackEditorOverlay'; // NOUVEAU
 import StaffEditorModal from './modals/StaffEditorModal';
 import { LogOut } from 'lucide-react';
 
@@ -50,7 +53,7 @@ interface AdminPanelProps {
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
   // 1. Navigation State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices' | 'argus' | 'brands'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'packs' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices' | 'argus' | 'brands'>('dashboard');
   
   // 2. Core Services
   const confirm = useConfirmModal();
@@ -60,10 +63,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   // 3. Domain Logic Managers
   const pos = usePosSystem({ products, onUpdateProducts, refreshData: data.refreshAll });
   const inventory = useInventoryManager({ products, onUpdateProducts });
+  const packsMgr = usePacksManager(products); // NOUVEAU
   const ordersMgr = useOrdersManager({ products, onUpdateProducts, orders: data.orders, setOrders: data.setOrders });
   const staffMgr = useStaffManager({ staffMembers: data.staffMembers, setStaffMembers: data.setStaffMembers });
   const catsMgr = useCategoriesManager({ categories: data.categories, setCategories: data.setCategories });
-  const brandMgr = useBrandsManager({ brands: data.brands, setBrands: data.setBrands, ranges: data.ranges, setRanges: data.setRanges }); // NOUVEAU
+  const brandMgr = useBrandsManager({ brands: data.brands, setBrands: data.setBrands, ranges: data.ranges, setRanges: data.setRanges }); 
   const marketing = useMarketingStudio();
 
   // 4. Wiring Handlers (View -> Logic -> Feedback)
@@ -79,6 +83,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const onToggleFeatured = async (product: Product) => {
       try { await inventory.toggleFeatured(product); } catch(e:any) { alert(e.message); }
   };
+
+  // Packs
+  const onSavePack = async () => {
+      try { await packsMgr.savePack(); } catch(err:any) { alert(err.message); }
+  };
+  const onDeletePack = (id: string) => confirm.danger("Supprimer Pack", "Cette action est définitive.", async () => { try { await packsMgr.deletePack(id); } catch(e:any) { alert(e.message); } });
 
   // POS
   const onPosSubmit = () => {
@@ -127,16 +137,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             </div>
 
             {/* ROUTER / CONDITIONAL RENDERER */}
-            {/* Si un produit est en cours d'édition, on affiche l'éditeur à la place des onglets */}
             {inventory.editingProduct ? (
                 <ProductEditorOverlay 
                     product={inventory.editingProduct} 
                     categories={data.categories}
-                    brands={data.brands} // PASSAGE DONNEES
-                    ranges={data.ranges} // PASSAGE DONNEES
+                    brands={data.brands} 
+                    ranges={data.ranges}
                     onClose={() => inventory.setEditingProduct(null)} 
                     onSave={onSaveProduct} 
                     onChange={(u) => inventory.setEditingProduct(p => p ? ({ ...p, ...u }) : null)} 
+                />
+            ) : packsMgr.editingPack ? (
+                <PackEditorOverlay
+                    pack={packsMgr.editingPack}
+                    allProducts={products}
+                    onClose={() => packsMgr.setEditingPack(null)}
+                    onSave={onSavePack}
+                    onChange={(u) => packsMgr.setEditingPack(p => p ? ({ ...p, ...u }) : null)}
                 />
             ) : (
                 <>
@@ -144,6 +161,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     {activeTab === 'pos' && <PosTab products={products} posCart={pos.cart} posSearch={pos.search} setPosSearch={pos.setSearch} posCustomer={pos.customer} setPosCustomer={pos.setCustomer} addToPosCart={pos.addToCart} onPosSubmit={onPosSubmit} lastOrder={pos.lastOrder} onDismissSuccess={() => pos.setLastOrder(null)} />}
                     {activeTab === 'orders' && <OrdersTab orders={data.orders} onUpdateStatus={ordersMgr.updateStatus} onCancelOrder={onCancelOrder} />}
                     {activeTab === 'inventory' && <InventoryTab products={products} onEditProduct={inventory.setEditingProduct} onDeleteProduct={onDeleteProduct} onCreateProduct={() => inventory.startCreate(data.categories)} onToggleFeatured={onToggleFeatured} />}
+                    {activeTab === 'packs' && <PacksTab packs={packsMgr.packs} products={products} onCreatePack={packsMgr.startCreate} onEditPack={packsMgr.setEditingPack} onDeletePack={onDeletePack} getHydratedItems={packsMgr.getHydratedItems} />}
                     {activeTab === 'categories' && <CategoriesTab categories={data.categories} newCatName={catsMgr.newCatName} setNewCatName={catsMgr.setNewCatName} onAddCategory={catsMgr.addCategory} onDeleteCategory={onDeleteCategory} />}
                     {activeTab === 'brands' && <BrandsTab brands={data.brands} ranges={data.ranges} brandMgr={brandMgr} />} 
                     {activeTab === 'argus' && <ArgusTab />} 
@@ -159,7 +177,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
 
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} unreadCount={notifs.unreadCount} onToggleNotifications={notifs.toggleDrawer} />
 
-        {/* MODALS (Toujours en overlay pour le staff) */}
+        {/* MODALS */}
         {staffMgr.editingStaff && (
             <StaffEditorModal staff={staffMgr.editingStaff as any} onClose={staffMgr.closeEditor} onSave={staffMgr.saveStaff} onChange={(u) => staffMgr.setEditingStaff(p => p ? ({ ...p, ...u }) : null)} />
         )}

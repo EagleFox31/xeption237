@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText, Bell, RefreshCw, Tag } from 'lucide-react';
+import { LayoutDashboard, CreditCard, ShoppingBag, Package, Layers, Wrench, Users, Key, Clapperboard, BookOpen, FileText, Bell, RefreshCw, Tag, Gift } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -16,6 +16,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, unreadCou
       { id: 'orders', label: 'Cmds', icon: ShoppingBag },
       { id: 'invoices', label: 'Factures', icon: FileText },
       { id: 'inventory', label: 'Stock', icon: Package },
+      { id: 'packs', label: 'Packs', icon: Gift },
       { id: 'categories', label: 'Types', icon: Layers },
       { id: 'brands', label: 'Marques', icon: Tag },
       { id: 'argus', label: 'Argus', icon: RefreshCw },

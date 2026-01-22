@@ -41,11 +41,12 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         const isNew = editingProduct.id.startsWith('new_');
         const productData = { ...editingProduct, id: isNew ? crypto.randomUUID() : editingProduct.id };
 
-        // MAPPING: Frontend (camelCase) -> DB (snake_case)
+        // MAPPING: Frontend (camelCase) -> DB
+        // Note: La DB semble avoir des colonnes mixtes (isPromo, reviewShort) et snake_case.
         const dbPayload = {
             ...productData,
             old_price: productData.oldPrice,
-            ispromo: productData.isPromo, // Correction: is_promo -> ispromo
+            // isPromo: Est déjà dans productData, on ne le renomme pas en 'ispromo' car la colonne DB est 'isPromo'
             warranty_months: productData.warrantyMonths, 
             is_featured: productData.isFeatured ?? false,
             product_range: productData.productRange || null,
@@ -53,9 +54,9 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
             condition: productData.condition || 'refurbished' // Assurance mapping
         };
         
-        // On nettoie les clés camelCase
+        // On nettoie les clés camelCase qui ont été mappées ou qui ne sont pas en DB
         delete (dbPayload as any).oldPrice;
-        delete (dbPayload as any).isPromo;
+        // delete (dbPayload as any).isPromo; // On garde isPromo car la colonne existe en camelCase
         delete (dbPayload as any).warrantyMonths;
         delete (dbPayload as any).isFeatured;
         delete (dbPayload as any).productRange;
@@ -65,7 +66,7 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         if (error) {
             console.error("Save error:", error);
             if (error.code === '23503') throw new Error(`La catégorie "${editingProduct.category}" n'existe pas.`);
-            if (error.message.includes('column')) throw new Error(`Colonne manquante en DB : ${error.message}. Lance le script SQL.`);
+            if (error.message.includes('column')) throw new Error(`Colonne manquante en DB : ${error.message}.`);
             throw error;
         }
 
@@ -86,11 +87,22 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
     const toggleFeatured = async (product: Product) => {
         const newValue = !product.isFeatured;
         
+        // Tentative d'update sur is_featured (snake_case) standard
         const { error } = await supabase.from('products')
             .update({ is_featured: newValue }) 
             .eq('id', product.id);
         
-        if (error) throw error;
+        if (error) {
+             // Fallback si la colonne est isFeatured (camelCase)
+             if (error.message.includes('is_featured')) {
+                 const { error: retryError } = await supabase.from('products')
+                    .update({ isFeatured: newValue } as any) 
+                    .eq('id', product.id);
+                 if (retryError) throw retryError;
+             } else {
+                 throw error;
+             }
+        }
 
         onUpdateProducts(products.map(p => p.id === product.id ? { ...p, isFeatured: newValue } : p));
     };

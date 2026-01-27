@@ -26,7 +26,15 @@ const ArgusTab: React.FC = () => {
     const fetchModels = async () => {
         setLoading(true);
         const { data, error } = await supabase.from('trade_in_models').select('*').order('brand', { ascending: true });
-        if (data) setModels(data as TradeInModel[]);
+        if (data) {
+            // Mapping DB -> Front (supporte les deux cas)
+            const mapped = data.map((m: any) => ({
+                ...m,
+                model_name: m.modelName || m.model_name,
+                base_price: m.basePrice || m.base_price
+            }));
+            setModels(mapped as TradeInModel[]);
+        }
         setLoading(false);
     };
 
@@ -34,15 +42,36 @@ const ArgusTab: React.FC = () => {
         e.preventDefault();
         if (!newModel.brand || !newModel.model_name || !newModel.base_price) return;
 
-        const { data, error } = await supabase.from('trade_in_models').insert([{
+        // Essai CamelCase en premier
+        const payload = {
             brand: newModel.brand,
-            model_name: newModel.model_name,
+            modelName: newModel.model_name, // CAMELCASE
             category: newModel.category,
-            base_price: parseInt(newModel.base_price)
-        }]).select();
+            basePrice: parseInt(newModel.base_price) // CAMELCASE
+        };
+
+        let { data, error } = await supabase.from('trade_in_models').insert([payload]).select();
+
+        // Fallback SnakeCase
+        if (error && error.message.includes('column')) {
+             const snakePayload = {
+                brand: newModel.brand,
+                model_name: newModel.model_name,
+                category: newModel.category,
+                base_price: parseInt(newModel.base_price)
+            };
+            const res = await supabase.from('trade_in_models').insert([snakePayload]).select();
+            data = res.data;
+            error = res.error;
+        }
 
         if (data) {
-            setModels([...models, data[0] as TradeInModel]);
+            const saved = data[0];
+            setModels([...models, {
+                ...saved,
+                model_name: saved.modelName || saved.model_name,
+                base_price: saved.basePrice || saved.base_price
+            } as TradeInModel]);
             setNewModel({ brand: '', model_name: '', category: 'phone', base_price: '' });
         }
     };
@@ -54,7 +83,15 @@ const ArgusTab: React.FC = () => {
     };
 
     const handlePriceUpdate = async (id: string, newPrice: number) => {
-        const { error } = await supabase.from('trade_in_models').update({ base_price: newPrice }).eq('id', id);
+        // Try CamelCase Update
+        let { error } = await supabase.from('trade_in_models').update({ basePrice: newPrice } as any).eq('id', id);
+        
+        // Fallback SnakeCase
+        if (error && error.message.includes('column')) {
+            const res = await supabase.from('trade_in_models').update({ base_price: newPrice } as any).eq('id', id);
+            error = res.error;
+        }
+
         if (!error) {
             setModels(models.map(m => m.id === id ? { ...m, base_price: newPrice } : m));
         }

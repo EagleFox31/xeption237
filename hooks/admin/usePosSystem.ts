@@ -31,19 +31,46 @@ export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePos
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
         
-        await supabase.from('orders').insert([{
+        // Utilisation de CamelCase pour les colonnes (consistant avec le reste de ta DB)
+        const orderPayload = {
             id: newOrderId,
-            customer_name: customer.name,
-            customer_email: customer.email,
-            customer_phone: customer.phone,
-            customer_city: 'Retrait Boutique (POS)',
-            delivery_mode: 'pickup',
+            customerName: customer.name,
+            customerEmail: customer.email,
+            customerPhone: customer.phone,
+            customerCity: 'Retrait Boutique (POS)',
+            deliveryMode: 'pickup',
             total: total,
             status: 'delivered',
-            payment_method: paymentMethod,
+            paymentMethod: paymentMethod,
             items: cart,
             date: new Date().toISOString()
-        }]);
+        };
+
+        const { error } = await supabase.from('orders').insert([orderPayload]);
+
+        if (error) {
+            console.error("POS Order Error:", error);
+            // Fallback Snake Case si le CamelCase échoue (filet de sécurité)
+            if (error.message.includes('column')) {
+                 const snakePayload = {
+                    id: newOrderId,
+                    customer_name: customer.name,
+                    customer_email: customer.email,
+                    customer_phone: customer.phone,
+                    customer_city: 'Retrait Boutique (POS)',
+                    delivery_mode: 'pickup',
+                    total: total,
+                    status: 'delivered',
+                    payment_method: paymentMethod,
+                    items: cart,
+                    date: new Date().toISOString()
+                 };
+                 const { error: retryError } = await supabase.from('orders').insert([snakePayload]);
+                 if (retryError) throw retryError;
+            } else {
+                throw error;
+            }
+        }
 
         // Stock Update
         for (const item of cart) {

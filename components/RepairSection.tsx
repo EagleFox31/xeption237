@@ -29,17 +29,17 @@ const RepairSection: React.FC = () => {
 
       if (error || !data) throw new Error("Commande introuvable. Vérifiez l'ID sur votre facture.");
 
-      // Map DB response to Order type
+      // Map DB response to Order type (Double check Camel/Snake)
       const order: Order = {
           id: data.id,
           items: data.items,
           total: data.total,
           status: data.status,
-          paymentMethod: data.payment_method,
-          customerName: data.customer_name,
-          customerPhone: data.customer_phone,
+          paymentMethod: data.paymentMethod || data.payment_method,
+          customerName: data.customerName || data.customer_name,
+          customerPhone: data.customerPhone || data.customer_phone,
           date: data.date,
-          deliveryMode: data.delivery_mode
+          deliveryMode: data.deliveryMode || data.delivery_mode
       };
 
       setFoundOrder(order);
@@ -79,28 +79,45 @@ const RepairSection: React.FC = () => {
     try {
         const warrantyInfo = checkWarranty(foundOrder.date, selectedItem.warrantyMonths);
         
-        // CHECK INTEGRITY: Verify if product still exists in catalog to avoid FK error
-        // If the product was deleted from the 'products' table, we cannot send its ID as foreign key.
         const { data: productExists } = await supabase
             .from('products')
             .select('id')
             .eq('id', selectedItem.id)
             .maybeSingle();
 
-        // Use JSON mapping for inserting into Supabase custom table 'repair_tickets'
-        const { error } = await supabase.from('repair_tickets').insert([{
+        // PAYLOAD CAMELCASE
+        const payload = {
             id: `REP-${Date.now().toString().slice(-6)}`,
-            order_id: foundOrder.id,
-            // Safety Check: If product deleted, send null to satisfy Foreign Key constraint (assumes column is nullable)
-            product_id: productExists ? selectedItem.id : null, 
-            product_name: selectedItem.name,
-            customer_name: foundOrder.customerName,
-            customer_phone: foundOrder.customerPhone,
-            issue_description: issue,
+            orderId: foundOrder.id,
+            productId: productExists ? selectedItem.id : null,
+            productName: selectedItem.name,
+            customerName: foundOrder.customerName,
+            customerPhone: foundOrder.customerPhone,
+            issueDescription: issue, // CamelCase
             status: 'open',
-            warranty_status: warrantyInfo.valid ? 'active' : 'expired',
-            created_at: new Date().toISOString()
-        }]);
+            warrantyStatus: warrantyInfo.valid ? 'active' : 'expired',
+            createdAt: new Date().toISOString()
+        };
+
+        let { error } = await supabase.from('repair_tickets').insert([payload]);
+
+        // Fallback SnakeCase
+        if (error && error.message.includes('column')) {
+             const snakePayload = {
+                id: payload.id,
+                order_id: payload.orderId,
+                product_id: payload.productId,
+                product_name: payload.productName,
+                customer_name: payload.customerName,
+                customer_phone: payload.customerPhone,
+                issue_description: payload.issueDescription,
+                status: 'open',
+                warranty_status: payload.warrantyStatus,
+                created_at: payload.createdAt
+             };
+             const res = await supabase.from('repair_tickets').insert([snakePayload]);
+             error = res.error;
+        }
 
         if (error) throw error;
         setStep('success');

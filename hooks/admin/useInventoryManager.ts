@@ -41,32 +41,31 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
         const isNew = editingProduct.id.startsWith('new_');
         const productData = { ...editingProduct, id: isNew ? crypto.randomUUID() : editingProduct.id };
 
-        // MAPPING: Frontend (camelCase) -> DB
-        // Note: La DB semble avoir des colonnes mixtes (isPromo, reviewShort) et snake_case.
+        // MAPPING DB
+        // Correction globale : Envoi en CamelCase pour correspondre à isPromo, reviewShort, etc.
         const dbPayload = {
             ...productData,
-            old_price: productData.oldPrice,
-            // isPromo: Est déjà dans productData, on ne le renomme pas en 'ispromo' car la colonne DB est 'isPromo'
-            warranty_months: productData.warrantyMonths, 
-            is_featured: productData.isFeatured ?? false,
-            product_range: productData.productRange || null,
+            
+            // Colonnes composées en CamelCase (Hypothèse forte basée sur isPromo)
+            productRange: productData.productRange || null,
             brand: productData.brand || null,
-            condition: productData.condition || 'refurbished' // Assurance mapping
+            oldPrice: productData.oldPrice || null,
+            warrantyMonths: productData.warrantyMonths || 0,
+            isFeatured: productData.isFeatured || false,
+            
+            // Valeurs par défaut
+            condition: productData.condition || 'refurbished',
+            isPromo: productData.isPromo ?? false,
         };
         
-        // On nettoie les clés camelCase qui ont été mappées ou qui ne sont pas en DB
-        delete (dbPayload as any).oldPrice;
-        // delete (dbPayload as any).isPromo; // On garde isPromo car la colonne existe en camelCase
-        delete (dbPayload as any).warrantyMonths;
-        delete (dbPayload as any).isFeatured;
-        delete (dbPayload as any).productRange;
-
+        // On supprime les champs qui ne sont pas des colonnes (si nécessaire, mais ici on envoie tout ce qui matche)
+        
         const { error } = await supabase.from('products').upsert(dbPayload);
         
         if (error) {
             console.error("Save error:", error);
             if (error.code === '23503') throw new Error(`La catégorie "${editingProduct.category}" n'existe pas.`);
-            if (error.message.includes('column')) throw new Error(`Colonne manquante en DB : ${error.message}.`);
+            if (error.message.includes('column')) throw new Error(`Erreur Colonne DB : ${error.message}. Vérifiez le nom exact dans Supabase.`);
             throw error;
         }
 
@@ -87,16 +86,16 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
     const toggleFeatured = async (product: Product) => {
         const newValue = !product.isFeatured;
         
-        // Tentative d'update sur is_featured (snake_case) standard
+        // Tentative d'update sur isFeatured (CamelCase)
         const { error } = await supabase.from('products')
-            .update({ is_featured: newValue }) 
+            .update({ isFeatured: newValue } as any) 
             .eq('id', product.id);
         
         if (error) {
-             // Fallback si la colonne est isFeatured (camelCase)
-             if (error.message.includes('is_featured')) {
+             // Fallback si la colonne est is_featured (snake_case)
+             if (error.message.includes('column')) {
                  const { error: retryError } = await supabase.from('products')
-                    .update({ isFeatured: newValue } as any) 
+                    .update({ is_featured: newValue } as any) 
                     .eq('id', product.id);
                  if (retryError) throw retryError;
              } else {

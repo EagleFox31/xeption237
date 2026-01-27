@@ -14,7 +14,7 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
     const [newBrandName, setNewBrandName] = useState('');
     const [newRangeName, setNewRangeName] = useState('');
     const [selectedBrandForRange, setSelectedBrandForRange] = useState<string>('');
-    const [selectedCategoryForRange, setSelectedCategoryForRange] = useState<string>(''); // Nouveau State
+    const [selectedCategoryForRange, setSelectedCategoryForRange] = useState<string>(''); 
 
     // --- MARQUES ---
     const addBrand = async () => {
@@ -34,7 +34,6 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
         const { error } = await supabase.from('brands').delete().eq('id', id);
         if (!error) {
             setBrands(prev => prev.filter(b => b.id !== id));
-            // Nettoyage en cascade local (Supabase le fait si FK est cascade)
             setRanges(prev => prev.filter(r => r.brand_id !== id));
         } else {
             throw error;
@@ -46,22 +45,34 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
         if (!newRangeName.trim() || !selectedBrandForRange) return;
         const slug = newRangeName.toLowerCase().replace(/[^a-z0-9]/g, '-');
         
-        // Construction du payload avec ou sans catégorie
+        // Payload CamelCase
         const payload: any = { 
             name: newRangeName, 
             slug, 
-            brand_id: selectedBrandForRange 
+            brandId: selectedBrandForRange  // CAMELCASE
         };
         if (selectedCategoryForRange) {
             payload.category = selectedCategoryForRange;
         }
 
-        const { data, error } = await supabase.from('product_ranges').insert([payload]).select();
+        let { data, error } = await supabase.from('product_ranges').insert([payload]).select();
+
+        // Fallback
+        if (error && error.message.includes('column')) {
+             const snakePayload: any = { 
+                name: newRangeName, 
+                slug, 
+                brand_id: selectedBrandForRange 
+            };
+            if (selectedCategoryForRange) snakePayload.category = selectedCategoryForRange;
+            const res = await supabase.from('product_ranges').insert([snakePayload]).select();
+            data = res.data;
+            error = res.error;
+        }
 
         if (!error && data) {
             setRanges(prev => [...prev, data[0] as ProductRange]);
             setNewRangeName('');
-            // On ne reset pas la catégorie sélectionnée pour faciliter l'ajout en chaîne
         } else {
             throw error || new Error("Erreur ajout gamme");
         }
@@ -79,7 +90,7 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
     return { 
         newBrandName, setNewBrandName, addBrand, deleteBrand,
         newRangeName, setNewRangeName, selectedBrandForRange, setSelectedBrandForRange, 
-        selectedCategoryForRange, setSelectedCategoryForRange, // Export des nouveaux handlers
+        selectedCategoryForRange, setSelectedCategoryForRange, 
         addRange, deleteRange
     };
 };

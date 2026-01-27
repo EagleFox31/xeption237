@@ -13,11 +13,12 @@ export const usePacksManager = (products: Product[]) => {
         setIsLoading(true);
         const { data, error } = await supabase.from('packs').select('*').order('created_at', { ascending: false });
         if (data && !error) {
-            // Mapping pour s'assurer que les items ont les détails produits (si possible côté client pour simplifier)
+            // Mapping inverse DB -> App
             const mappedPacks = data.map((pack: any) => ({
                 ...pack,
-                validUntil: pack.valid_until,
-                // On s'assure que items est un tableau
+                // Supporte les deux cas (Camel ou Snake) à la lecture
+                validUntil: pack.validUntil || pack.valid_until,
+                isFeatured: pack.isFeatured || pack.is_featured,
                 items: Array.isArray(pack.items) ? pack.items : []
             }));
             setPacks(mappedPacks);
@@ -50,21 +51,25 @@ export const usePacksManager = (products: Product[]) => {
         const isNew = editingPack.id.startsWith('new_');
         const packId = isNew ? crypto.randomUUID() : editingPack.id;
 
-        // Préparation Payload DB (On stocke les items en JSONB pour simplifier le POC)
+        // Préparation Payload DB en CamelCase (Cohérence avec products)
         const payload = {
             id: packId,
             name: editingPack.name,
             description: editingPack.description,
             image: editingPack.image,
             price: editingPack.price,
-            valid_until: editingPack.validUntil || null,
-            items: editingPack.items.map(i => ({ productId: i.productId, quantity: i.quantity })), // On ne garde que les IDs
-            is_featured: editingPack.isFeatured || false
+            validUntil: editingPack.validUntil || null, // CAMELCASE
+            items: editingPack.items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+            isFeatured: editingPack.isFeatured || false // CAMELCASE
         };
 
         const { error } = await supabase.from('packs').upsert(payload);
 
-        if (error) throw error;
+        if (error) {
+            console.error("Pack Save Error:", error);
+            if (error.message.includes('column')) throw new Error(`Erreur Colonne: ${error.message}`);
+            throw error;
+        }
 
         fetchPacks();
         setEditingPack(null);

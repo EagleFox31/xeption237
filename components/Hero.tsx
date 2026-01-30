@@ -1,12 +1,33 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Star, Cpu } from 'lucide-react';
+import AdSpot from './AdSpot';
 
 interface HeroProps {
   onShopNow: () => void;
 }
 
 const Hero: React.FC<HeroProps> = ({ onShopNow }) => {
+  // Phase management: 'text' -> 'ad' -> 'hidden'
+  const [phase, setPhase] = useState<'text' | 'ad' | 'hidden'>('text');
+
+  useEffect(() => {
+    // Phase 1 -> 2 (After 5s)
+    const timer1 = setTimeout(() => {
+      setPhase('ad');
+    }, 5000);
+
+    // Phase 2 -> 3 (After 5s + 3s = 8s)
+    const timer2 = setTimeout(() => {
+      setPhase('hidden');
+    }, 8000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
+
   return (
     // Hauteur réduite à min-h-[55vh] pour prendre environ la moitié de l'écran
     // Padding ajusté pour centrer visuellement dans ce nouvel espace
@@ -18,7 +39,7 @@ const Hero: React.FC<HeroProps> = ({ onShopNow }) => {
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-xeption-red/10 rounded-full blur-[80px] mix-blend-screen animate-pulse duration-1000 z-0"></div>
       <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-xeption-gold/10 rounded-full blur-[80px] mix-blend-screen z-0"></div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10 w-full">
         
         {/* Badge - Texte plus petit */}
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-xeption-gold/30 bg-black/40 backdrop-blur-md mb-4 shadow-[0_0_15px_rgba(255,215,0,0.1)] hover:scale-105 transition-transform group cursor-default">
@@ -35,15 +56,50 @@ const Hero: React.FC<HeroProps> = ({ onShopNow }) => {
           </span>
         </h1>
         
-        {/* Description - Texte plus petit et marges réduites */}
-        <p className="mt-4 max-w-xl mx-auto text-sm sm:text-base text-gray-200 font-light tracking-wide mb-8 drop-shadow-md bg-black/20 backdrop-blur-sm p-3 rounded-xl border border-white/5">
-          Le futur du e-commerce au Mboa. <br/>
-          <span className="text-white font-bold">Smartphones. Laptops. Accessoires.</span> <br/>
-          Ambiance Tech, Paiement Easy, Livraison au calme.
-        </p>
+        {/* Dynamic Zone: Description -> Ad -> Hidden */}
+        <div className="relative min-h-[40px] flex justify-center items-center flex-col transition-all duration-500 ease-in-out w-full max-w-3xl mx-auto">
+            
+            {/* PHASE 1: TEXTE (0s - 5s) */}
+            <div 
+                className={`transition-all duration-700 ease-in-out absolute w-full ${
+                    phase === 'text' ? 'opacity-100 translate-y-0 relative' : 'opacity-0 -translate-y-4 absolute pointer-events-none'
+                }`}
+            >
+               {phase === 'text' && (
+                <div className="mb-8 mt-2">
+                    <p className="max-w-xl mx-auto text-sm sm:text-base text-gray-200 font-light tracking-wide drop-shadow-md bg-black/20 backdrop-blur-sm p-3 rounded-xl border border-white/5 animate-in fade-in zoom-in duration-700">
+                    Le futur du e-commerce au Mboa. <br/>
+                    <span className="text-white font-bold">Smartphones. Laptops. Accessoires.</span> <br/>
+                    Ambiance Tech, Paiement Easy, Livraison au calme.
+                    </p>
+                </div>
+               )}
+            </div>
+
+            {/* PHASE 2: ADSPOT (5s - 8s) */}
+            <div 
+                className={`transition-all duration-700 ease-in-out w-full ${
+                    phase === 'ad' ? 'opacity-100 translate-y-0 relative mb-8' : 'opacity-0 translate-y-4 absolute pointer-events-none'
+                }`}
+            >
+                {phase === 'ad' && (
+                    <AdSpot 
+                        variant="banner"
+                        compact={true}
+                        title="Troc Express"
+                        subtitle="Échange ton ancien téléphone contre du cash."
+                        image="https://images.unsplash.com/photo-1596742578443-7682e525c489?q=80&w=2000&auto=format&fit=crop"
+                        cta="Estimer"
+                        onAdClick={() => window.location.href = '/?page=troc'}
+                    />
+                )}
+            </div>
+
+            {/* PHASE 3: HIDDEN (8s+) - Just a spacer if needed, or 0 height handled by css above */}
+        </div>
         
         {/* Actions - Boutons légèrement plus compacts */}
-        <div className="flex flex-col sm:flex-row justify-center gap-4">
+        <div className={`flex flex-col sm:flex-row justify-center gap-4 transition-all duration-1000 ${phase === 'hidden' ? 'mt-0' : 'mt-2'}`}>
           <button 
             onClick={onShopNow}
             className="group relative px-6 py-3 bg-xeption-gold text-black font-tech font-bold text-sm uppercase tracking-wider overflow-hidden clip-path-slant shadow-[0_0_20px_rgba(255,215,0,0.4)] hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition-all"

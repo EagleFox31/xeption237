@@ -6,7 +6,6 @@ import ProductList from './components/ProductList';
 import PackList from './components/PackList';
 import TrustBar from './components/TrustBar'; 
 import DeliveryEstimator from './components/DeliveryEstimator'; 
-import SocialProof from './components/SocialProof'; 
 import ProductDetail from './components/ProductDetail';
 import AiConsultant from './components/AiConsultant';
 import Checkout from './components/Checkout';
@@ -15,6 +14,7 @@ import AdminPanel from './components/admin/AdminPanel';
 import StaffLogin from './components/StaffLogin'; 
 import RepairSection from './components/RepairSection'; 
 import OrderTracking from './components/OrderTracking'; 
+import AdSpot from './components/AdSpot'; // Import AdSpot
 import { Product, CartItem, Pack } from './types';
 import { supabase } from './services/supabaseClient';
 import { optimizeVideo, optimizeImage } from './utils/mediaOptimization';
@@ -248,8 +248,13 @@ const App: React.FC = () => {
       <main className="pt-20 pb-20 relative z-10">
         {page === 'home' && (
           <>
+            {/* HERO contient maintenant la pub (Zone A) qui apparait après 5s */}
             <Hero onShopNow={() => setPage('shop')} />
+            
             <TrustBar />
+            
+            {/* BANNIÈRE ADSPOT RETIRÉE ICI */}
+
             <DeliveryEstimator />
             <div id="featured-products">
                <ProductList 
@@ -261,7 +266,7 @@ const App: React.FC = () => {
             </div>
             <PackList packs={packs} products={products} onAddPackToCart={addPackToCart} />
             <TrocSection onNavigate={handleNavigate} />
-            <SocialProof />
+            {/* SocialProof removed as requested */}
           </>
         )}
 

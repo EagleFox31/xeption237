@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { TradeInModel } from '../../../types';
-import { RefreshCw, Plus, Search, Trash2, Smartphone, Laptop, Save, Loader2 } from 'lucide-react';
+import { RefreshCw, Plus, Search, Trash2, Smartphone, Laptop, Loader2 } from 'lucide-react';
 import TableShell from '../shared/TableShell';
+import { DB_TABLES, DB_SCHEMA } from '../../../constants/dbSchema';
 
 const ArgusTab: React.FC = () => {
     const [models, setModels] = useState<TradeInModel[]>([]);
@@ -25,13 +26,14 @@ const ArgusTab: React.FC = () => {
 
     const fetchModels = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('trade_in_models').select('*').order('brand', { ascending: true });
+        const { data, error } = await supabase.from(DB_TABLES.TRADE_IN_MODELS).select('*').order('brand', { ascending: true });
         if (data) {
-            // Mapping DB -> Front (supporte les deux cas)
             const mapped = data.map((m: any) => ({
-                ...m,
-                model_name: m.modelName || m.model_name,
-                base_price: m.basePrice || m.base_price
+                id: m[DB_SCHEMA.TRADE_IN_MODELS.ID],
+                category: m[DB_SCHEMA.TRADE_IN_MODELS.CATEGORY],
+                brand: m[DB_SCHEMA.TRADE_IN_MODELS.BRAND],
+                model_name: m[DB_SCHEMA.TRADE_IN_MODELS.MODEL_NAME],
+                base_price: m[DB_SCHEMA.TRADE_IN_MODELS.BASE_PRICE]
             }));
             setModels(mapped as TradeInModel[]);
         }
@@ -42,56 +44,39 @@ const ArgusTab: React.FC = () => {
         e.preventDefault();
         if (!newModel.brand || !newModel.model_name || !newModel.base_price) return;
 
-        // Essai CamelCase en premier
         const payload = {
-            brand: newModel.brand,
-            modelName: newModel.model_name, // CAMELCASE
-            category: newModel.category,
-            basePrice: parseInt(newModel.base_price) // CAMELCASE
+            [DB_SCHEMA.TRADE_IN_MODELS.BRAND]: newModel.brand,
+            [DB_SCHEMA.TRADE_IN_MODELS.MODEL_NAME]: newModel.model_name,
+            [DB_SCHEMA.TRADE_IN_MODELS.CATEGORY]: newModel.category,
+            [DB_SCHEMA.TRADE_IN_MODELS.BASE_PRICE]: parseInt(newModel.base_price)
         };
 
-        let { data, error } = await supabase.from('trade_in_models').insert([payload]).select();
-
-        // Fallback SnakeCase
-        if (error && error.message.includes('column')) {
-             const snakePayload = {
-                brand: newModel.brand,
-                model_name: newModel.model_name,
-                category: newModel.category,
-                base_price: parseInt(newModel.base_price)
-            };
-            const res = await supabase.from('trade_in_models').insert([snakePayload]).select();
-            data = res.data;
-            error = res.error;
-        }
+        const { data, error } = await supabase.from(DB_TABLES.TRADE_IN_MODELS).insert([payload]).select();
 
         if (data) {
             const saved = data[0];
             setModels([...models, {
-                ...saved,
-                model_name: saved.modelName || saved.model_name,
-                base_price: saved.basePrice || saved.base_price
-            } as TradeInModel]);
+                id: saved[DB_SCHEMA.TRADE_IN_MODELS.ID],
+                brand: saved[DB_SCHEMA.TRADE_IN_MODELS.BRAND],
+                model_name: saved[DB_SCHEMA.TRADE_IN_MODELS.MODEL_NAME],
+                category: saved[DB_SCHEMA.TRADE_IN_MODELS.CATEGORY],
+                base_price: saved[DB_SCHEMA.TRADE_IN_MODELS.BASE_PRICE]
+            }]);
             setNewModel({ brand: '', model_name: '', category: 'phone', base_price: '' });
         }
     };
 
     const handleDelete = async (id: string) => {
         if (!window.confirm("Supprimer ce modèle de l'Argus ?")) return;
-        const { error } = await supabase.from('trade_in_models').delete().eq('id', id);
+        const { error } = await supabase.from(DB_TABLES.TRADE_IN_MODELS).delete().eq('id', id);
         if (!error) setModels(models.filter(m => m.id !== id));
     };
 
     const handlePriceUpdate = async (id: string, newPrice: number) => {
-        // Try CamelCase Update
-        let { error } = await supabase.from('trade_in_models').update({ basePrice: newPrice } as any).eq('id', id);
+        const { error } = await supabase.from(DB_TABLES.TRADE_IN_MODELS)
+            .update({ [DB_SCHEMA.TRADE_IN_MODELS.BASE_PRICE]: newPrice })
+            .eq('id', id);
         
-        // Fallback SnakeCase
-        if (error && error.message.includes('column')) {
-            const res = await supabase.from('trade_in_models').update({ base_price: newPrice } as any).eq('id', id);
-            error = res.error;
-        }
-
         if (!error) {
             setModels(models.map(m => m.id === id ? { ...m, base_price: newPrice } : m));
         }
@@ -117,7 +102,6 @@ const ArgusTab: React.FC = () => {
                     </div>
                 </div>
 
-                {/* ADD FORM */}
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
                     <h3 className="text-white font-bold uppercase mb-4 text-xs flex items-center gap-2">
                         <Plus className="w-4 h-4 text-green-500" /> Ajouter un modèle
@@ -170,7 +154,6 @@ const ArgusTab: React.FC = () => {
                     </form>
                 </div>
 
-                {/* FILTERS & SEARCH */}
                 <div className="flex justify-between items-center bg-black/40 p-4 border border-white/10 rounded-sm">
                     <div className="flex gap-2">
                         <button onClick={() => setFilterCategory('all')} className={`px-4 py-2 text-xs font-bold uppercase rounded-sm ${filterCategory === 'all' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}>Tout</button>
@@ -190,7 +173,6 @@ const ArgusTab: React.FC = () => {
                 </div>
             </div>
 
-            {/* LISTING */}
             <div className="flex-1 min-h-0 relative">
                 <TableShell className="h-full overflow-y-auto border-t border-white/10">
                     <table className="w-full text-left">

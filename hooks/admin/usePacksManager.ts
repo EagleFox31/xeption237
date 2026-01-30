@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Pack, PackItem, Product } from '../../types';
+import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
 
 export const usePacksManager = (products: Product[]) => {
     const [packs, setPacks] = useState<Pack[]>([]);
@@ -11,15 +12,18 @@ export const usePacksManager = (products: Product[]) => {
     // Fetch Packs
     const fetchPacks = useCallback(async () => {
         setIsLoading(true);
-        const { data, error } = await supabase.from('packs').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from(DB_TABLES.PACKS).select('*').order(DB_SCHEMA.PACKS.CREATED_AT, { ascending: false });
         if (data && !error) {
-            // Mapping inverse DB -> App
+            // Mapping inverse DB -> App via le schéma
             const mappedPacks = data.map((pack: any) => ({
-                ...pack,
-                // Supporte les deux cas (Camel ou Snake) à la lecture
-                validUntil: pack.validUntil || pack.valid_until,
-                isFeatured: pack.isFeatured || pack.is_featured,
-                items: Array.isArray(pack.items) ? pack.items : []
+                id: pack[DB_SCHEMA.PACKS.ID],
+                name: pack[DB_SCHEMA.PACKS.NAME],
+                description: pack[DB_SCHEMA.PACKS.DESCRIPTION],
+                image: pack[DB_SCHEMA.PACKS.IMAGE],
+                price: pack[DB_SCHEMA.PACKS.PRICE],
+                validUntil: pack[DB_SCHEMA.PACKS.VALID_UNTIL],
+                isFeatured: pack[DB_SCHEMA.PACKS.IS_FEATURED],
+                items: Array.isArray(pack[DB_SCHEMA.PACKS.ITEMS]) ? pack[DB_SCHEMA.PACKS.ITEMS] : []
             }));
             setPacks(mappedPacks);
         }
@@ -51,23 +55,22 @@ export const usePacksManager = (products: Product[]) => {
         const isNew = editingPack.id.startsWith('new_');
         const packId = isNew ? crypto.randomUUID() : editingPack.id;
 
-        // Préparation Payload DB en CamelCase (Cohérence avec products)
+        // Préparation Payload DB via Schema
         const payload = {
-            id: packId,
-            name: editingPack.name,
-            description: editingPack.description,
-            image: editingPack.image,
-            price: editingPack.price,
-            validUntil: editingPack.validUntil || null, // CAMELCASE
-            items: editingPack.items.map(i => ({ productId: i.productId, quantity: i.quantity })),
-            isFeatured: editingPack.isFeatured || false // CAMELCASE
+            [DB_SCHEMA.PACKS.ID]: packId,
+            [DB_SCHEMA.PACKS.NAME]: editingPack.name,
+            [DB_SCHEMA.PACKS.DESCRIPTION]: editingPack.description,
+            [DB_SCHEMA.PACKS.IMAGE]: editingPack.image,
+            [DB_SCHEMA.PACKS.PRICE]: editingPack.price,
+            [DB_SCHEMA.PACKS.VALID_UNTIL]: editingPack.validUntil || null,
+            [DB_SCHEMA.PACKS.ITEMS]: editingPack.items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+            [DB_SCHEMA.PACKS.IS_FEATURED]: editingPack.isFeatured || false
         };
 
-        const { error } = await supabase.from('packs').upsert(payload);
+        const { error } = await supabase.from(DB_TABLES.PACKS).upsert(payload);
 
         if (error) {
             console.error("Pack Save Error:", error);
-            if (error.message.includes('column')) throw new Error(`Erreur Colonne: ${error.message}`);
             throw error;
         }
 
@@ -76,7 +79,7 @@ export const usePacksManager = (products: Product[]) => {
     };
 
     const deletePack = async (id: string) => {
-        const { error } = await supabase.from('packs').delete().eq('id', id);
+        const { error } = await supabase.from(DB_TABLES.PACKS).delete().eq('id', id);
         if (!error) {
             setPacks(prev => prev.filter(p => p.id !== id));
         } else {
@@ -84,7 +87,6 @@ export const usePacksManager = (products: Product[]) => {
         }
     };
 
-    // Helper pour hydrater les produits d'un pack pour l'affichage
     const getHydratedItems = (items: PackItem[]) => {
         return items.map(item => ({
             ...item,

@@ -28,11 +28,10 @@ const Hero: React.FC<HeroProps> = ({ onShopNow }) => {
           </span>
         </div>
         
-        {/* Main Title - Taille réduite (4xl -> 7xl max au lieu de 9xl) */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-white mb-4 leading-none drop-shadow-[0_0_25px_rgba(0,0,0,0.8)]">
-          XEPTION
-          <span className="block text-transparent bg-clip-text bg-gradient-to-r from-xeption-gold via-yellow-100 to-xeption-goldDim drop-shadow-sm">
-            NETWORK
+        {/* Main Title - Renommé en XEPTION seul avec effet Gold */}
+        <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tighter mb-4 leading-none drop-shadow-[0_0_25px_rgba(0,0,0,0.8)]">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-xeption-gold via-yellow-100 to-xeption-goldDim drop-shadow-sm">
+            XEPTION
           </span>
         </h1>
         

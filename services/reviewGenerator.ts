@@ -16,7 +16,7 @@ export const generateProductReviews = async (productName: string, category: stri
     const prompt = `
       CONTEXTE :
       Tu es le moteur de "Preuve Sociale" de Xeption Network, un e-commerce High-Tech au Cameroun.
-      Ton rôle est de générer des avis clients réalistes pour rassurer les futurs acheteurs.
+      Ton rôle est de générer des avis clients réalistes pour rassurer les futurs acheteurs en te basant sur des avis trouvers sur le produit en question sur d'autres sites.
       
       PRODUIT CIBLE :
       - Nom : ${productName}
@@ -24,11 +24,11 @@ export const generateProductReviews = async (productName: string, category: stri
       - Description : ${description}
 
       RÈGLES DE GÉNÉRATION (IMPORTANT) :
-      1. Quantité : Génère entre 3 et 6 avis.
+      1. Quantité : Génère 3 avis Max.
       2. Note : La moyenne doit être excellente (entre 4.2 et 5.0). Si le produit est "Refurbished/Reconditionné", mentionne que l'état est "propre" ou "quasi neuf".
       3. Identité (CRITIQUE) : Utilise UNIQUEMENT des PRÉNOMS courants au Cameroun.
-         - Exemples Garçons : Yannick, Landry, Thierry, Boris, Franck, Cédric, Steve, Loïc, Junior, Arnaud, Patrick, Hervé.
-         - Exemples Filles : Sandrine, Vanessa, Carine, Raïssa, Mélissa, Laetitia, Audrey, Brenda, Jessica, Muriel.
+         - Exemples Garçons (tu peux innover et ne pas te servir tout le temps des mêmes) : Yannick, Landry, Thierry, Boris, Franck, Cédric, Steve, Loïc, Junior, Arnaud, Patrick, Hervé.
+         - Exemples Filles (tu peux innover et ne pas te servir tout le temps des mêmes) : Sandrine, Vanessa, Carine, Raïssa, Mélissa, Laetitia, Audrey, Brenda, Jessica, Muriel.
          - INTERDIT : N'utilise PAS de noms de famille comme "Talla", "Ngo", "Kamga", "Abena", "Eto'o" comme prénom.
       4. Localisation : Utilise des quartiers précis de Yaoundé (Bastos, Omnisports, Biyem-Assi, Odza, Mendong) et Douala (Akwa, Bonapriso, Bonanjo, Ndogpassi, Ange Raphaël) ou autres villes (Bafoussam, Buea, Garoua).
       5. Langage : Français standard avec une touche locale légère ("Le téléphone est propre", "Validé", "Livraison au calme", "Gère", "Scellé"). Pas trop d'argot, reste professionnel.

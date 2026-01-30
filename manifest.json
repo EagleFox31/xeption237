@@ -1,0 +1,29 @@
+
+{
+  "name": "Xeption Network 237",
+  "short_name": "Xeption",
+  "description": "Leader High-Tech & Troc au Cameroun. Smartphones, PC, et Service Premium.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://res.cloudinary.com/dli0kdkg9/image/upload/w_192,h_192,c_scale/v1768287078/logo_mbajfa.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://res.cloudinary.com/dli0kdkg9/image/upload/w_512,h_512,c_scale/v1768287078/logo_mbajfa.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "https://res.cloudinary.com/dli0kdkg9/image/upload/w_512,h_512,c_scale/v1768287078/logo_mbajfa.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

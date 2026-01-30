@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Brand, ProductRange } from '../../types';
+import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
 
 interface UseBrandsManagerProps {
     brands: Brand[];
@@ -21,9 +22,18 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
         if (!newBrandName.trim()) return;
         const slug = newBrandName.toLowerCase().replace(/[^a-z0-9]/g, '-');
         
-        const { data, error } = await supabase.from('brands').insert([{ name: newBrandName, slug }]).select();
+        const payload = {
+            [DB_SCHEMA.BRANDS.NAME]: newBrandName,
+            [DB_SCHEMA.BRANDS.SLUG]: slug
+        };
+
+        const { data, error } = await supabase.from(DB_TABLES.BRANDS).insert([payload]).select();
         if (!error && data) {
-            setBrands(prev => [...prev, data[0] as Brand]);
+            setBrands(prev => [...prev, {
+                id: data[0][DB_SCHEMA.BRANDS.ID],
+                name: data[0][DB_SCHEMA.BRANDS.NAME],
+                slug: data[0][DB_SCHEMA.BRANDS.SLUG]
+            }]);
             setNewBrandName('');
         } else {
             throw error || new Error("Erreur ajout marque");
@@ -31,9 +41,10 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
     };
 
     const deleteBrand = async (id: string) => {
-        const { error } = await supabase.from('brands').delete().eq('id', id);
+        const { error } = await supabase.from(DB_TABLES.BRANDS).delete().eq(DB_SCHEMA.BRANDS.ID, id);
         if (!error) {
             setBrands(prev => prev.filter(b => b.id !== id));
+            // Cascade delete dans la DB, mais on update l'UI aussi
             setRanges(prev => prev.filter(r => r.brand_id !== id));
         } else {
             throw error;
@@ -45,41 +56,33 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
         if (!newRangeName.trim() || !selectedBrandForRange) return;
         const slug = newRangeName.toLowerCase().replace(/[^a-z0-9]/g, '-');
         
-        // Payload CamelCase
-        const payload: any = { 
-            name: newRangeName, 
-            slug, 
-            brandId: selectedBrandForRange  // CAMELCASE
+        // Utilisation stricte des constantes SnakeCase
+        const payload = { 
+            [DB_SCHEMA.PRODUCT_RANGES.NAME]: newRangeName, 
+            [DB_SCHEMA.PRODUCT_RANGES.SLUG]: slug, 
+            [DB_SCHEMA.PRODUCT_RANGES.BRAND_ID]: selectedBrandForRange,
+            [DB_SCHEMA.PRODUCT_RANGES.CATEGORY]: selectedCategoryForRange || null
         };
-        if (selectedCategoryForRange) {
-            payload.category = selectedCategoryForRange;
-        }
 
-        let { data, error } = await supabase.from('product_ranges').insert([payload]).select();
-
-        // Fallback
-        if (error && error.message.includes('column')) {
-             const snakePayload: any = { 
-                name: newRangeName, 
-                slug, 
-                brand_id: selectedBrandForRange 
-            };
-            if (selectedCategoryForRange) snakePayload.category = selectedCategoryForRange;
-            const res = await supabase.from('product_ranges').insert([snakePayload]).select();
-            data = res.data;
-            error = res.error;
-        }
+        const { data, error } = await supabase.from(DB_TABLES.PRODUCT_RANGES).insert([payload]).select();
 
         if (!error && data) {
-            setRanges(prev => [...prev, data[0] as ProductRange]);
+            setRanges(prev => [...prev, {
+                id: data[0][DB_SCHEMA.PRODUCT_RANGES.ID],
+                name: data[0][DB_SCHEMA.PRODUCT_RANGES.NAME],
+                slug: data[0][DB_SCHEMA.PRODUCT_RANGES.SLUG],
+                brand_id: data[0][DB_SCHEMA.PRODUCT_RANGES.BRAND_ID],
+                category: data[0][DB_SCHEMA.PRODUCT_RANGES.CATEGORY]
+            }]);
             setNewRangeName('');
         } else {
+            console.error(error);
             throw error || new Error("Erreur ajout gamme");
         }
     };
 
     const deleteRange = async (id: string) => {
-        const { error } = await supabase.from('product_ranges').delete().eq('id', id);
+        const { error } = await supabase.from(DB_TABLES.PRODUCT_RANGES).delete().eq(DB_SCHEMA.PRODUCT_RANGES.ID, id);
         if (!error) {
             setRanges(prev => prev.filter(r => r.id !== id));
         } else {

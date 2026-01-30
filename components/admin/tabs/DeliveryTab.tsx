@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { DeliveryZone } from '../../../types';
-import { Truck, Plus, Trash2, MapPin, Save, Loader2, Check } from 'lucide-react';
+import { Truck, Plus, Trash2, Loader2, Save } from 'lucide-react';
 import TableShell from '../shared/TableShell';
+import { DB_TABLES, DB_SCHEMA } from '../../../constants/dbSchema';
 
 const DeliveryTab: React.FC = () => {
     const [zones, setZones] = useState<DeliveryZone[]>([]);
@@ -25,16 +26,44 @@ const DeliveryTab: React.FC = () => {
 
     const fetchZones = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('delivery_zones').select('*').order('price', { ascending: true });
-        if (data) setZones(data as DeliveryZone[]);
+        const { data, error } = await supabase.from(DB_TABLES.DELIVERY_ZONES).select('*').order(DB_SCHEMA.DELIVERY_ZONES.PRICE, { ascending: true });
+        if (data) {
+            const mappedZones = data.map((z: any) => ({
+                id: z[DB_SCHEMA.DELIVERY_ZONES.ID],
+                name: z[DB_SCHEMA.DELIVERY_ZONES.NAME],
+                delay: z[DB_SCHEMA.DELIVERY_ZONES.DELAY],
+                price: z[DB_SCHEMA.DELIVERY_ZONES.PRICE],
+                type: z[DB_SCHEMA.DELIVERY_ZONES.TYPE],
+                active: z[DB_SCHEMA.DELIVERY_ZONES.ACTIVE]
+            }));
+            setZones(mappedZones);
+        }
         setLoading(false);
     };
 
     const handleAddZone = async () => {
         if (!newZone.name || !newZone.delay) return;
-        const { data, error } = await supabase.from('delivery_zones').insert([newZone]).select();
+        
+        const payload = {
+            [DB_SCHEMA.DELIVERY_ZONES.NAME]: newZone.name,
+            [DB_SCHEMA.DELIVERY_ZONES.DELAY]: newZone.delay,
+            [DB_SCHEMA.DELIVERY_ZONES.PRICE]: newZone.price,
+            [DB_SCHEMA.DELIVERY_ZONES.TYPE]: newZone.type,
+            [DB_SCHEMA.DELIVERY_ZONES.ACTIVE]: newZone.active
+        };
+
+        const { data, error } = await supabase.from(DB_TABLES.DELIVERY_ZONES).insert([payload]).select();
+        
         if (data) {
-            setZones([...zones, data[0] as DeliveryZone]);
+            const created = data[0];
+            setZones([...zones, {
+                id: created[DB_SCHEMA.DELIVERY_ZONES.ID],
+                name: created[DB_SCHEMA.DELIVERY_ZONES.NAME],
+                delay: created[DB_SCHEMA.DELIVERY_ZONES.DELAY],
+                price: created[DB_SCHEMA.DELIVERY_ZONES.PRICE],
+                type: created[DB_SCHEMA.DELIVERY_ZONES.TYPE],
+                active: created[DB_SCHEMA.DELIVERY_ZONES.ACTIVE]
+            }]);
             setNewZone({ name: '', delay: '', price: 0, type: 'standard', active: true });
         }
     };
@@ -47,15 +76,16 @@ const DeliveryTab: React.FC = () => {
     // Sauvegarde en base de données (déclenchée par le bouton)
     const handleSaveZone = async (zone: DeliveryZone) => {
         setSavingId(zone.id);
-        const { error } = await supabase.from('delivery_zones').update({
-            name: zone.name,
-            delay: zone.delay,
-            price: zone.price,
-            type: zone.type,
-            active: zone.active
-        }).eq('id', zone.id);
+        const payload = {
+            [DB_SCHEMA.DELIVERY_ZONES.NAME]: zone.name,
+            [DB_SCHEMA.DELIVERY_ZONES.DELAY]: zone.delay,
+            [DB_SCHEMA.DELIVERY_ZONES.PRICE]: zone.price,
+            [DB_SCHEMA.DELIVERY_ZONES.TYPE]: zone.type,
+            [DB_SCHEMA.DELIVERY_ZONES.ACTIVE]: zone.active
+        };
+
+        const { error } = await supabase.from(DB_TABLES.DELIVERY_ZONES).update(payload).eq(DB_SCHEMA.DELIVERY_ZONES.ID, zone.id);
         
-        // Petit délai pour l'effet visuel
         setTimeout(() => setSavingId(null), 500);
         
         if (error) {
@@ -63,16 +93,17 @@ const DeliveryTab: React.FC = () => {
         }
     };
 
-    // Cas spécial : Checkbox (Sauvegarde immédiate pour UX fluide)
     const handleToggleActive = async (zone: DeliveryZone) => {
         const newValue = !zone.active;
-        handleLocalChange(zone.id, { active: newValue }); // Update UI
-        await supabase.from('delivery_zones').update({ active: newValue }).eq('id', zone.id); // Update DB
+        handleLocalChange(zone.id, { active: newValue }); 
+        await supabase.from(DB_TABLES.DELIVERY_ZONES)
+            .update({ [DB_SCHEMA.DELIVERY_ZONES.ACTIVE]: newValue })
+            .eq(DB_SCHEMA.DELIVERY_ZONES.ID, zone.id);
     };
 
     const handleDeleteZone = async (id: string) => {
         if (!window.confirm("Supprimer cette zone de livraison ?")) return;
-        const { error } = await supabase.from('delivery_zones').delete().eq('id', id);
+        const { error } = await supabase.from(DB_TABLES.DELIVERY_ZONES).delete().eq(DB_SCHEMA.DELIVERY_ZONES.ID, id);
         if (!error) setZones(zones.filter(z => z.id !== id));
     };
 
@@ -85,12 +116,11 @@ const DeliveryTab: React.FC = () => {
                             <Truck className="text-xeption-gold w-8 h-8" /> Zones de Livraison
                         </h2>
                         <p className="text-gray-400 text-sm mt-1">
-                            Configurez les villes, délais et tarifs qui apparaissent dans l'estimateur client.
+                            Configurez les villes, délais et tarifs.
                         </p>
                     </div>
                 </div>
 
-                {/* ADD FORM */}
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
                     <h3 className="text-white font-bold uppercase mb-4 text-xs flex items-center gap-2">
                         <Plus className="w-4 h-4 text-green-500" /> Ajouter une destination
@@ -136,7 +166,6 @@ const DeliveryTab: React.FC = () => {
                 </div>
             </div>
 
-            {/* LISTING */}
             <div className="flex-1 min-h-0 relative">
                 <TableShell className="h-full overflow-y-auto border-t border-white/10">
                     <table className="w-full text-left">
@@ -200,7 +229,6 @@ const DeliveryTab: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            {/* Bouton Sauvegarder */}
                                             <button 
                                                 onClick={() => handleSaveZone(zone)}
                                                 className={`p-2 rounded transition-all ${
@@ -208,16 +236,13 @@ const DeliveryTab: React.FC = () => {
                                                     ? 'text-green-500 bg-green-500/10' 
                                                     : 'text-xeption-gold hover:bg-xeption-gold/10 hover:scale-110'
                                                 }`}
-                                                title="Enregistrer les modifications"
+                                                title="Enregistrer"
                                             >
-                                                {savingId === zone.id ? <Check className="w-4 h-4 animate-bounce" /> : <Save className="w-4 h-4" />}
+                                                {savingId === zone.id ? <Plus className="w-4 h-4 rotate-45" /> : <Save className="w-4 h-4" />}
                                             </button>
-                                            
-                                            {/* Bouton Supprimer */}
                                             <button 
                                                 onClick={() => handleDeleteZone(zone.id)} 
                                                 className="text-gray-600 hover:text-red-500 hover:bg-red-500/10 transition-all p-2 rounded"
-                                                title="Supprimer la zone"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>

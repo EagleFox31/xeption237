@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Search, Wrench, CheckCircle, AlertTriangle, Calendar, Smartphone, ShieldCheck, ArrowRight } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { Order, Product } from '../types';
+import { DB_TABLES, DB_SCHEMA } from '../constants/dbSchema';
 
 const RepairSection: React.FC = () => {
   const [step, setStep] = useState<'search' | 'select' | 'form' | 'success'>('search');
@@ -13,33 +14,30 @@ const RepairSection: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 1. Check Order Logic
   const handleCheckOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // Fetch order by ID
       const { data, error } = await supabase
-        .from('orders')
+        .from(DB_TABLES.ORDERS)
         .select('*')
         .eq('id', orderId)
         .single();
 
       if (error || !data) throw new Error("Commande introuvable. Vérifiez l'ID sur votre facture.");
 
-      // Map DB response to Order type (Double check Camel/Snake)
       const order: Order = {
-          id: data.id,
-          items: data.items,
-          total: data.total,
-          status: data.status,
-          paymentMethod: data.paymentMethod || data.payment_method,
-          customerName: data.customerName || data.customer_name,
-          customerPhone: data.customerPhone || data.customer_phone,
-          date: data.date,
-          deliveryMode: data.deliveryMode || data.delivery_mode
+          id: data[DB_SCHEMA.ORDERS.ID],
+          items: data[DB_SCHEMA.ORDERS.ITEMS],
+          total: data[DB_SCHEMA.ORDERS.TOTAL],
+          status: data[DB_SCHEMA.ORDERS.STATUS],
+          paymentMethod: data[DB_SCHEMA.ORDERS.PAYMENT_METHOD],
+          customerName: data[DB_SCHEMA.ORDERS.CUSTOMER_NAME],
+          customerPhone: data[DB_SCHEMA.ORDERS.CUSTOMER_PHONE],
+          date: data[DB_SCHEMA.ORDERS.DATE],
+          deliveryMode: data[DB_SCHEMA.ORDERS.DELIVERY_MODE]
       };
 
       setFoundOrder(order);
@@ -51,27 +49,20 @@ const RepairSection: React.FC = () => {
     }
   };
 
-  // Helper: Check Warranty Validity
   const checkWarranty = (orderDate: string, warrantyMonths: number = 0) => {
     if (!warrantyMonths) return { valid: false, message: "Pas de garantie" };
-    
     const purchaseDate = new Date(orderDate);
     const expirationDate = new Date(purchaseDate.setMonth(purchaseDate.getMonth() + warrantyMonths));
     const today = new Date();
-
     const isValid = today <= expirationDate;
     const diffTime = Math.abs(expirationDate.getTime() - today.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-
     return {
         valid: isValid,
-        message: isValid 
-            ? `Valide encore ${diffDays} jours` 
-            : `Expirée le ${expirationDate.toLocaleDateString()}`
+        message: isValid ? `Valide encore ${diffDays} jours` : `Expirée le ${expirationDate.toLocaleDateString()}`
     };
   };
 
-  // 2. Create Ticket Logic
   const handleSubmitTicket = async () => {
     if (!foundOrder || !selectedItem || !issue) return;
     setLoading(true);
@@ -79,45 +70,20 @@ const RepairSection: React.FC = () => {
     try {
         const warrantyInfo = checkWarranty(foundOrder.date, selectedItem.warrantyMonths);
         
-        const { data: productExists } = await supabase
-            .from('products')
-            .select('id')
-            .eq('id', selectedItem.id)
-            .maybeSingle();
-
-        // PAYLOAD CAMELCASE
         const payload = {
-            id: `REP-${Date.now().toString().slice(-6)}`,
-            orderId: foundOrder.id,
-            productId: productExists ? selectedItem.id : null,
-            productName: selectedItem.name,
-            customerName: foundOrder.customerName,
-            customerPhone: foundOrder.customerPhone,
-            issueDescription: issue, // CamelCase
-            status: 'open',
-            warrantyStatus: warrantyInfo.valid ? 'active' : 'expired',
-            createdAt: new Date().toISOString()
+            [DB_SCHEMA.REPAIR_TICKETS.ID]: `REP-${Date.now().toString().slice(-6)}`,
+            [DB_SCHEMA.REPAIR_TICKETS.ORDER_ID]: foundOrder.id,
+            [DB_SCHEMA.REPAIR_TICKETS.PRODUCT_ID]: selectedItem.id,
+            [DB_SCHEMA.REPAIR_TICKETS.PRODUCT_NAME]: selectedItem.name,
+            [DB_SCHEMA.REPAIR_TICKETS.CUSTOMER_NAME]: foundOrder.customerName,
+            [DB_SCHEMA.REPAIR_TICKETS.CUSTOMER_PHONE]: foundOrder.customerPhone,
+            [DB_SCHEMA.REPAIR_TICKETS.ISSUE_DESCRIPTION]: issue,
+            [DB_SCHEMA.REPAIR_TICKETS.STATUS]: 'open',
+            [DB_SCHEMA.REPAIR_TICKETS.WARRANTY_STATUS]: warrantyInfo.valid ? 'active' : 'expired',
+            [DB_SCHEMA.REPAIR_TICKETS.CREATED_AT]: new Date().toISOString()
         };
 
-        let { error } = await supabase.from('repair_tickets').insert([payload]);
-
-        // Fallback SnakeCase
-        if (error && error.message.includes('column')) {
-             const snakePayload = {
-                id: payload.id,
-                order_id: payload.orderId,
-                product_id: payload.productId,
-                product_name: payload.productName,
-                customer_name: payload.customerName,
-                customer_phone: payload.customerPhone,
-                issue_description: payload.issueDescription,
-                status: 'open',
-                warranty_status: payload.warrantyStatus,
-                created_at: payload.createdAt
-             };
-             const res = await supabase.from('repair_tickets').insert([snakePayload]);
-             error = res.error;
-        }
+        const { error } = await supabase.from(DB_TABLES.REPAIR_TICKETS).insert([payload]);
 
         if (error) throw error;
         setStep('success');
@@ -142,10 +108,8 @@ const RepairSection: React.FC = () => {
         </div>
 
         <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl relative">
-            {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-xeption-gold/5 rounded-full blur-[100px]"></div>
 
-            {/* STEP 1: SEARCH */}
             {step === 'search' && (
                 <div className="p-8 md:p-12 animate-in fade-in slide-in-from-bottom-5">
                     <div className="flex flex-col items-center">
@@ -183,7 +147,6 @@ const RepairSection: React.FC = () => {
                 </div>
             )}
 
-            {/* STEP 2: SELECT PRODUCT */}
             {step === 'select' && foundOrder && (
                 <div className="p-8 animate-in fade-in slide-in-from-right-5">
                      <button onClick={() => setStep('search')} className="text-gray-500 hover:text-white mb-6 text-sm flex items-center gap-1">← Retour</button>
@@ -225,7 +188,6 @@ const RepairSection: React.FC = () => {
                 </div>
             )}
 
-            {/* STEP 3: ISSUE FORM */}
             {step === 'form' && selectedItem && (
                  <div className="p-8 animate-in fade-in slide-in-from-right-5">
                     <button onClick={() => setStep('select')} className="text-gray-500 hover:text-white mb-6 text-sm flex items-center gap-1">← Retour</button>
@@ -259,7 +221,6 @@ const RepairSection: React.FC = () => {
                  </div>
             )}
 
-            {/* STEP 4: SUCCESS */}
             {step === 'success' && (
                 <div className="p-12 text-center animate-in zoom-in duration-500">
                     <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30">

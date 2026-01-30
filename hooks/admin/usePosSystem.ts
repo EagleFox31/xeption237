@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Product, CartItem, Order } from '../../types';
 import { supabase } from '../../services/supabaseClient';
+import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
 
 interface UsePosSystemProps {
     products: Product[];
@@ -31,45 +32,26 @@ export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePos
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
         
-        // Utilisation de CamelCase pour les colonnes (consistant avec le reste de ta DB)
+        // Mapping strict avec DB_SCHEMA
         const orderPayload = {
-            id: newOrderId,
-            customerName: customer.name,
-            customerEmail: customer.email,
-            customerPhone: customer.phone,
-            customerCity: 'Retrait Boutique (POS)',
-            deliveryMode: 'pickup',
-            total: total,
-            status: 'delivered',
-            paymentMethod: paymentMethod,
-            items: cart,
-            date: new Date().toISOString()
+            [DB_SCHEMA.ORDERS.ID]: newOrderId,
+            [DB_SCHEMA.ORDERS.CUSTOMER_NAME]: customer.name,
+            [DB_SCHEMA.ORDERS.CUSTOMER_EMAIL]: customer.email,
+            [DB_SCHEMA.ORDERS.CUSTOMER_PHONE]: customer.phone,
+            [DB_SCHEMA.ORDERS.CUSTOMER_CITY]: 'Retrait Boutique (POS)',
+            [DB_SCHEMA.ORDERS.DELIVERY_MODE]: 'pickup',
+            [DB_SCHEMA.ORDERS.TOTAL]: total,
+            [DB_SCHEMA.ORDERS.STATUS]: 'delivered',
+            [DB_SCHEMA.ORDERS.PAYMENT_METHOD]: paymentMethod,
+            [DB_SCHEMA.ORDERS.ITEMS]: cart,
+            [DB_SCHEMA.ORDERS.DATE]: new Date().toISOString()
         };
 
-        const { error } = await supabase.from('orders').insert([orderPayload]);
+        const { error } = await supabase.from(DB_TABLES.ORDERS).insert([orderPayload]);
 
         if (error) {
             console.error("POS Order Error:", error);
-            // Fallback Snake Case si le CamelCase échoue (filet de sécurité)
-            if (error.message.includes('column')) {
-                 const snakePayload = {
-                    id: newOrderId,
-                    customer_name: customer.name,
-                    customer_email: customer.email,
-                    customer_phone: customer.phone,
-                    customer_city: 'Retrait Boutique (POS)',
-                    delivery_mode: 'pickup',
-                    total: total,
-                    status: 'delivered',
-                    payment_method: paymentMethod,
-                    items: cart,
-                    date: new Date().toISOString()
-                 };
-                 const { error: retryError } = await supabase.from('orders').insert([snakePayload]);
-                 if (retryError) throw retryError;
-            } else {
-                throw error;
-            }
+            throw error;
         }
 
         // Stock Update
@@ -77,7 +59,7 @@ export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePos
             const product = products.find(p => p.id === item.id);
             if (product) {
                 const newStock = Math.max(0, product.stock - item.quantity);
-                await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
+                await supabase.from(DB_TABLES.PRODUCTS).update({ [DB_SCHEMA.PRODUCTS.STOCK]: newStock }).eq('id', item.id);
                 // Optimistic
                 const updatedList = products.map(p => p.id === item.id ? { ...p, stock: newStock } : p);
                 onUpdateProducts(updatedList);

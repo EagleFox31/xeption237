@@ -7,7 +7,7 @@ import { Product, CartItem, Pack } from './types';
 import { supabase } from './services/supabaseClient';
 import { optimizeVideo, optimizeImage } from './utils/mediaOptimization';
 import { Lock, MapPin } from 'lucide-react';
-
+//New
 // Pages
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { Order, CartItem, PaymentMethod } from '../types';
 import { generateInvoiceHTML } from '../utils/invoiceGenerator';
+import { DB_TABLES, DB_SCHEMA } from '../constants/dbSchema';
 
 interface OrderProcessProps {
     cart: CartItem[];
@@ -102,25 +103,31 @@ export const useOrderProcess = () => {
     };
 
     const updateCrm = async (formData: any, total: number) => {
-        const { data: existing } = await supabase.from('customers').select('*').eq('email', formData.email).single();
+        // Utilisation des constantes DB_SCHEMA
+        const { data: existing } = await supabase.from(DB_TABLES.CUSTOMERS)
+            .select('*')
+            .eq(DB_SCHEMA.CUSTOMERS.EMAIL, formData.email)
+            .single();
+            
         if (existing) {
-            await supabase.from('customers').update({
-                total_orders: (existing.total_orders || 0) + 1,
-                total_spent: (existing.total_spent || 0) + total,
-                phone: formData.phone || existing.phone,
-                city: formData.city || existing.city,
-                name: formData.name
-            }).eq('email', formData.email);
+            await supabase.from(DB_TABLES.CUSTOMERS).update({
+                [DB_SCHEMA.CUSTOMERS.TOTAL_ORDERS]: (existing[DB_SCHEMA.CUSTOMERS.TOTAL_ORDERS] || 0) + 1,
+                [DB_SCHEMA.CUSTOMERS.TOTAL_SPENT]: (existing[DB_SCHEMA.CUSTOMERS.TOTAL_SPENT] || 0) + total,
+                [DB_SCHEMA.CUSTOMERS.PHONE]: formData.phone || existing[DB_SCHEMA.CUSTOMERS.PHONE],
+                [DB_SCHEMA.CUSTOMERS.CITY]: formData.city || existing[DB_SCHEMA.CUSTOMERS.CITY],
+                [DB_SCHEMA.CUSTOMERS.NAME]: formData.name,
+                [DB_SCHEMA.CUSTOMERS.UPDATED_AT]: new Date().toISOString()
+            }).eq(DB_SCHEMA.CUSTOMERS.EMAIL, formData.email);
         } else {
-            await supabase.from('customers').insert([{
-                id: crypto.randomUUID(),
-                name: formData.name,
-                email: formData.email,
-                phone: formData.phone,
-                city: formData.city,
-                total_orders: 1,
-                total_spent: total,
-                created_at: new Date().toISOString()
+            await supabase.from(DB_TABLES.CUSTOMERS).insert([{
+                [DB_SCHEMA.CUSTOMERS.ID]: crypto.randomUUID(),
+                [DB_SCHEMA.CUSTOMERS.NAME]: formData.name,
+                [DB_SCHEMA.CUSTOMERS.EMAIL]: formData.email,
+                [DB_SCHEMA.CUSTOMERS.PHONE]: formData.phone,
+                [DB_SCHEMA.CUSTOMERS.CITY]: formData.city,
+                [DB_SCHEMA.CUSTOMERS.TOTAL_ORDERS]: 1,
+                [DB_SCHEMA.CUSTOMERS.TOTAL_SPENT]: total,
+                [DB_SCHEMA.CUSTOMERS.CREATED_AT]: new Date().toISOString()
             }]);
         }
     };

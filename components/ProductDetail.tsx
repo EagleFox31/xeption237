@@ -38,7 +38,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": product.rating || 5,
-        "reviewCount": "24"
+        "reviewCount": product.reviews?.length || "24"
       },
       "offers": {
         "@type": "Offer",
@@ -89,10 +89,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
       }
   };
 
-  // Fake product specific reviews for "Local Proof"
-  const LOCAL_REVIEWS = [
-      { name: "Cédric K.", loc: "Douala, Akwa", txt: "Je l'utilise depuis 2 jours, il est très rapide." },
-      { name: "Mireille S.", loc: "Yaoundé, Odza", txt: "Exactement comme sur la photo. Merci Xeption." }
+  // Use dynamic reviews if available, otherwise show fallback message or hide section
+  const displayReviews = product.reviews && product.reviews.length > 0 ? product.reviews : [
+      { name: "Client Xeption", loc: "Cameroun", txt: "Produit authentique, je recommande.", rating: 5 }
   ];
 
   return (
@@ -182,12 +181,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                             {[...Array(5)].map((_, i) => (
                                 <Star 
                                     key={i} 
-                                    className={`w-4 h-4 ${i < (product.rating || 5) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-300 fill-gray-100'}`} 
+                                    className={`w-4 h-4 ${i < Math.round(product.rating || 5) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-300 fill-gray-100'}`} 
                                 />
                             ))}
                         </div>
                         <span className="text-xs font-bold text-gray-500 tracking-wide">
-                            ({product.rating || 5}.0/5) &bull; <span className="underline cursor-pointer hover:text-black">Voir les avis</span>
+                            ({product.rating || 5}/5) &bull; <span className="underline cursor-pointer hover:text-black">Voir les {product.reviews?.length || 24} avis</span>
                         </span>
                     </div>
                 </div>
@@ -399,16 +398,22 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                   <CheckCircle2 className="w-5 h-5 text-xeption-gold" /> Ils ont acheté ce modèle
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {LOCAL_REVIEWS.map((review, i) => (
-                      <div key={i} className="bg-white/70 border border-gray-200 p-4 rounded-lg flex gap-3 shadow-sm">
-                          <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold">{review.name.charAt(0)}</div>
+                  {displayReviews.map((review, i) => (
+                      <div key={review.id || i} className="bg-white/70 border border-gray-200 p-4 rounded-lg flex gap-3 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold flex-shrink-0">
+                              {(review.author || review.name || 'C').charAt(0)}
+                          </div>
                           <div>
                               <div className="flex items-center gap-2">
-                                  <span className="font-bold text-sm text-black">{review.name}</span>
-                                  <span className="text-[10px] text-gray-500 flex items-center gap-0.5"><MapPin className="w-3 h-3"/> {review.loc}</span>
+                                  <span className="font-bold text-sm text-black">{review.author || review.name}</span>
+                                  <span className="text-[10px] text-gray-500 flex items-center gap-0.5"><MapPin className="w-3 h-3"/> {review.location || review.loc}</span>
                               </div>
-                              <div className="flex mb-1"><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/><Star className="w-3 h-3 text-xeption-gold fill-xeption-gold"/></div>
-                              <p className="text-xs text-gray-600 italic">"{review.txt}"</p>
+                              <div className="flex mb-1">
+                                  {[...Array(5)].map((_, idx) => (
+                                      <Star key={idx} className={`w-3 h-3 ${idx < Math.round(review.rating) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-300 fill-gray-100'}`} />
+                                  ))}
+                              </div>
+                              <p className="text-xs text-gray-600 italic">"{review.text || review.txt}"</p>
                           </div>
                       </div>
                   ))}

@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
-const SITE_URL = 'https://www.xeptionnetwork.shop';
+const SITE_URL = 'https://www.xeptionetwork.shop';
 
 if (!supabaseUrl || !supabaseKey) {
     console.error('Missing Supabase credentials in .env');

@@ -43,8 +43,11 @@
     <meta property="twitter:description" content="Achetez ou Troquez votre matériel High-Tech chez Xeption. Garantie et Livraison rapide Yaoundé/Douala." />
     <meta property="twitter:image" content="https://res.cloudinary.com/dli0kdkg9/image/upload/w_1200,h_630,c_pad,b_rgb:050505/v1768287078/logo_mbajfa.png" />
 
-    <!-- Favicon - Correction complète et Tailles -->
+    <!-- Favicon - Correction complète pour Google (48px multiples) -->
     <link rel="icon" type="image/png" sizes="32x32" href="https://res.cloudinary.com/dli0kdkg9/image/upload/w_32,h_32,c_scale/v1768287078/logo_mbajfa.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="https://res.cloudinary.com/dli0kdkg9/image/upload/w_48,h_48,c_scale/v1768287078/logo_mbajfa.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="https://res.cloudinary.com/dli0kdkg9/image/upload/w_96,h_96,c_scale/v1768287078/logo_mbajfa.png" />
+    <link rel="icon" type="image/png" sizes="144x144" href="https://res.cloudinary.com/dli0kdkg9/image/upload/w_144,h_144,c_scale/v1768287078/logo_mbajfa.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="https://res.cloudinary.com/dli0kdkg9/image/upload/w_192,h_192,c_scale/v1768287078/logo_mbajfa.png" />
     <link rel="shortcut icon" href="https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="https://res.cloudinary.com/dli0kdkg9/image/upload/w_180,h_180,c_scale/v1768287078/logo_mbajfa.png" />
@@ -52,45 +55,64 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Structured Data (JSON-LD) for Local Business (Enriched) -->
+    <!-- Structured Data (JSON-LD) - Double déclaration Store + Organization pour le Logo -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "ElectronicsStore",
-      "name": "Xeption",
-      "description": "Leader de la vente et du troc de produits High-Tech (Smartphones, PC, Consoles) au Cameroun.",
-      "image": "https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png",
-      "@id": "https://www.xeptionnetwork.shop",
-      "url": "https://www.xeptionnetwork.shop",
-      "telephone": "+237697686684",
-      "priceRange": "$$",
-      "areaServed": ["Yaoundé", "Douala", "Cameroun"],
-      "paymentAccepted": ["Cash", "Orange Money", "MTN Mobile Money"],
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Boutique 2063, Mfoundi Mall",
-        "addressLocality": "Yaoundé",
-        "addressRegion": "Centre",
-        "postalCode": "00237",
-        "addressCountry": "CM"
-      },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": 3.8480,
-        "longitude": 11.5021
-      },
-      "openingHoursSpecification": [
+      "@graph": [
         {
-          "@type": "OpeningHoursSpecification",
-          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-          "opens": "09:00",
-          "closes": "20:00"
+          "@type": "Organization",
+          "@id": "https://www.xeptionnetwork.shop/#organization",
+          "name": "Xeption Network",
+          "url": "https://www.xeptionnetwork.shop",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png",
+            "width": 512,
+            "height": 512
+          },
+          "sameAs": [
+            "https://www.facebook.com/xeptioon/",
+            "https://www.instagram.com/xeption_corp/",
+            "https://www.tiktok.com/@xeption237"
+          ]
+        },
+        {
+          "@type": "ElectronicsStore",
+          "parentOrganization": {
+              "@id": "https://www.xeptionnetwork.shop/#organization"
+          },
+          "name": "Xeption",
+          "description": "Leader de la vente et du troc de produits High-Tech (Smartphones, PC, Consoles) au Cameroun.",
+          "image": "https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png",
+          "@id": "https://www.xeptionnetwork.shop",
+          "url": "https://www.xeptionnetwork.shop",
+          "telephone": "+237697686684",
+          "priceRange": "$$",
+          "areaServed": ["Yaoundé", "Douala", "Cameroun"],
+          "paymentAccepted": ["Cash", "Orange Money", "MTN Mobile Money"],
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Boutique 2063, Mfoundi Mall",
+            "addressLocality": "Yaoundé",
+            "addressRegion": "Centre",
+            "postalCode": "00237",
+            "addressCountry": "CM"
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 3.8480,
+            "longitude": 11.5021
+          },
+          "openingHoursSpecification": [
+            {
+              "@type": "OpeningHoursSpecification",
+              "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+              "opens": "09:00",
+              "closes": "20:00"
+            }
+          ]
         }
-      ],
-      "sameAs": [
-        "https://www.facebook.com/xeptioon/",
-        "https://www.instagram.com/xeption_corp/",
-        "https://www.tiktok.com/@xeption237"
       ]
     }
     </script>

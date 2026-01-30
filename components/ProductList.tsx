@@ -4,6 +4,7 @@ import { Product, Category } from '../types';
 import { ShoppingCart, Sparkles, MapPin, Search } from 'lucide-react';
 import { optimizeImage } from '../utils/mediaOptimization';
 import { supabase } from '../services/supabaseClient';
+import AdSpot from './AdSpot';
 
 interface ProductListProps {
   products: Product[];
@@ -30,7 +31,6 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
   }, [products, filter]);
 
   // --- CONTENU SEO DYNAMIQUE ---
-  // C'est ici qu'on intègre les mots-clés "cachés" dans du texte utile
   const getSeoText = () => {
       if (filter === 'smartphones' || filter === 'phones') {
           return (
@@ -66,6 +66,9 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
           </>
       );
   };
+
+  // Logique pour insérer la pub au milieu (après le 5ème produit par ex)
+  const AD_POSITION = 5;
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 sm:px-6 lg:px-8 py-10 md:py-20">
@@ -114,84 +117,98 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
 
       {/* Grid Densifiée */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
-        {filteredProducts.map((product) => (
-          <div 
-            key={product.id}
-            className="group relative bg-[#0f0f0f]/80 backdrop-blur-2xl border border-white/10 hover:border-xeption-gold/50 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-[0_0_30px_rgba(255,215,0,0.15)] hover:-translate-y-1 cursor-pointer rounded-lg"
-            onClick={() => onProductClick && onProductClick(product)}
-          >
-            {/* ... (Code produit identique, je le garde compact pour la réponse XML) ... */}
-            {product.isPromo && (
-              <div className="absolute top-2 right-2 z-20 animate-pulse-slow">
-                 <div className="bg-red-600 text-white text-[8px] md:text-[9px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase tracking-widest shadow-[0_0_15px_rgba(255,0,0,0.6)] rounded-sm border border-red-400">
-                    Promo
-                 </div>
-              </div>
-            )}
-            {product.condition === 'new' && (
-              <div className="absolute top-2 left-2 z-20">
-                 <div className="bg-emerald-500 text-white text-[8px] md:text-[9px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase tracking-widest shadow-[0_0_15px_rgba(16,185,129,0.4)] rounded-sm border border-emerald-400 flex items-center gap-1">
-                    <Sparkles className="w-2 h-2 md:w-2.5 md:h-2.5" /> Neuf
-                 </div>
-              </div>
-            )}
-            
-            <div className="aspect-square bg-black/50 relative overflow-hidden border-b border-white/5 p-4 flex items-center justify-center">
-              <img 
-                src={optimizeImage(product.image, 400)} 
-                alt={`${product.name} Cameroun`} // SEO: Alt text optimisé
-                loading="lazy"
-                width="400"
-                height="400"
-                className="w-full h-full object-contain object-center group-hover:scale-105 group-hover:opacity-90 transition-all duration-500"
-              />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03),transparent_70%)] opacity-50 pointer-events-none"></div>
-              
-              <div className="absolute bottom-2 right-2 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-30">
-                 <button 
-                  onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-                  className="bg-xeption-gold text-black p-2 hover:bg-white transition-colors shadow-lg rounded-full"
-                >
-                   <ShoppingCart className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                </button>
-              </div>
-            </div>
+        {filteredProducts.map((product, index) => (
+          <React.Fragment key={product.id}>
+              {/* INSERTION PUBLICITÉ IN-FEED */}
+              {index === AD_POSITION && (
+                  <div className="col-span-1 md:col-span-1">
+                      <AdSpot 
+                          variant="card"
+                          title="Réparation Express"
+                          subtitle="Écran cassé ? Batterie HS ? On répare en 1h chrono."
+                          image="https://images.unsplash.com/photo-1597424214771-81ec0c399b38?q=80&w=800&auto=format&fit=crop"
+                          cta="Voir les tarifs"
+                          active={true}
+                          isExternal={false}
+                          onAdClick={() => window.location.href = '/?page=sav'}
+                      />
+                  </div>
+              )}
 
-            <div className="p-2 md:p-3 flex-1 flex flex-col relative">
-              <div className="mb-1">
-                <h3 className="text-xs md:text-sm font-bold text-white font-tech uppercase tracking-wide group-hover:text-xeption-gold transition-colors truncate drop-shadow-md">
-                  {product.name}
-                </h3>
-              </div>
-              <p className="text-[10px] text-gray-400 mb-2 line-clamp-1 font-light leading-snug">
-                {product.description}
-              </p>
-              <div className="flex items-end justify-between mt-auto border-t border-white/10 pt-2">
-                <div className="flex flex-col">
-                  {product.oldPrice && (
-                    <span className="text-[9px] text-red-500 font-bold line-through font-mono decoration-red-500 decoration-2">
-                      {product.oldPrice.toLocaleString('fr-FR')}
-                    </span>
-                  )}
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-sm md:text-lg font-bold text-white font-tech shadow-black drop-shadow-md">
-                      {product.price.toLocaleString('fr-FR')}
-                    </span>
-                    <span className="text-[8px] md:text-[10px] text-xeption-gold font-bold uppercase">FCFA</span>
+              <div 
+                className="group relative bg-[#0f0f0f]/80 backdrop-blur-2xl border border-white/10 hover:border-xeption-gold/50 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-[0_0_30px_rgba(255,215,0,0.15)] hover:-translate-y-1 cursor-pointer rounded-lg"
+                onClick={() => onProductClick && onProductClick(product)}
+              >
+                {product.isPromo && (
+                  <div className="absolute top-2 right-2 z-20 animate-pulse-slow">
+                    <div className="bg-red-600 text-white text-[8px] md:text-[9px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase tracking-widest shadow-[0_0_15px_rgba(255,0,0,0.6)] rounded-sm border border-red-400">
+                        Promo
+                    </div>
+                  </div>
+                )}
+                {product.condition === 'new' && (
+                  <div className="absolute top-2 left-2 z-20">
+                    <div className="bg-emerald-500 text-white text-[8px] md:text-[9px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase tracking-widest shadow-[0_0_15px_rgba(16,185,129,0.4)] rounded-sm border border-emerald-400 flex items-center gap-1">
+                        <Sparkles className="w-2 h-2 md:w-2.5 md:h-2.5" /> Neuf
+                    </div>
+                  </div>
+                )}
+                
+                <div className="aspect-square bg-black/50 relative overflow-hidden border-b border-white/5 p-4 flex items-center justify-center">
+                  <img 
+                    src={optimizeImage(product.image, 400)} 
+                    alt={`${product.name} Cameroun`} 
+                    loading="lazy"
+                    width="400"
+                    height="400"
+                    className="w-full h-full object-contain object-center group-hover:scale-105 group-hover:opacity-90 transition-all duration-500"
+                  />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03),transparent_70%)] opacity-50 pointer-events-none"></div>
+                  
+                  <div className="absolute bottom-2 right-2 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-30">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
+                      className="bg-xeption-gold text-black p-2 hover:bg-white transition-colors shadow-lg rounded-full"
+                    >
+                      <ShoppingCart className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                    </button>
                   </div>
                 </div>
-                <span className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-white transition-colors border border-white/10 px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-white/5 hover:bg-white/10">
-                    + Info
-                </span>
+
+                <div className="p-2 md:p-3 flex-1 flex flex-col relative">
+                  <div className="mb-1">
+                    <h3 className="text-xs md:text-sm font-bold text-white font-tech uppercase tracking-wide group-hover:text-xeption-gold transition-colors truncate drop-shadow-md">
+                      {product.name}
+                    </h3>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mb-2 line-clamp-1 font-light leading-snug">
+                    {product.description}
+                  </p>
+                  <div className="flex items-end justify-between mt-auto border-t border-white/10 pt-2">
+                    <div className="flex flex-col">
+                      {product.oldPrice && (
+                        <span className="text-[9px] text-red-500 font-bold line-through font-mono decoration-red-500 decoration-2">
+                          {product.oldPrice.toLocaleString('fr-FR')}
+                        </span>
+                      )}
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-sm md:text-lg font-bold text-white font-tech shadow-black drop-shadow-md">
+                          {product.price.toLocaleString('fr-FR')}
+                        </span>
+                        <span className="text-[8px] md:text-[10px] text-xeption-gold font-bold uppercase">FCFA</span>
+                      </div>
+                    </div>
+                    <span className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-white transition-colors border border-white/10 px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-white/5 hover:bg-white/10">
+                        + Info
+                    </span>
+                  </div>
+                </div>
+                <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-xeption-gold to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </div>
-            </div>
-            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-xeption-gold to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-          </div>
+          </React.Fragment>
         ))}
       </div>
 
-      {/* --- SEO FOOTER BLOCK (Nouveau) --- */}
-      {/* Ce bloc est crucial : il contient les mots-clés en texte brut pour Google */}
       <div className="mt-16 pt-8 border-t border-white/10 bg-black/40 backdrop-blur-md rounded-xl p-6 md:p-8">
           <div className="flex items-start gap-4">
               <div className="hidden md:block p-3 bg-white/5 rounded-full border border-white/10 text-xeption-gold">

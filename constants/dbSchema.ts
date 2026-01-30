@@ -32,6 +32,7 @@ export const DB_SCHEMA = {
         SPECS: 'specs',
         PROS: 'pros',
         CONS: 'cons',
+        REVIEWS: 'reviews', // NOUVEAU : Colonne JSONB pour les avis
         IMAGES: 'images',
         VIDEO: 'video',
         // CamelCase (Spécifique SQL)

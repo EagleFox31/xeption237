@@ -29,6 +29,7 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
             specs: [],
             pros: [],
             cons: [],
+            reviews: [], // Initialisation vide
             warrantyMonths: 0
         });
     };
@@ -51,6 +52,7 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
             [DB_SCHEMA.PRODUCTS.IMAGE]: productData.image,
             [DB_SCHEMA.PRODUCTS.STOCK]: productData.stock,
             [DB_SCHEMA.PRODUCTS.CONDITION]: productData.condition || 'refurbished',
+            [DB_SCHEMA.PRODUCTS.RATING]: productData.rating || 5, // Sauvegarde de la note moyenne
             
             // Colonnes CamelCase SQL
             [DB_SCHEMA.PRODUCTS.OLD_PRICE]: productData.oldPrice || null,
@@ -68,7 +70,8 @@ export const useInventoryManager = ({ products, onUpdateProducts }: UseInventory
             [DB_SCHEMA.PRODUCTS.PROS]: productData.pros,
             [DB_SCHEMA.PRODUCTS.CONS]: productData.cons,
             [DB_SCHEMA.PRODUCTS.IMAGES]: productData.images,
-            [DB_SCHEMA.PRODUCTS.VIDEO]: productData.video
+            [DB_SCHEMA.PRODUCTS.VIDEO]: productData.video,
+            [DB_SCHEMA.PRODUCTS.REVIEWS]: productData.reviews // Sauvegarde des avis générés
         };
 
         const { error } = await supabase.from(DB_TABLES.PRODUCTS).upsert(dbPayload);

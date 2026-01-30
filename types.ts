@@ -20,6 +20,15 @@ export interface ProductRange {
   slug: string;
 }
 
+export interface Review {
+  id: string;
+  author: string;
+  location: string;
+  rating: number;
+  text: string;
+  date: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -41,6 +50,7 @@ export interface Product {
   specs?: { label: string; value: string }[];
   pros?: string[];
   cons?: string[];
+  reviews?: Review[]; // NOUVEAU : Avis générés par IA
   warrantyMonths?: number;
 }
 

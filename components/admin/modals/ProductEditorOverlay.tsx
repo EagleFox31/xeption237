@@ -1,9 +1,10 @@
 
 import React, { useRef, useState } from 'react';
 import { Product, Category, Brand, ProductRange } from '../../../types';
-import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star, Smartphone, RefreshCw } from 'lucide-react';
+import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star, Smartphone, RefreshCw, MessageCircle } from 'lucide-react';
 import { uploadImageToCloudinary, uploadVideoToCloudinary } from '../../../services/uploadService';
 import { generateProductDetails } from '../../../services/geminiService';
+import { generateProductReviews } from '../../../services/reviewGenerator';
 
 interface ProductEditorOverlayProps {
   product: Product;
@@ -17,6 +18,7 @@ interface ProductEditorOverlayProps {
 
 const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, categories, brands = [], ranges = [], onClose, onSave, onChange }) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingReviews, setIsGeneratingReviews] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -93,6 +95,26 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
              specs: details.specs || []
           });
       } finally { setIsGenerating(false); }
+  };
+
+  // --- AI REVIEWS HANDLER ---
+  const handleReviewsGeneration = async () => {
+      if (!product.name || !product.description) {
+          alert("Ajoutez un nom et une description avant de générer des avis.");
+          return;
+      }
+      setIsGeneratingReviews(true);
+      try {
+          const reviews = await generateProductReviews(product.name, product.category, product.description);
+          
+          // Calculer la nouvelle note moyenne
+          const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+          const avgRating = reviews.length > 0 ? parseFloat((totalRating / reviews.length).toFixed(1)) : 5;
+
+          onChange({ reviews, rating: avgRating });
+      } finally { 
+          setIsGeneratingReviews(false); 
+      }
   };
 
   return (
@@ -268,6 +290,54 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                                 onChange={e => onChange({ description: e.target.value })} 
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* BLOC : AVIS CLIENTS (RAG) */}
+                <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-white font-tech font-bold uppercase text-sm flex items-center gap-2">
+                            <MessageCircle className="w-4 h-4 text-purple-400" /> Avis Clients (IA Social Proof)
+                        </h3>
+                        <button 
+                            type="button"
+                            onClick={handleReviewsGeneration}
+                            disabled={isGeneratingReviews}
+                            className="bg-purple-500/10 hover:bg-purple-500 hover:text-white text-purple-400 border border-purple-500/30 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"
+                        >
+                            {isGeneratingReviews ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3"/>} Générer Avis
+                        </button>
+                    </div>
+
+                    <div className="space-y-3">
+                        {(product.reviews || []).length === 0 ? (
+                            <div className="text-center py-6 text-gray-500 text-xs italic border border-dashed border-white/10 rounded-sm">
+                                Aucun avis généré. Cliquez sur le bouton pour simuler des avis locaux.
+                            </div>
+                        ) : (
+                            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                {(product.reviews || []).map((review) => (
+                                    <div key={review.id} className="bg-white/5 p-3 rounded-sm border border-white/5">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className="text-xs font-bold text-white">{review.author} <span className="text-[10px] text-gray-500 font-normal ml-1">({review.location})</span></span>
+                                            <span className="flex items-center text-[10px] text-xeption-gold font-bold">
+                                                {review.rating} <Star className="w-2 h-2 ml-0.5 fill-current"/>
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-gray-400 leading-tight">"{review.text}"</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {product.reviews && product.reviews.length > 0 && (
+                            <button 
+                                type="button" 
+                                onClick={() => onChange({ reviews: [], rating: 0 })}
+                                className="text-[10px] text-red-500 hover:text-white flex items-center gap-1 mt-2"
+                            >
+                                <Trash2 className="w-3 h-3"/> Effacer les avis
+                            </button>
+                        )}
                     </div>
                 </div>
 

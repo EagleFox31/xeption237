@@ -9,7 +9,7 @@ import { generateInvoiceHTML } from '../utils/invoiceGenerator';
 import RepairTicketManagement from './RepairTicketManagement';
 import Logo from './Logo';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-
+//up
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
     const location = useLocation();
     const currentPath = location.pathname.split('/').pop() || 'dashboard'; // Simple active state check

@@ -10,17 +10,17 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://res.cloudinary.com/dli0kdkg9/image/upload/w_192,h_192,c_scale/v1768287078/logo_mbajfa.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://res.cloudinary.com/dli0kdkg9/image/upload/w_512,h_512,c_scale/v1768287078/logo_mbajfa.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "https://res.cloudinary.com/dli0kdkg9/image/upload/w_512,h_512,c_scale/v1768287078/logo_mbajfa.png",
+      "src": "/icons/icon-512x512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

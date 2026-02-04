@@ -7,6 +7,7 @@ import { Product, CartItem, Pack } from './types';
 import { supabase } from './services/supabaseClient';
 import { optimizeVideo, optimizeImage } from './utils/mediaOptimization';
 import { Lock, MapPin } from 'lucide-react';
+import { getProductSlug } from './utils/slug';
 //Newlmlmpmmlm
 // Pages
 import HomePage from './pages/HomePage';
@@ -25,6 +26,10 @@ const App: React.FC = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const prerenderNotified = useRef(false);
+  const isPrerender =
+    typeof window !== 'undefined' &&
+    (window as any).__PRERENDER__ === true;
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -49,6 +54,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      const notifyPrerenderReady = () => {
+        if (prerenderNotified.current) return;
+        if (typeof document !== 'undefined') {
+          document.dispatchEvent(new Event('prerender-ready'));
+          prerenderNotified.current = true;
+        }
+      };
       try {
         const { data: productData, error: productError } = await supabase.from('products').select('*');
         if (productError) throw productError;
@@ -84,10 +96,14 @@ const App: React.FC = () => {
 
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
+        notifyPrerenderReady();
       }
     };
 
     fetchData();
+
+    if (isPrerender) return;
 
     const productChannel = supabase.channel('public:products')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData())
@@ -198,10 +214,10 @@ const App: React.FC = () => {
         cartCount={cartCount}
         onOpenCart={() => setIsCartOpen(true)}
         products={products}
-        onProductSelect={(p) => navigate(`/product/${p.id}`)}
+        onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
       />
 
-      <main className="pt-20 pb-20 relative z-10 w-full">
+      <main className={`pt-20 relative z-10 w-full ${isProductPage ? 'pb-24 md:pb-6' : 'pb-20'}`}>
         <Routes>
           <Route path="/" element={
             <HomePage
@@ -217,7 +233,7 @@ const App: React.FC = () => {
               onAddToCart={addToCart}
             />
           } />
-          <Route path="/product/:id" element={
+          <Route path="/product/:slug" element={
             <ProductPage
               products={products}
               onAddToCart={addToCart}

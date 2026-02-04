@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 dotenv.config();
 
@@ -134,14 +135,20 @@ const main = async () => {
 
   const port = 4173;
   const server = await startServer(port);
-  const executablePath = findChromeExecutable();
+  const localExecutable = findChromeExecutable();
+  const executablePath = localExecutable || await chromium.executablePath();
   if (!executablePath) {
-    console.error('Chrome/Edge not found. Set PUPPETEER_EXECUTABLE_PATH or CHROME_PATH.');
-    process.exit(1);
+    console.warn('[prerender] Chrome/Edge not found. Skipping prerender.');
+    process.exit(0);
   }
   console.log(`[prerender] routes: ${routes.length}`);
   console.log(`[prerender] using browser: ${executablePath}`);
-  const browser = await puppeteer.launch({ headless: 'new', executablePath });
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath,
+    headless: chromium.headless
+  });
 
   try {
     const page = await browser.newPage();

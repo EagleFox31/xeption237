@@ -59,7 +59,7 @@ async function generateSitemap() {
     // Fetch Products for Dynamic Routes
     const { data: products, error } = await supabase
         .from('products')
-        .select('id, name, updated_at');
+        .select('id, name');
 
     if (error) {
         console.error('Error fetching products:', error);

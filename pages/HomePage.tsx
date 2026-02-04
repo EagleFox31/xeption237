@@ -8,6 +8,7 @@ import PackList from '../components/PackList';
 import TrocSection from '../components/TrocSection';
 import { Product, Pack } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { getProductSlug } from '../utils/slug';
 
 interface HomePageProps {
   products: Product[];
@@ -45,7 +46,7 @@ const HomePage: React.FC<HomePageProps> = ({ products, packs, onAddToCart, onAdd
          <ProductList 
             products={displayFeatured} 
             onAddToCart={onAddToCart} 
-            onProductClick={(p) => navigate(`/product/${p.id}`)} 
+            onProductClick={(p) => navigate(`/product/${getProductSlug(p)}`)} 
             title="Nos Pépites"
          />
       </div>

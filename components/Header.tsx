@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 import { Product } from '../types';
 import { optimizeImage } from '../utils/mediaOptimization';
+import { getProductSlug } from '../utils/slug';
 
 interface HeaderProps {
   cartCount: number;
@@ -122,7 +123,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
       onProductSelect(product);
     } else {
       // If no handler passed (e.g. from Routes context), default navigation
-      navigate(`/product/${product.id}`);
+      navigate(`/product/${getProductSlug(product)}`);
     }
     setIsSearchOpen(false);
     setSearchQuery('');

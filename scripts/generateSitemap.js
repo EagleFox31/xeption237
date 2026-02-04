@@ -31,6 +31,16 @@ const staticRoutes = [
     { url: '/sav', changefreq: 'monthly', priority: 0.6 },
 ];
 
+const slugify = (input = '') => {
+    return input
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/--+/g, '-');
+};
+
 async function generateSitemap() {
     console.log('Generating sitemap...');
 
@@ -49,15 +59,16 @@ async function generateSitemap() {
     // Fetch Products for Dynamic Routes
     const { data: products, error } = await supabase
         .from('products')
-        .select('id, updated_at');
+        .select('id, name, updated_at');
 
     if (error) {
         console.error('Error fetching products:', error);
     } else if (products) {
         console.log(`Found ${products.length} products.`);
         products.forEach(product => {
+            const slug = `${slugify(product.name || 'product')}-${product.id}`;
             root.ele('url')
-                .ele('loc').txt(`${SITE_URL}/product/${product.id}`).up()
+                .ele('loc').txt(`${SITE_URL}/product/${slug}`).up()
                 .ele('changefreq').txt('weekly').up()
                 .ele('priority').txt('0.7').up()
                 //.ele('lastmod').txt(new Date(product.updated_at).toISOString()).up() // Optional
@@ -69,15 +80,9 @@ async function generateSitemap() {
     const xml = root.end({ prettyPrint: true });
 
     // Write to public/sitemap.xml
-    const outputPath = path.resolve(__dirname, '../public/sitemap.xml'); // Vite public dir
-    // Fallback to root if public doesn't exist (though usually it does in Vite)
-    // Actually, in this project structure, sitemap.xml is at root?
-    // User had sitemap at e:\xeption-app\xeption237\sitemap.xml
-    // Vite normally serves root files efficiently.
-    const targetPath = path.resolve(__dirname, '../sitemap.xml');
-
-    fs.writeFileSync(targetPath, xml);
-    console.log(`Sitemap generated at ${targetPath}`);
+    const outputPath = path.resolve(__dirname, '../public/sitemap.xml');
+    fs.writeFileSync(outputPath, xml);
+    console.log(`Sitemap generated at ${outputPath}`);
 }
 
 generateSitemap();

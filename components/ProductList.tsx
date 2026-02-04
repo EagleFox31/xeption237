@@ -11,11 +11,37 @@ interface ProductListProps {
   onAddToCart: (product: Product) => void;
   onProductClick?: (product: Product) => void;
   title?: string;
+  filter?: string;
+  onFilterChange?: (next: string) => void;
+  brandFilter?: string;
+  onBrandChange?: (next: string) => void;
 }
 
-const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProductClick, title = "Nos Pépites" }) => {
-  const [filter, setFilter] = useState<string>('all');
+const ProductList: React.FC<ProductListProps> = ({
+  products,
+  onAddToCart,
+  onProductClick,
+  title = "Nos Pépites",
+  filter,
+  onFilterChange,
+  brandFilter,
+  onBrandChange
+}) => {
+  const [internalFilter, setInternalFilter] = useState<string>('all');
+  const [internalBrandFilter, setInternalBrandFilter] = useState<string>('all');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
+
+  const activeFilter = filter ?? internalFilter;
+  const activeBrand = brandFilter ?? internalBrandFilter;
+  const setFilter = (next: string) => {
+    if (onFilterChange) onFilterChange(next);
+    else setInternalFilter(next);
+  };
+  const setBrand = (next: string) => {
+    if (onBrandChange) onBrandChange(next);
+    else setInternalBrandFilter(next);
+  };
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -25,14 +51,60 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
     fetchCats();
   }, []);
 
+  useEffect(() => {
+    const fetchBrands = async () => {
+      const { data } = await supabase.from('brands').select('id,name').order('name', { ascending: true });
+      if (data) setBrands(data as { id: string; name: string }[]);
+    };
+    fetchBrands();
+  }, []);
+
+  const productsInCategory = useMemo(() => {
+    if (activeFilter === 'all') return products;
+    return products.filter(p => p.category === activeFilter);
+  }, [products, activeFilter]);
+
   const filteredProducts = useMemo(() => {
-    if (filter === 'all') return products;
-    return products.filter(p => p.category === filter);
-  }, [products, filter]);
+    const base = productsInCategory;
+    if (activeBrand === 'all') return base;
+    return base.filter(p => p.brand === activeBrand);
+  }, [productsInCategory, activeBrand]);
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    products.forEach(p => {
+      const key = p.category || 'uncategorized';
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return counts;
+  }, [products]);
+
+  const brandOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    productsInCategory.forEach(p => {
+      if (!p.brand) return;
+      counts.set(p.brand, (counts.get(p.brand) || 0) + 1);
+    });
+
+    const nameById = new Map(brands.map(b => [b.id, b.name]));
+    return Array.from(counts.entries())
+      .map(([id, count]) => ({
+        id,
+        count,
+        name: nameById.get(id) || id
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [productsInCategory, brands]);
+
+  useEffect(() => {
+    if (activeBrand === 'all') return;
+    const exists = brandOptions.some(b => b.id === activeBrand);
+    if (!exists) setBrand('all');
+  }, [activeBrand, brandOptions]);
 
   // --- CONTENU SEO DYNAMIQUE ---
   const getSeoText = () => {
-      if (filter === 'smartphones' || filter === 'phones') {
+      if (activeFilter === 'smartphones' || activeFilter === 'phones') {
           return (
               <>
                   <h3 className="text-lg font-bold text-white mb-2">Vente de Smartphones au Cameroun (Douala & Yaoundé)</h3>
@@ -44,7 +116,7 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
               </>
           );
       }
-      if (filter === 'laptops' || filter === 'ordinateurs') {
+      if (activeFilter === 'laptops' || activeFilter === 'ordinateurs') {
           return (
               <>
                   <h3 className="text-lg font-bold text-white mb-2">PC Gamer et MacBook Pro au Prix du Mboa</h3>
@@ -92,28 +164,56 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, onProd
           <button
               onClick={() => setFilter('all')}
               className={`px-3 py-1.5 rounded-none border border-transparent font-tech font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all clip-path-slant backdrop-blur-md ${
-                filter === 'all' 
+                activeFilter === 'all' 
                   ? 'bg-xeption-gold text-black border-xeption-gold shadow-[0_0_15px_rgba(255,215,0,0.3)]' 
                   : 'bg-black/60 text-gray-300 border-white/20 hover:border-white hover:text-white hover:bg-black/80'
               }`}
             >
-              Tout
+              Tout ({products.length})
           </button>
           {categories.map((cat) => (
             <button
               key={cat.slug}
               onClick={() => setFilter(cat.slug)}
               className={`px-3 py-1.5 rounded-none border border-transparent font-tech font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all clip-path-slant backdrop-blur-md ${
-                filter === cat.slug 
+                activeFilter === cat.slug 
                   ? 'bg-xeption-gold text-black border-xeption-gold shadow-[0_0_15px_rgba(255,215,0,0.3)]' 
                   : 'bg-black/60 text-gray-300 border-white/20 hover:border-white hover:text-white hover:bg-black/80'
               }`}
             >
-              {cat.name}
+              {cat.name} ({categoryCounts.get(cat.slug) || 0})
             </button>
           ))}
         </div>
       </div>
+
+      {activeFilter !== 'all' && brandOptions.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6 px-2">
+          <button
+            onClick={() => setBrand('all')}
+            className={`px-3 py-1.5 rounded-none border border-transparent font-tech font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all clip-path-slant backdrop-blur-md ${
+              activeBrand === 'all' 
+                ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' 
+                : 'bg-black/60 text-gray-400 border-white/20 hover:border-white hover:text-white hover:bg-black/80'
+            }`}
+          >
+            Toutes marques ({brandOptions.reduce((acc, b) => acc + b.count, 0)})
+          </button>
+          {brandOptions.map((brand) => (
+            <button
+              key={brand.id}
+              onClick={() => setBrand(brand.id)}
+              className={`px-3 py-1.5 rounded-none border border-transparent font-tech font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all clip-path-slant backdrop-blur-md ${
+                activeBrand === brand.id 
+                  ? 'bg-xeption-gold text-black border-xeption-gold shadow-[0_0_15px_rgba(255,215,0,0.3)]' 
+                  : 'bg-black/60 text-gray-300 border-white/20 hover:border-white hover:text-white hover:bg-black/80'
+              }`}
+            >
+              {brand.name} ({brand.count})
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Grid Densifiée */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">

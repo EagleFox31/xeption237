@@ -3,22 +3,41 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
 import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Share2, Link as LinkIcon, CheckCircle2, Sparkles, ShieldCheck, Star, MapPin } from 'lucide-react';
 import { optimizeImage } from '../utils/mediaOptimization';
+import { getProductSlug } from '../utils/slug';
 
 interface ProductDetailProps {
     product: Product;
+    relatedProducts?: Product[];
+    topProducts?: Product[];
     onBack: () => void;
     onAddToCart: (product: Product) => void;
+    onProductSelect?: (product: Product) => void;
 }
 
-const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToCart }) => {
-    // Use main image as default, fallback to first in array if main is empty
-    const [activeImage, setActiveImage] = useState(product.image);
+const ProductDetail: React.FC<ProductDetailProps> = ({
+    product,
+    relatedProducts = [],
+    topProducts = [],
+    onBack,
+    onAddToCart,
+    onProductSelect
+}) => {
+    const [activeIndex, setActiveIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [linkCopied, setLinkCopied] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const touchStartX = useRef<number | null>(null);
+    const touchEndX = useRef<number | null>(null);
+    const relatedRef = useRef<HTMLDivElement>(null);
 
     // Combine main image + extra images for gallery list
     const galleryImages = [product.image, ...(product.images || [])].filter(Boolean);
+    const warrantyMonths = Number(product.warrantyMonths || 0);
+    const activeImage = galleryImages[activeIndex] || product.image;
+
+    useEffect(() => {
+        setActiveIndex(0);
+    }, [product.id]);
 
     // SEO: Dynamic Page Title & Structured Data (JSON-LD)
     useEffect(() => {
@@ -43,7 +62,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
             },
             "offers": {
                 "@type": "Offer",
-                "url": `${window.location.origin}/product/${product.id}`,
+                "url": `${window.location.origin}/product/${getProductSlug(product)}`,
                 "priceCurrency": "XAF",
                 "price": product.price,
                 "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
@@ -81,7 +100,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
     };
 
     const handleShare = async () => {
-        const url = `${window.location.origin}/product/${product.id}`;
+        const url = `${window.location.origin}/product/${getProductSlug(product)}`;
         try {
             await navigator.clipboard.writeText(url);
             setLinkCopied(true);
@@ -205,11 +224,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                             </div>
                         </div>
 
-                        {product.warrantyMonths && (
+                        {warrantyMonths > 0 && (
                             <div className="flex items-center gap-2 text-sm text-gray-600 bg-black/5 inline-flex px-3 py-2 rounded-lg">
                                 <ShieldCheck className="w-4 h-4 text-green-600" />
                                 <span className="uppercase font-bold tracking-wide">
-                                    Garantie {product.warrantyMonths} Mois {product.condition === 'new' ? 'Constructeur' : 'Xeption'} inclus
+                                    Garantie {warrantyMonths} Mois {product.condition === 'new' ? 'Constructeur' : 'Xeption'} inclus
                                 </span>
                             </div>
                         )}
@@ -226,7 +245,28 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                     </div>
 
                     <div className="w-full md:w-1/2 flex flex-col items-center justify-center order-1 md:order-2 z-10">
-                        <div className="relative h-80 md:h-[500px] w-full flex items-center justify-center group mb-6">
+                        <div
+                            className="relative h-80 md:h-[500px] w-full flex items-center justify-center group mb-6"
+                            onTouchStart={(e) => {
+                                touchStartX.current = e.touches[0]?.clientX ?? null;
+                                touchEndX.current = null;
+                            }}
+                            onTouchMove={(e) => {
+                                touchEndX.current = e.touches[0]?.clientX ?? null;
+                            }}
+                            onTouchEnd={() => {
+                                if (galleryImages.length < 2) return;
+                                if (touchStartX.current === null || touchEndX.current === null) return;
+                                const delta = touchStartX.current - touchEndX.current;
+                                const threshold = 40;
+                                if (Math.abs(delta) < threshold) return;
+                                if (delta > 0) {
+                                    setActiveIndex((prev) => (prev + 1) % galleryImages.length);
+                                } else {
+                                    setActiveIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+                                }
+                            }}
+                        >
                             <div className={`absolute w-64 h-64 md:w-96 md:h-96 rounded-full blur-[60px] group-hover:blur-[80px] transition-all duration-700 mix-blend-multiply ${product.condition === 'new'
                                 ? 'bg-gradient-to-tr from-emerald-400/30 to-green-200/50'
                                 : 'bg-gradient-to-tr from-xeption-gold/30 to-orange-200/50'
@@ -238,14 +278,35 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                                 className="relative z-10 max-h-full max-w-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform transition-transform duration-500 ease-out animate-in zoom-in-95"
                                 key={activeImage}
                             />
+
+                            {galleryImages.length > 1 && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)}
+                                        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 bg-black/60 text-white border border-white/20 p-2 rounded-full hover:bg-black/80 transition-colors"
+                                        aria-label="Image précédente"
+                                    >
+                                        <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveIndex((prev) => (prev + 1) % galleryImages.length)}
+                                        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 bg-black/60 text-white border border-white/20 p-2 rounded-full hover:bg-black/80 transition-colors"
+                                        aria-label="Image suivante"
+                                    >
+                                        <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 rotate-180" />
+                                    </button>
+                                </>
+                            )}
                         </div>
 
                         <div className="flex gap-3 overflow-x-auto pb-4 w-full justify-start md:justify-center px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
                             {galleryImages.map((img, idx) => (
                                 <button
                                     key={idx}
-                                    onClick={() => setActiveImage(img)}
-                                    className={`relative w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all snap-center ${activeImage === img ? 'border-xeption-gold shadow-lg scale-105' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
+                                    onClick={() => setActiveIndex(idx)}
+                                    className={`relative w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all snap-center ${activeIndex === idx ? 'border-xeption-gold shadow-lg scale-105' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
                                 >
                                     <img
                                         src={optimizeImage(img, 150)}
@@ -365,6 +426,89 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                         </div>
                     </div>
                 )}
+
+                {(relatedProducts.length > 0 || topProducts.length > 0) && (() => {
+                    const used = new Set(relatedProducts.map(p => p.id));
+                    const fill = topProducts.filter(p => !used.has(p.id)).slice(0, Math.max(0, 5 - relatedProducts.length));
+                    const display = [...relatedProducts, ...fill];
+                    const isTopOnly = relatedProducts.length === 0;
+                    const title = isTopOnly ? 'Top ventes' : 'Voir aussi';
+                    const sub = isTopOnly ? 'Produits populaires' : 'Même catégorie';
+
+                    const scrollBy = (delta: number) => {
+                        if (!relatedRef.current) return;
+                        relatedRef.current.scrollBy({ left: delta, behavior: 'smooth' });
+                    };
+
+                    return (
+                        <div className="max-w-6xl mx-auto px-4 pb-20 relative z-10">
+                            <div className="flex items-center justify-between gap-4 mb-6">
+                                <div className="flex items-center gap-3">
+                                    <span className="w-2 h-8 bg-xeption-gold"></span>
+                                    <h3 className="text-2xl font-bold text-black font-tech uppercase">{title}</h3>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider">{sub}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => scrollBy(-320)}
+                                        className="bg-white/80 border border-black/10 text-black p-2 rounded-full hover:bg-white transition-colors"
+                                        aria-label="Défiler à gauche"
+                                    >
+                                        <ArrowLeft className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => scrollBy(320)}
+                                        className="bg-white/80 border border-black/10 text-black p-2 rounded-full hover:bg-white transition-colors"
+                                        aria-label="Défiler à droite"
+                                    >
+                                        <ArrowLeft className="w-4 h-4 rotate-180" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                ref={relatedRef}
+                                className="flex gap-3 md:gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth no-scrollbar"
+                            >
+                                {display.map((p) => (
+                                    <div
+                                        key={p.id}
+                                        className="group bg-white/70 border border-white/60 hover:border-xeption-gold/40 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all cursor-pointer snap-start min-w-[160px] max-w-[200px] flex-shrink-0"
+                                        onClick={() => onProductSelect && onProductSelect(p)}
+                                    >
+                                        <div className="aspect-square bg-white/80 p-3 flex items-center justify-center">
+                                            <img
+                                                src={optimizeImage(p.image, 240)}
+                                                alt={p.name}
+                                                loading="lazy"
+                                                className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                                            />
+                                        </div>
+                                        <div className="p-2">
+                                            <h4 className="text-[10px] md:text-xs font-bold uppercase text-gray-900 truncate">
+                                                {p.name}
+                                            </h4>
+                                            <div className="flex items-baseline gap-1 mt-1">
+                                                <span className="text-sm font-bold text-black font-tech">
+                                                    {p.price.toLocaleString('fr-FR')}
+                                                </span>
+                                                <span className="text-[8px] text-xeption-gold font-bold uppercase">FCFA</span>
+                                            </div>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onAddToCart(p); }}
+                                                className="mt-2 w-full bg-black text-white text-[9px] uppercase font-bold tracking-widest py-1.5 hover:bg-xeption-gold hover:text-black transition-colors"
+                                            >
+                                                Ajouter
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* 5. LOCAL PRODUCT PROOF - Only show if there are reviews */}
                 {displayReviews.length > 0 && (

@@ -1,7 +1,9 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import ProductDetail from '../components/ProductDetail';
 import { Product } from '../types';
+import { parseProductIdFromSlug } from '../utils/slug';
+import { getProductSlug } from '../utils/slug';
 
 interface ProductPageProps {
     products: Product[];
@@ -9,11 +11,16 @@ interface ProductPageProps {
 }
 
 const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
-    const { id } = useParams<{ id: string }>();
+    const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const activeFilter = searchParams.get('cat') || 'all';
+    const activeBrand = searchParams.get('brand') || 'all';
+
+    const productId = slug ? parseProductIdFromSlug(slug) : null;
 
     // Find product by ID
-    const product = products.find(p => p.id === id);
+    const product = productId ? products.find(p => p.id === productId) : undefined;
 
     if (!product) {
         if (products.length === 0) {
@@ -36,15 +43,47 @@ const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
         if (window.history.state && window.history.state.idx > 0) {
             navigate(-1);
         } else {
-            navigate('/shop');
+            const storedCat = sessionStorage.getItem('shop_filter_cat') || activeFilter;
+            const storedBrand = sessionStorage.getItem('shop_filter_brand') || activeBrand;
+            const params = new URLSearchParams();
+            if (storedCat && storedCat !== 'all') params.set('cat', storedCat);
+            if (storedBrand && storedBrand !== 'all') params.set('brand', storedBrand);
+            const suffix = params.toString();
+            navigate(`/shop${suffix ? `?${suffix}` : ''}`);
         }
     };
+
+    const related = (() => {
+        const sameCategory = products.filter(p => p.category === product.category && p.id !== product.id);
+        const sameBrand = sameCategory.filter(p => p.brand && p.brand === product.brand);
+        const otherBrand = sameCategory.filter(p => !p.brand || p.brand !== product.brand);
+        return [...sameBrand, ...otherBrand].slice(0, 5);
+    })();
+
+    const topSales = (() => {
+        const excluded = new Set([product.id, ...related.map(p => p.id)]);
+        return products
+            .filter(p => !excluded.has(p.id))
+            .sort((a, b) => {
+                const aFeatured = a.isFeatured ? 1 : 0;
+                const bFeatured = b.isFeatured ? 1 : 0;
+                if (bFeatured !== aFeatured) return bFeatured - aFeatured;
+                const aRating = a.rating || 0;
+                const bRating = b.rating || 0;
+                if (bRating !== aRating) return bRating - aRating;
+                return b.price - a.price;
+            })
+            .slice(0, 5);
+    })();
 
     return (
         <ProductDetail
             product={product}
+            relatedProducts={related}
+            topProducts={topSales}
             onBack={handleBack}
             onAddToCart={onAddToCart}
+            onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
         />
     );
 };

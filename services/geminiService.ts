@@ -1,11 +1,17 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { SYSTEM_INSTRUCTION } from '../constants';
+import type { Product } from '../types';
+import { buildSalesGuideInstruction } from './personas/salesGuide';
+import { buildProductEnricherPrompt, parseProductEnricherOutput } from './personas/productEnricher';
 
 // Initialize AI with API Key
 const getAIClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const getShoppingAdvice = async (userMessage: string, chatHistory: { role: 'user' | 'model', text: string }[]) => {
+export const getShoppingAdvice = async (
+  userMessage: string,
+  chatHistory: { role: 'user' | 'model', text: string }[],
+  products: Product[],
+) => {
   try {
     const ai = getAIClient();
     const model = 'gemini-3-flash-preview';
@@ -13,7 +19,7 @@ export const getShoppingAdvice = async (userMessage: string, chatHistory: { role
     const chat = ai.chats.create({
       model: model,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: buildSalesGuideInstruction(products, userMessage),
       },
       history: chatHistory.map(msg => ({
         role: msg.role,
@@ -32,33 +38,13 @@ export const getShoppingAdvice = async (userMessage: string, chatHistory: { role
 export const generateProductDetails = async (productName: string, category: string) => {
   try {
     const ai = getAIClient();
-    const prompt = `
-      Je veux ajouter le produit "${productName}" (Catégorie: ${category}) sur mon site e-commerce Tech au Cameroun.
-      Génère-moi les informations marketing et techniques au format JSON strict.
-      
-      Le ton doit être "Tech & Chill", expert mais accessible.
-      
-      Structure attendue :
-      {
-        "description": "Une description commerciale accrocheuse (2-3 phrases)",
-        "reviewShort": "Un verdict court et percutant (1 phrase)",
-        "pros": ["Point fort 1", "Point fort 2", "Point fort 3"],
-        "cons": ["Point faible 1", "Point faible 2"],
-        "specs": [
-          {"label": "Écran", "value": "ex: 6.7 pouces AMOLED"},
-          {"label": "Processeur", "value": "ex: Snapdragon 8 Gen 2"},
-          {"label": "Stockage", "value": "ex: 256 Go"},
-           ... autres specs pertinentes
-        ]
-      }
-    `;
+    const prompt = buildProductEnricherPrompt(productName, category);
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        // Using strict schema with 'required' fields to ensure pros/cons are generated
         responseSchema: {
             type: Type.OBJECT,
             properties: {
@@ -66,6 +52,7 @@ export const generateProductDetails = async (productName: string, category: stri
                 reviewShort: { type: Type.STRING },
                 pros: { type: Type.ARRAY, items: { type: Type.STRING } },
                 cons: { type: Type.ARRAY, items: { type: Type.STRING } },
+                manualChecks: { type: Type.ARRAY, items: { type: Type.STRING } },
                 specs: { 
                     type: Type.ARRAY, 
                     items: { 
@@ -78,16 +65,79 @@ export const generateProductDetails = async (productName: string, category: stri
                     } 
                 }
             },
-            required: ["description", "reviewShort", "pros", "cons", "specs"]
+            required: ["description", "reviewShort", "pros", "cons", "specs", "manualChecks"]
         }
       }
     });
 
-    return JSON.parse(response.text || '{}');
+    return parseProductEnricherOutput(response.text || '{}');
   } catch (error) {
     console.error("Gemini Product Gen Error:", error);
     throw new Error("Impossible de générer les détails. Vérifiez votre connexion.");
   }
+};
+
+export const evaluateDeviceWithVision = async (
+  photos: File[],
+  deviceInfo: {
+    brand: string; model: string; storage?: string; ram?: string;
+    batteryHealth: number; screenCondition: string;
+    bodyCondition: string; accessories: string[];
+  }
+): Promise<{ score: number; justification: string }> => {
+  const ai = getAIClient();
+
+  // Conversion des photos en base64 (avant upload Cloudinary)
+  const imageParts = await Promise.all(
+    photos.map(async (file) => {
+      const buffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      return { inlineData: { mimeType: file.type, data: base64 } };
+    })
+  );
+
+  const contextPart = {
+    text: `Tu es un expert reconditionnement d'appareils électroniques au Cameroun pour Xeption Network.
+Analyse les photos de cet appareil déclaré comme suit :
+- Marque/Modèle : ${deviceInfo.brand} ${deviceInfo.model}
+- Stockage : ${deviceInfo.storage || 'N/A'} | RAM : ${deviceInfo.ram || 'N/A'}
+- Santé batterie (déclarée) : ${deviceInfo.batteryHealth}%
+- État écran (déclaré) : ${deviceInfo.screenCondition}
+- État coque (déclaré) : ${deviceInfo.bodyCondition}
+- Accessoires inclus : ${deviceInfo.accessories.join(', ') || 'Aucun'}
+
+Examine attentivement chaque photo et identifie : fissures, rayures, traces d'humidité,
+oxydation des ports, état de la caméra, cohérence entre l'état déclaré et le visuel.`,
+  };
+
+  const instructionPart = {
+    text: `Retourne UNIQUEMENT un JSON valide :
+{
+  "score": <entier entre 0 et 100>,
+  "justification": "<2-3 phrases en français mentionnant ce que tu vois dans les photos>"
+}
+
+Barème : 70-100 excellent, 40-69 moyen, 1-39 mauvais état, 0 refus total.
+Si l'état déclaré contredit les photos, pénalise fortement et mentionne-le.`,
+  };
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: [{ parts: [contextPart, ...imageParts, instructionPart] }],
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          score:         { type: Type.INTEGER },
+          justification: { type: Type.STRING },
+        },
+        required: ['score', 'justification'],
+      },
+    },
+  });
+
+  return JSON.parse(response.text || '{}');
 };
 
 export const generateMarketingVideo = async (prompt: string): Promise<string | null> => {

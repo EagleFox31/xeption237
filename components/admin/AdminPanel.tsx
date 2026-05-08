@@ -27,6 +27,8 @@ import StaffTab from './tabs/StaffTab';
 import MarketingTab from './tabs/MarketingTab';
 import GuideTab from './tabs/GuideTab';
 import InvoicesTab from './tabs/InvoicesTab';
+import TrocTab from './tabs/TrocTab';
+import TrocPaymentsTab from './tabs/TrocPaymentsTab';
 
 // Logic Managers (SRP)
 import { useAdminNotifications } from '../../hooks/admin/useAdminNotifications';
@@ -40,6 +42,7 @@ import { useStaffManager } from '../../hooks/admin/useStaffManager';
 import { useCategoriesManager } from '../../hooks/admin/useCategoriesManager';
 import { useBrandsManager } from '../../hooks/admin/useBrandsManager'; 
 import { useMarketingStudio } from '../../hooks/admin/useMarketingStudio';
+import { useTrocManager } from '../../hooks/admin/useTrocManager';
 
 // Editor Modals
 import ProductEditorOverlay from './modals/ProductEditorOverlay';
@@ -54,7 +57,7 @@ interface AdminPanelProps {
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) => {
   // 1. Navigation State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'packs' | 'delivery' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices' | 'argus' | 'brands'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'inventory' | 'packs' | 'delivery' | 'orders' | 'staff' | 'clients' | 'marketing' | 'sav' | 'guide' | 'categories' | 'invoices' | 'argus' | 'brands' | 'troc' | 'troc-payments'>('dashboard');
   
   // 2. Core Services
   const confirm = useConfirmModal();
@@ -70,6 +73,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const catsMgr = useCategoriesManager({ categories: data.categories, setCategories: data.setCategories });
   const brandMgr = useBrandsManager({ brands: data.brands, setBrands: data.setBrands, ranges: data.ranges, setRanges: data.setRanges }); 
   const marketing = useMarketingStudio();
+  const trocMgr = useTrocManager();
 
   // 4. Wiring Handlers (View -> Logic -> Feedback)
   const handleNotifyClick = (n: AdminNotification) => notifs.handleInteraction(n, (tab) => setActiveTab(tab as any));
@@ -173,6 +177,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     {activeTab === 'sav' && <SavTab />}
                     {activeTab === 'clients' && <ClientsTab customers={data.customers} />}
                     {activeTab === 'guide' && <GuideTab />}
+                    {activeTab === 'troc' && <TrocTab requests={trocMgr.requests} sessions={data.trocSessions} onUpdateStatus={trocMgr.updateStatus} />}
+                    {activeTab === 'troc-payments' && <TrocPaymentsTab />}
                 </>
             )}
         </main>

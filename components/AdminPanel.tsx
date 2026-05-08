@@ -79,7 +79,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     };
 
     const fetchStaff = async () => {
-        const { data } = await supabase.from('staff').select('*').order('created_at', { ascending: false });
+        const { data } = await supabase
+            .from('staff')
+            .select('id,name,email,role,phone,avatar,created_at')
+            .order('created_at', { ascending: false });
         if (data) setStaffMembers(data as Staff[]);
     };
 
@@ -291,9 +294,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     const handleSaveStaff = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingStaff) return;
+        if (!editingStaff.name?.trim() || !editingStaff.email?.trim()) {
+            alert("Nom et email staff obligatoires.");
+            return;
+        }
         const isNew = editingStaff.id.startsWith('new_');
-        const { username, ...cleanData } = editingStaff as any;
-        const staffData = { ...cleanData, id: isNew ? undefined : editingStaff.id };
+        const staffData = {
+            name: editingStaff.name.trim(),
+            email: editingStaff.email.trim().toLowerCase(),
+            role: editingStaff.role,
+            phone: editingStaff.phone || null,
+            id: isNew ? undefined : editingStaff.id
+        };
         if (isNew) delete (staffData as any).id;
         const { data, error } = await supabase.from('staff').upsert(staffData).select();
         if (!error && data) {
@@ -315,9 +327,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         setIsGenerating(true);
         try {
             const details = await generateProductDetails(editingProduct.name, editingProduct.category);
-            setEditingProduct(prev => prev ? ({ ...prev, ...details, pros: details.pros || [], cons: details.cons || [], specs: details.specs || [] }) : null);
+            setEditingProduct(prev => prev ? ({ ...prev, ...details, pros: details.pros || [], cons: details.cons || [], specs: details.specs || [], manualChecks: details.manualChecks || [] }) : null);
         } finally { setIsGenerating(false); }
     };
+
+    const normalizeChecklistLines = (value: string) =>
+        value
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean);
     const handleVideoGeneration = async () => {
         if (!videoPrompt) return;
         setGeneratingVideo(true);
@@ -695,7 +713,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     <Route path="sav" element={<RepairTicketManagement />} />
                     <Route path="staff" element={
                         <div className="animate-in fade-in">
-                            <div className="flex justify-between items-center mb-6"><h2 className="text-3xl font-tech font-bold uppercase text-white">Équipe</h2><button onClick={() => setEditingStaff({ id: `new_${Date.now()}`, username: '', name: '', email: '', password: '123456', role: 'editor', phone: '' })} className="bg-white/10 text-white px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white hover:text-black rounded-sm"><UserPlus className="w-4 h-4" /> Ajouter</button></div>
+                            <div className="flex justify-between items-center mb-6"><h2 className="text-3xl font-tech font-bold uppercase text-white">Équipe</h2><button onClick={() => setEditingStaff({ id: `new_${Date.now()}`, name: '', email: '', role: 'editor', phone: '' })} className="bg-white/10 text-white px-4 py-2 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white hover:text-black rounded-sm"><UserPlus className="w-4 h-4" /> Ajouter</button></div>
                             <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-2xl">
                                 <table className="w-full text-left border-collapse">
                                     <thead className="bg-black/40 text-gray-400 text-xs uppercase font-bold tracking-wider"><tr><th className="px-6 py-4">Nom</th><th className="px-6 py-4">Rôle</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
@@ -783,6 +801,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                                     <h3 className="text-white font-bold uppercase mb-4 text-sm">Marketing</h3>
                                     <textarea className="w-full bg-black border border-white/10 p-3 h-32 text-white text-sm" placeholder="Description" value={editingProduct.description} onChange={e => setEditingProduct({ ...editingProduct, description: e.target.value })} />
                                 </div>
+                                <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm">
+                                    <div className="flex items-center justify-between gap-3 mb-3">
+                                        <h3 className="text-white font-bold uppercase text-sm flex items-center gap-2"><Info className="w-4 h-4 text-amber-400" /> Points de vérification manuelle</h3>
+                                        <span className="text-[10px] uppercase font-bold text-gray-500">{(editingProduct.manualChecks || []).length} point{(editingProduct.manualChecks || []).length > 1 ? 's' : ''}</span>
+                                    </div>
+                                    <p className="text-[11px] text-gray-500 mb-3">Un point par ligne. Sert à contrôler les détails sensibles avant mise en vente.</p>
+                                    <textarea
+                                        className="w-full bg-black border border-white/10 p-3 h-28 text-white text-sm rounded-sm"
+                                        placeholder={"Ex: Vérifier la référence exacte\nEx: Confirmer la capacité de stockage\nEx: Contrôler l'état batterie"}
+                                        value={(editingProduct.manualChecks || []).join('\n')}
+                                        onChange={e => setEditingProduct({ ...editingProduct, manualChecks: normalizeChecklistLines(e.target.value) })}
+                                    />
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -796,7 +827,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         <h3 className="text-xl font-bold font-tech text-white uppercase mb-4">{editingStaff.id.startsWith('new') ? 'Ajouter' : 'Modifier'} Staff</h3>
                         <form onSubmit={handleSaveStaff} className="space-y-4">
                             <input className="w-full bg-black border border-white/10 p-3 text-white rounded-sm" placeholder="Nom" value={editingStaff.name} onChange={e => setEditingStaff({ ...editingStaff, name: e.target.value })} />
-                            <input className="w-full bg-black border border-white/10 p-3 text-white rounded-sm" placeholder="Password" value={editingStaff.password || ''} onChange={e => setEditingStaff({ ...editingStaff, password: e.target.value })} />
+                            <input type="email" className="w-full bg-black border border-white/10 p-3 text-white rounded-sm" placeholder="Email staff (compte auth Supabase)" value={editingStaff.email || ''} onChange={e => setEditingStaff({ ...editingStaff, email: e.target.value })} />
+                            <p className="text-[11px] text-gray-500">Le mot de passe staff est gere uniquement dans Supabase Auth (pas dans la table staff).</p>
                             <select className="w-full bg-black border border-white/10 p-3 text-white rounded-sm" value={editingStaff.role} onChange={e => setEditingStaff({ ...editingStaff, role: e.target.value as any })}>
                                 <option value="editor">Éditeur</option><option value="manager">Manager</option><option value="admin">Admin</option>
                             </select>

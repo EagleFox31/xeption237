@@ -123,7 +123,6 @@ export const DB_SCHEMA = {
         ROLE: 'role',
         PHONE: 'phone',
         AVATAR: 'avatar',
-        PASSWORD: 'password',
         CREATED_AT: 'created_at'
     },
     TRADE_IN_MODELS: {

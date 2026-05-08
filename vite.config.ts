@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const parsedPort = Number.parseInt(env.VITE_PORT || env.PORT || '4173', 10);
+
   return {
     plugins: [
       react()
@@ -17,6 +19,10 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-    }
+    },
+    server: {
+      host: env.VITE_HOST || env.HOST || '127.0.0.1',
+      port: Number.isFinite(parsedPort) ? parsedPort : 4173,
+    },
   };
 });

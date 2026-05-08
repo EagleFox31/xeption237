@@ -1,14 +1,19 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
+import { PageSEO, JsonLd, breadcrumbJsonLd } from '../utils/seo';
 import RepairSection from '../components/RepairSection';
 
 const SavPage: React.FC = () => {
     return (
         <div className="pt-8 min-h-screen">
-            <Helmet>
-                <title>SAV & Garantie | Xeption</title>
-                <meta name="description" content="Service Après-Vente Xeption. Réparations, garantie et assistance technique pour vos appareils." />
-            </Helmet>
+            <PageSEO
+                title="SAV & Garantie — Réparations Smartphone | Xeption Cameroun"
+                description="Service Après-Vente Xeption Network. Réparations, garantie et assistance technique pour smartphones et PC. Suivi en ligne de votre dossier."
+                path="/sav"
+            />
+            <JsonLd data={breadcrumbJsonLd([
+                { name: 'Accueil', path: '/' },
+                { name: 'SAV & Garantie' },
+            ])} />
             <RepairSection />
         </div>
     );

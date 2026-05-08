@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
+import { PageSEO, JsonLd, breadcrumbJsonLd } from '../utils/seo';
 import ProductList from '../components/ProductList';
 import { Product } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -30,10 +30,15 @@ const ShopPage: React.FC<ShopPageProps> = ({ products, onAddToCart }) => {
 
     return (
         <div className="pt-8 min-h-screen">
-            <Helmet>
-                <title>Le Shop High-Tech Cameroun | Xeption</title>
-                <meta name="description" content="Découvrez notre catalogue complet : Smartphones, Laptops, Gadgets. Livraison rapide à Douala et Yaoundé." />
-            </Helmet>
+            <PageSEO
+                title="Boutique High-Tech Cameroun — Smartphones, PC, Gaming | Xeption"
+                description="Découvrez notre catalogue complet : Smartphones iPhone & Samsung, Laptops, PC Gamer, Gadgets. Prix imbattables, livraison rapide Yaoundé & Douala."
+                path="/shop"
+            />
+            <JsonLd data={breadcrumbJsonLd([
+                { name: 'Accueil', path: '/' },
+                { name: 'Boutique' },
+            ])} />
 
             <div className="text-center mb-12">
                 <h1 className="text-4xl font-bold text-white drop-shadow-lg">La Boutique <span className="text-xeption-gold">237</span></h1>

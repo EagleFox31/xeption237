@@ -56,23 +56,39 @@ async function generateSitemap() {
             .up();
     });
 
-    // Fetch Products for Dynamic Routes
-    const { data: products, error } = await supabase
-        .from('products')
-        .select('id, name');
+    // Fetch Products — tente avec timestamps si disponibles, sinon dégrade gracefully.
+    const fetchProducts = async () => {
+        // 1. Tentative avec updated_at + created_at (cas idéal)
+        let res = await supabase.from('products').select('id, name, updated_at, created_at');
+        if (!res.error) return res.data;
 
-    if (error) {
-        console.error('Error fetching products:', error);
-    } else if (products) {
+        // 2. Fallback : seulement created_at
+        res = await supabase.from('products').select('id, name, created_at');
+        if (!res.error) return res.data;
+
+        // 3. Fallback ultime : pas de timestamp (sitemap sans lastmod)
+        res = await supabase.from('products').select('id, name');
+        if (!res.error) return res.data;
+
+        console.error('Error fetching products:', res.error);
+        return null;
+    };
+
+    const products = await fetchProducts();
+
+    if (products) {
         console.log(`Found ${products.length} products.`);
         products.forEach(product => {
             const slug = `${slugify(product.name || 'product')}-${product.id}`;
-            root.ele('url')
+            const lastmodDate = product.updated_at || product.created_at;
+            const urlEl = root.ele('url')
                 .ele('loc').txt(`${SITE_URL}/product/${slug}`).up()
                 .ele('changefreq').txt('weekly').up()
-                .ele('priority').txt('0.7').up()
-                //.ele('lastmod').txt(new Date(product.updated_at).toISOString()).up() // Optional
-                .up();
+                .ele('priority').txt('0.7').up();
+            if (lastmodDate) {
+                urlEl.ele('lastmod').txt(new Date(lastmodDate).toISOString()).up();
+            }
+            urlEl.up();
         });
     }
 

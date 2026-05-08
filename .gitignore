@@ -25,3 +25,41 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Coverage
+/coverage/
+
+# Local dev / scratch / tooling
+/scratch/
+/.tmp_osmo_tacdb/
+/.codex
+/.claude/
+/.qodo/
+**/.temp/
+*.backup
+
+# Status / planning docs (not source code)
+/AI_STRATEGY_XEPTION237.md
+/PLAN_*.md
+/RAPPORT_*.md
+/SMART_TROC_PLAN.md
+/SMOKE_TEST_*.md
+
+# Seed data, templates, gros dumps (regenerable, pas du code)
+/catalogue_produits_template.csv
+/tacdb.csv
+/seed_argus*.sql
+/supabase/tacdb_batches/
+
+# Tests
+/tests/
+/e2e/
+/playwright.config.ts
+/vitest.config.ts

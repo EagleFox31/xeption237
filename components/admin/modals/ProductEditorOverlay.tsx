@@ -40,6 +40,12 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
         }
     };
 
+    const normalizeChecklistLines = (value: string) =>
+        value
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean);
+
     // --- LOGIC MARQUE / GAMME ---
     const isTechProduct = ['smartphones', 'phones', 'laptops', 'ordinateurs', 'tablettes'].some(slug => product.category.toLowerCase().includes(slug));
     const availableRanges = ranges.filter(r => r.brand_id === product.brand);
@@ -92,7 +98,8 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                 ...details,
                 pros: details.pros || [],
                 cons: details.cons || [],
-                specs: details.specs || []
+                specs: details.specs || [],
+                manualChecks: details.manualChecks || []
             });
         } finally { setIsGenerating(false); }
     };
@@ -409,6 +416,25 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                                 <ListPlus className="w-3 h-3" /> Ajouter une spec
                             </button>
                         </div>
+                    </div>
+
+                    {/* BLOC : VERIFICATIONS MANUELLES */}
+                    <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm">
+                        <div className="flex items-center justify-between gap-3 mb-4">
+                            <h3 className="text-white font-tech font-bold uppercase text-sm flex items-center gap-2">
+                                <Check className="w-4 h-4 text-amber-400" /> Points de vérification manuelle
+                            </h3>
+                            <span className="text-[10px] uppercase font-bold text-gray-500">{(product.manualChecks || []).length} point{(product.manualChecks || []).length > 1 ? 's' : ''}</span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 mb-3">
+                            Un point par ligne. Sert à signaler ce que l’équipe doit contrôler avant publication.
+                        </p>
+                        <textarea
+                            className="w-full bg-black/40 border border-white/10 p-4 h-28 text-white text-sm focus:border-amber-400 outline-none transition-all rounded-sm resize-none"
+                            placeholder={"Ex: Vérifier la compatibilité réseau\nEx: Confirmer la capacité de stockage\nEx: Valider la référence exacte"}
+                            value={(product.manualChecks || []).join('\n')}
+                            onChange={e => onChange({ manualChecks: normalizeChecklistLines(e.target.value) })}
+                        />
                     </div>
                 </div>
 

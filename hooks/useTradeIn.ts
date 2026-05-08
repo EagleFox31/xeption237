@@ -1,0 +1,477 @@
+import { useState, useRef } from 'react';
+import {
+  checkImei,
+  evaluateDevice,
+  lookupImeiFromHistory,
+  saveTradeInRequest,
+  upsertSession,
+  createPayment,
+  getPaymentStatus,
+  PhotoRetakeRequiredError,
+  type ImeiDeviceInfo,
+} from '../services/trocEvaluationService';
+import { uploadFiles } from '../services/uploadService';
+import { validateTrocForm } from '../utils/trocFormValidation';
+import type { TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
+import { supabase } from '../services/supabaseClient';
+
+export type TrocStep = 'form' | 'photos' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
+export type ImeiMatchState = 'unknown' | 'match' | 'mismatch' | 'not_verified';
+export type PaymentState = 'idle' | 'initiating' | 'pending' | 'polling' | 'paid' | 'failed' | 'expired' | 'timeout';
+
+const PAYMENT_POLL_INTERVAL_MS = 3_000;
+const PAYMENT_TIMEOUT_MS       = 10 * 60 * 1_000; // 10 min
+
+const DEFAULT_BASE_PRICE = 0;
+
+const initialForm: TrocDeviceForm = {
+  customerName: '',
+  customerPhone: '',
+  customerEmail: '',
+  deviceBrand: '',
+  deviceModel: '',
+  deviceStorage: '',
+  deviceRam: '',
+  acquisitionCondition: 'used',
+  purchaseDate: '',
+  ownershipRank: 'unknown',
+  batteryHealth: 80,
+  screenCondition: '',
+  bodyCondition: '',
+  cameraCondition: 'bon',
+  powersOn: true,
+  chargesNormally: true,
+  biometricsWork: true,
+  accountUnlocked: true,
+  hasWaterDamage: false,
+  previousRepairs: 'aucune',
+  accessories: [],
+  hasOriginalBox: false,
+  hasInvoice: false,
+  imei: '',
+};
+
+const normalize = (value?: string) =>
+  (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+
+const isSoftMatch = (expected?: string, detected?: string) => {
+  const a = normalize(expected);
+  const b = normalize(detected);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+};
+
+// Clé de session générée une fois par visite, persistée dans sessionStorage.
+const getSessionKey = (): string => {
+  const KEY = 'troc_session_key';
+  let key = sessionStorage.getItem(KEY);
+  if (!key) { key = crypto.randomUUID(); sessionStorage.setItem(KEY, key); }
+  return key;
+};
+
+export const useTradeIn = () => {
+  const sessionKey = getSessionKey();
+  const [step, setStep] = useState<TrocStep>('form');
+  const [form, setForm] = useState<TrocDeviceForm>(initialForm);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  // Index 1-based des photos signalées non conformes par Gemini Vision.
+  // Reset dès que l'utilisateur modifie sa sélection.
+  const [photoIssueIndices, setPhotoIssueIndices] = useState<number[]>([]);
+  const [imeiStatus, setImeiStatus] = useState<TradeInRequest['imei_status']>('not_checked');
+  const [imeiBlacklistStatus, setImeiBlacklistStatus] = useState<TradeInRequest['imei_blacklist_status']>('unknown');
+  const [imeiAssuranceLevel, setImeiAssuranceLevel] = useState<TradeInRequest['imei_assurance_level']>('basic');
+  const [imeiDeviceInfo, setImeiDeviceInfo] = useState<ImeiDeviceInfo | null>(null);
+  const [imeiDeviceSource, setImeiDeviceSource] = useState<'provider' | 'historical' | 'declared' | null>(null);
+  const [imeiEvidenceCount, setImeiEvidenceCount] = useState(0);
+  const [imeiMatchState, setImeiMatchState] = useState<ImeiMatchState>('unknown');
+  const [result, setResult] = useState<TrocEvaluationResult | null>(null);
+  const [savedRequest, setSavedRequest] = useState<Pick<TradeInRequest, 'id' | 'voucher_reference'> | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isCheckingImei, setIsCheckingImei] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [basePrice, setBasePrice] = useState(DEFAULT_BASE_PRICE);
+
+  // ─── Paiement ─────────────────────────────────────────────────────────────
+  const [paymentState, setPaymentState] = useState<PaymentState>('idle');
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const pollTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearPaymentTimers = () => {
+    if (pollTimerRef.current)    { clearInterval(pollTimerRef.current);  pollTimerRef.current = null; }
+    if (timeoutTimerRef.current) { clearTimeout(timeoutTimerRef.current); timeoutTimerRef.current = null; }
+  };
+
+  const updateForm = (partial: Partial<TrocDeviceForm>) => {
+    setForm((prev) => ({ ...prev, ...partial }));
+    if (Object.prototype.hasOwnProperty.call(partial, 'imei')) {
+      setImeiStatus('not_checked');
+      setImeiBlacklistStatus('unknown');
+      setImeiAssuranceLevel('basic');
+      setImeiDeviceInfo(null);
+      setImeiDeviceSource(null);
+      setImeiEvidenceCount(0);
+      setImeiMatchState('unknown');
+    }
+    setError(null);
+  };
+
+  const updatePhotos = (files: File[]) => {
+    setPhotos(files);
+    setPhotoIssueIndices([]);
+    setError(null);
+  };
+
+  const goToPhotos = () => {
+    const errors = validateTrocForm(form);
+    if (errors.length > 0) {
+      setError(errors[0]);
+      return;
+    }
+    setError(null);
+    setStep('photos');
+    upsertSession(sessionKey, 'form', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+  };
+
+  const goToImei = async () => {
+    if (photos.length === 0) {
+      setError('Ajoutez au moins une photo de votre appareil pour continuer.');
+      return;
+    }
+    setIsUploading(true);
+    setError(null);
+    try {
+      const urls = await uploadFiles(photos);
+      setPhotoUrls(urls);
+      setStep('imei');
+      upsertSession(sessionKey, 'photos', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+    } catch {
+      setError("L'envoi des photos a échoué. Vérifiez votre connexion et réessayez.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const doCheckImei = async () => {
+    if (!form.imei) {
+      setImeiStatus('not_checked');
+      setImeiMatchState('unknown');
+      return;
+    }
+
+    setIsCheckingImei(true);
+    setError(null);
+
+    try {
+      const { status, blacklistStatus, assuranceLevel, reason, deviceInfo } = await checkImei(form.imei);
+      setImeiStatus(status);
+      setImeiBlacklistStatus(blacklistStatus);
+      setImeiAssuranceLevel(assuranceLevel);
+      upsertSession(sessionKey, 'imei', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+
+      if (status === 'valid') {
+        if (deviceInfo) {
+          setImeiDeviceInfo(deviceInfo);
+          setImeiDeviceSource('provider');
+          setImeiEvidenceCount(0);
+          const brandMatch = isSoftMatch(form.deviceBrand, deviceInfo.brand);
+          const modelMatch = isSoftMatch(form.deviceModel, deviceInfo.model);
+          if (brandMatch && modelMatch) {
+            setImeiMatchState('match');
+          } else {
+            setImeiMatchState('mismatch');
+            setError(
+              "L'IMEI détecté ne correspond pas à la marque/modèle indiqué. Venez en boutique pour vérification."
+            );
+          }
+        } else if (form.deviceBrand || form.deviceModel) {
+          const history = await lookupImeiFromHistory(form.imei);
+          if (history) {
+            setImeiDeviceInfo({ brand: history.brand, model: history.model });
+            setImeiDeviceSource('historical');
+            setImeiEvidenceCount(history.count);
+            const brandMatch = isSoftMatch(form.deviceBrand, history.brand);
+            const modelMatch = isSoftMatch(form.deviceModel, history.model);
+            if (brandMatch && modelMatch && history.count >= 3) {
+              setImeiMatchState('match');
+            } else if (brandMatch && modelMatch) {
+              setImeiMatchState('not_verified');
+              setError(
+                "L'appareil semble correspondre mais la confirmation se fera en boutique."
+              );
+            } else {
+              setImeiMatchState('mismatch');
+              setError(
+                "L'appareil détecté ne correspond pas à ce que vous avez indiqué. Venez en boutique pour vérification."
+              );
+            }
+          } else {
+            setImeiDeviceInfo(null);
+            setImeiDeviceSource('declared');
+            setImeiEvidenceCount(0);
+            setImeiMatchState('not_verified');
+            // Message informatif — pas une erreur bloquante, le modèle sera confirmé en boutique
+          }
+        } else {
+          setImeiDeviceInfo(null);
+          setImeiDeviceSource(null);
+          setImeiEvidenceCount(0);
+          setImeiMatchState('not_verified');
+        }
+      } else if (status === 'check_failed') {
+        setImeiDeviceInfo(null);
+        setImeiDeviceSource(null);
+        setImeiEvidenceCount(0);
+        setImeiMatchState('unknown');
+        const normalizedReason = (reason || '').toLowerCase();
+        if (normalizedReason.includes('401') || normalizedReason.includes('unauthorized')) {
+          setError("Vérification IMEI temporairement indisponible. Apportez l'appareil en boutique.");
+        } else if (normalizedReason.includes('invalid_imei_checksum')) {
+          setError('Ce numéro IMEI semble incorrect. Vérifiez les 15 chiffres en composant *#06# sur votre téléphone.');
+        } else {
+          setError("Vérification IMEI indisponible pour le moment. La confirmation se fera en boutique.");
+        }
+      } else {
+        setImeiMatchState('unknown');
+      }
+    } catch {
+      setImeiStatus('check_failed');
+      setImeiDeviceInfo(null);
+      setImeiDeviceSource(null);
+      setImeiEvidenceCount(0);
+      setImeiMatchState('unknown');
+      setError("Vérification IMEI indisponible pour le moment. La confirmation se fera en boutique.");
+    } finally {
+      setIsCheckingImei(false);
+    }
+  };
+
+  const skipImei = () => {
+    setImeiStatus('not_checked');
+    setImeiBlacklistStatus('unknown');
+    setImeiAssuranceLevel('basic');
+    setImeiDeviceInfo(null);
+    setImeiDeviceSource(null);
+    setImeiEvidenceCount(0);
+    setImeiMatchState('unknown');
+    setError("L'évaluation automatique nécessite un IMEI vérifié. Apportez l'appareil en boutique pour une estimation directe.");
+  };
+
+  const goToPayment = () => {
+    if (imeiStatus !== 'valid') {
+      setError("L'IMEI n'a pas pu être confirmé. Venez en boutique pour une estimation directe.");
+      return;
+    }
+    
+    if (paymentState === 'paid') {
+      // Si l'utilisateur a déjà payé mais a été renvoyé en arrière (ex: pour mauvaises photos)
+      runEvaluation();
+      return;
+    }
+
+    setPaymentState('idle');
+    setPaymentReference(null);
+    setError(null);
+    setStep('payment');
+  };
+
+  const initiatePayment = async (phone: string) => {
+    setPaymentState('initiating');
+    setError(null);
+    try {
+      const { reference } = await createPayment(sessionKey, phone, form.customerName || undefined, form.customerEmail || undefined);
+      setPaymentReference(reference);
+      setPaymentState('pending');
+
+      // Démarrage polling
+      pollTimerRef.current = setInterval(async () => {
+        const poll = await getPaymentStatus(sessionKey, reference);
+        if (!poll) return;
+        if (poll.status === 'paid') {
+          clearPaymentTimers();
+          setPaymentState('paid');
+          setTimeout(() => runEvaluation(), 800);
+        } else if (poll.status === 'failed') {
+          clearPaymentTimers();
+          setPaymentState('failed');
+          setError('Le paiement a échoué. Vérifiez le solde de votre compte ou utilisez un autre numéro.');
+        } else if (poll.status === 'expired') {
+          clearPaymentTimers();
+          setPaymentState('expired');
+          setError('Le délai de paiement a expiré. Recommencez pour une nouvelle tentative.');
+        }
+      }, PAYMENT_POLL_INTERVAL_MS);
+
+      // Timeout côté client (10 min)
+      timeoutTimerRef.current = setTimeout(() => {
+        clearPaymentTimers();
+        setPaymentState('timeout');
+        setError('La confirmation de paiement a pris trop de temps. Réessayez ou contactez la boutique.');
+      }, PAYMENT_TIMEOUT_MS);
+
+    } catch {
+      setPaymentState('failed');
+      setError('Impossible d\'initier le paiement. Vérifiez votre connexion et réessayez.');
+    }
+  };
+
+  const retryPayment = () => {
+    clearPaymentTimers();
+    setPaymentState('idle');
+    setPaymentReference(null);
+    setError(null);
+  };
+
+  // Appelé quand l'utilisateur revient sur /troc?ref=... après paiement NotchPay
+  // et que la vérification serveur confirme status === 'paid'
+  const onCallbackPaid = (reference: string) => {
+    clearPaymentTimers();
+    setPaymentReference(reference);
+    setPaymentState('paid');
+    setStep('payment'); // affiche l'écran "Paiement confirmé" brièvement
+    setTimeout(() => runEvaluation(), 800);
+  };
+
+  const runEvaluation = async (overrideStatus?: TradeInRequest['imei_status']) => {
+    const status = overrideStatus ?? imeiStatus;
+    if (status !== 'valid') {
+      setError(
+        "L'IMEI n'a pas pu être confirmé pour cet appareil. Venez en boutique pour une estimation directe."
+      );
+      setStep('imei');
+      return;
+    }
+
+    setIsEvaluating(true);
+    setError(null);
+    setStep('evaluating');
+    try {
+      const evaluation = await evaluateDevice(form, photoUrls, status, basePrice);
+      setResult(evaluation);
+      setStep('result');
+      upsertSession(sessionKey, 'result', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+    } catch (err: any) {
+      // Photos non conformes (cas le plus fréquent) — ton neutre, pas accusateur.
+      if (err instanceof PhotoRetakeRequiredError) {
+        setPhotoIssueIndices(err.issueIndices);
+        setError(
+          err.issueIndices.length > 0
+            ? "Une ou plusieurs photos ne montrent pas clairement votre téléphone. Remplacez celles signalées en rouge pour relancer l'estimation."
+            : "Certaines photos ne sont pas exploitables. Remplacez-les pour relancer l'estimation.",
+        );
+        setStep('photos');
+        return;
+      }
+      // Cas extrême — preuves de manipulation détectées par Gemini.
+      if (err.message && err.message.startsWith('FRAUD_DETECTED:')) {
+        const msg = err.message.replace('FRAUD_DETECTED:', '');
+        setError(`Vérification échouée : ${msg}`);
+        setStep('photos');
+        return;
+      }
+      setError("L'évaluation a échoué. Vérifiez votre connexion et réessayez.");
+      setStep('imei');
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
+  const persist = async () => {
+    if (!result) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      if (form.createAccount && form.customerEmail) {
+        // Envoi d'un Magic Link en arrière-plan
+        supabase.auth.signInWithOtp({ email: form.customerEmail.trim() }).catch(console.error);
+      }
+
+      const saved = await saveTradeInRequest(form, photoUrls, result);
+      setSavedRequest({
+        id: saved.id,
+        voucher_reference: saved.voucherReference,
+      });
+      setStep('voucher');
+      upsertSession(sessionKey, 'voucher', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel, tradeInId: saved.id });
+    } catch {
+      setError("Une erreur est survenue lors de la validation. Réessayez ou contactez la boutique.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const acceptOffer = () => persist();
+
+  const refuse = () => {
+    setResult(null);
+    setStep('form');
+    setError(null);
+  };
+
+  const reset = () => {
+    clearPaymentTimers();
+    setStep('form');
+    setForm(initialForm);
+    setPhotos([]);
+    setPhotoUrls([]);
+    setPhotoIssueIndices([]);
+    setImeiStatus('not_checked');
+    setImeiDeviceInfo(null);
+    setImeiDeviceSource(null);
+    setImeiEvidenceCount(0);
+    setImeiMatchState('unknown');
+    setResult(null);
+    setSavedRequest(null);
+    setError(null);
+    setBasePrice(DEFAULT_BASE_PRICE);
+    setPaymentState('idle');
+    setPaymentReference(null);
+  };
+
+  return {
+    step,
+    form,
+    photos,
+    photoUrls,
+    photoIssueIndices,
+    imeiStatus,
+    imeiBlacklistStatus,
+    imeiAssuranceLevel,
+    imeiDeviceInfo,
+    imeiDeviceSource,
+    imeiEvidenceCount,
+    imeiMatchState,
+    result,
+    savedRequest,
+    basePrice,
+    isUploading,
+    isCheckingImei,
+    isEvaluating,
+    isSubmitting,
+    error,
+    paymentState,
+    paymentReference,
+    onCallbackPaid,
+    updateForm,
+    updatePhotos,
+    goToPhotos,
+    goToImei,
+    doCheckImei,
+    skipImei,
+    goToPayment,
+    initiatePayment,
+    retryPayment,
+    runEvaluation,
+    acceptOffer,
+    refuse,
+    reset,
+    setBasePrice,
+  };
+};

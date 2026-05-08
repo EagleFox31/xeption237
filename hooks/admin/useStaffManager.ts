@@ -15,7 +15,7 @@ export const useStaffManager = ({ staffMembers, setStaffMembers }: UseStaffManag
     const openEditor = (staff?: Staff) => {
         setEditingStaff(staff || {
             id: `new_${Date.now()}`,
-            username: '', name: '', email: '', password: '123456', role: 'editor', phone: ''
+            name: '', email: '', role: 'editor', phone: ''
         });
     };
 
@@ -24,15 +24,17 @@ export const useStaffManager = ({ staffMembers, setStaffMembers }: UseStaffManag
     const saveStaff = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingStaff) return;
+        if (!editingStaff.name?.trim() || !editingStaff.email?.trim()) {
+            throw new Error("Nom et email staff obligatoires.");
+        }
 
         const isNew = editingStaff.id?.startsWith('new_');
-        const { username, ...cleanData } = editingStaff as any;
+        const cleanData = editingStaff as any;
         
         // Construction Payload DB
         const payload = {
-            [DB_SCHEMA.STAFF.NAME]: cleanData.name,
-            [DB_SCHEMA.STAFF.EMAIL]: cleanData.email,
-            [DB_SCHEMA.STAFF.PASSWORD]: cleanData.password,
+            [DB_SCHEMA.STAFF.NAME]: cleanData.name.trim(),
+            [DB_SCHEMA.STAFF.EMAIL]: cleanData.email.trim().toLowerCase(),
             [DB_SCHEMA.STAFF.ROLE]: cleanData.role,
             [DB_SCHEMA.STAFF.PHONE]: cleanData.phone
         };
@@ -49,8 +51,7 @@ export const useStaffManager = ({ staffMembers, setStaffMembers }: UseStaffManag
                 id: savedDb[DB_SCHEMA.STAFF.ID],
                 name: savedDb[DB_SCHEMA.STAFF.NAME],
                 email: savedDb[DB_SCHEMA.STAFF.EMAIL],
-                role: savedDb[DB_SCHEMA.STAFF.ROLE],
-                username: savedDb[DB_SCHEMA.STAFF.NAME] // Fallback
+                role: savedDb[DB_SCHEMA.STAFF.ROLE]
             };
             setStaffMembers(prev => isNew ? [...prev, savedApp] : prev.map(s => s.id === savedApp.id ? savedApp : s));
             closeEditor();

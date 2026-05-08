@@ -17,6 +17,7 @@ import TrackingPage from './pages/TrackingPage';
 import SavPage from './pages/SavPage';
 import AdminPage from './pages/AdminPage';
 import ProductPage from './pages/ProductPage';
+import MentionsLegalesPage from './pages/MentionsLegalesPage';
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -37,19 +38,50 @@ const App: React.FC = () => {
   // Helper to determine if we are on a product detail page (to hide footer/adjust layout)
   const isProductPage = location.pathname.startsWith('/product/');
   const isAdminPage = location.pathname === '/admin';
+  const isTrocPage = location.pathname === '/troc';
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setIsAuthenticated(true);
+    let isMounted = true;
+    const isRecoveryFlow = () => {
+      if (typeof window === 'undefined') return false;
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      return searchParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
+    };
+
+    const syncStaffAuth = async (session: any) => {
+      if (!isMounted) return;
+      if (isRecoveryFlow()) {
+        setIsAuthenticated(false);
+        return;
       }
+      if (!session?.user?.email) {
+        setIsAuthenticated(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('email', session.user.email)
+        .maybeSingle();
+
+      if (!isMounted) return;
+      setIsAuthenticated(!error && !!data);
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      void syncStaffAuth(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
+      void syncStaffAuth(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -123,13 +155,13 @@ const App: React.FC = () => {
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = 0.35;
-      if (isAdminPage) {
+      if (isAdminPage || isTrocPage) {
         videoRef.current.pause();
       } else {
         videoRef.current.play().catch(e => console.log("Video auto-play prevented:", e));
       }
     }
-  }, [isAdminPage]);
+  }, [isAdminPage, isTrocPage]);
 
   // Scroll to top on route change
   useEffect(() => {
@@ -242,6 +274,7 @@ const App: React.FC = () => {
           <Route path="/troc" element={<TrocPage />} />
           <Route path="/tracking" element={<TrackingPage />} />
           <Route path="/sav" element={<SavPage />} />
+          <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
           <Route path="/admin/*" element={
             <AdminPage
               isAuthenticated={isAuthenticated}
@@ -279,11 +312,16 @@ const App: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex space-x-6 flex-wrap justify-center gap-y-4">
-              <a href="https://web.facebook.com/xeptioon/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Facebook</a>
-              <a href="https://www.instagram.com/xeption_corp/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Instagram</a>
-              <a href="https://www.tiktok.com/@xeption237?_r=1&_t=ZM-939Ae3o3r2J" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">TikTok</a>
-              <a href="https://wa.me/237699000000" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
+            <div className="flex flex-col items-center md:items-end gap-4">
+              <div className="flex space-x-6 flex-wrap justify-center gap-y-4">
+                <a href="https://web.facebook.com/xeptioon/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Facebook</a>
+                <a href="https://www.instagram.com/xeption_corp/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Instagram</a>
+                <a href="https://www.tiktok.com/@xeption237?_r=1&_t=ZM-939Ae3o3r2J" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">TikTok</a>
+                <a href="https://wa.me/237699000000" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
+              </div>
+              <div className="flex gap-4 text-[11px] text-gray-600">
+                <button onClick={() => navigate('/mentions-legales')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Mentions légales</button>
+              </div>
             </div>
           </div>
         </footer>
@@ -299,7 +337,7 @@ const App: React.FC = () => {
         onNavigate={(page) => navigate(page === 'home' ? '/' : '/' + page)}
       />
 
-      {!isAdminPage && <AiConsultant />}
+      {!isAdminPage && <AiConsultant products={products} />}
     </div>
   );
 };

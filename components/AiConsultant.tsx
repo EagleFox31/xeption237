@@ -2,9 +2,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, X, Loader2, Sparkles } from 'lucide-react';
 import { getShoppingAdvice } from '../services/geminiService';
-import { ChatMessage } from '../types';
+import type { ChatMessage, Product } from '../types';
 
-const AiConsultant: React.FC = () => {
+interface AiConsultantProps {
+  products: Product[];
+}
+
+const AiConsultant: React.FC<AiConsultantProps> = ({ products }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +42,7 @@ const AiConsultant: React.FC = () => {
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsLoading(true);
 
-    const response = await getShoppingAdvice(userMsg, messages);
+    const response = await getShoppingAdvice(userMsg, messages, products);
     
     setTimeout(() => {
         setMessages(prev => [...prev, { role: 'model', text: response || "Réseau un peu lent, mais on est là." }]);

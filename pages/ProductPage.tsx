@@ -4,6 +4,7 @@ import ProductDetail from '../components/ProductDetail';
 import { Product } from '../types';
 import { parseProductIdFromSlug } from '../utils/slug';
 import { getProductSlug } from '../utils/slug';
+import { PageSEO, JsonLd, productJsonLd, breadcrumbJsonLd, toOgImage } from '../utils/seo';
 
 interface ProductPageProps {
     products: Product[];
@@ -76,15 +77,56 @@ const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
             .slice(0, 5);
     })();
 
+    const productPath = `/product/${getProductSlug(product)}`;
+    const productUrl = `https://www.xeptionetwork.shop${productPath}`;
+    const productImages = [product.image, ...(product.images || [])].filter(Boolean);
+    const ogImage = toOgImage(productImages[0]) ?? null;
+    const seoTitle = `${product.name} — Acheter au Cameroun | Xeption`;
+    const seoDescription = (product.description || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 160) || `${product.name} disponible chez Xeption Network. Livraison Yaoundé & Douala, paiement Mobile Money.`;
+
     return (
-        <ProductDetail
-            product={product}
-            relatedProducts={related}
-            topProducts={topSales}
-            onBack={handleBack}
-            onAddToCart={onAddToCart}
-            onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
-        />
+        <>
+            <PageSEO
+                title={seoTitle}
+                description={seoDescription}
+                path={productPath}
+                ogImage={ogImage}
+                ogType="product"
+            />
+            <JsonLd
+                data={[
+                    productJsonLd({
+                        name: product.name,
+                        description: product.description,
+                        images: productImages,
+                        brand: product.brand,
+                        price: product.price,
+                        currency: 'XAF',
+                        availability: product.stock > 0 ? 'InStock' : 'OutOfStock',
+                        url: productUrl,
+                        rating: product.rating && product.reviews?.length
+                            ? { value: product.rating, count: product.reviews.length }
+                            : null,
+                    }),
+                    breadcrumbJsonLd([
+                        { name: 'Accueil', path: '/' },
+                        { name: 'Boutique', path: '/shop' },
+                        { name: product.name },
+                    ]),
+                ]}
+            />
+            <ProductDetail
+                product={product}
+                relatedProducts={related}
+                topProducts={topSales}
+                onBack={handleBack}
+                onAddToCart={onAddToCart}
+                onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
+            />
+        </>
     );
 };
 

@@ -65,3 +65,11 @@ export const uploadVideoToCloudinary = async (file: File): Promise<string> => {
     throw new Error("Impossible d'uploader la vidéo sur Cloudinary.");
   }
 };
+
+/**
+ * Upload plusieurs fichiers images en parallèle vers Cloudinary.
+ * Retourne un tableau d'URLs dans le même ordre que les fichiers fournis.
+ */
+export const uploadFiles = async (files: File[]): Promise<string[]> => {
+  return Promise.all(files.map(uploadImageToCloudinary));
+};

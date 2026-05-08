@@ -5,14 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/prerender.mjs",
-    "preview": "vite preview"
+    "build": "vite build && node scripts/generateSitemap.js && node scripts/prerender.mjs && node scripts/pingSearchEngines.mjs",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@google/genai": "*",
     "@hcaptcha/react-hcaptcha": "^1.10.1",
     "@supabase/supabase-js": "^2.39.7",
     "dotenv": "^17.2.3",
+    "html2pdf.js": "^0.14.0",
     "lenis": "^1.0.45",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
@@ -21,14 +25,22 @@
     "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@sparticuz/chromium": "^143.0.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^25.5.2",
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^4.1.2",
+    "jsdom": "^29.0.1",
     "puppeteer-core": "^24.36.1",
     "typescript": "^5.2.2",
     "vite": "^5.1.5",
     "vite-plugin-prerender": "^1.0.8",
+    "vitest": "^4.1.2",
     "xmlbuilder2": "^4.0.3"
   }
 }

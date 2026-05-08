@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { Order, Staff, Customer, Category, Brand, ProductRange, AdminNotification } from '../../types';
+import { Order, Staff, Customer, Category, Brand, ProductRange, AdminNotification, TrocSession } from '../../types';
 import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
 
 export const useAdminData = (addNotification: (n: AdminNotification) => void) => {
@@ -11,6 +11,7 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
     const [categories, setCategories] = useState<Category[]>([]);
     const [brands, setBrands] = useState<Brand[]>([]);
     const [ranges, setRanges] = useState<ProductRange[]>([]);
+    const [trocSessions, setTrocSessions] = useState<TrocSession[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchOrders = useCallback(async () => {
@@ -34,7 +35,10 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
     }, []);
 
     const fetchStaff = useCallback(async () => {
-        const { data } = await supabase.from(DB_TABLES.STAFF).select('*').order(DB_SCHEMA.STAFF.CREATED_AT, { ascending: false });
+        const { data } = await supabase
+            .from(DB_TABLES.STAFF)
+            .select('id,name,email,role,phone,avatar,created_at')
+            .order(DB_SCHEMA.STAFF.CREATED_AT, { ascending: false });
         if (data) setStaffMembers(data as Staff[]);
     }, []);
 
@@ -56,9 +60,18 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         if (rangesData) setRanges(rangesData as ProductRange[]);
     }, []);
 
+    const fetchTrocSessions = useCallback(async () => {
+        const { data } = await supabase
+            .from('troc_sessions')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(500);
+        if (data) setTrocSessions(data as TrocSession[]);
+    }, []);
+
     const refreshAll = useCallback(async () => {
-        await Promise.all([fetchOrders(), fetchStaff(), fetchCustomers(), fetchCategories(), fetchBrandsAndRanges()]);
-    }, [fetchOrders, fetchStaff, fetchCustomers, fetchCategories, fetchBrandsAndRanges]);
+        await Promise.all([fetchOrders(), fetchStaff(), fetchCustomers(), fetchCategories(), fetchBrandsAndRanges(), fetchTrocSessions()]);
+    }, [fetchOrders, fetchStaff, fetchCustomers, fetchCategories, fetchBrandsAndRanges, fetchTrocSessions]);
 
     useEffect(() => {
         const init = async () => {
@@ -95,6 +108,18 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
                 linkToTab: 'sav'
             });
         })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trade_in_requests' }, (payload) => {
+            const req = payload.new as any;
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'order',
+                title: 'Nouvelle Demande Troc !',
+                message: `${req.customer_name ?? 'Client'} soumet son ${req.device_brand ?? ''} ${req.device_model ?? ''} pour évaluation.`,
+                timestamp: new Date(),
+                read: false,
+                linkToTab: 'troc'
+            });
+        })
         .subscribe();
 
         return () => { 
@@ -109,6 +134,7 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         categories, setCategories,
         brands, setBrands,
         ranges, setRanges,
+        trocSessions,
         isLoading,
         refreshAll
     };

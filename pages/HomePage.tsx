@@ -1,5 +1,5 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
+import { PageSEO } from '../utils/seo';
 import Hero from '../components/Hero';
 import TrustBar from '../components/TrustBar';
 import DeliveryEstimator from '../components/DeliveryEstimator';
@@ -31,10 +31,11 @@ const HomePage: React.FC<HomePageProps> = ({ products, packs, onAddToCart, onAdd
 
   return (
     <>
-      <Helmet>
-        <title>Xeption | Le Ndamba du Digital au Cameroun</title>
-        <meta name="description" content="Achetez, Vendez ou Troquez vos Smartphones et PC au Cameroun chez Xeption. iPhone, Samsung, MacBook au meilleur prix." />
-      </Helmet>
+      <PageSEO
+        title="Xeption | Le Ndamba du Digital au Cameroun"
+        description="Achetez, Vendez ou Troquez vos Smartphones et PC au Cameroun chez Xeption. iPhone, Samsung, MacBook au meilleur prix. Livraison Yaoundé & Douala."
+        path="/"
+      />
 
       <Hero onShopNow={() => navigate('/shop')} />
       

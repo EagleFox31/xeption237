@@ -71,6 +71,9 @@ const Checkout: React.FC<CheckoutProps> = ({
     if (!order.lastOrderHtml) return;
     setIsPdfGenerating(true);
     try {
+        const html2pdfModule = await import('html2pdf.js');
+        const html2pdf = html2pdfModule.default;
+
         const element = document.createElement('div');
         element.innerHTML = order.lastOrderHtml;
         element.style.width = '700px'; 
@@ -85,8 +88,7 @@ const Checkout: React.FC<CheckoutProps> = ({
         document.body.appendChild(container);
 
         const safeName = form.formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'client';
-        // @ts-ignore
-        await window.html2pdf().set({
+        await html2pdf().set({
             margin: 10, filename: `Facture_Xeption_${safeName}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
@@ -263,7 +265,7 @@ const Checkout: React.FC<CheckoutProps> = ({
 
   const renderPayment = () => (
     <div className="max-w-2xl mx-auto w-full bg-black/50 backdrop-blur-xl border border-white/10 p-8 sm:p-12 shadow-2xl rounded-sm">
-      <h3 className="text-3xl font-bold text-white font-tech uppercase mb-8 text-center drop-shadow-md">Paiement</h3>
+      <h3 className="text-3xl font-bold text-white font-tech uppercase mb-8 text-center drop-shadow-md">Règlement</h3>
       <div className="space-y-4">
         {Object.values(PaymentMethod).map((method) => (
           <div
@@ -279,7 +281,11 @@ const Checkout: React.FC<CheckoutProps> = ({
               {method.includes('Cash') && <div className="w-12 h-12 bg-green-700 flex items-center justify-center text-white font-bold rounded-sm shadow-lg">$$</div>}
               <div>
                 <span className="block text-white font-tech font-bold uppercase tracking-wide text-lg group-hover:text-xeption-gold transition-colors">{method}</span>
-                <span className="text-xs text-gray-500">Transaction sécurisée</span>
+                <span className="text-xs text-gray-500">
+                  {method.includes('Cash')
+                    ? 'Paiement au retrait ou à la livraison'
+                    : 'Instructions de règlement communiquées par la boutique'}
+                </span>
               </div>
             </div>
             {form.selectedPayment === method && <div className="w-4 h-4 bg-xeption-gold rounded-full shadow-[0_0_10px_#FFD700]"></div>}
@@ -291,22 +297,28 @@ const Checkout: React.FC<CheckoutProps> = ({
         {form.selectedPayment === PaymentMethod.OM && (
           <div className="bg-orange-900/20 border border-orange-500/30 p-6 rounded relative overflow-hidden backdrop-blur-sm">
             <div className="absolute -right-4 -top-4 text-orange-500/10"><Smartphone size={100} /></div>
-            <p className="text-orange-500 text-xs font-bold mb-4 uppercase tracking-widest relative z-10">Procédure Orange Money</p>
+            <p className="text-orange-500 text-xs font-bold mb-4 uppercase tracking-widest relative z-10">Indications Orange Money</p>
             <div className="space-y-3 font-mono text-sm text-gray-300 relative z-10">
               <div className="flex justify-between border-b border-orange-500/10 pb-2"><span>Code USSD</span> <span className="text-white font-bold">#150*47#</span></div>
               <div className="flex justify-between border-b border-orange-500/10 pb-2"><span>Code Marchand</span> <span className="text-white font-bold">{PAYMENT_DETAILS.OM.merchantCode}</span></div>
               <div className="flex justify-between"><span>Montant à payer</span> <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span></div>
             </div>
+            <p className="text-gray-400 text-xs mt-4 relative z-10">
+              La commande est enregistrée sur le site. Le règlement Mobile Money est ensuite confirmé avec la boutique avant préparation ou retrait.
+            </p>
           </div>
         )}
         {form.selectedPayment === PaymentMethod.MOMO && (
           <div className="bg-yellow-900/20 border border-yellow-500/30 p-6 rounded relative overflow-hidden backdrop-blur-sm">
             <div className="absolute -right-4 -top-4 text-yellow-500/10"><Smartphone size={100} /></div>
-            <p className="text-yellow-500 text-xs font-bold mb-4 uppercase tracking-widest relative z-10">Procédure MTN MoMo</p>
+            <p className="text-yellow-500 text-xs font-bold mb-4 uppercase tracking-widest relative z-10">Indications MTN MoMo</p>
             <div className="space-y-3 font-mono text-sm text-gray-300 relative z-10">
               <div className="flex justify-between border-b border-yellow-500/10 pb-2"><span>Code USSD</span> <span className="text-white font-bold">*126#</span></div>
               <div className="flex justify-between border-b border-yellow-500/10 pb-2"><span>Code Marchand</span> <span className="text-white font-bold">{PAYMENT_DETAILS.MOMO.merchantCode}</span></div>
             </div>
+            <p className="text-gray-400 text-xs mt-4 relative z-10">
+              La validation finale du règlement peut nécessiter une confirmation manuelle avec la boutique avant expédition ou retrait.
+            </p>
           </div>
         )}
       </div>
@@ -318,7 +330,7 @@ const Checkout: React.FC<CheckoutProps> = ({
       <div className="flex space-x-4 mt-8">
         <button onClick={form.prevStep} className="px-8 py-4 text-gray-400 border border-white/10 hover:border-white hover:text-white font-bold uppercase text-xs tracking-widest transition-colors bg-black/20">Retour</button>
         <button onClick={handleNext} disabled={!form.selectedPayment || !captchaToken || order.isProcessing} className="flex-1 bg-xeption-gold text-black font-bold py-4 font-tech uppercase tracking-wider hover:bg-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all">
-          {order.isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Traitement...</> : !captchaToken ? <><ShieldCheck className="h-4 w-4" /> Valide le captcha</> : <><Lock className="h-4 w-4" /> Confirmer la commande</>}
+          {order.isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Traitement...</> : !captchaToken ? <><ShieldCheck className="h-4 w-4" /> Valide le captcha</> : <><Lock className="h-4 w-4" /> Valider la commande</>}
         </button>
       </div>
     </div>

@@ -29,8 +29,7 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ orders }) => {
     }
   };
 
-  const handleDownloadPDF = (order: Order) => {
-    // Note: This reuses html2pdf logic from Checkout.tsx via global window object or you can abstract it
+  const handleDownloadPDF = async (order: Order) => {
     const html = generateInvoiceHTML(order);
     const element = document.createElement('div');
     element.innerHTML = html;
@@ -46,9 +45,10 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ orders }) => {
     document.body.appendChild(container);
 
     const safeName = order.customerName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    
-    // @ts-ignore
-    if (window.html2pdf) {
+
+    try {
+        const html2pdfModule = await import('html2pdf.js');
+        const html2pdf = html2pdfModule.default;
         const opt = {
             margin:       0, // Zero margin since CSS handles @page margin
             filename:     `Facture_${order.id}_${safeName}.pdf`,
@@ -56,12 +56,10 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ orders }) => {
             html2canvas:  { scale: 2, useCORS: true },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
-        // @ts-ignore
-        window.html2pdf().set(opt).from(element).save().then(() => {
-            document.body.removeChild(container);
-        });
-    } else {
-        alert("Librairie PDF non chargée. Veuillez actualiser.");
+        await html2pdf().set(opt).from(element).save();
+    } catch {
+        alert("Impossible de générer le PDF pour le moment.");
+    } finally {
         document.body.removeChild(container);
     }
   };

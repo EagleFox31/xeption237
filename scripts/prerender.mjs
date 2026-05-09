@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distDir = path.resolve(__dirname, '../dist');
 
-const STATIC_ROUTES = ['/', '/shop', '/troc', '/tracking', '/sav'];
+const STATIC_ROUTES = ['/', '/about', '/contact', '/shop', '/troc', '/tracking', '/sav', '/mentions-legales', '/cgv', '/cgv-smart-troc', '/politique-confidentialite', '/politique-cookies'];
 
 const slugify = (input = '') => {
   return input

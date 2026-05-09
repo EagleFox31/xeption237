@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Shield, Globe, Server, BookOpen, Mail, Phone, MapPin, Building2, FileText, RefreshCw } from 'lucide-react';
+import { Shield, Globe, Server, BookOpen, Mail, Phone, MapPin, Building2, FileText, RefreshCw, ChevronRight } from 'lucide-react';
 
-const Section: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
-  <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 md:p-8 hover:border-xeption-gold/20 transition-all duration-300">
+const Section: React.FC<{ id: string; icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ id, icon, title, children }) => (
+  <section
+    id={id}
+    className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 md:p-8 hover:border-xeption-gold/20 transition-all duration-300 scroll-mt-32 snap-start"
+  >
     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
       <div className="w-10 h-10 bg-xeption-gold/10 rounded-lg flex items-center justify-center text-xeption-gold">
         {icon}
@@ -13,7 +16,7 @@ const Section: React.FC<{ icon: React.ReactNode; title: string; children: React.
     <div className="space-y-3 text-gray-300 text-sm leading-relaxed">
       {children}
     </div>
-  </div>
+  </section>
 );
 
 const Row: React.FC<{ label: string; value: React.ReactNode; icon?: React.ReactNode }> = ({ label, value, icon }) => (
@@ -26,8 +29,65 @@ const Row: React.FC<{ label: string; value: React.ReactNode; icon?: React.ReactN
   </div>
 );
 
+const SECTIONS = [
+  { id: 'editeur', label: 'Éditeur du site' },
+  { id: 'publication', label: 'Publication' },
+  { id: 'hebergement', label: 'Hébergement' },
+  { id: 'domaine', label: 'Nom de domaine' },
+  { id: 'propriete-intellectuelle', label: 'Propriété intellectuelle' },
+  { id: 'donnees-personnelles', label: 'Données personnelles' },
+];
+
+const TOC: React.FC<{ activeId: string }> = ({ activeId }) => (
+  <nav className="fixed top-24 right-4 w-[min(20rem,calc(100vw-2rem))] max-h-[calc(100vh-7rem)] overflow-auto bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-xl z-40" aria-label="Sommaire">
+    <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest mb-4">Sommaire</p>
+    <ol className="flex flex-col gap-2 text-sm">
+      {SECTIONS.map((item, idx) => {
+        const isActive = activeId === item.id;
+        return (
+          <li key={item.id}>
+            <a
+              href={`#${item.id}`}
+              className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 group ${
+                isActive ? 'bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <ChevronRight className={`w-3 h-3 transition-transform duration-300 shrink-0 ${isActive ? 'text-xeption-gold translate-x-1' : 'text-gray-600 group-hover:text-xeption-gold group-hover:translate-x-0.5'}`} />
+              <span className={`font-mono text-xs w-5 shrink-0 ${isActive ? 'text-xeption-gold' : 'text-xeption-gold/50'}`}>
+                {String(idx + 1).padStart(2, '0')}
+              </span>
+              <span className="font-medium">{item.label}</span>
+            </a>
+          </li>
+        );
+      })}
+    </ol>
+  </nav>
+);
+
 const MentionsLegalesPage: React.FC = () => {
   const lastUpdated = '08 mai 2026';
+  const [activeSection, setActiveSection] = useState<string>(SECTIONS[0].id);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: '-20% 0px -60% 0px' }
+    );
+
+    SECTIONS.forEach((section) => {
+      const element = document.getElementById(section.id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <>
@@ -40,8 +100,11 @@ const MentionsLegalesPage: React.FC = () => {
         <link rel="canonical" href="https://www.xeptionetwork.shop/mentions-legales" />
       </Helmet>
 
-      <div className="min-h-screen pt-28 pb-20 px-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen pt-28 pb-20 px-4 relative">
+        {/* Overlay sombre pour lisibilité sur fond vidéo */}
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-0 pointer-events-none" />
+        <div className="max-w-4xl mx-auto relative z-10">
+          <TOC activeId={activeSection} />
 
           {/* Header */}
           <div className="text-center mb-12">
@@ -61,10 +124,10 @@ const MentionsLegalesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 snap-y snap-proximity">
 
             {/* Éditeur du site */}
-            <Section icon={<Building2 className="w-5 h-5" />} title="Éditeur du site">
+            <Section id="editeur" icon={<Building2 className="w-5 h-5" />} title="Éditeur du site">
               <p className="text-gray-400 text-xs italic mb-4">
                 Le présent site est édité par ETS XEPTION, entreprise individuelle (EI) exerçant ses activités dans le secteur de la vente de produits high-tech.
               </p>
@@ -84,15 +147,7 @@ const MentionsLegalesPage: React.FC = () => {
               />
               <Row
                 label="Adresse"
-                value={
-                  <>
-                    Mfoundi Mall, Boutique 2063,{' '}
-                    <span className="text-yellow-400 font-mono text-xs bg-yellow-400/10 px-2 py-0.5 rounded">
-                      [À COMPLÉTER — Adresse administrative complète]
-                    </span>
-                    {', Yaoundé, Cameroun'}
-                  </>
-                }
+                value="Mfoundi Mall, Boutique 2063, Avenue Mgr Vogt, Marché Mfoundi, Centre-ville, Yaoundé, Cameroun"
                 icon={<MapPin className="w-3 h-3" />}
               />
               <Row
@@ -123,18 +178,25 @@ const MentionsLegalesPage: React.FC = () => {
                 value={<span className="font-mono">P039916777543H</span>}
                 icon={<FileText className="w-3 h-3" />}
               />
-              <Row
-                label="N° TVA"
-                value={<span className="font-mono">P039916777543H</span>}
-                icon={<FileText className="w-3 h-3" />}
-              />
             </Section>
 
             {/* Responsable de la publication */}
-            <Section icon={<FileText className="w-5 h-5" />} title="Responsable de la publication">
+            <Section id="publication" icon={<FileText className="w-5 h-5" />} title="Responsable de la publication">
+              <p className="text-gray-400 text-xs italic mb-4">
+                La publication et la conception numérique du site sont assurées par :
+              </p>
               <Row
-                label="Identité"
-                value="Jordan Ladzou Kuete"
+                label="Entité"
+                value={<span className="text-white font-bold">Agenstudio</span>}
+                icon={<Building2 className="w-3 h-3" />}
+              />
+              <Row
+                label="Groupe"
+                value="Trigenys Group"
+              />
+              <Row
+                label="Activité"
+                value="Création de solutions numériques"
               />
               <Row
                 label="Contact"
@@ -148,7 +210,7 @@ const MentionsLegalesPage: React.FC = () => {
             </Section>
 
             {/* Hébergement */}
-            <Section icon={<Server className="w-5 h-5" />} title="Hébergement">
+            <Section id="hebergement" icon={<Server className="w-5 h-5" />} title="Hébergement">
               <p className="text-gray-400 text-xs italic mb-4">
                 Le site est hébergé par la société suivante :
               </p>
@@ -175,7 +237,7 @@ const MentionsLegalesPage: React.FC = () => {
             </Section>
 
             {/* Nom de domaine */}
-            <Section icon={<Globe className="w-5 h-5" />} title="Nom de domaine">
+            <Section id="domaine" icon={<Globe className="w-5 h-5" />} title="Nom de domaine">
               <p className="text-gray-400 text-xs italic mb-4">
                 Le nom de domaine <strong className="text-white">xeptionetwork.shop</strong> est enregistré auprès du bureau d'enregistrement suivant :
               </p>
@@ -206,7 +268,7 @@ const MentionsLegalesPage: React.FC = () => {
             </Section>
 
             {/* Propriété intellectuelle */}
-            <Section icon={<BookOpen className="w-5 h-5" />} title="Propriété intellectuelle">
+            <Section id="propriete-intellectuelle" icon={<BookOpen className="w-5 h-5" />} title="Propriété intellectuelle">
               <p>
                 L'ensemble des éléments présents sur ce site — notamment les textes, images, graphismes, logo, icônes, sons et contenus multimédia —, sauf mention contraire, sont la <strong className="text-white">propriété exclusive de ETS XEPTION</strong> et sont protégés par les lois applicables en matière de propriété intellectuelle.
               </p>
@@ -222,7 +284,7 @@ const MentionsLegalesPage: React.FC = () => {
             </Section>
 
             {/* Données personnelles */}
-            <Section icon={<Shield className="w-5 h-5" />} title="Données personnelles">
+            <Section id="donnees-personnelles" icon={<Shield className="w-5 h-5" />} title="Données personnelles">
               <p>
                 Dans le cadre de l'utilisation de ce site et du traitement de vos commandes, ETS XEPTION est susceptible de collecter des données à caractère personnel (nom, prénom, adresse email, numéro de téléphone, adresse de livraison).
               </p>

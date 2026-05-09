@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Smartphone, AlertCircle, Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
 
 interface TrocPaymentProps {
@@ -15,6 +16,7 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
   error,
 }) => {
   const [phone, setPhone] = useState('');
+  const [accepted, setAccepted] = useState(false);
 
   const phoneDigits = phone.replace(/\s/g, '');
   const isPhoneValid = /^[62]\d{8}$/.test(phoneDigits);
@@ -22,7 +24,7 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isPhoneValid || isLoading) return;
+    if (!isPhoneValid || isLoading || !accepted) return;
     onInitiate(phoneDigits);
   };
 
@@ -106,12 +108,37 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
           </button>
         )}
 
+        {/* Acceptation des conditions Smart Troc */}
+        {(paymentState === 'idle' || paymentState === 'initiating') && (
+          <label className="flex items-start gap-3 cursor-pointer select-none group">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              disabled={isLoading}
+              className="mt-0.5 w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-xeption-gold focus:ring-1 focus:ring-xeption-gold cursor-pointer shrink-0"
+            />
+            <span className="text-neutral-400 text-xs leading-relaxed group-hover:text-neutral-300 transition-colors">
+              J'ai lu et j'accepte les{' '}
+              <Link
+                to="/cgv-smart-troc"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xeption-gold hover:underline"
+              >
+                conditions Smart Troc
+              </Link>
+              {' '}— frais de service de 150 XAF non remboursable, estimation indicative confirmée en boutique.
+            </span>
+          </label>
+        )}
+
         {/* Bouton principal */}
         {(paymentState === 'idle' || paymentState === 'initiating') && (
           <button
             type="submit"
-            disabled={!isPhoneValid || isLoading}
-            className="flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-40 hover:bg-neutral-100 transition-colors"
+            disabled={!isPhoneValid || isLoading || !accepted}
+            className="flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100 transition-colors"
           >
             {paymentState === 'initiating' ? (
               <>

@@ -25,10 +25,17 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const staticRoutes = [
     { url: '/', changefreq: 'daily', priority: 1.0 },
+    { url: '/about', changefreq: 'monthly', priority: 0.5 },
+    { url: '/contact', changefreq: 'monthly', priority: 0.6 },
     { url: '/shop', changefreq: 'daily', priority: 0.9 },
     { url: '/troc', changefreq: 'weekly', priority: 0.8 },
     { url: '/tracking', changefreq: 'monthly', priority: 0.5 },
     { url: '/sav', changefreq: 'monthly', priority: 0.6 },
+    { url: '/mentions-legales', changefreq: 'yearly', priority: 0.3 },
+    { url: '/cgv', changefreq: 'yearly', priority: 0.3 },
+    { url: '/cgv-smart-troc', changefreq: 'yearly', priority: 0.3 },
+    { url: '/politique-confidentialite', changefreq: 'yearly', priority: 0.3 },
+    { url: '/politique-cookies', changefreq: 'yearly', priority: 0.3 },
 ];
 
 const slugify = (input = '') => {

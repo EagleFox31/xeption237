@@ -112,7 +112,7 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
           <p className="text-sm font-tech font-bold text-xeption-red uppercase">Troc impossible</p>
           <p className="text-xs text-gray-400 font-sans">{msg.body}</p>
           <a
-            href="https://wa.me/237670000000"
+            href="https://wa.me/237697686684"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 bg-green-600/20 border border-green-600/40 hover:bg-green-600/40 text-green-400 font-tech font-bold uppercase tracking-widest text-xs py-3 transition-all rounded-sm"
@@ -159,5 +159,4 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
     </div>
   );
 };
-
 

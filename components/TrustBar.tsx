@@ -15,7 +15,7 @@ const TrustBar: React.FC = () => {
     {
       icon: Smartphone,
       title: "Paiement Mobile",
-      desc: "Payez via OM ou MoMo à la livraison.",
+      desc: "OM ou MoMo disponibles selon les modalités de commande.",
       iconColor: "text-white",
       bgGlow: "group-hover:bg-orange-500/20",
       borderGlow: "group-hover:border-orange-500/50"
@@ -66,7 +66,7 @@ const TrustBar: React.FC = () => {
                             <p className="text-gray-400 text-xs font-medium leading-relaxed mt-1 group-hover:text-gray-300 transition-colors">
                                 {item.title === "Paiement Mobile" ? (
                                     <span>
-                                        Payez via <span className="text-orange-500 font-bold">OM</span> ou <span className="text-yellow-400 font-bold">MoMo</span>.
+                                        <span className="text-orange-500 font-bold">OM</span> ou <span className="text-yellow-400 font-bold">MoMo</span> selon la commande.
                                     </span>
                                 ) : (
                                     item.desc

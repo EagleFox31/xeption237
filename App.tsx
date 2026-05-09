@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
-import Checkout from './components/Checkout';
-import AiConsultant from './components/AiConsultant';
 import { Product, CartItem, Pack } from './types';
 import { supabase } from './services/supabaseClient';
 import { optimizeVideo, optimizeImage } from './utils/mediaOptimization';
@@ -11,13 +9,34 @@ import { getProductSlug } from './utils/slug';
 //Newlmlmpmmlm
 // Pages
 import HomePage from './pages/HomePage';
+import AboutPage from './pages/AboutPage';
 import ShopPage from './pages/ShopPage';
+import ContactPage from './pages/ContactPage';
 import TrocPage from './pages/TrocPage';
 import TrackingPage from './pages/TrackingPage';
 import SavPage from './pages/SavPage';
-import AdminPage from './pages/AdminPage';
 import ProductPage from './pages/ProductPage';
 import MentionsLegalesPage from './pages/MentionsLegalesPage';
+import PolitiqueConfidentialitePage from './pages/PolitiqueConfidentialitePage';
+import PolitiqueCookiesPage from './pages/PolitiqueCookiesPage';
+import CGVPage from './pages/CGVPage';
+import CGVSmartTrocPage from './pages/CGVSmartTrocPage';
+
+const Checkout = lazy(() => import('./components/Checkout'));
+const AiConsultant = lazy(() => import('./components/AiConsultant'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+
+const PageFallback: React.FC = () => (
+  <div className="min-h-[40vh] flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-xeption-gold border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
+const OverlayFallback: React.FC = () => (
+  <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-xeption-gold border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,6 +45,7 @@ const App: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [shouldRenderAiConsultant, setShouldRenderAiConsultant] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const prerenderNotified = useRef(false);
   const isPrerender =
@@ -168,6 +188,23 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (isAdminPage || isPrerender) {
+      setShouldRenderAiConsultant(false);
+      return;
+    }
+
+    const onIdle = () => setShouldRenderAiConsultant(true);
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const idleId = (window as any).requestIdleCallback(onIdle, { timeout: 2000 });
+      return () => (window as any).cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = window.setTimeout(onIdle, 1200);
+    return () => window.clearTimeout(timeoutId);
+  }, [isAdminPage, isPrerender]);
+
   const addToCart = (product: Product) => {
     setCart(prev => {
       const exists = prev.find(item => item.id === product.id);
@@ -259,12 +296,14 @@ const App: React.FC = () => {
               onAddPackToCart={addPackToCart}
             />
           } />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/shop" element={
             <ShopPage
               products={products}
               onAddToCart={addToCart}
             />
           } />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/product/:slug" element={
             <ProductPage
               products={products}
@@ -275,13 +314,19 @@ const App: React.FC = () => {
           <Route path="/tracking" element={<TrackingPage />} />
           <Route path="/sav" element={<SavPage />} />
           <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
+          <Route path="/politique-confidentialite" element={<PolitiqueConfidentialitePage />} />
+          <Route path="/politique-cookies" element={<PolitiqueCookiesPage />} />
+          <Route path="/cgv" element={<CGVPage />} />
+          <Route path="/cgv-smart-troc" element={<CGVSmartTrocPage />} />
           <Route path="/admin/*" element={
-            <AdminPage
-              isAuthenticated={isAuthenticated}
-              setIsAuthenticated={setIsAuthenticated}
-              products={products}
-              onUpdateProducts={setProducts}
-            />
+            <Suspense fallback={<PageFallback />}>
+              <AdminPage
+                isAuthenticated={isAuthenticated}
+                setIsAuthenticated={setIsAuthenticated}
+                products={products}
+                onUpdateProducts={setProducts}
+              />
+            </Suspense>
           } />
         </Routes>
       </main>
@@ -317,27 +362,45 @@ const App: React.FC = () => {
                 <a href="https://web.facebook.com/xeptioon/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Facebook</a>
                 <a href="https://www.instagram.com/xeption_corp/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Instagram</a>
                 <a href="https://www.tiktok.com/@xeption237?_r=1&_t=ZM-939Ae3o3r2J" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">TikTok</a>
-                <a href="https://wa.me/237699000000" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
+                <a href="https://wa.me/237697686684" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
               </div>
               <div className="flex gap-4 text-[11px] text-gray-600">
+                <button onClick={() => navigate('/about')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">À propos</button>
+                <span className="text-gray-700">·</span>
+                <button onClick={() => navigate('/contact')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Contact</button>
+                <span className="text-gray-700">·</span>
                 <button onClick={() => navigate('/mentions-legales')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Mentions légales</button>
+                <span className="text-gray-700">·</span>
+                <button onClick={() => navigate('/cgv')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">CGV</button>
+                <span className="text-gray-700">·</span>
+                <button onClick={() => navigate('/politique-confidentialite')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Confidentialité</button>
+                <span className="text-gray-700">·</span>
+                <button onClick={() => navigate('/politique-cookies')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Cookies</button>
               </div>
             </div>
           </div>
         </footer>
       )}
 
-      <Checkout
-        cart={cart}
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        onRemoveItem={removeFromCart}
-        onClearCart={clearCart}
-        onUpdateQuantity={updateQuantity}
-        onNavigate={(page) => navigate(page === 'home' ? '/' : '/' + page)}
-      />
+      {isCartOpen && (
+        <Suspense fallback={<OverlayFallback />}>
+          <Checkout
+            cart={cart}
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            onRemoveItem={removeFromCart}
+            onClearCart={clearCart}
+            onUpdateQuantity={updateQuantity}
+            onNavigate={(page) => navigate(page === 'home' ? '/' : '/' + page)}
+          />
+        </Suspense>
+      )}
 
-      {!isAdminPage && <AiConsultant products={products} />}
+      {!isAdminPage && shouldRenderAiConsultant && (
+        <Suspense fallback={null}>
+          <AiConsultant products={products} />
+        </Suspense>
+      )}
     </div>
   );
 };

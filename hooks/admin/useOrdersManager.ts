@@ -2,6 +2,7 @@
 import React, { useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Order, Product } from '../../types';
+import { DB_TABLES } from '../../constants/dbSchema';
 
 interface UseOrdersManagerProps {
     products: Product[];
@@ -10,39 +11,62 @@ interface UseOrdersManagerProps {
     setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
 }
 
+const getOrderItems = (order: Order) =>
+    Array.isArray(order.items) ? order.items : [];
+
 export const useOrdersManager = ({ products, onUpdateProducts, orders, setOrders }: UseOrdersManagerProps) => {
 
     const updateStatus = useCallback(async (orderId: string, newStatus: Order['status']) => {
-        const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-        if (!error) {
-            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-        } else {
-            throw error;
+        const { data, error } = await supabase
+            .from(DB_TABLES.ORDERS)
+            .update({ status: newStatus })
+            .eq('id', orderId)
+            .select('id');
+
+        if (error) throw error;
+        if (!data?.length) {
+            throw new Error('Commande introuvable ou mise à jour refusée.');
         }
+
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
     }, [setOrders]);
 
     const cancelOrder = useCallback(async (order: Order) => {
-        // 1. Restore Stock Logic
+        const items = getOrderItems(order);
         const updatedProducts = [...products];
-        
-        for (const item of order.items) {
-            const { data: productData } = await supabase.from('products').select('stock').eq('id', item.id).single();
-            
-            if (productData) {
-                const newStock = productData.stock + item.quantity;
-                
-                // DB Update
-                await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
-                
-                // Optimistic UI Update
-                const prodIndex = updatedProducts.findIndex(p => p.id === item.id);
-                if (prodIndex !== -1) {
-                    updatedProducts[prodIndex] = { ...updatedProducts[prodIndex], stock: newStock };
-                }
+
+        for (const item of items) {
+            if (!item?.id || !item.quantity) continue;
+
+            const { data: productData, error: fetchError } = await supabase
+                .from(DB_TABLES.PRODUCTS)
+                .select('stock')
+                .eq('id', item.id)
+                .single();
+
+            if (fetchError || !productData) continue;
+
+            const newStock = productData.stock + item.quantity;
+            const { error: stockError } = await supabase
+                .from(DB_TABLES.PRODUCTS)
+                .update({ stock: newStock })
+                .eq('id', item.id);
+
+            if (stockError) {
+                console.warn('Stock non restauré pour', item.id, stockError.message);
+                continue;
+            }
+
+            const prodIndex = updatedProducts.findIndex((p) => p.id === item.id);
+            if (prodIndex !== -1) {
+                updatedProducts[prodIndex] = { ...updatedProducts[prodIndex], stock: newStock };
             }
         }
 
-        onUpdateProducts(updatedProducts);
+        if (items.length > 0) {
+            onUpdateProducts(updatedProducts);
+        }
+
         await updateStatus(order.id, 'cancelled');
     }, [products, onUpdateProducts, updateStatus]);
 

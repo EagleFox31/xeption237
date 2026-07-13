@@ -6,6 +6,10 @@ import {
   parseTrocVisionAnalystOutput,
   type TrocVisionAnalystInput,
 } from '../_shared/personas/trocVisionAnalyst.ts';
+import {
+  buildTrocPhotoCredibilityPrompt,
+  parseTrocPhotoCredibilityOutput,
+} from '../_shared/personas/trocPhotoCredibility.ts';
 
 export {};
 
@@ -17,7 +21,10 @@ const corsHeaders = {
 const PHOTO_FETCH_TIMEOUT_MS = 10_000;
 const GEMINI_TIMEOUT_MS = 30_000;
 const MAX_PHOTOS = 8;
+const CREDIBILITY_MAX_PHOTOS = 4;
 const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_CREDIBILITY_MODEL =
+  Deno.env.get('GEMINI_CREDIBILITY_MODEL')?.trim() || 'gemini-2.0-flash-lite';
 
 const fetchWithTimeout = async (
   input: RequestInfo | URL,
@@ -35,7 +42,77 @@ const fetchWithTimeout = async (
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-const validateBody = (body: any): string | null => {
+const FULL_VISION_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    score: { type: 'INTEGER' },
+    justification: { type: 'STRING' },
+    observedBrand: { type: 'STRING' },
+    observedModel: { type: 'STRING' },
+    decision: { type: 'STRING' },
+    confidence: { type: 'NUMBER' },
+    fraudDetected: { type: 'BOOLEAN' },
+    photoIssues: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          index: { type: 'INTEGER' },
+          reason: { type: 'STRING' },
+        },
+        required: ['index', 'reason'],
+      },
+    },
+    evidence: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          source: { type: 'STRING' },
+          signal: { type: 'STRING' },
+        },
+      },
+    },
+    warnings: { type: 'ARRAY', items: { type: 'STRING' } },
+  },
+  required: ['score', 'justification', 'observedBrand', 'observedModel', 'decision', 'confidence', 'fraudDetected', 'photoIssues', 'evidence', 'warnings'],
+};
+
+const CREDIBILITY_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    decision: { type: 'STRING' },
+    confidence: { type: 'NUMBER' },
+    observedBrand: { type: 'STRING' },
+    observedModel: { type: 'STRING' },
+    allPhotosShowSmartphone: { type: 'BOOLEAN' },
+    declarationMatch: { type: 'STRING' },
+    summary: { type: 'STRING' },
+    photoIssues: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          index: { type: 'INTEGER' },
+          reason: { type: 'STRING' },
+        },
+        required: ['index', 'reason'],
+      },
+    },
+  },
+  required: [
+    'decision',
+    'confidence',
+    'observedBrand',
+    'observedModel',
+    'allPhotosShowSmartphone',
+    'declarationMatch',
+    'summary',
+    'photoIssues',
+  ],
+};
+
+const validateBody = (body: any, isPreflight: boolean): string | null => {
   if (!Array.isArray(body.photoUrls)) return 'photoUrls doit être un tableau';
   if (body.photoUrls.length === 0) return 'photoUrls : au moins une photo requise';
   if (body.photoUrls.length > MAX_PHOTOS) return `photoUrls : maximum ${MAX_PHOTOS} photos`;
@@ -47,8 +124,10 @@ const validateBody = (body: any): string | null => {
   if (!str(info.brand).trim()) return 'deviceInfo.brand requis';
   if (!str(info.model).trim()) return 'deviceInfo.model requis';
 
-  const bh = Number(info.batteryHealth);
-  if (!Number.isFinite(bh) || bh < 0 || bh > 100) return 'deviceInfo.batteryHealth invalide (0-100)';
+  if (!isPreflight) {
+    const bh = Number(info.batteryHealth);
+    if (!Number.isFinite(bh) || bh < 0 || bh > 100) return 'deviceInfo.batteryHealth invalide (0-100)';
+  }
 
   return null;
 };
@@ -62,53 +141,21 @@ type GeminiCallResult =
 const callGemini = async (
   apiKey: string,
   parts: any[],
-  deviceInfo: TrocVisionAnalystInput,
+  promptText: string,
   keyUsed: 'primary' | 'fallback',
+  responseSchema: Record<string, unknown>,
+  model = GEMINI_MODEL,
 ): Promise<GeminiCallResult> => {
   const geminiRes = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: buildTrocVisionAnalystPrompt(deviceInfo) }, ...parts] }],
+        contents: [{ parts: [{ text: promptText }, ...parts] }],
         generationConfig: {
           responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'OBJECT',
-            properties: {
-              score: { type: 'INTEGER' },
-              justification: { type: 'STRING' },
-              observedBrand: { type: 'STRING' },
-              observedModel: { type: 'STRING' },
-              decision: { type: 'STRING' },
-              confidence: { type: 'NUMBER' },
-              fraudDetected: { type: 'BOOLEAN' },
-              photoIssues: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    index: { type: 'INTEGER' },
-                    reason: { type: 'STRING' },
-                  },
-                  required: ['index', 'reason'],
-                },
-              },
-              evidence: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    source: { type: 'STRING' },
-                    signal: { type: 'STRING' },
-                  },
-                },
-              },
-              warnings: { type: 'ARRAY', items: { type: 'STRING' } },
-            },
-            required: ['score', 'justification', 'observedBrand', 'observedModel', 'decision', 'confidence', 'fraudDetected', 'photoIssues', 'evidence', 'warnings'],
-          },
+          responseSchema,
         },
       }),
     },
@@ -132,7 +179,23 @@ Deno.serve(async (req: Request) => {
   try {
     const body = await req.json();
 
-    const validationError = validateBody(body);
+    if (body.healthCheck === true) {
+      const primaryKey = Deno.env.get('GEMINI_API_KEY')?.trim() || '';
+      const fallbackKey = Deno.env.get('GEMINI_API_KEY_FALLBACK')?.trim() || '';
+      const ready = primaryKey.length > 0 || fallbackKey.length > 0;
+      return new Response(
+        JSON.stringify({
+          ready,
+          provider: 'edge-gemini',
+          code: ready ? 'ready' : 'missing_api_key',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    }
+
+    const isPreflight = body.preflight === true;
+
+    const validationError = validateBody(body, isPreflight);
     if (validationError) {
       return new Response(JSON.stringify({ error: validationError }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -151,12 +214,30 @@ Deno.serve(async (req: Request) => {
     }
 
     const { photoUrls, deviceInfo } = body;
+    const analystInput: TrocVisionAnalystInput = {
+      brand: str(deviceInfo.brand).trim(),
+      model: str(deviceInfo.model).trim(),
+      storage: str(deviceInfo.storage),
+      ram: str(deviceInfo.ram),
+      batteryHealth: Number.isFinite(Number(deviceInfo.batteryHealth))
+        ? Number(deviceInfo.batteryHealth)
+        : 80,
+      screenCondition: str(deviceInfo.screenCondition),
+      bodyCondition: str(deviceInfo.bodyCondition),
+      cameraCondition: str(deviceInfo.cameraCondition),
+      accessories: Array.isArray(deviceInfo.accessories) ? deviceInfo.accessories : [],
+      photoCount: 0,
+    };
+
+    const responseSchema = isPreflight ? CREDIBILITY_SCHEMA : FULL_VISION_SCHEMA;
+    const photoLimit = isPreflight ? CREDIBILITY_MAX_PHOTOS : MAX_PHOTOS;
+    const geminiModel = isPreflight ? GEMINI_CREDIBILITY_MODEL : GEMINI_MODEL;
 
     // Fetch photos depuis Cloudinary et conversion base64.
     // On utilise allSettled pour ne pas bloquer sur une photo manquante —
     // on évalue avec les photos disponibles et on signale le compte effectif.
     const imageResults = await Promise.allSettled(
-      (photoUrls as string[]).slice(0, MAX_PHOTOS).map(async (url: string) => {
+      (photoUrls as string[]).slice(0, photoLimit).map(async (url: string) => {
         const res = await fetchWithTimeout(url, {}, PHOTO_FETCH_TIMEOUT_MS);
         if (!res.ok) throw new Error(`http_${res.status}`);
         const buffer = await res.arrayBuffer();
@@ -180,6 +261,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const finalPrompt = isPreflight
+      ? buildTrocPhotoCredibilityPrompt({
+          brand: analystInput.brand,
+          model: analystInput.model,
+          photoCount: imageParts.length,
+        })
+      : buildTrocVisionAnalystPrompt({ ...analystInput, photoCount: imageParts.length });
+
     let geminiResult: GeminiCallResult | null = null;
 
     if (primaryKey) {
@@ -187,8 +276,10 @@ Deno.serve(async (req: Request) => {
         geminiResult = await callGemini(
           primaryKey,
           imageParts,
-          { ...deviceInfo, photoCount: imageParts.length },
+          finalPrompt,
           'primary',
+          responseSchema,
+          geminiModel,
         );
       } catch (error: any) {
         console.error('[evaluate-device] gemini_primary_fatal', error?.message ?? error);
@@ -205,8 +296,10 @@ Deno.serve(async (req: Request) => {
         const fallbackResult = await callGemini(
           fallbackKey,
           imageParts,
-          { ...deviceInfo, photoCount: imageParts.length },
+          finalPrompt,
           'fallback',
+          responseSchema,
+          geminiModel,
         );
         if (fallbackResult.ok) {
           geminiResult = fallbackResult;
@@ -242,6 +335,40 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: 'Réponse Gemini vide', code: 'empty_response' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
+      );
+    }
+
+    if (isPreflight) {
+      const credibility = parseTrocPhotoCredibilityOutput(text);
+      if (!credibility) {
+        return new Response(
+          JSON.stringify({ error: 'JSON Gemini invalide', code: 'invalid_json' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
+        );
+      }
+
+      const analysisDecision =
+        credibility.decision === 'approved'
+          ? 'match'
+          : credibility.decision === 'mismatch'
+            ? 'mismatch'
+            : 'photos_to_retake';
+
+      return new Response(
+        JSON.stringify({
+          preflight: true,
+          evaluationMode: 'credibility_verified',
+          photosUsed: imageParts.length,
+          provider: geminiResult.keyUsed,
+          analysisDecision,
+          photoIssues: credibility.photoIssues,
+          observedBrand: credibility.observedBrand,
+          observedModel: credibility.observedModel,
+          declarationMatch: credibility.declarationMatch,
+          credibilitySummary: credibility.summary,
+          credibilityConfidence: credibility.confidence,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
     }
 

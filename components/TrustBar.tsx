@@ -2,7 +2,11 @@
 import React from 'react';
 import { Truck, ShieldCheck, Smartphone, CheckCircle2 } from 'lucide-react';
 
-const TrustBar: React.FC = () => {
+interface TrustBarProps {
+  variant?: 'default' | 'compact';
+}
+
+const TrustBar: React.FC<TrustBarProps> = ({ variant = 'default' }) => {
   const features = [
     {
       icon: Truck,
@@ -38,6 +42,29 @@ const TrustBar: React.FC = () => {
     }
   ];
 
+  if (variant === 'compact') {
+    return (
+      <div className="relative z-20 px-4 mb-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
+            {features.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 bg-[#09090b]/70 backdrop-blur-xl border border-white/5 rounded-lg px-3 py-2.5"
+              >
+                <item.icon className={`w-4 h-4 shrink-0 ${item.iconColor}`} strokeWidth={1.5} />
+                <div className="min-w-0">
+                  <p className="text-white font-tech font-bold uppercase text-[10px] tracking-wide truncate">{item.title}</p>
+                  <p className="text-white/90 text-[9px] truncate hidden sm:block">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative z-20 px-4 mt-8 mb-20">
       <div className="max-w-7xl mx-auto">
@@ -63,7 +90,7 @@ const TrustBar: React.FC = () => {
                             <h3 className="text-white font-tech font-bold uppercase tracking-wide text-sm md:text-base group-hover:text-white transition-colors drop-shadow-md">
                                 {item.title}
                             </h3>
-                            <p className="text-gray-400 text-xs font-medium leading-relaxed mt-1 group-hover:text-gray-300 transition-colors">
+                            <p className="text-white/90 text-xs font-medium leading-relaxed mt-1">
                                 {item.title === "Paiement Mobile" ? (
                                     <span>
                                         <span className="text-orange-500 font-bold">OM</span> ou <span className="text-yellow-400 font-bold">MoMo</span> selon la commande.

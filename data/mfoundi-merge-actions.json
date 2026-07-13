@@ -1,0 +1,1624 @@
+{
+  "mode": "applied",
+  "at": "2026-06-12T16:57:36.406Z",
+  "importTotal": 131,
+  "merged": 44,
+  "deleted": 44,
+  "kept": 87,
+  "ask": 4,
+  "details": {
+    "merged": [
+      {
+        "import": "Apple iPhone 11 Pro Max 256 Go (US/Canada)",
+        "importId": "f46e2777-f9ba-44d0-9616-c48b5b113062",
+        "legacy": "iPhone 11 Pro Max 256Go ",
+        "legacyId": "2a34abb0-185f-4310-81b2-7c3ac5876902",
+        "mergedImages": false,
+        "updates": {
+          "price": 145000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781193932/xeption/v00scuxi5gaqoa0nbxby.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781193942/xeption/d9wwrl0agpcetnqmwhfr.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 12 128 Go (US/Canada)",
+        "importId": "f4110a79-adc0-415c-9149-e8184d1e098f",
+        "legacy": "iPhone 12 128Go ",
+        "legacyId": "19de7637-aeb9-4fa7-90a9-d5b405931538",
+        "mergedImages": false,
+        "updates": {
+          "price": 118000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781193220/xeption/e47zhpyyvvcs6h8xt8l5.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781193221/xeption/rdm7ovsbcm5tncaqjhip.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "128 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 12 Pro 128 Go (US/Canada)",
+        "importId": "7f0630b9-2939-4503-87e9-c195cf321b24",
+        "legacy": "iPhone 12pro 128 Go",
+        "legacyId": "41ba61c1-a950-4273-ab17-a2745899bc0c",
+        "mergedImages": false,
+        "updates": {
+          "price": 153000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781192180/xeption/vdco0f6vxin1pcrp7ihj.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "128 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 12 Pro Max 512 Go (US/Canada)",
+        "importId": "35bd8ed5-e4ce-4977-ba5a-9876b71aec3b",
+        "legacy": "iPhone 12 Pro Max 512GB",
+        "legacyId": "82ddca03-42d5-4120-abce-5476dc4015d8",
+        "mergedImages": false,
+        "updates": {
+          "price": 208000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781191698/xeption/h620vik6xuzvgyxc5gwr.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781191699/xeption/n7k9guqsdq2uqkj8u3ex.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "512 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            },
+            {
+              "label": "Notes",
+              "value": "Source text had '515g' for iPhone 12 Pro Max; normalized to 512 Go."
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 13 256 Go (US/Canada)",
+        "importId": "f93d1034-2686-489f-9726-509573b93d35",
+        "legacy": "iPhone 13 256 giga",
+        "legacyId": "510d0c25-bce0-4ec8-b157-acccdb50ec3f",
+        "mergedImages": false,
+        "updates": {
+          "price": 185000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781191215/xeption/pecju0bqzd4mnodf070y.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781191217/xeption/d8ghtajnblfd9ulb2xex.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781191217/xeption/tdi95pmc61izhbwywdih.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 13 Pro 128 Go (US/Canada)",
+        "importId": "2816c0f0-d28c-4cb7-944e-7b29dc7cc184",
+        "legacy": "iPhone 13 Pro 128Go ",
+        "legacyId": "4b02ee83-07df-4432-94fd-1dba289b8ecb",
+        "mergedImages": false,
+        "updates": {
+          "price": 225000,
+          "warranty_months": 1,
+          "images": [],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "128 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 13 Pro Max 128 Go (US/Canada)",
+        "importId": "02a293ff-e4ca-4b76-9ab9-24ef59ca09e2",
+        "legacy": "Iphone 13 pro Max",
+        "legacyId": "2d7aefe3-fdfe-4735-acea-ef3ae4ed354c",
+        "mergedImages": false,
+        "updates": {
+          "price": 250000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099462/xeption/nnnskey4iyauvvcmbnf9.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099465/xeption/x3fwaivtgzbyygr4tzna.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099465/xeption/upvnqcqaarnhfsprsfjq.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099465/xeption/swo1bbjrixtpc3hjym7m.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099466/xeption/deajktmyixto9ftwwzke.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 13 Pro Max 256 Go (US/Canada)",
+        "importId": "6d4aa049-fda2-45a1-893f-9ccc211de2af",
+        "legacy": "Iphone 13 pro Max",
+        "legacyId": "2d7aefe3-fdfe-4735-acea-ef3ae4ed354c",
+        "mergedImages": false,
+        "updates": {
+          "price": 280000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099462/xeption/nnnskey4iyauvvcmbnf9.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099465/xeption/x3fwaivtgzbyygr4tzna.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099465/xeption/upvnqcqaarnhfsprsfjq.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099465/xeption/swo1bbjrixtpc3hjym7m.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781099466/xeption/deajktmyixto9ftwwzke.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 14 128 Go (US/Canada)",
+        "importId": "289320aa-65d6-46e2-9f08-a662fe863219",
+        "legacy": "iPhone 14 128Go",
+        "legacyId": "cd163f3b-e75c-4b14-a293-61836ca52972",
+        "mergedImages": false,
+        "updates": {
+          "price": 195000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781197027/xeption/phcbhdpdv99k7pcezjiv.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781197028/xeption/arg3urtb0apdndhefw3k.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781197028/xeption/zbaqwe4cvwcisf9ymyas.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "128 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 14 Pro 128 Go (US/Canada)",
+        "importId": "656f82e2-73db-439b-acf8-3c6891520648",
+        "legacy": "iPhone 14 Pro 128Go",
+        "legacyId": "89b196df-8364-4f29-9cdb-9b1d10946f10",
+        "mergedImages": false,
+        "updates": {
+          "price": 280000,
+          "warranty_months": 1,
+          "images": [],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "128 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 14 Pro 256 Go (US/Canada)",
+        "importId": "f5e5e866-1757-4236-83fc-0bae1354da65",
+        "legacy": "iPhone 14 Pro 256Go",
+        "legacyId": "10bed18e-8e18-454b-a82e-0ddde65acf27",
+        "mergedImages": false,
+        "updates": {
+          "price": 300000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781197793/xeption/vgi3kr5tnb12jkc8w16o.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 14 Pro Max 128 Go (US/Canada)",
+        "importId": "e50f3b67-2170-4ad2-abf1-5f2d15ce509f",
+        "legacy": "iPhone 14 Pro Max 128Go ",
+        "legacyId": "7717641a-86c5-4b14-afe1-4ed7838498d4",
+        "mergedImages": false,
+        "updates": {
+          "price": 310000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781197984/xeption/galeuo7g4rvdhsphuslm.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781197984/xeption/yowpkvgvujxsqtaxopwz.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "128 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Google Pixel 7 Pro 128 Go",
+        "importId": "292fc31c-890d-462d-96e2-7439d86fbce0",
+        "legacy": "GOOGLE PIXEL 7 PRO 5G - 6.7",
+        "legacyId": "78e05de1-1b35-45d8-a74b-0d1f3c029645",
+        "mergedImages": false,
+        "updates": {
+          "price": 160000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781103116/xeption/qcrax90zqhtqoz93juak.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy S22 Ultra 256 Go Scellé 1SIM (Korea)",
+        "importId": "fc8db140-1385-4e93-973f-25f9ddb9b770",
+        "legacy": "Samsung S22 ultra ",
+        "legacyId": "528b2ddf-c210-4c87-add6-6c855f4b1d7e",
+        "mergedImages": false,
+        "updates": {
+          "price": 245000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781201939/xeption/vgklwiedngugnxsywzis.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781201939/xeption/gttpellwiwlhjbmbj5e6.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "1SIM"
+            },
+            {
+              "label": "Origine",
+              "value": "Korea"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG SCELLÉ 1SIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 11 Pro 256 Go (US/Canada)",
+        "importId": "212f5d8b-371a-4319-bd52-4b3fd6d3ab06",
+        "legacy": "iPhone 11 Pro 256 Go",
+        "legacyId": "70631367-c734-4d5f-bd99-67c537cbae62",
+        "mergedImages": false,
+        "updates": {
+          "price": 140000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781194908/xeption/jjolao0tbpc10uzfyjqq.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781194908/xeption/b3nv8rgmqbe819tli2at.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781281352/xeption/iw0jg9sa2vkcf8zgvwz5.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 11 Pro Max 64 Go (US/Canada)",
+        "importId": "8c399d23-37b8-454a-88d0-6a590eb154d2",
+        "legacy": "iPhone 11 Pro Max 64Go ",
+        "legacyId": "d8e7be4b-5ae1-45ac-8ba4-2b023446912a",
+        "mergedImages": false,
+        "updates": {
+          "price": 135000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781194516/xeption/vd3zrqbz56ngr36vltei.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781194516/xeption/xzb48yu8akct69mcfjw1.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "64 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone XR 128 Go (US/Canada)",
+        "importId": "a7b18672-194c-4e10-921f-cb93804b9009",
+        "legacy": "IPhone XR 128 Go ",
+        "legacyId": "7e20b3d0-a101-4dd0-9b2a-ada508b4ad05",
+        "mergedImages": false,
+        "updates": {
+          "price": 90000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781195331/xeption/ir3enxpguwseifmzdea0.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "128 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 11 128 Go (US/Canada)",
+        "importId": "fb902a5c-1207-473d-b789-d5d09e4062c7",
+        "legacy": "Iphone 11 Seconde main - 6,1'' -Blanc - 128Go/ 4Go RAM - 12MP/12MP - 2 SIM - 3110 mAh - 03 Mois de garantie",
+        "legacyId": "94d63a2d-51f5-4ec5-ac3f-92f3faca1bce",
+        "mergedImages": false,
+        "updates": {
+          "price": 105000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781281457/xeption/wsuye4vfxjfdplrsijap.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781281458/xeption/f48domv5iamz9xawiyv4.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781281458/xeption/vjj6svkrhkywubblxzz0.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781281458/xeption/xsr8dan822snmzc0kwwm.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781281252/xeption/moetasts3yguiku1gaki.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Apple iPhone 11 Pro 64 Go (US/Canada)",
+        "importId": "b4294e2e-a3ae-4111-a42d-5a2632ad4a7a",
+        "legacy": "iPhone 11 Pro 64 Go ",
+        "legacyId": "dbea8ff9-cd2b-434a-a039-5a19cf6593d4",
+        "mergedImages": false,
+        "updates": {
+          "price": 120000,
+          "warranty_months": 1,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781195069/xeption/bcwf8ctmbictfb22opjm.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781195071/xeption/ot7xkoalrepnqhexsvcu.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781195075/xeption/m3i0jduzkyd2z9hpeps4.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781195077/xeption/txwivsgsfcozfcxk4c1b.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "64 Go"
+            },
+            {
+              "label": "Origine",
+              "value": "US/Canada"
+            },
+            {
+              "label": "Source",
+              "value": "MFOUNDI MALL - IPHONE"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy S24 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+        "importId": "12bd951d-c35c-4ad3-9a97-f234e66e09b3",
+        "legacy": "Samsung S24 ultra ",
+        "legacyId": "2358e474-5cbe-4638-af62-948370ae849f",
+        "mergedImages": false,
+        "updates": {
+          "price": 440000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781202255/xeption/uh2w57sgdwpqm6locq57.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781202255/xeption/lnfmeden7kgjfmz2v40x.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "Korea"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy S23 Ultra 512 Go Scellé SIM+eSIM (Korea)",
+        "importId": "1d272347-5ed2-4cb1-b334-c2f22dbd4a2d",
+        "legacy": "Samsung S23 ultra 512Go ",
+        "legacyId": "d38f3d72-9a18-4655-be69-a28d47f15af0",
+        "mergedImages": false,
+        "updates": {
+          "price": 340000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781207705/xeption/ljhrhydq1dkqiwbqisza.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781207705/xeption/r1vm6jxwffk3v8vsqera.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "512 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "Korea"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy Z Fold4 512 Go Scellé SIM+eSIM (Korea)",
+        "importId": "dd67362b-deae-43b9-ab1c-53684250a94d",
+        "legacy": "Galaxie Z fold4 512 Go",
+        "legacyId": "66c355a4-aad7-4925-913f-a46328f475a8",
+        "mergedImages": false,
+        "updates": {
+          "price": 315000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781205312/xeption/wdgcekeh8gktthllaa05.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781205317/xeption/bhvu5uloadm3pxzle12a.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "512 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "Korea"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy Z Flip5 512 Go Non scellé SIM+eSIM (Korea)",
+        "importId": "4e020b31-c096-441a-9bdd-88e700b0579b",
+        "legacy": "Galaxie Z flip 5",
+        "legacyId": "4b058400-d96f-435d-883d-b60bbb0a6b3a",
+        "mergedImages": false,
+        "updates": {
+          "price": 190000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781205773/xeption/z5og9olou45dmqraiyaj.png",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781205713/xeption/gbovhoqhomaucdxdlzrd.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "512 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Non scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "Korea"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG NON SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy Z Fold4 256 Go Non scellé SIM+eSIM (Korea)",
+        "importId": "6235afd2-1270-4d3a-aa77-d110466ebb62",
+        "legacy": "Galaxie Z fold4 256 Go",
+        "legacyId": "fd104e00-eca5-44d8-b897-aa7143f8c2e1",
+        "mergedImages": false,
+        "updates": {
+          "price": 295000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781206160/xeption/e32kvhztelgwetnhi86d.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781206166/xeption/vym3ol9jwje4cgsbnvvc.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Non scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "Korea"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG NON SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy S21 128 Go Non scellé SIM+eSIM (US)",
+        "importId": "f29dfcd4-c329-4c4e-b98f-1120acaf3ee3",
+        "legacy": "Samsung S21 128 Go",
+        "legacyId": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f",
+        "mergedImages": false,
+        "updates": {
+          "price": 110000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781206557/xeption/tcejeednioxp1trrkj5i.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "128 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Non scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "US"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG NON SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy S21 256 Go Non scellé SIM+eSIM (Korea)",
+        "importId": "755bf199-0d1b-4fb2-973d-220935823240",
+        "legacy": "S21  256Go ",
+        "legacyId": "0814e79c-2674-4c92-81c5-c86a76517aa8",
+        "mergedImages": false,
+        "updates": {
+          "price": 120000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781200984/xeption/diyufbebwfiirg8rnavn.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781200984/xeption/v0y6tasny92uapy1t0ak.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Non scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "Korea"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG NON SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy S23 128 Go Non scellé SIM+eSIM (US)",
+        "importId": "fa8fa92d-a539-4683-8cd7-667f43906538",
+        "legacy": "Samsung S23 128Go",
+        "legacyId": "94b45c6b-3f95-4c9b-a4ae-097e55818b29",
+        "mergedImages": false,
+        "updates": {
+          "price": 195000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781207062/xeption/eeze6gf1gnmyu5rmthdr.png",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781207030/xeption/skvptcinnxykcjdbabm1.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "128 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Non scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "US"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG NON SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy S23 256 Go Non scellé SIM+eSIM (Korea)",
+        "importId": "aae4b2f8-4db1-4b92-91a7-2ab6c8761d1b",
+        "legacy": "Samsung S23 256 Go",
+        "legacyId": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad",
+        "mergedImages": false,
+        "updates": {
+          "price": 205000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781207221/xeption/kwk2huri5y5iy8wmvnci.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781207239/xeption/izbhssxztqnuwhdkv0bn.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Non scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "Korea"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG NON SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy S23 Ultra 512 Go Non scellé SIM+eSIM (US)",
+        "importId": "c0eb3cf5-899d-4d82-8a92-45e7377306f7",
+        "legacy": "Samsung S23 ultra 512Go ",
+        "legacyId": "d38f3d72-9a18-4655-be69-a28d47f15af0",
+        "mergedImages": false,
+        "updates": {
+          "price": 330000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781207705/xeption/ljhrhydq1dkqiwbqisza.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781207705/xeption/r1vm6jxwffk3v8vsqera.jpg"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "512 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Non scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "SIM+eSIM"
+            },
+            {
+              "label": "Origine",
+              "value": "US"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG NON SCELLÉ SIM+eSIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy S22 256 Go Non scellé 1SIM (Korea)",
+        "importId": "02696784-7a28-40ae-b892-f2f8dc7d5741",
+        "legacy": "Samsung S22 ",
+        "legacyId": "db2b37c7-9d24-4ef5-b74b-e5d8e089ed62",
+        "mergedImages": false,
+        "updates": {
+          "price": 150000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781201356/xeption/c88sf7rrgu6eg8vduujx.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781201359/xeption/vdtpp0itgocuoh3ss6vb.png"
+          ],
+          "specs": [
+            {
+              "label": "Stockage",
+              "value": "256 Go"
+            },
+            {
+              "label": "Conditionnement",
+              "value": "Non scellé"
+            },
+            {
+              "label": "SIM",
+              "value": "1SIM"
+            },
+            {
+              "label": "Origine",
+              "value": "Korea"
+            },
+            {
+              "label": "Source",
+              "value": "SAMSUNG NON SCELLÉ 1SIM"
+            }
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy A26 256 Go 8 GB RAM Scellé 2SIMS",
+        "importId": "af156579-0b30-4663-97d3-9063be0b9e65",
+        "legacy": "Samsung Galaxy A26 5G",
+        "legacyId": "ef00a589-d154-414e-b594-57fd51006c24",
+        "mergedImages": false,
+        "updates": {
+          "price": 155000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781115233/xeption/rpwonjtkn6e0erxbyehd.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781115234/xeption/x444fwgipeedkhyjn5mr.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781115234/xeption/fdvicv0clrurlqtwiv1j.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781115234/xeption/tpbwlv5deqowr26w2haz.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy A26 128 Go 6 GB RAM Scellé 2SIMS",
+        "importId": "17e30ed5-20ec-4d5b-88aa-aeedd8f84455",
+        "legacy": "Samsung Galaxy A26 5G",
+        "legacyId": "ef00a589-d154-414e-b594-57fd51006c24",
+        "mergedImages": false,
+        "updates": {
+          "price": 140000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781115233/xeption/rpwonjtkn6e0erxbyehd.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781115234/xeption/x444fwgipeedkhyjn5mr.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781115234/xeption/fdvicv0clrurlqtwiv1j.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781115234/xeption/tpbwlv5deqowr26w2haz.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy A17 128 Go 4 GB RAM Scellé 2SIMS",
+        "importId": "6edc4aa1-aa85-4266-bd75-03b440287118",
+        "legacy": "Samsung Galaxy A17",
+        "legacyId": "ad115d02-90b7-435b-afe9-0f52141afd6d",
+        "mergedImages": false,
+        "updates": {
+          "price": 110000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191026/xeption/kqeipxzkzgqsfixqr8jb.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/u5npqpdjkp9lncy0gzjl.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/xcfrxzvxio1jbv9k7siu.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/hx0wnrx1mb1mmgxfq65o.webp"
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy A17 256 Go 8 GB RAM Scellé 2SIMS",
+        "importId": "d85f8f1c-86a3-4ae0-b865-7d49d59367eb",
+        "legacy": "Samsung Galaxy A17",
+        "legacyId": "ad115d02-90b7-435b-afe9-0f52141afd6d",
+        "mergedImages": false,
+        "updates": {
+          "price": 140000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191026/xeption/kqeipxzkzgqsfixqr8jb.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/u5npqpdjkp9lncy0gzjl.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/xcfrxzvxio1jbv9k7siu.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/hx0wnrx1mb1mmgxfq65o.webp"
+          ]
+        }
+      },
+      {
+        "import": "Google Pixel 8 128 Go Non scellé (US/Japan)",
+        "importId": "617799c4-db14-4302-84d0-0e53ca4c2223",
+        "legacy": "Google Pixel 8 5G",
+        "legacyId": "acdc2d20-1f08-4740-962d-d8185968f975",
+        "mergedImages": false,
+        "updates": {
+          "price": 165000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781119659/xeption/xyimgr1j36fcoabdogew.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781119661/xeption/axv8kxjidz3oqitg5ihs.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781119661/xeption/hpf744kl5k8vjc0ziv0c.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Google Pixel 7 Pro 128 Go Non scellé (US/Japan)",
+        "importId": "7ad50144-3825-43f6-9ec8-c6e43a123331",
+        "legacy": "GOOGLE PIXEL 7 PRO 5G - 6.7",
+        "legacyId": "78e05de1-1b35-45d8-a74b-0d1f3c029645",
+        "mergedImages": false,
+        "updates": {
+          "price": 160000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781103116/xeption/qcrax90zqhtqoz93juak.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Google Pixel 7 Pro 256 Go Non scellé (US/Japan)",
+        "importId": "d9a9dce1-b89c-4b5a-a28c-aa1816611e3d",
+        "legacy": "GOOGLE PIXEL 7 PRO 5G - 6.7",
+        "legacyId": "78e05de1-1b35-45d8-a74b-0d1f3c029645",
+        "mergedImages": false,
+        "updates": {
+          "price": 180000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781103116/xeption/qcrax90zqhtqoz93juak.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Google Pixel 9 Pro XL 128 Go Scellé (US/Japan)",
+        "importId": "2a0b7de9-ebd0-49fc-8767-b64257d711c4",
+        "legacy": "Google Pixel 9 Pro XL ",
+        "legacyId": "77ca9a6a-b910-4780-8d1a-3235e97231d5",
+        "mergedImages": false,
+        "updates": {
+          "price": 380000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781109064/xeption/k6fctbkt64feqjdq7igv.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781109065/xeption/lr0z2fl4dmktpvhtx55y.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781109065/xeption/wapkgx1feirgcsvh6bet.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781109065/xeption/tobozh0u4ta3u5af2adq.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy A17 128 Go",
+        "importId": "b617c1f4-05b6-4884-9242-356adf1f84d4",
+        "legacy": "Samsung Galaxy A17",
+        "legacyId": "ad115d02-90b7-435b-afe9-0f52141afd6d",
+        "mergedImages": false,
+        "updates": {
+          "price": 100000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191026/xeption/kqeipxzkzgqsfixqr8jb.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/u5npqpdjkp9lncy0gzjl.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/xcfrxzvxio1jbv9k7siu.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/hx0wnrx1mb1mmgxfq65o.webp"
+          ]
+        }
+      },
+      {
+        "import": "Samsung Galaxy A17 256 Go",
+        "importId": "0c08af21-b55b-4345-b4dc-1f24e4a5ec69",
+        "legacy": "Samsung Galaxy A17",
+        "legacyId": "ad115d02-90b7-435b-afe9-0f52141afd6d",
+        "mergedImages": false,
+        "updates": {
+          "price": 130000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191026/xeption/kqeipxzkzgqsfixqr8jb.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/u5npqpdjkp9lncy0gzjl.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/xcfrxzvxio1jbv9k7siu.webp",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1771191027/xeption/hx0wnrx1mb1mmgxfq65o.webp"
+          ]
+        }
+      },
+      {
+        "import": "Infinix Hot 60i 128 Go",
+        "importId": "e6fc737e-e916-46a7-b0db-02401c305329",
+        "legacy": "Infinix Hot 60i",
+        "legacyId": "add64d68-88e7-452f-bb2c-38630bcd9c3e",
+        "mergedImages": false,
+        "updates": {
+          "price": 75000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104666/xeption/qglg1o1bg1xvereo8cqw.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104667/xeption/lfnjawh0c8x6wusmiwsw.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104667/xeption/xbullrem3owagiooa4rt.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104667/xeption/ipujminwisjmz7n6yyx7.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104667/xeption/yops3devxpsarpxkdsw5.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Infinix Hot 60i 256 Go",
+        "importId": "5a39038f-7995-4ae9-bd26-6405b9620fc0",
+        "legacy": "Infinix Hot 60i",
+        "legacyId": "add64d68-88e7-452f-bb2c-38630bcd9c3e",
+        "mergedImages": false,
+        "updates": {
+          "price": 90000,
+          "warranty_months": 0,
+          "images": [
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104666/xeption/qglg1o1bg1xvereo8cqw.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104667/xeption/lfnjawh0c8x6wusmiwsw.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104667/xeption/xbullrem3owagiooa4rt.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104667/xeption/ipujminwisjmz7n6yyx7.jpg",
+            "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781104667/xeption/yops3devxpsarpxkdsw5.jpg"
+          ]
+        }
+      },
+      {
+        "import": "Tecno Spark 40 128 Go",
+        "importId": "29d5ba2f-06cf-4969-b734-eb68b7c8df6e",
+        "legacy": "Tecno Spark 40",
+        "legacyId": "2a04173a-5091-4403-b6e7-972f8b69a00d",
+        "mergedImages": false,
+        "updates": {
+          "price": 80000,
+          "warranty_months": 0,
+          "images": []
+        }
+      },
+      {
+        "import": "Tecno Spark 40 256 Go",
+        "importId": "c6bdda50-997d-4bac-8b6e-e457088ea2b0",
+        "legacy": "Tecno Spark 40",
+        "legacyId": "2a04173a-5091-4403-b6e7-972f8b69a00d",
+        "mergedImages": false,
+        "updates": {
+          "price": 100000,
+          "warranty_months": 0,
+          "images": []
+        }
+      }
+    ],
+    "deleted": [
+      "f46e2777-f9ba-44d0-9616-c48b5b113062",
+      "f4110a79-adc0-415c-9149-e8184d1e098f",
+      "7f0630b9-2939-4503-87e9-c195cf321b24",
+      "35bd8ed5-e4ce-4977-ba5a-9876b71aec3b",
+      "f93d1034-2686-489f-9726-509573b93d35",
+      "2816c0f0-d28c-4cb7-944e-7b29dc7cc184",
+      "02a293ff-e4ca-4b76-9ab9-24ef59ca09e2",
+      "6d4aa049-fda2-45a1-893f-9ccc211de2af",
+      "289320aa-65d6-46e2-9f08-a662fe863219",
+      "656f82e2-73db-439b-acf8-3c6891520648",
+      "f5e5e866-1757-4236-83fc-0bae1354da65",
+      "e50f3b67-2170-4ad2-abf1-5f2d15ce509f",
+      "292fc31c-890d-462d-96e2-7439d86fbce0",
+      "fc8db140-1385-4e93-973f-25f9ddb9b770",
+      "212f5d8b-371a-4319-bd52-4b3fd6d3ab06",
+      "8c399d23-37b8-454a-88d0-6a590eb154d2",
+      "a7b18672-194c-4e10-921f-cb93804b9009",
+      "fb902a5c-1207-473d-b789-d5d09e4062c7",
+      "b4294e2e-a3ae-4111-a42d-5a2632ad4a7a",
+      "12bd951d-c35c-4ad3-9a97-f234e66e09b3",
+      "1d272347-5ed2-4cb1-b334-c2f22dbd4a2d",
+      "dd67362b-deae-43b9-ab1c-53684250a94d",
+      "4e020b31-c096-441a-9bdd-88e700b0579b",
+      "6235afd2-1270-4d3a-aa77-d110466ebb62",
+      "f29dfcd4-c329-4c4e-b98f-1120acaf3ee3",
+      "755bf199-0d1b-4fb2-973d-220935823240",
+      "fa8fa92d-a539-4683-8cd7-667f43906538",
+      "aae4b2f8-4db1-4b92-91a7-2ab6c8761d1b",
+      "c0eb3cf5-899d-4d82-8a92-45e7377306f7",
+      "02696784-7a28-40ae-b892-f2f8dc7d5741",
+      "af156579-0b30-4663-97d3-9063be0b9e65",
+      "17e30ed5-20ec-4d5b-88aa-aeedd8f84455",
+      "6edc4aa1-aa85-4266-bd75-03b440287118",
+      "d85f8f1c-86a3-4ae0-b865-7d49d59367eb",
+      "617799c4-db14-4302-84d0-0e53ca4c2223",
+      "7ad50144-3825-43f6-9ec8-c6e43a123331",
+      "d9a9dce1-b89c-4b5a-a28c-aa1816611e3d",
+      "2a0b7de9-ebd0-49fc-8767-b64257d711c4",
+      "b617c1f4-05b6-4884-9242-356adf1f84d4",
+      "0c08af21-b55b-4345-b4dc-1f24e4a5ec69",
+      "e6fc737e-e916-46a7-b0db-02401c305329",
+      "5a39038f-7995-4ae9-bd26-6405b9620fc0",
+      "29d5ba2f-06cf-4969-b734-eb68b7c8df6e",
+      "c6bdda50-997d-4bac-8b6e-e457088ea2b0"
+    ],
+    "kept": [
+      {
+        "import": "Apple iPhone 12 Pro 256 Go (US/Canada)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Apple iPhone 12 Pro Max 128 Go (US/Canada)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch5 (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Apple iPhone 12 Pro Max 256 Go (US/Canada)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Apple iPhone 13 128 Go (US/Canada)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch6 (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch7 (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch4 Classic (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch5 Pro (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Apple iPhone 14 Pro Max 256 Go (US/Canada)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 6A 128 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S21+ 256 Go Scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S22+ 256 Go Scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S21 Ultra 256 Go Scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch4 (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Apple iPhone XR 64 Go (US/Canada)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Apple iPhone 11 64 Go (US/Canada)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S23 Ultra 1024 Go Scellé SIM+eSIM (Australia)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S23 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S23+ 256 Go Scellé SIM+eSIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S23+ 512 Go Scellé SIM+eSIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S24+ 256 Go Scellé SIM+eSIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S23 FE 256 Go Scellé SIM+eSIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Z Flip4 512 Go Scellé SIM+eSIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Z Flip6 512 Go Scellé SIM+eSIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S25 Edge 256 Go Non scellé SIM+eSIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S10 5G 512 Go Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S10 5G 256 Go Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy S20 Ultra 256 Go Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Note10+ 512 Go Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Note20 256 Go Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A56 256 Go 8 GB RAM Scellé 2SIMS",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A56 128 Go 8 GB RAM Scellé 2SIMS",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A36 256 Go 8 GB RAM Scellé 2SIMS",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A36 128 Go 8 GB RAM Scellé 2SIMS",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A16 256 Go 8 GB RAM Scellé 2SIMS",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A55 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A32 128 Go 4 GB RAM Scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A53 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy M53 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy M33 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy M44 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A25 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A54 128 Go 8 GB RAM Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A24 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A33 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A23 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A82 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy M44 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch6 Classic (Korea)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch7 Scellé",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch Ultra Scellé",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch8 Scellé",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch8 Classic Scellé",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Watch FIT 3 Scellé",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy Buds Core Scellé",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 7a 128 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 7 128 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 7 256 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 6 Pro 128 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 6 Pro 256 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 8 Pro 256 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 9 Pro 256 Go Non scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 8a 128 Go Scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 8 Pro 128 Go Scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Google Pixel 8 Pro 256 Go Scellé (US/Japan)",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A07 64 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A07 128 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Samsung Galaxy A16 128 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi A5 64 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi A5 128 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi 13 256 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi 15 256 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi Note 9 Pro 128 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi 14C 256 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi 15C 128 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi 15C 256 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi Note 14 256 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Xiaomi Redmi Note 15 256 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Infinix Smart 10 HD 64 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Infinix Smart 10 128 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Infinix Hot 50 Pro+ 128 Go",
+        "reason": "aucun ancien équivalent"
+      },
+      {
+        "import": "Tecno Pop 10 64 Go",
+        "reason": "aucun ancien équivalent"
+      }
+    ],
+    "ask": [
+      {
+        "import": "Apple iPhone 13 Pro 128 Go (US/Canada)",
+        "importId": "2816c0f0-d28c-4cb7-944e-7b29dc7cc184",
+        "reason": "3 fiches anciennes doublons — fusion sur la meilleure",
+        "keepLegacy": {
+          "id": "4b02ee83-07df-4432-94fd-1dba289b8ecb",
+          "name": "iPhone 13 Pro 128Go ",
+          "stock": 10
+        },
+        "duplicateLegacies": [
+          {
+            "id": "343a9b95-a93e-41dc-893d-68f57ed952aa",
+            "name": "iPhone 13 Pro 128Go ",
+            "stock": 10
+          },
+          {
+            "id": "4909d09a-e0f9-4d2e-82db-a9cc383aefd6",
+            "name": "IPhone 13 Pro 128Go ",
+            "stock": 10
+          }
+        ]
+      },
+      {
+        "import": "Apple iPhone XR 128 Go (US/Canada)",
+        "importId": "a7b18672-194c-4e10-921f-cb93804b9009",
+        "reason": "2 fiches anciennes doublons — fusion sur la meilleure",
+        "keepLegacy": {
+          "id": "7e20b3d0-a101-4dd0-9b2a-ada508b4ad05",
+          "name": "IPhone XR 128 Go ",
+          "stock": 10
+        },
+        "duplicateLegacies": [
+          {
+            "id": "0bf132dd-8c21-462d-a09c-b4e510a465dd",
+            "name": "IPhone XR 128 Go ",
+            "stock": 10
+          }
+        ]
+      },
+      {
+        "import": "Samsung Galaxy Z Fold4 256 Go Non scellé SIM+eSIM (Korea)",
+        "importId": "6235afd2-1270-4d3a-aa77-d110466ebb62",
+        "reason": "2 fiches anciennes doublons — fusion sur la meilleure",
+        "keepLegacy": {
+          "id": "fd104e00-eca5-44d8-b897-aa7143f8c2e1",
+          "name": "Galaxie Z fold4 256 Go",
+          "stock": 5
+        },
+        "duplicateLegacies": [
+          {
+            "id": "30ffea76-f4f7-4653-9a7f-d356f9f331f8",
+            "name": "Galaxie Z fold4 256 Go",
+            "stock": 5
+          }
+        ]
+      },
+      {
+        "import": "Samsung Galaxy S21 256 Go Non scellé SIM+eSIM (Korea)",
+        "importId": "755bf199-0d1b-4fb2-973d-220935823240",
+        "reason": "2 fiches anciennes doublons — fusion sur la meilleure",
+        "keepLegacy": {
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8",
+          "name": "S21  256Go ",
+          "stock": 5
+        },
+        "duplicateLegacies": [
+          {
+            "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9",
+            "name": "Samsung S21 256Go",
+            "stock": 5
+          }
+        ]
+      }
+    ]
+  }
+}

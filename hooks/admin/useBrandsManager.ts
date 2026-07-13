@@ -18,8 +18,8 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
     const [selectedCategoryForRange, setSelectedCategoryForRange] = useState<string>(''); 
 
     // --- MARQUES ---
-    const addBrand = async () => {
-        if (!newBrandName.trim()) return;
+    const addBrand = async (): Promise<string | null> => {
+        if (!newBrandName.trim()) return null;
         const slug = newBrandName.toLowerCase().replace(/[^a-z0-9]/g, '-');
         
         const payload = {
@@ -29,12 +29,14 @@ export const useBrandsManager = ({ brands, setBrands, ranges, setRanges }: UseBr
 
         const { data, error } = await supabase.from(DB_TABLES.BRANDS).insert([payload]).select();
         if (!error && data) {
+            const newId = data[0][DB_SCHEMA.BRANDS.ID] as string;
             setBrands(prev => [...prev, {
-                id: data[0][DB_SCHEMA.BRANDS.ID],
+                id: newId,
                 name: data[0][DB_SCHEMA.BRANDS.NAME],
                 slug: data[0][DB_SCHEMA.BRANDS.SLUG]
             }]);
             setNewBrandName('');
+            return newId;
         } else {
             throw error || new Error("Erreur ajout marque");
         }

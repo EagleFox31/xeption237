@@ -1,0 +1,3175 @@
+{
+  "runs": [
+    {
+      "at": "2026-06-12T17:41:22.123Z",
+      "mode": "dry-run",
+      "batch": "all",
+      "updated": [
+        {
+          "batch": "apple",
+          "name": "Apple iPhone 12 Pro 256 Go (US/Canada)",
+          "id": "3e1bb074-a17b-4dd5-b934-08fb9ab09c6c"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 11 Pro Max 256Go ",
+          "id": "2a34abb0-185f-4310-81b2-7c3ac5876902"
+        },
+        {
+          "batch": "apple",
+          "name": "Apple iPhone 12 Pro Max 256 Go (US/Canada)",
+          "id": "98c1e2f1-a3af-4d98-94e6-e935ae38873a"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 12 128Go ",
+          "id": "19de7637-aeb9-4fa7-90a9-d5b405931538"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 14 Pro 256Go",
+          "id": "10bed18e-8e18-454b-a82e-0ddde65acf27"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 12 Pro Max 512GB",
+          "id": "82ddca03-42d5-4120-abce-5476dc4015d8"
+        },
+        {
+          "batch": "apple",
+          "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+          "id": "f8621f08-2ec5-4bce-878c-2222fb0502b5"
+        },
+        {
+          "batch": "apple",
+          "name": "Apple iPhone 14 Pro Max 256 Go (US/Canada)",
+          "id": "90b141fb-97bd-498c-95ee-890e1447ce68"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 11 Pro 256 Go",
+          "id": "70631367-c734-4d5f-bd99-67c537cbae62"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 13 Pro 128Go ",
+          "id": "4b02ee83-07df-4432-94fd-1dba289b8ecb"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 14 128Go",
+          "id": "cd163f3b-e75c-4b14-a293-61836ca52972"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 14 Pro Max 128Go ",
+          "id": "7717641a-86c5-4b14-afe1-4ed7838498d4"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 11 Pro 64 Go ",
+          "id": "dbea8ff9-cd2b-434a-a039-5a19cf6593d4"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 12pro 128 Go",
+          "id": "41ba61c1-a950-4273-ab17-a2745899bc0c"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 13 256 giga",
+          "id": "510d0c25-bce0-4ec8-b157-acccdb50ec3f"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 14 Pro 128Go",
+          "id": "89b196df-8364-4f29-9cdb-9b1d10946f10"
+        },
+        {
+          "batch": "apple",
+          "name": "iPhone 11 Pro Max 64Go ",
+          "id": "d8e7be4b-5ae1-45ac-8ba4-2b023446912a"
+        },
+        {
+          "batch": "apple",
+          "name": "IPhone XR 128 Go ",
+          "id": "7e20b3d0-a101-4dd0-9b2a-ada508b4ad05"
+        },
+        {
+          "batch": "apple",
+          "name": "Apple iPhone 11 64 Go (US/Canada)",
+          "id": "a24eb9e4-5a8a-4765-aecc-9f23ae427a2e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S22 ",
+          "id": "db2b37c7-9d24-4ef5-b74b-e5d8e089ed62"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 6 ",
+          "id": "02046144-d565-48fc-a9d5-8e25b8f5607d"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch5 (Korea)",
+          "id": "a7e2f027-54b4-453d-ba38-d57e1083f316"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch6 (Korea)",
+          "id": "34508f65-f2ac-4751-ac9f-ed5dc2638a47"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch7 (Korea)",
+          "id": "a1daac66-aaf9-4089-8e9b-0575ce64b1d7"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch4 Classic (Korea)",
+          "id": "b83ed263-843a-443e-8c04-45a77876a17b"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch5 Pro (Korea)",
+          "id": "1c196f88-7eab-46bc-a3cf-b9cde6d695fe"
+        },
+        {
+          "batch": "samsung",
+          "name": "S21  256Go ",
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S21+ 256 Go Scellé 1SIM (Korea)",
+          "id": "d733a04a-b090-43f6-820c-0ed61a9f455b"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S22+ 256 Go Scellé 1SIM (Korea)",
+          "id": "56047c76-769c-4bc2-84cd-93d90f0240f2"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S21 Ultra 256 Go Scellé 1SIM (Korea)",
+          "id": "8128ea50-52b8-4ce0-bb0b-bde27f7d5fd9"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 512 Go",
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 5",
+          "id": "4b058400-d96f-435d-883d-b60bbb0a6b3a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S22 ultra ",
+          "id": "528b2ddf-c210-4c87-add6-6c855f4b1d7e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch4 (Korea)",
+          "id": "b9a05696-3062-432b-8125-6dd6f8dc20c0"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 ultra",
+          "id": "180d541c-db60-4f70-acb4-b4f5483a6ec4"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 ultra",
+          "id": "add14d88-4dfe-40e1-995c-605affb7b2ab"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 ultra",
+          "id": "10a1674e-1cc7-49aa-948b-d4e4dd3c46be"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S24 ultra ",
+          "id": "2358e474-5cbe-4638-af62-948370ae849f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 ultra ",
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 ",
+          "id": "1d1ba87c-17e3-47fc-acdc-3b95f06838c5"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S 23 FE  256 Go",
+          "id": "836b2968-5cbb-468b-8487-c1a92627a4d3"
+        },
+        {
+          "batch": "samsung",
+          "name": "galaxie Z flip4  ",
+          "id": "a78f0aa7-37f0-4162-88a6-237502e124b8"
+        },
+        {
+          "batch": "samsung",
+          "name": "galaxie Z flip4  ",
+          "id": "e2f86f60-a4f5-4e58-91bb-6528ce538636"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z fold4 512 Go",
+          "id": "66c355a4-aad7-4925-913f-a46328f475a8"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 6 ",
+          "id": "961e8784-f6d7-47b9-97f7-a7c5373e4b82"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 6 ",
+          "id": "7be7a846-fbfb-49c5-ab60-eb1a0146b092"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z fold4 256 Go",
+          "id": "fd104e00-eca5-44d8-b897-aa7143f8c2e1"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 128 Go",
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 256 Go",
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23 Ultra 1024 Go Scellé SIM+eSIM (Australia)",
+          "id": "a134a214-95e6-44aa-b474-712294a2bf17"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "60480603-4c8c-404b-9a22-446adeb03762"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23+ 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "4cd3f663-5f0b-4ebb-9b32-fe1ebf7c0395"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23+ 512 Go Scellé SIM+eSIM (Korea)",
+          "id": "198f5b94-ac4d-4fdf-affc-dcdba42e5baa"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S24+ 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "eb1ce6bb-cdf9-4d28-b881-b4b0a68fbec9"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 128Go",
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23 FE 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "f6ed6d05-9a10-4de6-a69c-a326185664fe"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Z Flip4 512 Go Scellé SIM+eSIM (Korea)",
+          "id": "8915b93a-f6de-41f4-8d3d-9b481be370c7"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Z Flip6 512 Go Scellé SIM+eSIM (Korea)",
+          "id": "26c50593-6d73-4642-9e0a-b22e37afa473"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 ultra 512Go ",
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S25 Edge 256 Go Non scellé SIM+eSIM (Korea)",
+          "id": "e08a637b-8388-4873-9060-b65f7557545d"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S10 5G 512 Go Non scellé 1SIM (Korea)",
+          "id": "683641e5-5d5b-4efd-8957-f0a5c5d673a6"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S10 5G 256 Go Non scellé 1SIM (Korea)",
+          "id": "c300b3fd-d279-4691-a4bc-82c5e4d3ac47"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S20 Ultra 256 Go Non scellé 1SIM (Korea)",
+          "id": "f602cfbf-238a-45a3-9e29-7d1991ec8957"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Note10+ 512 Go Non scellé 1SIM (Korea)",
+          "id": "fcecb7c7-8284-4040-a94f-a04119c60eac"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Note20 256 Go Non scellé 1SIM (Korea)",
+          "id": "3461b0ee-532f-4dcb-8437-664bb12a467f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A56 256 Go 8 GB RAM Scellé 2SIMS",
+          "id": "2eb52f4d-aed7-4baf-acb3-4cf78ecb411e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A56 128 Go 8 GB RAM Scellé 2SIMS",
+          "id": "21a64aff-ecd2-4b78-9043-e997a0afbbec"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A36 256 Go 8 GB RAM Scellé 2SIMS",
+          "id": "b4f0dee3-fb7d-4c31-a592-1e9e00628a20"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A36 128 Go 8 GB RAM Scellé 2SIMS",
+          "id": "a4304c57-b248-4867-a307-f588d0b2caf3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A16 256 Go 8 GB RAM Scellé 2SIMS",
+          "id": "9e0799db-7be4-4de2-b82b-70eb3733f910"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A55 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "id": "a20a9a67-2e48-4a5c-b1e3-a5cdf0ca9c22"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A32 128 Go 4 GB RAM Scellé 1SIM (Korea)",
+          "id": "21225d2b-9495-4975-a50d-8b4567c345a3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A53 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "id": "44bcb797-3780-4f86-a75d-7afe5bdc0c59"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M53 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "id": "9f667927-1d7a-41a5-b73a-9ddbf46b3ec1"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M33 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "id": "4dc17157-adaa-4edb-adb3-1689cda2196a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "id": "271fb4f4-6860-4008-8458-4c66ecbd68df"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A25 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "3353a9c4-1b29-4cb0-aff7-950da41030c3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A54 128 Go 8 GB RAM Non scellé 1SIM (Korea)",
+          "id": "29946bd6-4e0c-493e-9e4f-c5856904efd3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A24 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "id": "d75f0772-6c36-4b76-bb26-a8e435cc6fe2"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A33 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "25b62930-3cf7-412f-876a-9ada312e8e7f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A23 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "id": "817e9d86-2f6a-4371-a662-4fd5ff4b18c0"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A82 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "31c9f64a-1f09-4724-8f05-b3d2c4d7ee73"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "4edd6f46-240b-48f5-8608-c49bd515655d"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch6 Classic (Korea)",
+          "id": "e4de80e2-b59e-4e00-940a-c372937a2ad2"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch7 Scellé",
+          "id": "83d7f332-ac4b-4c79-ac36-ad1bbf50c3f4"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch Ultra Scellé",
+          "id": "f47d1e04-1cb8-4fd7-b237-a7fbabb1a30e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch8 Scellé",
+          "id": "49b0ce2f-4f4f-415f-bb30-6d5870f139fe"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch8 Classic Scellé",
+          "id": "bfc5f3aa-8dfe-43c0-9a6e-b8cdce61711a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch FIT 3 Scellé",
+          "id": "cd0036b0-4136-43fb-a33d-d9521b80d944"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Buds Core Scellé",
+          "id": "579fff10-d476-4009-8460-113fb457321b"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A16 128 Go",
+          "id": "f6e95335-455c-48a7-98f3-8e874e5aae9a"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 6A 128 Go",
+          "id": "8dd8b393-6f02-426b-a2cd-7326804ad18b"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 7a 128 Go Non scellé (US/Japan)",
+          "id": "3e30fe5b-9298-4250-879b-f5d0eea6ebe8"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 7 128 Go Non scellé (US/Japan)",
+          "id": "5153a6dc-e4ad-450c-8a76-8c4fb2ae3743"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 7 256 Go Non scellé (US/Japan)",
+          "id": "7605a1ab-6677-4879-a8fe-aef65b6d0954"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 6 Pro 128 Go Non scellé (US/Japan)",
+          "id": "216c23d9-fa1d-449a-9dbf-ad2190c6bf40"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 6 Pro 256 Go Non scellé (US/Japan)",
+          "id": "61d5b2bd-f4e7-4099-a984-778755051fa4"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+          "id": "dd448f04-87d6-49a5-9650-f3602b573733"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+          "id": "c103e4a9-68e6-4418-9f85-1938f992f20b"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 256 Go Non scellé (US/Japan)",
+          "id": "c8503f74-9651-45fc-97ba-9373a472acab"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+          "id": "0be8d84c-9e0a-4ceb-bc7e-3697201d0a2b"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 9 Pro 256 Go Non scellé (US/Japan)",
+          "id": "4bcdec77-65bc-407f-99f5-f9a2c7d73ece"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8a 128 Go Scellé (US/Japan)",
+          "id": "ce13dd25-fa00-4825-975b-642da313ae82"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 128 Go Scellé (US/Japan)",
+          "id": "1e865160-3aac-4987-9918-f1455542d2f8"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 256 Go Scellé (US/Japan)",
+          "id": "8adc0b6a-a82d-42f4-88c2-15d5f8dcd5b7"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi A5 64 Go",
+          "id": "3bf6f7e1-17ac-4b88-a197-f2d16539b49a"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi A5 128 Go",
+          "id": "67ebdb03-4bb3-49ab-9ab2-f432f6ff27ec"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 13 256 Go",
+          "id": "ad4f3bda-9170-4ad6-8f7d-80964de40fe2"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 15 256 Go",
+          "id": "8696d175-9bce-4b66-8d92-79ff30db1ee9"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi Note 9 Pro 128 Go",
+          "id": "383a2a81-8e94-4b60-bf19-78385666b8e8"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 14C 256 Go",
+          "id": "bae69b40-a002-4ad1-93a0-61e43ee3c8e4"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 15C 128 Go",
+          "id": "40280f72-8717-45ba-a011-6ddbb91cfe93"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 15C 256 Go",
+          "id": "dda95bac-df78-4c52-ab96-6b46819e14fc"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi Note 14 256 Go",
+          "id": "fd5541ea-05b1-43af-8143-ed32893cc803"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi Note 15 256 Go",
+          "id": "dbd96721-b360-4508-8a27-97633884a801"
+        },
+        {
+          "batch": "infinix",
+          "name": "Infinix Smart 10 HD 64 Go",
+          "id": "fee68ca7-9343-4ac1-a905-73ac924be6d5"
+        },
+        {
+          "batch": "infinix",
+          "name": "Infinix Smart 10 128 Go",
+          "id": "714ac1c0-6763-4cba-83ea-28b59e97518e"
+        },
+        {
+          "batch": "infinix",
+          "name": "Infinix Hot 50 Pro+ 128 Go",
+          "id": "9bdf55bf-36cb-4d1b-aa58-3275a92559c3"
+        },
+        {
+          "batch": "tecno",
+          "name": "Tecno Pop 10 64 Go",
+          "id": "c6b5b3db-56a4-410d-a0e7-6ca1393fb769"
+        }
+      ],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-06-12T17:41:56.295Z",
+      "mode": "applied",
+      "batch": "apple",
+      "updated": [],
+      "skipped": [],
+      "failed": [
+        {
+          "batch": "apple",
+          "id": "3e1bb074-a17b-4dd5-b934-08fb9ab09c6c",
+          "name": "Apple iPhone 12 Pro 256 Go (US/Canada)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\nPlease retry in 1.214681799s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"1s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "2a34abb0-185f-4310-81b2-7c3ac5876902",
+          "name": "iPhone 11 Pro Max 256Go ",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 59.467995193s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"59s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "98c1e2f1-a3af-4d98-94e6-e935ae38873a",
+          "name": "Apple iPhone 12 Pro Max 256 Go (US/Canada)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 57.744168424s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"57s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "19de7637-aeb9-4fa7-90a9-d5b405931538",
+          "name": "iPhone 12 128Go ",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\nPlease retry in 56.044629911s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"56s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "10bed18e-8e18-454b-a82e-0ddde65acf27",
+          "name": "iPhone 14 Pro 256Go",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 54.319133046s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"54s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "82ddca03-42d5-4120-abce-5476dc4015d8",
+          "name": "iPhone 12 Pro Max 512GB",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\nPlease retry in 52.603448331s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"52s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "f8621f08-2ec5-4bce-878c-2222fb0502b5",
+          "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 50.862349568s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"50s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "90b141fb-97bd-498c-95ee-890e1447ce68",
+          "name": "Apple iPhone 14 Pro Max 256 Go (US/Canada)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 49.093745867s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"49s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "70631367-c734-4d5f-bd99-67c537cbae62",
+          "name": "iPhone 11 Pro 256 Go",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\nPlease retry in 47.390554917s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"47s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "4b02ee83-07df-4432-94fd-1dba289b8ecb",
+          "name": "iPhone 13 Pro 128Go ",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 45.685735658s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"45s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "cd163f3b-e75c-4b14-a293-61836ca52972",
+          "name": "iPhone 14 128Go",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\nPlease retry in 43.957744879s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"43s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "7717641a-86c5-4b14-afe1-4ed7838498d4",
+          "name": "iPhone 14 Pro Max 128Go ",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 42.247969286s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"42s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "dbea8ff9-cd2b-434a-a039-5a19cf6593d4",
+          "name": "iPhone 11 Pro 64 Go ",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 40.481928312s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"40s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "41ba61c1-a950-4273-ab17-a2745899bc0c",
+          "name": "iPhone 12pro 128 Go",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\nPlease retry in 38.752667278s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"38s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "510d0c25-bce0-4ec8-b157-acccdb50ec3f",
+          "name": "iPhone 13 256 giga",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 37.027871885s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"37s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "89b196df-8364-4f29-9cdb-9b1d10946f10",
+          "name": "iPhone 14 Pro 128Go",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 35.292414917s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"35s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "d8e7be4b-5ae1-45ac-8ba4-2b023446912a",
+          "name": "iPhone 11 Pro Max 64Go ",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 33.548949499s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"33s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "7e20b3d0-a101-4dd0-9b2a-ada508b4ad05",
+          "name": "IPhone XR 128 Go ",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\nPlease retry in 31.856298454s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.0-flash\",\"location\":\"global\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"31s\"}]}}"
+        },
+        {
+          "batch": "apple",
+          "id": "a24eb9e4-5a8a-4765-aecc-9f23ae427a2e",
+          "name": "Apple iPhone 11 64 Go (US/Canada)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\nPlease retry in 30.133235488s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\",\"quotaId\":\"GenerateContentInputTokensPerModelPerMinute-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}},{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.0-flash\"}}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"30s\"}]}}"
+        }
+      ]
+    },
+    {
+      "at": "2026-06-12T17:43:44.385Z",
+      "mode": "applied",
+      "batch": "apple",
+      "updated": [
+        {
+          "batch": "apple",
+          "id": "3e1bb074-a17b-4dd5-b934-08fb9ab09c6c",
+          "name": "Apple iPhone 12 Pro 256 Go (US/Canada)",
+          "specCount": 8
+        },
+        {
+          "batch": "apple",
+          "id": "2a34abb0-185f-4310-81b2-7c3ac5876902",
+          "name": "iPhone 11 Pro Max 256Go ",
+          "specCount": 10
+        },
+        {
+          "batch": "apple",
+          "id": "98c1e2f1-a3af-4d98-94e6-e935ae38873a",
+          "name": "Apple iPhone 12 Pro Max 256 Go (US/Canada)",
+          "specCount": 9
+        },
+        {
+          "batch": "apple",
+          "id": "19de7637-aeb9-4fa7-90a9-d5b405931538",
+          "name": "iPhone 12 128Go ",
+          "specCount": 9
+        },
+        {
+          "batch": "apple",
+          "id": "10bed18e-8e18-454b-a82e-0ddde65acf27",
+          "name": "iPhone 14 Pro 256Go",
+          "specCount": 8
+        },
+        {
+          "batch": "apple",
+          "id": "90b141fb-97bd-498c-95ee-890e1447ce68",
+          "name": "Apple iPhone 14 Pro Max 256 Go (US/Canada)",
+          "specCount": 9
+        },
+        {
+          "batch": "apple",
+          "id": "70631367-c734-4d5f-bd99-67c537cbae62",
+          "name": "iPhone 11 Pro 256 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "apple",
+          "id": "4b02ee83-07df-4432-94fd-1dba289b8ecb",
+          "name": "iPhone 13 Pro 128Go ",
+          "specCount": 7
+        },
+        {
+          "batch": "apple",
+          "id": "cd163f3b-e75c-4b14-a293-61836ca52972",
+          "name": "iPhone 14 128Go",
+          "specCount": 9
+        },
+        {
+          "batch": "apple",
+          "id": "7717641a-86c5-4b14-afe1-4ed7838498d4",
+          "name": "iPhone 14 Pro Max 128Go ",
+          "specCount": 9
+        },
+        {
+          "batch": "apple",
+          "id": "dbea8ff9-cd2b-434a-a039-5a19cf6593d4",
+          "name": "iPhone 11 Pro 64 Go ",
+          "specCount": 8
+        },
+        {
+          "batch": "apple",
+          "id": "41ba61c1-a950-4273-ab17-a2745899bc0c",
+          "name": "iPhone 12pro 128 Go",
+          "specCount": 10
+        },
+        {
+          "batch": "apple",
+          "id": "510d0c25-bce0-4ec8-b157-acccdb50ec3f",
+          "name": "iPhone 13 256 giga",
+          "specCount": 8
+        },
+        {
+          "batch": "apple",
+          "id": "89b196df-8364-4f29-9cdb-9b1d10946f10",
+          "name": "iPhone 14 Pro 128Go",
+          "specCount": 9
+        },
+        {
+          "batch": "apple",
+          "id": "d8e7be4b-5ae1-45ac-8ba4-2b023446912a",
+          "name": "iPhone 11 Pro Max 64Go ",
+          "specCount": 9
+        },
+        {
+          "batch": "apple",
+          "id": "7e20b3d0-a101-4dd0-9b2a-ada508b4ad05",
+          "name": "IPhone XR 128 Go ",
+          "specCount": 8
+        },
+        {
+          "batch": "apple",
+          "id": "a24eb9e4-5a8a-4765-aecc-9f23ae427a2e",
+          "name": "Apple iPhone 11 64 Go (US/Canada)",
+          "specCount": 8
+        }
+      ],
+      "skipped": [],
+      "failed": [
+        {
+          "batch": "apple",
+          "id": "82ddca03-42d5-4120-abce-5476dc4015d8",
+          "name": "iPhone 12 Pro Max 512GB",
+          "error": "{\"error\":{\"code\":503,\"message\":\"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\",\"status\":\"UNAVAILABLE\"}}"
+        },
+        {
+          "batch": "apple",
+          "id": "f8621f08-2ec5-4bce-878c-2222fb0502b5",
+          "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+          "error": "{\"error\":{\"code\":503,\"message\":\"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\",\"status\":\"UNAVAILABLE\"}}"
+        }
+      ]
+    },
+    {
+      "at": "2026-06-12T17:47:29.852Z",
+      "mode": "applied",
+      "batch": "google",
+      "updated": [
+        {
+          "batch": "google",
+          "id": "8dd8b393-6f02-426b-a2cd-7326804ad18b",
+          "name": "Google Pixel 6A 128 Go",
+          "specCount": 9
+        },
+        {
+          "batch": "google",
+          "id": "3e30fe5b-9298-4250-879b-f5d0eea6ebe8",
+          "name": "Google Pixel 7a 128 Go Non scellé (US/Japan)",
+          "specCount": 9
+        },
+        {
+          "batch": "google",
+          "id": "5153a6dc-e4ad-450c-8a76-8c4fb2ae3743",
+          "name": "Google Pixel 7 128 Go Non scellé (US/Japan)",
+          "specCount": 10
+        }
+      ],
+      "skipped": [],
+      "failed": [
+        {
+          "batch": "google",
+          "id": "7605a1ab-6677-4879-a8fe-aef65b6d0954",
+          "name": "Google Pixel 7 256 Go Non scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "216c23d9-fa1d-449a-9dbf-ad2190c6bf40",
+          "name": "Google Pixel 6 Pro 128 Go Non scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "61d5b2bd-f4e7-4099-a984-778755051fa4",
+          "name": "Google Pixel 6 Pro 256 Go Non scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "dd448f04-87d6-49a5-9650-f3602b573733",
+          "name": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "c103e4a9-68e6-4418-9f85-1938f992f20b",
+          "name": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "c8503f74-9651-45fc-97ba-9373a472acab",
+          "name": "Google Pixel 8 Pro 256 Go Non scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "0be8d84c-9e0a-4ceb-bc7e-3697201d0a2b",
+          "name": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "4bcdec77-65bc-407f-99f5-f9a2c7d73ece",
+          "name": "Google Pixel 9 Pro 256 Go Non scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "ce13dd25-fa00-4825-975b-642da313ae82",
+          "name": "Google Pixel 8a 128 Go Scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "1e865160-3aac-4987-9918-f1455542d2f8",
+          "name": "Google Pixel 8 Pro 128 Go Scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "google",
+          "id": "8adc0b6a-a82d-42f4-88c2-15d5f8dcd5b7",
+          "name": "Google Pixel 8 Pro 256 Go Scellé (US/Japan)",
+          "error": "exception TypeError: fetch failed sending request"
+        }
+      ]
+    },
+    {
+      "at": "2026-06-12T17:50:58.917Z",
+      "mode": "applied",
+      "batch": "tecno",
+      "updated": [
+        {
+          "batch": "tecno",
+          "id": "c6b5b3db-56a4-410d-a0e7-6ca1393fb769",
+          "name": "Tecno Pop 10 64 Go",
+          "specCount": 7
+        }
+      ],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-06-12T17:52:17.354Z",
+      "mode": "applied",
+      "batch": "xiaomi",
+      "updated": [
+        {
+          "batch": "xiaomi",
+          "id": "3bf6f7e1-17ac-4b88-a197-f2d16539b49a",
+          "name": "Xiaomi Redmi A5 64 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "xiaomi",
+          "id": "67ebdb03-4bb3-49ab-9ab2-f432f6ff27ec",
+          "name": "Xiaomi Redmi A5 128 Go",
+          "specCount": 8
+        }
+      ],
+      "skipped": [],
+      "failed": [
+        {
+          "batch": "xiaomi",
+          "id": "ad4f3bda-9170-4ad6-8f7d-80964de40fe2",
+          "name": "Xiaomi Redmi 13 256 Go",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 57.719031313s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.5-flash\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"57s\"}]}}"
+        },
+        {
+          "batch": "xiaomi",
+          "id": "8696d175-9bce-4b66-8d92-79ff30db1ee9",
+          "name": "Xiaomi Redmi 15 256 Go",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "xiaomi",
+          "id": "383a2a81-8e94-4b60-bf19-78385666b8e8",
+          "name": "Xiaomi Redmi Note 9 Pro 128 Go",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "xiaomi",
+          "id": "bae69b40-a002-4ad1-93a0-61e43ee3c8e4",
+          "name": "Xiaomi Redmi 14C 256 Go",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "xiaomi",
+          "id": "40280f72-8717-45ba-a011-6ddbb91cfe93",
+          "name": "Xiaomi Redmi 15C 128 Go",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "xiaomi",
+          "id": "dda95bac-df78-4c52-ab96-6b46819e14fc",
+          "name": "Xiaomi Redmi 15C 256 Go",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "xiaomi",
+          "id": "fd5541ea-05b1-43af-8143-ed32893cc803",
+          "name": "Xiaomi Redmi Note 14 256 Go",
+          "error": "exception TypeError: fetch failed sending request"
+        },
+        {
+          "batch": "xiaomi",
+          "id": "dbd96721-b360-4508-8a27-97633884a801",
+          "name": "Xiaomi Redmi Note 15 256 Go",
+          "error": "exception TypeError: fetch failed sending request"
+        }
+      ]
+    },
+    {
+      "at": "2026-06-12T21:09:18.418Z",
+      "mode": "dry-run",
+      "batch": "all",
+      "updated": [
+        {
+          "batch": "apple",
+          "name": "iPhone 12 Pro Max 512GB",
+          "id": "82ddca03-42d5-4120-abce-5476dc4015d8"
+        },
+        {
+          "batch": "apple",
+          "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+          "id": "f8621f08-2ec5-4bce-878c-2222fb0502b5"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S22 ",
+          "id": "db2b37c7-9d24-4ef5-b74b-e5d8e089ed62"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 6 ",
+          "id": "02046144-d565-48fc-a9d5-8e25b8f5607d"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch5 (Korea)",
+          "id": "a7e2f027-54b4-453d-ba38-d57e1083f316"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch6 (Korea)",
+          "id": "34508f65-f2ac-4751-ac9f-ed5dc2638a47"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch7 (Korea)",
+          "id": "a1daac66-aaf9-4089-8e9b-0575ce64b1d7"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch4 Classic (Korea)",
+          "id": "b83ed263-843a-443e-8c04-45a77876a17b"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch5 Pro (Korea)",
+          "id": "1c196f88-7eab-46bc-a3cf-b9cde6d695fe"
+        },
+        {
+          "batch": "samsung",
+          "name": "S21  256Go ",
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S21+ 256 Go Scellé 1SIM (Korea)",
+          "id": "d733a04a-b090-43f6-820c-0ed61a9f455b"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S22+ 256 Go Scellé 1SIM (Korea)",
+          "id": "56047c76-769c-4bc2-84cd-93d90f0240f2"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S21 Ultra 256 Go Scellé 1SIM (Korea)",
+          "id": "8128ea50-52b8-4ce0-bb0b-bde27f7d5fd9"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 512 Go",
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 5",
+          "id": "4b058400-d96f-435d-883d-b60bbb0a6b3a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S22 ultra ",
+          "id": "528b2ddf-c210-4c87-add6-6c855f4b1d7e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch4 (Korea)",
+          "id": "b9a05696-3062-432b-8125-6dd6f8dc20c0"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 ultra",
+          "id": "180d541c-db60-4f70-acb4-b4f5483a6ec4"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 ultra",
+          "id": "add14d88-4dfe-40e1-995c-605affb7b2ab"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 ultra",
+          "id": "10a1674e-1cc7-49aa-948b-d4e4dd3c46be"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S24 ultra ",
+          "id": "2358e474-5cbe-4638-af62-948370ae849f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 ultra ",
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 ",
+          "id": "1d1ba87c-17e3-47fc-acdc-3b95f06838c5"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S 23 FE  256 Go",
+          "id": "836b2968-5cbb-468b-8487-c1a92627a4d3"
+        },
+        {
+          "batch": "samsung",
+          "name": "galaxie Z flip4  ",
+          "id": "a78f0aa7-37f0-4162-88a6-237502e124b8"
+        },
+        {
+          "batch": "samsung",
+          "name": "galaxie Z flip4  ",
+          "id": "e2f86f60-a4f5-4e58-91bb-6528ce538636"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z fold4 512 Go",
+          "id": "66c355a4-aad7-4925-913f-a46328f475a8"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 6 ",
+          "id": "961e8784-f6d7-47b9-97f7-a7c5373e4b82"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 6 ",
+          "id": "7be7a846-fbfb-49c5-ab60-eb1a0146b092"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z fold4 256 Go",
+          "id": "fd104e00-eca5-44d8-b897-aa7143f8c2e1"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 128 Go",
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 256 Go",
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23 Ultra 1024 Go Scellé SIM+eSIM (Australia)",
+          "id": "a134a214-95e6-44aa-b474-712294a2bf17"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "60480603-4c8c-404b-9a22-446adeb03762"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23+ 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "4cd3f663-5f0b-4ebb-9b32-fe1ebf7c0395"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23+ 512 Go Scellé SIM+eSIM (Korea)",
+          "id": "198f5b94-ac4d-4fdf-affc-dcdba42e5baa"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S24+ 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "eb1ce6bb-cdf9-4d28-b881-b4b0a68fbec9"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 128Go",
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23 FE 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "f6ed6d05-9a10-4de6-a69c-a326185664fe"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Z Flip4 512 Go Scellé SIM+eSIM (Korea)",
+          "id": "8915b93a-f6de-41f4-8d3d-9b481be370c7"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Z Flip6 512 Go Scellé SIM+eSIM (Korea)",
+          "id": "26c50593-6d73-4642-9e0a-b22e37afa473"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 ultra 512Go ",
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S25 Edge 256 Go Non scellé SIM+eSIM (Korea)",
+          "id": "e08a637b-8388-4873-9060-b65f7557545d"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S10 5G 512 Go Non scellé 1SIM (Korea)",
+          "id": "683641e5-5d5b-4efd-8957-f0a5c5d673a6"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S10 5G 256 Go Non scellé 1SIM (Korea)",
+          "id": "c300b3fd-d279-4691-a4bc-82c5e4d3ac47"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S20 Ultra 256 Go Non scellé 1SIM (Korea)",
+          "id": "f602cfbf-238a-45a3-9e29-7d1991ec8957"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Note10+ 512 Go Non scellé 1SIM (Korea)",
+          "id": "fcecb7c7-8284-4040-a94f-a04119c60eac"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Note20 256 Go Non scellé 1SIM (Korea)",
+          "id": "3461b0ee-532f-4dcb-8437-664bb12a467f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A56 256 Go 8 GB RAM Scellé 2SIMS",
+          "id": "2eb52f4d-aed7-4baf-acb3-4cf78ecb411e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A56 128 Go 8 GB RAM Scellé 2SIMS",
+          "id": "21a64aff-ecd2-4b78-9043-e997a0afbbec"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A36 256 Go 8 GB RAM Scellé 2SIMS",
+          "id": "b4f0dee3-fb7d-4c31-a592-1e9e00628a20"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A36 128 Go 8 GB RAM Scellé 2SIMS",
+          "id": "a4304c57-b248-4867-a307-f588d0b2caf3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A16 256 Go 8 GB RAM Scellé 2SIMS",
+          "id": "9e0799db-7be4-4de2-b82b-70eb3733f910"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A55 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "id": "a20a9a67-2e48-4a5c-b1e3-a5cdf0ca9c22"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A32 128 Go 4 GB RAM Scellé 1SIM (Korea)",
+          "id": "21225d2b-9495-4975-a50d-8b4567c345a3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A53 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "id": "44bcb797-3780-4f86-a75d-7afe5bdc0c59"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M53 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "id": "9f667927-1d7a-41a5-b73a-9ddbf46b3ec1"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M33 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "id": "4dc17157-adaa-4edb-adb3-1689cda2196a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "id": "271fb4f4-6860-4008-8458-4c66ecbd68df"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A25 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "3353a9c4-1b29-4cb0-aff7-950da41030c3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A54 128 Go 8 GB RAM Non scellé 1SIM (Korea)",
+          "id": "29946bd6-4e0c-493e-9e4f-c5856904efd3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A24 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "id": "d75f0772-6c36-4b76-bb26-a8e435cc6fe2"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A33 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "25b62930-3cf7-412f-876a-9ada312e8e7f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A23 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "id": "817e9d86-2f6a-4371-a662-4fd5ff4b18c0"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A82 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "31c9f64a-1f09-4724-8f05-b3d2c4d7ee73"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "4edd6f46-240b-48f5-8608-c49bd515655d"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch6 Classic (Korea)",
+          "id": "e4de80e2-b59e-4e00-940a-c372937a2ad2"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch7 Scellé",
+          "id": "83d7f332-ac4b-4c79-ac36-ad1bbf50c3f4"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch Ultra Scellé",
+          "id": "f47d1e04-1cb8-4fd7-b237-a7fbabb1a30e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch8 Scellé",
+          "id": "49b0ce2f-4f4f-415f-bb30-6d5870f139fe"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch8 Classic Scellé",
+          "id": "bfc5f3aa-8dfe-43c0-9a6e-b8cdce61711a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch FIT 3 Scellé",
+          "id": "cd0036b0-4136-43fb-a33d-d9521b80d944"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Buds Core Scellé",
+          "id": "579fff10-d476-4009-8460-113fb457321b"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A16 128 Go",
+          "id": "f6e95335-455c-48a7-98f3-8e874e5aae9a"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 7 256 Go Non scellé (US/Japan)",
+          "id": "7605a1ab-6677-4879-a8fe-aef65b6d0954"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 6 Pro 128 Go Non scellé (US/Japan)",
+          "id": "216c23d9-fa1d-449a-9dbf-ad2190c6bf40"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 6 Pro 256 Go Non scellé (US/Japan)",
+          "id": "61d5b2bd-f4e7-4099-a984-778755051fa4"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+          "id": "dd448f04-87d6-49a5-9650-f3602b573733"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+          "id": "c103e4a9-68e6-4418-9f85-1938f992f20b"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 256 Go Non scellé (US/Japan)",
+          "id": "c8503f74-9651-45fc-97ba-9373a472acab"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+          "id": "0be8d84c-9e0a-4ceb-bc7e-3697201d0a2b"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 9 Pro 256 Go Non scellé (US/Japan)",
+          "id": "4bcdec77-65bc-407f-99f5-f9a2c7d73ece"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8a 128 Go Scellé (US/Japan)",
+          "id": "ce13dd25-fa00-4825-975b-642da313ae82"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 128 Go Scellé (US/Japan)",
+          "id": "1e865160-3aac-4987-9918-f1455542d2f8"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 256 Go Scellé (US/Japan)",
+          "id": "8adc0b6a-a82d-42f4-88c2-15d5f8dcd5b7"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 13 256 Go",
+          "id": "ad4f3bda-9170-4ad6-8f7d-80964de40fe2"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 15 256 Go",
+          "id": "8696d175-9bce-4b66-8d92-79ff30db1ee9"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi Note 9 Pro 128 Go",
+          "id": "383a2a81-8e94-4b60-bf19-78385666b8e8"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 14C 256 Go",
+          "id": "bae69b40-a002-4ad1-93a0-61e43ee3c8e4"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 15C 128 Go",
+          "id": "40280f72-8717-45ba-a011-6ddbb91cfe93"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 15C 256 Go",
+          "id": "dda95bac-df78-4c52-ab96-6b46819e14fc"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi Note 14 256 Go",
+          "id": "fd5541ea-05b1-43af-8143-ed32893cc803"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi Note 15 256 Go",
+          "id": "dbd96721-b360-4508-8a27-97633884a801"
+        },
+        {
+          "batch": "infinix",
+          "name": "Infinix Smart 10 HD 64 Go",
+          "id": "fee68ca7-9343-4ac1-a905-73ac924be6d5"
+        },
+        {
+          "batch": "infinix",
+          "name": "Infinix Smart 10 128 Go",
+          "id": "714ac1c0-6763-4cba-83ea-28b59e97518e"
+        },
+        {
+          "batch": "infinix",
+          "name": "Infinix Hot 50 Pro+ 128 Go",
+          "id": "9bdf55bf-36cb-4d1b-aa58-3275a92559c3"
+        }
+      ],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-06-12T21:09:49.414Z",
+      "mode": "applied",
+      "batch": "apple",
+      "updated": [
+        {
+          "batch": "apple",
+          "id": "82ddca03-42d5-4120-abce-5476dc4015d8",
+          "name": "iPhone 12 Pro Max 512GB",
+          "specCount": 7
+        }
+      ],
+      "skipped": [],
+      "failed": [
+        {
+          "batch": "apple",
+          "id": "f8621f08-2ec5-4bce-878c-2222fb0502b5",
+          "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 52.787600835s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.5-flash\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"52s\"}]}}"
+        }
+      ]
+    },
+    {
+      "at": "2026-06-12T21:12:03.705Z",
+      "mode": "applied",
+      "batch": "google",
+      "updated": [
+        {
+          "batch": "google",
+          "id": "7605a1ab-6677-4879-a8fe-aef65b6d0954",
+          "name": "Google Pixel 7 256 Go Non scellé (US/Japan)",
+          "specCount": 9
+        },
+        {
+          "batch": "google",
+          "id": "61d5b2bd-f4e7-4099-a984-778755051fa4",
+          "name": "Google Pixel 6 Pro 256 Go Non scellé (US/Japan)",
+          "specCount": 9
+        }
+      ],
+      "skipped": [],
+      "failed": [
+        {
+          "batch": "google",
+          "id": "216c23d9-fa1d-449a-9dbf-ad2190c6bf40",
+          "name": "Google Pixel 6 Pro 128 Go Non scellé (US/Japan)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 31.730290008s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.5-flash\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"31s\"}]}}"
+        },
+        {
+          "batch": "google",
+          "id": "dd448f04-87d6-49a5-9650-f3602b573733",
+          "name": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 59.981510679s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.5-flash\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"59s\"}]}}"
+        },
+        {
+          "batch": "google",
+          "id": "c103e4a9-68e6-4418-9f85-1938f992f20b",
+          "name": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 13.219655962s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.5-flash\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"13s\"}]}}"
+        },
+        {
+          "batch": "google",
+          "id": "c8503f74-9651-45fc-97ba-9373a472acab",
+          "name": "Google Pixel 8 Pro 256 Go Non scellé (US/Japan)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 27.142048053s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.5-flash\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"27s\"}]}}"
+        },
+        {
+          "batch": "google",
+          "id": "0be8d84c-9e0a-4ceb-bc7e-3697201d0a2b",
+          "name": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 41.419796729s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.5-flash\",\"location\":\"global\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"41s\"}]}}"
+        },
+        {
+          "batch": "google",
+          "id": "4bcdec77-65bc-407f-99f5-f9a2c7d73ece",
+          "name": "Google Pixel 9 Pro 256 Go Non scellé (US/Japan)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 55.169553386s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.5-flash\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"55s\"}]}}"
+        },
+        {
+          "batch": "google",
+          "id": "ce13dd25-fa00-4825-975b-642da313ae82",
+          "name": "Google Pixel 8a 128 Go Scellé (US/Japan)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 9.198344847s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.5-flash\",\"location\":\"global\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"9s\"}]}}"
+        },
+        {
+          "batch": "google",
+          "id": "1e865160-3aac-4987-9918-f1455542d2f8",
+          "name": "Google Pixel 8 Pro 128 Go Scellé (US/Japan)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 22.486677241s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.5-flash\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"22s\"}]}}"
+        },
+        {
+          "batch": "google",
+          "id": "8adc0b6a-a82d-42f4-88c2-15d5f8dcd5b7",
+          "name": "Google Pixel 8 Pro 256 Go Scellé (US/Japan)",
+          "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 36.634916205s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"model\":\"gemini-2.5-flash\",\"location\":\"global\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"36s\"}]}}"
+        }
+      ]
+    },
+    {
+      "at": "2026-06-12T21:29:07.804Z",
+      "mode": "applied",
+      "batch": "xiaomi",
+      "updated": [],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-06-12T21:29:09.375Z",
+      "mode": "applied",
+      "batch": "infinix",
+      "updated": [],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-06-12T21:34:00.480Z",
+      "mode": "dry-run",
+      "batch": "all",
+      "provider": "deepseek",
+      "refineCatalog": true,
+      "updated": [
+        {
+          "batch": "apple",
+          "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+          "id": "f8621f08-2ec5-4bce-878c-2222fb0502b5"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch5 (Korea)",
+          "id": "a7e2f027-54b4-453d-ba38-d57e1083f316"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch6 (Korea)",
+          "id": "34508f65-f2ac-4751-ac9f-ed5dc2638a47"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch4 Classic (Korea)",
+          "id": "b83ed263-843a-443e-8c04-45a77876a17b"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S21+ 256 Go Scellé 1SIM (Korea)",
+          "id": "d733a04a-b090-43f6-820c-0ed61a9f455b"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S21 Ultra 256 Go Scellé 1SIM (Korea)",
+          "id": "8128ea50-52b8-4ce0-bb0b-bde27f7d5fd9"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S22 ",
+          "id": "db2b37c7-9d24-4ef5-b74b-e5d8e089ed62"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 6 ",
+          "id": "02046144-d565-48fc-a9d5-8e25b8f5607d"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch7 (Korea)",
+          "id": "a1daac66-aaf9-4089-8e9b-0575ce64b1d7"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch5 Pro (Korea)",
+          "id": "1c196f88-7eab-46bc-a3cf-b9cde6d695fe"
+        },
+        {
+          "batch": "samsung",
+          "name": "S21  256Go ",
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S22+ 256 Go Scellé 1SIM (Korea)",
+          "id": "56047c76-769c-4bc2-84cd-93d90f0240f2"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S22 ultra ",
+          "id": "528b2ddf-c210-4c87-add6-6c855f4b1d7e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 512 Go",
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 ultra",
+          "id": "add14d88-4dfe-40e1-995c-605affb7b2ab"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 ",
+          "id": "1d1ba87c-17e3-47fc-acdc-3b95f06838c5"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S24 ultra ",
+          "id": "2358e474-5cbe-4638-af62-948370ae849f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 6 ",
+          "id": "961e8784-f6d7-47b9-97f7-a7c5373e4b82"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S 23 FE  256 Go",
+          "id": "836b2968-5cbb-468b-8487-c1a92627a4d3"
+        },
+        {
+          "batch": "samsung",
+          "name": "galaxie Z flip4  ",
+          "id": "e2f86f60-a4f5-4e58-91bb-6528ce538636"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 5",
+          "id": "4b058400-d96f-435d-883d-b60bbb0a6b3a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z fold4 256 Go",
+          "id": "fd104e00-eca5-44d8-b897-aa7143f8c2e1"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch8 Classic Scellé",
+          "id": "bfc5f3aa-8dfe-43c0-9a6e-b8cdce61711a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch4 (Korea)",
+          "id": "b9a05696-3062-432b-8125-6dd6f8dc20c0"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 ultra",
+          "id": "180d541c-db60-4f70-acb4-b4f5483a6ec4"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Z Flip4 512 Go Scellé SIM+eSIM (Korea)",
+          "id": "8915b93a-f6de-41f4-8d3d-9b481be370c7"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S25 Edge 256 Go Non scellé SIM+eSIM (Korea)",
+          "id": "e08a637b-8388-4873-9060-b65f7557545d"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S10 5G 256 Go Non scellé 1SIM (Korea)",
+          "id": "c300b3fd-d279-4691-a4bc-82c5e4d3ac47"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 ultra",
+          "id": "10a1674e-1cc7-49aa-948b-d4e4dd3c46be"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 ultra ",
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "60480603-4c8c-404b-9a22-446adeb03762"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23+ 512 Go Scellé SIM+eSIM (Korea)",
+          "id": "198f5b94-ac4d-4fdf-affc-dcdba42e5baa"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Z Flip6 512 Go Scellé SIM+eSIM (Korea)",
+          "id": "26c50593-6d73-4642-9e0a-b22e37afa473"
+        },
+        {
+          "batch": "samsung",
+          "name": "galaxie Z flip4  ",
+          "id": "a78f0aa7-37f0-4162-88a6-237502e124b8"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z fold4 512 Go",
+          "id": "66c355a4-aad7-4925-913f-a46328f475a8"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23 FE 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "f6ed6d05-9a10-4de6-a69c-a326185664fe"
+        },
+        {
+          "batch": "samsung",
+          "name": "Galaxie Z flip 6 ",
+          "id": "7be7a846-fbfb-49c5-ab60-eb1a0146b092"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S21 128 Go",
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 256 Go",
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23 Ultra 1024 Go Scellé SIM+eSIM (Australia)",
+          "id": "a134a214-95e6-44aa-b474-712294a2bf17"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S10 5G 512 Go Non scellé 1SIM (Korea)",
+          "id": "683641e5-5d5b-4efd-8957-f0a5c5d673a6"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S23+ 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "4cd3f663-5f0b-4ebb-9b32-fe1ebf7c0395"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S24+ 256 Go Scellé SIM+eSIM (Korea)",
+          "id": "eb1ce6bb-cdf9-4d28-b881-b4b0a68fbec9"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Note20 256 Go Non scellé 1SIM (Korea)",
+          "id": "3461b0ee-532f-4dcb-8437-664bb12a467f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A56 256 Go 8 GB RAM Scellé 2SIMS",
+          "id": "2eb52f4d-aed7-4baf-acb3-4cf78ecb411e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy S20 Ultra 256 Go Non scellé 1SIM (Korea)",
+          "id": "f602cfbf-238a-45a3-9e29-7d1991ec8957"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A16 256 Go 8 GB RAM Scellé 2SIMS",
+          "id": "9e0799db-7be4-4de2-b82b-70eb3733f910"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 128Go",
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A36 256 Go 8 GB RAM Scellé 2SIMS",
+          "id": "b4f0dee3-fb7d-4c31-a592-1e9e00628a20"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A53 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "id": "44bcb797-3780-4f86-a75d-7afe5bdc0c59"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M33 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "id": "4dc17157-adaa-4edb-adb3-1689cda2196a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "id": "271fb4f4-6860-4008-8458-4c66ecbd68df"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung S23 ultra 512Go ",
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A24 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "id": "d75f0772-6c36-4b76-bb26-a8e435cc6fe2"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A23 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "id": "817e9d86-2f6a-4371-a662-4fd5ff4b18c0"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "4edd6f46-240b-48f5-8608-c49bd515655d"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Note10+ 512 Go Non scellé 1SIM (Korea)",
+          "id": "fcecb7c7-8284-4040-a94f-a04119c60eac"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A56 128 Go 8 GB RAM Scellé 2SIMS",
+          "id": "21a64aff-ecd2-4b78-9043-e997a0afbbec"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch Ultra Scellé",
+          "id": "f47d1e04-1cb8-4fd7-b237-a7fbabb1a30e"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch FIT 3 Scellé",
+          "id": "cd0036b0-4136-43fb-a33d-d9521b80d944"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A36 128 Go 8 GB RAM Scellé 2SIMS",
+          "id": "a4304c57-b248-4867-a307-f588d0b2caf3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A55 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "id": "a20a9a67-2e48-4a5c-b1e3-a5cdf0ca9c22"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A32 128 Go 4 GB RAM Scellé 1SIM (Korea)",
+          "id": "21225d2b-9495-4975-a50d-8b4567c345a3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy M53 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "id": "9f667927-1d7a-41a5-b73a-9ddbf46b3ec1"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A25 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "3353a9c4-1b29-4cb0-aff7-950da41030c3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A16 128 Go",
+          "id": "f6e95335-455c-48a7-98f3-8e874e5aae9a"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A54 128 Go 8 GB RAM Non scellé 1SIM (Korea)",
+          "id": "29946bd6-4e0c-493e-9e4f-c5856904efd3"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A33 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "25b62930-3cf7-412f-876a-9ada312e8e7f"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy A82 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "id": "31c9f64a-1f09-4724-8f05-b3d2c4d7ee73"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch6 Classic (Korea)",
+          "id": "e4de80e2-b59e-4e00-940a-c372937a2ad2"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch7 Scellé",
+          "id": "83d7f332-ac4b-4c79-ac36-ad1bbf50c3f4"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Watch8 Scellé",
+          "id": "49b0ce2f-4f4f-415f-bb30-6d5870f139fe"
+        },
+        {
+          "batch": "samsung",
+          "name": "Samsung Galaxy Buds Core Scellé",
+          "id": "579fff10-d476-4009-8460-113fb457321b"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 256 Go Non scellé (US/Japan)",
+          "id": "c8503f74-9651-45fc-97ba-9373a472acab"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 9 Pro 256 Go Non scellé (US/Japan)",
+          "id": "4bcdec77-65bc-407f-99f5-f9a2c7d73ece"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 128 Go Scellé (US/Japan)",
+          "id": "1e865160-3aac-4987-9918-f1455542d2f8"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+          "id": "dd448f04-87d6-49a5-9650-f3602b573733"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+          "id": "0be8d84c-9e0a-4ceb-bc7e-3697201d0a2b"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8a 128 Go Scellé (US/Japan)",
+          "id": "ce13dd25-fa00-4825-975b-642da313ae82"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 256 Go Scellé (US/Japan)",
+          "id": "8adc0b6a-a82d-42f4-88c2-15d5f8dcd5b7"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+          "id": "c103e4a9-68e6-4418-9f85-1938f992f20b"
+        },
+        {
+          "batch": "google",
+          "name": "Google Pixel 6 Pro 128 Go Non scellé (US/Japan)",
+          "id": "216c23d9-fa1d-449a-9dbf-ad2190c6bf40"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 13 256 Go",
+          "id": "ad4f3bda-9170-4ad6-8f7d-80964de40fe2"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi Note 9 Pro 128 Go",
+          "id": "383a2a81-8e94-4b60-bf19-78385666b8e8"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 14C 256 Go",
+          "id": "bae69b40-a002-4ad1-93a0-61e43ee3c8e4"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 15C 256 Go",
+          "id": "dda95bac-df78-4c52-ab96-6b46819e14fc"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi Note 15 256 Go",
+          "id": "dbd96721-b360-4508-8a27-97633884a801"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi redmi 9 activ",
+          "id": "2af9b0ec-ac5c-4fcb-a698-98090bff1f7b"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 15 256 Go",
+          "id": "8696d175-9bce-4b66-8d92-79ff30db1ee9"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi 15C 128 Go",
+          "id": "40280f72-8717-45ba-a011-6ddbb91cfe93"
+        },
+        {
+          "batch": "xiaomi",
+          "name": "Xiaomi Redmi Note 14 256 Go",
+          "id": "fd5541ea-05b1-43af-8143-ed32893cc803"
+        },
+        {
+          "batch": "infinix",
+          "name": "Infinix Smart 10 HD 64 Go",
+          "id": "fee68ca7-9343-4ac1-a905-73ac924be6d5"
+        },
+        {
+          "batch": "infinix",
+          "name": "Infinix Smart 10 128 Go",
+          "id": "714ac1c0-6763-4cba-83ea-28b59e97518e"
+        },
+        {
+          "batch": "infinix",
+          "name": "Infinix Hot 50 Pro+ 128 Go",
+          "id": "9bdf55bf-36cb-4d1b-aa58-3275a92559c3"
+        },
+        {
+          "batch": "legacy",
+          "name": "Chargeur Ordinateur Portable Lenovo",
+          "id": "b6e5d683-066b-4bc9-bf8d-3bd61bc0ea8d"
+        }
+      ],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-06-12T21:34:26.791Z",
+      "mode": "applied",
+      "batch": "all",
+      "provider": "deepseek",
+      "refineCatalog": true,
+      "updated": [
+        {
+          "batch": "apple",
+          "id": "f8621f08-2ec5-4bce-878c-2222fb0502b5",
+          "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+          "specCount": 10
+        },
+        {
+          "batch": "samsung",
+          "id": "a7e2f027-54b4-453d-ba38-d57e1083f316",
+          "name": "Samsung Galaxy Watch5 (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "34508f65-f2ac-4751-ac9f-ed5dc2638a47",
+          "name": "Samsung Galaxy Watch6 (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "b83ed263-843a-443e-8c04-45a77876a17b",
+          "name": "Samsung Galaxy Watch4 Classic (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "d733a04a-b090-43f6-820c-0ed61a9f455b",
+          "name": "Samsung Galaxy S21+ 256 Go Scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "8128ea50-52b8-4ce0-bb0b-bde27f7d5fd9",
+          "name": "Samsung Galaxy S21 Ultra 256 Go Scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "db2b37c7-9d24-4ef5-b74b-e5d8e089ed62",
+          "name": "Samsung S22 ",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "02046144-d565-48fc-a9d5-8e25b8f5607d",
+          "name": "Galaxie Z flip 6 ",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "a1daac66-aaf9-4089-8e9b-0575ce64b1d7",
+          "name": "Samsung Galaxy Watch7 (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "1c196f88-7eab-46bc-a3cf-b9cde6d695fe",
+          "name": "Samsung Galaxy Watch5 Pro (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8",
+          "name": "S21  256Go ",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "56047c76-769c-4bc2-84cd-93d90f0240f2",
+          "name": "Samsung Galaxy S22+ 256 Go Scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "528b2ddf-c210-4c87-add6-6c855f4b1d7e",
+          "name": "Samsung S22 ultra ",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab",
+          "name": "Samsung S23 512 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "add14d88-4dfe-40e1-995c-605affb7b2ab",
+          "name": "Samsung S21 ultra",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "1d1ba87c-17e3-47fc-acdc-3b95f06838c5",
+          "name": "Samsung S23 ",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "2358e474-5cbe-4638-af62-948370ae849f",
+          "name": "Samsung S24 ultra ",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "961e8784-f6d7-47b9-97f7-a7c5373e4b82",
+          "name": "Galaxie Z flip 6 ",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "836b2968-5cbb-468b-8487-c1a92627a4d3",
+          "name": "Samsung S 23 FE  256 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "e2f86f60-a4f5-4e58-91bb-6528ce538636",
+          "name": "galaxie Z flip4  ",
+          "specCount": 10
+        },
+        {
+          "batch": "samsung",
+          "id": "4b058400-d96f-435d-883d-b60bbb0a6b3a",
+          "name": "Galaxie Z flip 5",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "fd104e00-eca5-44d8-b897-aa7143f8c2e1",
+          "name": "Galaxie Z fold4 256 Go",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "bfc5f3aa-8dfe-43c0-9a6e-b8cdce61711a",
+          "name": "Samsung Galaxy Watch8 Classic Scellé",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "b9a05696-3062-432b-8125-6dd6f8dc20c0",
+          "name": "Samsung Galaxy Watch4 (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "180d541c-db60-4f70-acb4-b4f5483a6ec4",
+          "name": "Samsung S21 ultra",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "8915b93a-f6de-41f4-8d3d-9b481be370c7",
+          "name": "Samsung Galaxy Z Flip4 512 Go Scellé SIM+eSIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "e08a637b-8388-4873-9060-b65f7557545d",
+          "name": "Samsung Galaxy S25 Edge 256 Go Non scellé SIM+eSIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "c300b3fd-d279-4691-a4bc-82c5e4d3ac47",
+          "name": "Samsung Galaxy S10 5G 256 Go Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "10a1674e-1cc7-49aa-948b-d4e4dd3c46be",
+          "name": "Samsung S21 ultra",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10",
+          "name": "Samsung S23 ultra ",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "60480603-4c8c-404b-9a22-446adeb03762",
+          "name": "Samsung Galaxy S23 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "198f5b94-ac4d-4fdf-affc-dcdba42e5baa",
+          "name": "Samsung Galaxy S23+ 512 Go Scellé SIM+eSIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "26c50593-6d73-4642-9e0a-b22e37afa473",
+          "name": "Samsung Galaxy Z Flip6 512 Go Scellé SIM+eSIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "a78f0aa7-37f0-4162-88a6-237502e124b8",
+          "name": "galaxie Z flip4  ",
+          "specCount": 10
+        },
+        {
+          "batch": "samsung",
+          "id": "66c355a4-aad7-4925-913f-a46328f475a8",
+          "name": "Galaxie Z fold4 512 Go",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "f6ed6d05-9a10-4de6-a69c-a326185664fe",
+          "name": "Samsung Galaxy S23 FE 256 Go Scellé SIM+eSIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "7be7a846-fbfb-49c5-ab60-eb1a0146b092",
+          "name": "Galaxie Z flip 6 ",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f",
+          "name": "Samsung S21 128 Go",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad",
+          "name": "Samsung S23 256 Go",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "a134a214-95e6-44aa-b474-712294a2bf17",
+          "name": "Samsung Galaxy S23 Ultra 1024 Go Scellé SIM+eSIM (Australia)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "683641e5-5d5b-4efd-8957-f0a5c5d673a6",
+          "name": "Samsung Galaxy S10 5G 512 Go Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "4cd3f663-5f0b-4ebb-9b32-fe1ebf7c0395",
+          "name": "Samsung Galaxy S23+ 256 Go Scellé SIM+eSIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "eb1ce6bb-cdf9-4d28-b881-b4b0a68fbec9",
+          "name": "Samsung Galaxy S24+ 256 Go Scellé SIM+eSIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "3461b0ee-532f-4dcb-8437-664bb12a467f",
+          "name": "Samsung Galaxy Note20 256 Go Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "2eb52f4d-aed7-4baf-acb3-4cf78ecb411e",
+          "name": "Samsung Galaxy A56 256 Go 8 GB RAM Scellé 2SIMS",
+          "specCount": 11
+        },
+        {
+          "batch": "samsung",
+          "id": "f602cfbf-238a-45a3-9e29-7d1991ec8957",
+          "name": "Samsung Galaxy S20 Ultra 256 Go Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "9e0799db-7be4-4de2-b82b-70eb3733f910",
+          "name": "Samsung Galaxy A16 256 Go 8 GB RAM Scellé 2SIMS",
+          "specCount": 10
+        },
+        {
+          "batch": "samsung",
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29",
+          "name": "Samsung S23 128Go",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "b4f0dee3-fb7d-4c31-a592-1e9e00628a20",
+          "name": "Samsung Galaxy A36 256 Go 8 GB RAM Scellé 2SIMS",
+          "specCount": 10
+        },
+        {
+          "batch": "samsung",
+          "id": "44bcb797-3780-4f86-a75d-7afe5bdc0c59",
+          "name": "Samsung Galaxy A53 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "4dc17157-adaa-4edb-adb3-1689cda2196a",
+          "name": "Samsung Galaxy M33 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "271fb4f4-6860-4008-8458-4c66ecbd68df",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0",
+          "name": "Samsung S23 ultra 512Go ",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "d75f0772-6c36-4b76-bb26-a8e435cc6fe2",
+          "name": "Samsung Galaxy A24 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "817e9d86-2f6a-4371-a662-4fd5ff4b18c0",
+          "name": "Samsung Galaxy A23 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "4edd6f46-240b-48f5-8608-c49bd515655d",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "fcecb7c7-8284-4040-a94f-a04119c60eac",
+          "name": "Samsung Galaxy Note10+ 512 Go Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "21a64aff-ecd2-4b78-9043-e997a0afbbec",
+          "name": "Samsung Galaxy A56 128 Go 8 GB RAM Scellé 2SIMS",
+          "specCount": 11
+        },
+        {
+          "batch": "samsung",
+          "id": "f47d1e04-1cb8-4fd7-b237-a7fbabb1a30e",
+          "name": "Samsung Galaxy Watch Ultra Scellé",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "cd0036b0-4136-43fb-a33d-d9521b80d944",
+          "name": "Samsung Galaxy Watch FIT 3 Scellé",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "a4304c57-b248-4867-a307-f588d0b2caf3",
+          "name": "Samsung Galaxy A36 128 Go 8 GB RAM Scellé 2SIMS",
+          "specCount": 11
+        },
+        {
+          "batch": "samsung",
+          "id": "a20a9a67-2e48-4a5c-b1e3-a5cdf0ca9c22",
+          "name": "Samsung Galaxy A55 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "21225d2b-9495-4975-a50d-8b4567c345a3",
+          "name": "Samsung Galaxy A32 128 Go 4 GB RAM Scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "9f667927-1d7a-41a5-b73a-9ddbf46b3ec1",
+          "name": "Samsung Galaxy M53 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "3353a9c4-1b29-4cb0-aff7-950da41030c3",
+          "name": "Samsung Galaxy A25 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "f6e95335-455c-48a7-98f3-8e874e5aae9a",
+          "name": "Samsung Galaxy A16 128 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "samsung",
+          "id": "29946bd6-4e0c-493e-9e4f-c5856904efd3",
+          "name": "Samsung Galaxy A54 128 Go 8 GB RAM Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "25b62930-3cf7-412f-876a-9ada312e8e7f",
+          "name": "Samsung Galaxy A33 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "31c9f64a-1f09-4724-8f05-b3d2c4d7ee73",
+          "name": "Samsung Galaxy A82 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "e4de80e2-b59e-4e00-940a-c372937a2ad2",
+          "name": "Samsung Galaxy Watch6 Classic (Korea)",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "83d7f332-ac4b-4c79-ac36-ad1bbf50c3f4",
+          "name": "Samsung Galaxy Watch7 Scellé",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "49b0ce2f-4f4f-415f-bb30-6d5870f139fe",
+          "name": "Samsung Galaxy Watch8 Scellé",
+          "specCount": 12
+        },
+        {
+          "batch": "samsung",
+          "id": "579fff10-d476-4009-8460-113fb457321b",
+          "name": "Samsung Galaxy Buds Core Scellé",
+          "specCount": 7
+        },
+        {
+          "batch": "google",
+          "id": "c8503f74-9651-45fc-97ba-9373a472acab",
+          "name": "Google Pixel 8 Pro 256 Go Non scellé (US/Japan)",
+          "specCount": 11
+        },
+        {
+          "batch": "google",
+          "id": "4bcdec77-65bc-407f-99f5-f9a2c7d73ece",
+          "name": "Google Pixel 9 Pro 256 Go Non scellé (US/Japan)",
+          "specCount": 11
+        },
+        {
+          "batch": "google",
+          "id": "1e865160-3aac-4987-9918-f1455542d2f8",
+          "name": "Google Pixel 8 Pro 128 Go Scellé (US/Japan)",
+          "specCount": 11
+        },
+        {
+          "batch": "google",
+          "id": "dd448f04-87d6-49a5-9650-f3602b573733",
+          "name": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+          "specCount": 10
+        },
+        {
+          "batch": "google",
+          "id": "0be8d84c-9e0a-4ceb-bc7e-3697201d0a2b",
+          "name": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+          "specCount": 11
+        },
+        {
+          "batch": "google",
+          "id": "ce13dd25-fa00-4825-975b-642da313ae82",
+          "name": "Google Pixel 8a 128 Go Scellé (US/Japan)",
+          "specCount": 11
+        },
+        {
+          "batch": "google",
+          "id": "8adc0b6a-a82d-42f4-88c2-15d5f8dcd5b7",
+          "name": "Google Pixel 8 Pro 256 Go Scellé (US/Japan)",
+          "specCount": 11
+        },
+        {
+          "batch": "google",
+          "id": "c103e4a9-68e6-4418-9f85-1938f992f20b",
+          "name": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+          "specCount": 11
+        },
+        {
+          "batch": "google",
+          "id": "216c23d9-fa1d-449a-9dbf-ad2190c6bf40",
+          "name": "Google Pixel 6 Pro 128 Go Non scellé (US/Japan)",
+          "specCount": 10
+        },
+        {
+          "batch": "xiaomi",
+          "id": "ad4f3bda-9170-4ad6-8f7d-80964de40fe2",
+          "name": "Xiaomi Redmi 13 256 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "xiaomi",
+          "id": "383a2a81-8e94-4b60-bf19-78385666b8e8",
+          "name": "Xiaomi Redmi Note 9 Pro 128 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "xiaomi",
+          "id": "bae69b40-a002-4ad1-93a0-61e43ee3c8e4",
+          "name": "Xiaomi Redmi 14C 256 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "xiaomi",
+          "id": "dda95bac-df78-4c52-ab96-6b46819e14fc",
+          "name": "Xiaomi Redmi 15C 256 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "xiaomi",
+          "id": "dbd96721-b360-4508-8a27-97633884a801",
+          "name": "Xiaomi Redmi Note 15 256 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "xiaomi",
+          "id": "2af9b0ec-ac5c-4fcb-a698-98090bff1f7b",
+          "name": "Xiaomi redmi 9 activ",
+          "specCount": 9
+        },
+        {
+          "batch": "xiaomi",
+          "id": "8696d175-9bce-4b66-8d92-79ff30db1ee9",
+          "name": "Xiaomi Redmi 15 256 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "xiaomi",
+          "id": "40280f72-8717-45ba-a011-6ddbb91cfe93",
+          "name": "Xiaomi Redmi 15C 128 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "xiaomi",
+          "id": "fd5541ea-05b1-43af-8143-ed32893cc803",
+          "name": "Xiaomi Redmi Note 14 256 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "infinix",
+          "id": "fee68ca7-9343-4ac1-a905-73ac924be6d5",
+          "name": "Infinix Smart 10 HD 64 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "infinix",
+          "id": "714ac1c0-6763-4cba-83ea-28b59e97518e",
+          "name": "Infinix Smart 10 128 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "infinix",
+          "id": "9bdf55bf-36cb-4d1b-aa58-3275a92559c3",
+          "name": "Infinix Hot 50 Pro+ 128 Go",
+          "specCount": 8
+        },
+        {
+          "batch": "legacy",
+          "id": "b6e5d683-066b-4bc9-bf8d-3bd61bc0ea8d",
+          "name": "Chargeur Ordinateur Portable Lenovo",
+          "specCount": 5
+        }
+      ],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-06-13T20:24:32.402Z",
+      "mode": "applied",
+      "batch": "all",
+      "provider": "deepseek",
+      "refineCatalog": false,
+      "descriptionsOnly": true,
+      "updated": [
+        {
+          "batch": "apple",
+          "id": "90b141fb-97bd-498c-95ee-890e1447ce68",
+          "name": "Apple iPhone 14 Pro Max 256 Go (US/Canada)",
+          "hasDescription": true
+        },
+        {
+          "batch": "apple",
+          "id": "d8e7be4b-5ae1-45ac-8ba4-2b023446912a",
+          "name": "iPhone 11 Pro Max 64Go ",
+          "hasDescription": true
+        },
+        {
+          "batch": "apple",
+          "id": "a24eb9e4-5a8a-4765-aecc-9f23ae427a2e",
+          "name": "Apple iPhone 11 64 Go (US/Canada)",
+          "hasDescription": true
+        },
+        {
+          "batch": "apple",
+          "id": "98c1e2f1-a3af-4d98-94e6-e935ae38873a",
+          "name": "Apple iPhone 12 Pro Max 256 Go (US/Canada)",
+          "hasDescription": true
+        },
+        {
+          "batch": "apple",
+          "id": "3e1bb074-a17b-4dd5-b934-08fb9ab09c6c",
+          "name": "Apple iPhone 12 Pro 256 Go (US/Canada)",
+          "hasDescription": true
+        },
+        {
+          "batch": "apple",
+          "id": "f8621f08-2ec5-4bce-878c-2222fb0502b5",
+          "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "a7e2f027-54b4-453d-ba38-d57e1083f316",
+          "name": "Samsung Galaxy Watch5 (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "1c196f88-7eab-46bc-a3cf-b9cde6d695fe",
+          "name": "Samsung Galaxy Watch5 Pro (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "a1daac66-aaf9-4089-8e9b-0575ce64b1d7",
+          "name": "Samsung Galaxy Watch7 (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "56047c76-769c-4bc2-84cd-93d90f0240f2",
+          "name": "Samsung Galaxy S22+ 256 Go Scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "d75f0772-6c36-4b76-bb26-a8e435cc6fe2",
+          "name": "Samsung Galaxy A24 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "34508f65-f2ac-4751-ac9f-ed5dc2638a47",
+          "name": "Samsung Galaxy Watch6 (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "21225d2b-9495-4975-a50d-8b4567c345a3",
+          "name": "Samsung Galaxy A32 128 Go 4 GB RAM Scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "4cd3f663-5f0b-4ebb-9b32-fe1ebf7c0395",
+          "name": "Samsung Galaxy S23+ 256 Go Scellé SIM+eSIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "4edd6f46-240b-48f5-8608-c49bd515655d",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "d733a04a-b090-43f6-820c-0ed61a9f455b",
+          "name": "Samsung Galaxy S21+ 256 Go Scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "3353a9c4-1b29-4cb0-aff7-950da41030c3",
+          "name": "Samsung Galaxy A25 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "f47d1e04-1cb8-4fd7-b237-a7fbabb1a30e",
+          "name": "Samsung Galaxy Watch Ultra Scellé",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "bfc5f3aa-8dfe-43c0-9a6e-b8cdce61711a",
+          "name": "Samsung Galaxy Watch8 Classic Scellé",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "8915b93a-f6de-41f4-8d3d-9b481be370c7",
+          "name": "Samsung Galaxy Z Flip4 512 Go Scellé SIM+eSIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "e08a637b-8388-4873-9060-b65f7557545d",
+          "name": "Samsung Galaxy S25 Edge 256 Go Non scellé SIM+eSIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "c300b3fd-d279-4691-a4bc-82c5e4d3ac47",
+          "name": "Samsung Galaxy S10 5G 256 Go Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "198f5b94-ac4d-4fdf-affc-dcdba42e5baa",
+          "name": "Samsung Galaxy S23+ 512 Go Scellé SIM+eSIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "60480603-4c8c-404b-9a22-446adeb03762",
+          "name": "Samsung Galaxy S23 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "26c50593-6d73-4642-9e0a-b22e37afa473",
+          "name": "Samsung Galaxy Z Flip6 512 Go Scellé SIM+eSIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "f6ed6d05-9a10-4de6-a69c-a326185664fe",
+          "name": "Samsung Galaxy S23 FE 256 Go Scellé SIM+eSIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "9e0799db-7be4-4de2-b82b-70eb3733f910",
+          "name": "Samsung Galaxy A16 256 Go 8 GB RAM Scellé 2SIMS",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "a134a214-95e6-44aa-b474-712294a2bf17",
+          "name": "Samsung Galaxy S23 Ultra 1024 Go Scellé SIM+eSIM (Australia)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "683641e5-5d5b-4efd-8957-f0a5c5d673a6",
+          "name": "Samsung Galaxy S10 5G 512 Go Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "2eb52f4d-aed7-4baf-acb3-4cf78ecb411e",
+          "name": "Samsung Galaxy A56 256 Go 8 GB RAM Scellé 2SIMS",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "eb1ce6bb-cdf9-4d28-b881-b4b0a68fbec9",
+          "name": "Samsung Galaxy S24+ 256 Go Scellé SIM+eSIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "f602cfbf-238a-45a3-9e29-7d1991ec8957",
+          "name": "Samsung Galaxy S20 Ultra 256 Go Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "b4f0dee3-fb7d-4c31-a592-1e9e00628a20",
+          "name": "Samsung Galaxy A36 256 Go 8 GB RAM Scellé 2SIMS",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "271fb4f4-6860-4008-8458-4c66ecbd68df",
+          "name": "Samsung Galaxy M44 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "44bcb797-3780-4f86-a75d-7afe5bdc0c59",
+          "name": "Samsung Galaxy A53 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "817e9d86-2f6a-4371-a662-4fd5ff4b18c0",
+          "name": "Samsung Galaxy A23 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "fcecb7c7-8284-4040-a94f-a04119c60eac",
+          "name": "Samsung Galaxy Note10+ 512 Go Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "21a64aff-ecd2-4b78-9043-e997a0afbbec",
+          "name": "Samsung Galaxy A56 128 Go 8 GB RAM Scellé 2SIMS",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "cd0036b0-4136-43fb-a33d-d9521b80d944",
+          "name": "Samsung Galaxy Watch FIT 3 Scellé",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "a4304c57-b248-4867-a307-f588d0b2caf3",
+          "name": "Samsung Galaxy A36 128 Go 8 GB RAM Scellé 2SIMS",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "a20a9a67-2e48-4a5c-b1e3-a5cdf0ca9c22",
+          "name": "Samsung Galaxy A55 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "9f667927-1d7a-41a5-b73a-9ddbf46b3ec1",
+          "name": "Samsung Galaxy M53 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "f6e95335-455c-48a7-98f3-8e874e5aae9a",
+          "name": "Samsung Galaxy A16 128 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "25b62930-3cf7-412f-876a-9ada312e8e7f",
+          "name": "Samsung Galaxy A33 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "31c9f64a-1f09-4724-8f05-b3d2c4d7ee73",
+          "name": "Samsung Galaxy A82 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "e4de80e2-b59e-4e00-940a-c372937a2ad2",
+          "name": "Samsung Galaxy Watch6 Classic (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "49b0ce2f-4f4f-415f-bb30-6d5870f139fe",
+          "name": "Samsung Galaxy Watch8 Scellé",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "4dc17157-adaa-4edb-adb3-1689cda2196a",
+          "name": "Samsung Galaxy M33 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "579fff10-d476-4009-8460-113fb457321b",
+          "name": "Samsung Galaxy Buds Core Scellé",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "b9a05696-3062-432b-8125-6dd6f8dc20c0",
+          "name": "Samsung Galaxy Watch4 (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "samsung",
+          "id": "29946bd6-4e0c-493e-9e4f-c5856904efd3",
+          "name": "Samsung Galaxy A54 128 Go 8 GB RAM Non scellé 1SIM (Korea)",
+          "hasDescription": true
+        },
+        {
+          "batch": "google",
+          "id": "dd448f04-87d6-49a5-9650-f3602b573733",
+          "name": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+          "hasDescription": true
+        },
+        {
+          "batch": "google",
+          "id": "0be8d84c-9e0a-4ceb-bc7e-3697201d0a2b",
+          "name": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+          "hasDescription": true
+        },
+        {
+          "batch": "google",
+          "id": "c103e4a9-68e6-4418-9f85-1938f992f20b",
+          "name": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+          "hasDescription": true
+        },
+        {
+          "batch": "xiaomi",
+          "id": "383a2a81-8e94-4b60-bf19-78385666b8e8",
+          "name": "Xiaomi Redmi Note 9 Pro 128 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "xiaomi",
+          "id": "bae69b40-a002-4ad1-93a0-61e43ee3c8e4",
+          "name": "Xiaomi Redmi 14C 256 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "xiaomi",
+          "id": "dbd96721-b360-4508-8a27-97633884a801",
+          "name": "Xiaomi Redmi Note 15 256 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "xiaomi",
+          "id": "3bf6f7e1-17ac-4b88-a197-f2d16539b49a",
+          "name": "Xiaomi Redmi A5 64 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "xiaomi",
+          "id": "67ebdb03-4bb3-49ab-9ab2-f432f6ff27ec",
+          "name": "Xiaomi Redmi A5 128 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "xiaomi",
+          "id": "8696d175-9bce-4b66-8d92-79ff30db1ee9",
+          "name": "Xiaomi Redmi 15 256 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "xiaomi",
+          "id": "40280f72-8717-45ba-a011-6ddbb91cfe93",
+          "name": "Xiaomi Redmi 15C 128 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "infinix",
+          "id": "fee68ca7-9343-4ac1-a905-73ac924be6d5",
+          "name": "Infinix Smart 10 HD 64 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "infinix",
+          "id": "714ac1c0-6763-4cba-83ea-28b59e97518e",
+          "name": "Infinix Smart 10 128 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "infinix",
+          "id": "9bdf55bf-36cb-4d1b-aa58-3275a92559c3",
+          "name": "Infinix Hot 50 Pro+ 128 Go",
+          "hasDescription": true
+        },
+        {
+          "batch": "tecno",
+          "id": "c6b5b3db-56a4-410d-a0e7-6ca1393fb769",
+          "name": "Tecno Pop 10 64 Go",
+          "hasDescription": true
+        }
+      ],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-07-13T14:19:14.981Z",
+      "mode": "preview",
+      "batch": "samsung",
+      "provider": "gemini",
+      "refineCatalog": false,
+      "descriptionsOnly": true,
+      "updated": [],
+      "skipped": [],
+      "failed": [
+        {
+          "batch": "samsung",
+          "id": "9cf0bfc2-4bd2-4f94-991f-fcde6c62b9d3",
+          "name": "Samsung Galaxy A12",
+          "error": "description générée invalide ou stub"
+        }
+      ]
+    },
+    {
+      "at": "2026-07-13T14:21:00.877Z",
+      "mode": "preview",
+      "batch": "tecno",
+      "provider": "gemini",
+      "refineCatalog": false,
+      "descriptionsOnly": true,
+      "updated": [],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-07-13T14:21:46.476Z",
+      "mode": "preview",
+      "batch": "tecno",
+      "provider": "gemini",
+      "refineCatalog": false,
+      "descriptionsOnly": true,
+      "updated": [],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-07-13T14:28:57.798Z",
+      "mode": "preview",
+      "batch": "tecno",
+      "provider": "gemini",
+      "refineCatalog": false,
+      "descriptionsOnly": true,
+      "updated": [],
+      "skipped": [],
+      "failed": []
+    },
+    {
+      "at": "2026-07-13T14:36:58.851Z",
+      "mode": "preview",
+      "batch": "tecno",
+      "provider": "gemini",
+      "refineCatalog": false,
+      "descriptionsOnly": true,
+      "updated": [],
+      "skipped": [],
+      "failed": [
+        {
+          "batch": "tecno",
+          "id": "2a04173a-5091-4403-b6e7-972f8b69a00d",
+          "name": "Tecno Spark 40",
+          "error": "spec inventée hors base: 16 Go"
+        }
+      ]
+    }
+  ]
+}

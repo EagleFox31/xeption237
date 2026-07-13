@@ -19,6 +19,15 @@ const MAX_OFFERS_PER_SOURCE = 40;
 const DDG_MAX_LINKS = 6;
 const DDG_PAGE_FETCH_LIMIT = 4;
 
+// Vrai UA navigateur : les sites marchands (Cloudflare) bloquent les UA non-navigateur.
+// L'ancien 'Mozilla/5.0 (XEPTION Market Intel)' se faisait jeter → 0 offre.
+const BROWSER_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+};
+
 const MODEL_WEAK_TOKENS = new Set([
   'pro',
   'plus',
@@ -199,18 +208,16 @@ const buildMatchContext = (
 
 const sourceConfigs = (query: string) => {
   const encoded = encodeURIComponent(query);
+  // jumia.cm retiré : Jumia Cameroun a fermé en novembre 2019 (domaine mort).
+  // kmerphone : prix en HTML serveur (scrapable). glotelho : rendu JS (souvent vide en server-side).
   return [
     {
-      name: 'jumia.cm',
-      url: `https://www.jumia.cm/catalog/?q=${encoded}`,
+      name: 'kmerphone.com',
+      url: `https://kmerphone.com/?s=${encoded}&post_type=product`,
     },
     {
       name: 'glotelho.cm',
       url: `https://glotelho.cm/?s=${encoded}&post_type=product`,
-    },
-    {
-      name: 'kmerphone.com',
-      url: `https://kmerphone.com/?s=${encoded}&post_type=product`,
     },
   ];
 };
@@ -479,10 +486,7 @@ const scrapeOffersViaDuckDuckGo = async (query: string, ctx: MatchContext): Prom
   try {
     const encoded = encodeURIComponent(query);
     const ddgRes = await fetchWithTimeout(`https://duckduckgo.com/html/?q=${encoded}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (XEPTION Market Intel)',
-        Accept: 'text/html,application/xhtml+xml',
-      },
+      headers: BROWSER_HEADERS,
     });
     if (!ddgRes.ok) return [];
 
@@ -497,10 +501,7 @@ const scrapeOffersViaDuckDuckGo = async (query: string, ctx: MatchContext): Prom
       fetchableHits.map(async (hit) => {
         try {
           const pageRes = await fetchWithTimeout(hit.url, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (XEPTION Market Intel)',
-              Accept: 'text/html,application/xhtml+xml',
-            },
+            headers: BROWSER_HEADERS,
           });
           if (!pageRes.ok) return [] as Offer[];
           const pageHtml = await pageRes.text();
@@ -545,10 +546,7 @@ const scrapeOffers = async (
     configs.map(async (cfg) => {
       try {
         const res = await fetchWithTimeout(cfg.url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (XEPTION Market Intel)',
-            Accept: 'text/html,application/xhtml+xml',
-          },
+          headers: BROWSER_HEADERS,
         });
         if (!res.ok) return { cfg, text: '' };
         const html = await res.text();

@@ -5,6 +5,14 @@
  * Correspondance exacte avec le SQL fourni.
  */
 
+/** Slugs `categories.slug` — FK pour product_ranges.category et products.category */
+export const CATEGORY_SLUGS = {
+    PHONES: 'phones',
+    TABLETTES: 'tablettes',
+    ORDINATEURS: 'computer',
+    ACCESSORIES: 'accessories',
+} as const;
+
 export const DB_TABLES = {
     PRODUCTS: 'products',
     BRANDS: 'brands',

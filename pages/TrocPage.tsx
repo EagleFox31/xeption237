@@ -2,21 +2,31 @@ import React, { useEffect, useState } from 'react';
 import { PageSEO, JsonLd, breadcrumbJsonLd } from '../utils/seo';
 import { ArrowLeft, Gamepad2, Laptop, Loader2, Package, RefreshCw, Smartphone, Sparkles, Tablet } from 'lucide-react';
 import { useTradeIn } from '../hooks/useTradeIn';
+import { useTrocVisionHealth } from '../hooks/useTrocVisionHealth';
 import { TrocStepper } from '../components/troc/TrocStepper';
-import { SmartTrocForm } from '../components/troc/SmartTrocForm';
+import { TrocQuickForm } from '../components/troc/TrocQuickForm';
+import { ImeiCertifFlow } from '../components/certif/ImeiCertifFlow';
 import { PhotoUploader } from '../components/troc/PhotoUploader';
 import { ImeiChecker } from '../components/troc/ImeiChecker';
+import { TierSelector } from '../components/troc/TierSelector';
 import { TrocPayment } from '../components/troc/TrocPayment';
 import { EvaluationResult } from '../components/troc/EvaluationResult';
 import { TrocVoucher } from '../components/troc/TrocVoucher';
 import { generateTradeInVoucherHTML } from '../utils/tradeInVoucherGenerator';
 import { getPaymentStatus } from '../services/trocEvaluationService';
 import type { TradeInRequest } from '../types';
+import {
+  formatTrocFee,
+  TROC_TIER_PRICES,
+  TROC_TIER_SELECTOR_ENABLED,
+  TROC_TUNNEL_TIER,
+} from '../utils/trocPricing';
 
-const STEP_LABELS = ['Appareil', 'Photos', 'IMEI', 'Paiement', 'Résultat', 'Bon'];
+// QuickForm : l'IMEI est intégré au 1er écran, pas d'étape IMEI séparée.
+const STEP_LABELS_QUICK = ['Appareil', 'Photos', 'Paiement', 'Résultat', 'Bon'];
 
-const STEP_INDEX: Record<string, number> = {
-  form: 0, photos: 1, imei: 2, payment: 3, evaluating: 4, result: 4, voucher: 5,
+const STEP_INDEX_QUICK: Record<string, number> = {
+  form: 0, photos: 1, imei: 1, payment: 2, evaluating: 3, result: 3, voucher: 4,
 };
 
 type DeviceTradeOption = {
@@ -137,6 +147,8 @@ const DeviceChoiceCard: React.FC<{
 
 const TrocPage: React.FC = () => {
   const troc = useTradeIn();
+  const visionHealth = useTrocVisionHealth(troc.step === 'photos');
+  const [intent, setIntent] = useState<'troc' | 'certif' | null>(null);
   const [selectedDeviceType, setSelectedDeviceType] = useState<'phone' | null>(null);
 
   // ── Retour callback CamPay : vérification serveur ──────────────────────
@@ -165,7 +177,8 @@ const TrocPage: React.FC = () => {
     }
   }, [troc.paymentState, troc.photos.length, troc.result, troc.step]);
 
-  const stepIndex = STEP_INDEX[troc.step] ?? 0;
+  const stepLabels = STEP_LABELS_QUICK;
+  const stepIndex  = STEP_INDEX_QUICK[troc.step] ?? 0;
   // IMEI propre + modèle confirmé OU non identifiable (confirmé en boutique) → on laisse passer
   const canAutoEvaluate = troc.imeiStatus === 'valid' &&
     (troc.imeiMatchState === 'match' || troc.imeiMatchState === 'not_verified');
@@ -231,7 +244,68 @@ const TrocPage: React.FC = () => {
           </div>
         </div>
 
-        {!selectedDeviceType && (
+        {/* ── Sélection d'intention ──────────────────────────────────────── */}
+        {intent === null && (
+          <div className="space-y-6">
+            <div className="w-full bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl p-6 sm:p-8 lg:p-10">
+              <h2 className="text-2xl font-tech font-bold uppercase text-white tracking-wider mb-3">
+                Tu veux faire <span className="text-xeption-gold">quoi</span> ?
+              </h2>
+              <p className="text-sm text-white/80 font-sans leading-relaxed max-w-xl">
+                Vends ton téléphone en confiance, ou prouve à un acheteur qu'il est clean. Deux services rapides, deux tunnels distincts — choisis ton besoin.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Troquer */}
+              <button type="button" onClick={() => setIntent('troc')}
+                className="group relative text-left bg-black/60 border border-white/10 hover:border-xeption-gold/40 transition-all duration-300 p-6 sm:p-8 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-xeption-gold/8 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative">
+                  <div className="w-12 h-12 border border-xeption-gold/30 bg-xeption-gold/10 flex items-center justify-center shadow-[0_0_15px_rgba(255,215,0,0.15)] mb-5">
+                    <RefreshCw className="w-5 h-5 text-xeption-gold" />
+                  </div>
+                  <p className="text-white font-tech font-bold uppercase tracking-wider text-base mb-2">Troquer mon appareil</p>
+                  <p className="text-sm text-white/80 font-sans mb-4">Estimation IA du prix de reprise. Paiement cash ou bon d'achat.</p>
+                  <p className="text-[11px] font-tech uppercase tracking-widest text-gray-400">Frais de service · <span className="text-xeption-gold font-bold text-base">150 F</span></p>
+                </div>
+              </button>
+
+              {/* Vérifier */}
+              <button type="button" onClick={() => setIntent('certif')}
+                className="group relative text-left bg-black/60 border border-white/10 hover:border-xeption-gold/40 transition-all duration-300 p-6 sm:p-8 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-xeption-gold/8 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative">
+                  <div className="w-12 h-12 border border-xeption-gold/30 bg-xeption-gold/10 flex items-center justify-center shadow-[0_0_15px_rgba(255,215,0,0.15)] mb-5">
+                    <Smartphone className="w-5 h-5 text-xeption-gold" />
+                  </div>
+                  <p className="text-white font-tech font-bold uppercase tracking-wider text-base mb-2">Certifier mon appareil</p>
+                  <p className="text-sm text-white/80 font-sans mb-4">Vérification IMEI + certificat officiel. Rassure ton acheteur en moins d'une minute.</p>
+                  <p className="text-[11px] font-tech uppercase tracking-widest text-gray-400">Frais de service · <span className="text-xeption-gold font-bold text-base">300 F</span></p>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Flow Xeption Certif ────────────────────────────────────────── */}
+        {intent === 'certif' && (
+          <div className="max-w-3xl mx-auto w-full">
+            <div className="mb-4 flex justify-start">
+              <button type="button" onClick={() => setIntent(null)}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-black/40 border border-white/10 hover:border-xeption-gold/30 text-gray-300 hover:text-white transition-all text-[10px] font-tech uppercase tracking-widest">
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Retour
+              </button>
+            </div>
+            <div className="bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl">
+              <ImeiCertifFlow />
+            </div>
+          </div>
+        )}
+
+        {/* ── Flow Smart Troc ───────────────────────────────────────────── */}
+        {intent === 'troc' && !selectedDeviceType && (
           <div className="space-y-8">
             <div className="w-full bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl p-6 sm:p-8 lg:p-10">
               <div className="flex items-center gap-2 text-xeption-gold text-[10px] font-tech uppercase tracking-widest mb-4">
@@ -243,36 +317,26 @@ const TrocPage: React.FC = () => {
               </h2>
               <p className="text-sm text-gray-300 font-sans leading-relaxed max-w-xl">
                 On ne balance pas des estimations au hasard. Chez Xeption, chaque catégorie ouvre quand
-                son moteur est vraiment prêt. Là, le Smart Troc tourne déjà sur les téléphones. Le reste
-                arrive proprement.
+                son moteur est vraiment prêt. Là, le Smart Troc tourne déjà sur les téléphones.
               </p>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5 items-stretch">
               {DEVICE_OPTIONS.map((option) => (
-                <DeviceChoiceCard
-                  key={option.id}
-                  option={option}
-                  onSelect={(id) => {
-                    if (id === 'phone') setSelectedDeviceType('phone');
-                  }}
-                />
+                <DeviceChoiceCard key={option.id} option={option}
+                  onSelect={(id) => { if (id === 'phone') setSelectedDeviceType('phone'); }} />
               ))}
             </div>
-
-            <div className="w-full bg-black/40 border border-white/10 px-5 py-4 sm:px-6">
-              <p className="text-[10px] font-tech uppercase tracking-widest text-gray-300 mb-2">
-                Maintenant disponible
-              </p>
-              <p className="text-xs text-gray-400 leading-relaxed font-sans">
-                Téléphones uniquement : photos réelles, contrôle IMEI, paiement de filtrage, estimation IA,
-                puis validation finale en boutique.
-              </p>
+            <div className="mb-4 flex justify-start">
+              <button type="button" onClick={() => setIntent(null)}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-black/40 border border-white/10 hover:border-xeption-gold/30 text-gray-300 hover:text-white transition-all text-[10px] font-tech uppercase tracking-widest">
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Retour
+              </button>
             </div>
           </div>
         )}
 
-        {selectedDeviceType === 'phone' && (
+        {intent === 'troc' && selectedDeviceType === 'phone' && (
           <div className="max-w-3xl mx-auto w-full">
         {troc.step === 'form' && (
           <div className="mb-4 flex justify-end">
@@ -292,8 +356,8 @@ const TrocPage: React.FC = () => {
           <div className="bg-black/40 border border-white/10 px-3 mb-4 backdrop-blur-md">
             <TrocStepper
               currentStep={stepIndex}
-              totalSteps={STEP_LABELS.length}
-              labels={STEP_LABELS}
+              totalSteps={stepLabels.length}
+              labels={stepLabels}
             />
           </div>
         )}
@@ -309,21 +373,15 @@ const TrocPage: React.FC = () => {
         <div className="bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl">
 
           {troc.step === 'form' && (
-          <SmartTrocForm
-            form={troc.form}
-            onChange={troc.updateForm}
-            onNext={troc.goToPhotos}
-            setBasePrice={troc.setBasePrice}
-          />
-          )}
-
-          {troc.step === 'photos' && (
-            <PhotoUploader
-              photos={troc.photos}
-              onPhotosChange={troc.updatePhotos}
-              onNext={troc.goToImei}
-              isUploading={troc.isUploading}
-              issueIndices={troc.photoIssueIndices}
+            <TrocQuickForm
+              form={troc.form}
+              onChange={troc.updateForm}
+              onNext={troc.goToPhotosQuick}
+              imeiStatus={troc.imeiStatus}
+              imeiBlacklistStatus={troc.imeiBlacklistStatus}
+              imeiDeviceInfo={troc.imeiDeviceInfo}
+              isCheckingImei={troc.isCheckingImei}
+              onCheckImei={troc.doCheckImei}
             />
           )}
 
@@ -352,22 +410,53 @@ const TrocPage: React.FC = () => {
                     </p>
                   )}
                   <button
-                    onClick={troc.goToPayment}
+                    onClick={troc.goToPhotos}
                     disabled={!canAutoEvaluate}
                     className="w-full bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest py-4 text-sm shadow-[0_0_20px_rgba(255,215,0,0.25)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    Continuer — Payer 150 XAF
+                    Continuer — Ajouter mes photos
                   </button>
                 </div>
               )}
             </div>
           )}
 
+          {troc.step === 'photos' && (
+            <PhotoUploader
+              photos={troc.photos}
+              onPhotosChange={troc.updatePhotos}
+              onNext={troc.continueFromPhotos}
+              isUploading={troc.isUploading}
+              isCheckingPhotos={troc.isCheckingPhotos}
+              issueIndices={troc.photoIssueIndices}
+              visionReady={visionHealth.report?.ready ?? true}
+              visionLoading={visionHealth.loading}
+              visionSetupHint={visionHealth.setupHint}
+            />
+          )}
+
           {troc.step === 'payment' && (
-            <div className="p-6">
-              <h2 className="text-white font-tech font-bold uppercase tracking-wider text-sm mb-1">Frais d'estimation</h2>
-              <p className="text-neutral-500 text-xs font-sans mb-5">Paiement requis pour accéder au résultat</p>
+            <div className="p-6 flex flex-col gap-6">
+              <div>
+                <h2 className="text-white font-tech font-bold uppercase tracking-wider text-sm mb-1">Frais d&apos;estimation</h2>
+                <p className="text-neutral-500 text-xs font-sans">Paiement requis pour accéder au résultat</p>
+              </div>
+              {TROC_TIER_SELECTOR_ENABLED &&
+                (troc.paymentState === 'idle' ||
+                  troc.paymentState === 'initiating' ||
+                  troc.paymentState === 'failed' ||
+                  troc.paymentState === 'expired' ||
+                  troc.paymentState === 'timeout') && (
+                  <TierSelector
+                    value={troc.selectedTier}
+                    onChange={troc.setSelectedTier}
+                    disabled={troc.paymentState === 'initiating'}
+                  />
+                )}
               <TrocPayment
+                selectedTier={TROC_TUNNEL_TIER}
+                paymentAmount={troc.paymentAmount}
+                initialPhone={troc.form.customerPhone}
                 paymentState={troc.paymentState}
                 error={troc.error}
                 onInitiate={troc.initiatePayment}
@@ -383,7 +472,7 @@ const TrocPage: React.FC = () => {
               </div>
               <div className="text-center">
                 <p className="font-tech font-bold uppercase tracking-wider text-white">Évaluation en cours</p>
-                <p className="text-xs text-gray-500 mt-1 font-sans">Gemini analyse les photos de votre appareil</p>
+                <p className="text-xs text-gray-500 mt-1 font-sans">Contrôle IA des photos puis estimation</p>
               </div>
               <div className="flex gap-1 mt-2">
                 {[0, 1, 2].map(i => (
@@ -397,6 +486,10 @@ const TrocPage: React.FC = () => {
             <EvaluationResult
               result={troc.result}
               deviceLabel={`${troc.form.deviceBrand} ${troc.form.deviceModel}`}
+              deviceBrand={troc.form.deviceBrand}
+              deviceModel={troc.form.deviceModel}
+              serviceTier={TROC_TUNNEL_TIER}
+              imeiAssuranceLevel={troc.imeiAssuranceLevel}
               onAcceptOffer={troc.acceptOffer}
               onRefuse={troc.refuse}
               isSubmitting={troc.isSubmitting}
@@ -416,11 +509,12 @@ const TrocPage: React.FC = () => {
         {troc.step === 'form' && (
           <div className="mt-10">
             <p className="text-[10px] font-tech uppercase tracking-widest text-gray-200 mb-4 text-center">Comment ça marche</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { num: '01', text: 'Décris ton appareil et ajoute des photos' },
-                { num: '02', text: "L'IA Gemini analyse l'état et calcule une offre" },
-                { num: '03', text: 'Valide le montant de reprise et récupère ton bon' },
+                { num: '01', text: 'Décris ton appareil et vérifie ton IMEI' },
+                { num: '02', text: 'Contrôle IMEI puis photos nettes de l’appareil' },
+                { num: '03', text: `Frais ${formatTrocFee(TROC_TIER_PRICES.express, { short: true })} puis rapport d'expertise` },
+                { num: '04', text: 'Valide ton offre et récupère ton bon en boutique' },
               ].map(({ num, text }) => (
                 <div key={num} className="bg-black/40 border border-white/10 p-4 hover:border-xeption-gold/20 transition-all">
                   <span className="text-lg font-tech font-bold text-xeption-gold/60 block mb-2">{num}</span>

@@ -1,0 +1,473 @@
+{
+  "mode": "applied",
+  "at": "2026-06-12T21:21:29.530Z",
+  "batch": "all",
+  "updated": [
+    {
+      "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+      "family": "iphone13pro",
+      "specCount": 9
+    },
+    {
+      "name": "Samsung S22 ",
+      "family": "s22base",
+      "specCount": 11
+    },
+    {
+      "name": "Galaxie Z flip 6 ",
+      "family": "zflip6",
+      "specCount": 6
+    },
+    {
+      "name": "Samsung Galaxy Watch5 (Korea)",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Watch6 (Korea)",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Watch7 (Korea)",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Watch4 Classic (Korea)",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Watch5 Pro (Korea)",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "S21  256Go ",
+      "family": "s21base",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S21+ 256 Go Scellé 1SIM (Korea)",
+      "family": "s21plus",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S22+ 256 Go Scellé 1SIM (Korea)",
+      "family": "s22plus",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S21 Ultra 256 Go Scellé 1SIM (Korea)",
+      "family": "s21ultra",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung S23 512 Go",
+      "family": "s23base",
+      "specCount": 7
+    },
+    {
+      "name": "Galaxie Z flip 5",
+      "family": "zflip5",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung S22 ultra ",
+      "family": "s22ultra",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy Watch4 (Korea)",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung S21 ultra",
+      "family": "s21ultra",
+      "specCount": 6
+    },
+    {
+      "name": "Samsung S21 ultra",
+      "family": "s21ultra",
+      "specCount": 6
+    },
+    {
+      "name": "Samsung S21 ultra",
+      "family": "s21ultra",
+      "specCount": 6
+    },
+    {
+      "name": "Samsung S24 ultra ",
+      "family": "s24ultra",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung S23 ultra ",
+      "family": "s23ultra",
+      "specCount": 6
+    },
+    {
+      "name": "Samsung S23 ",
+      "family": "s23base",
+      "specCount": 6
+    },
+    {
+      "name": "Samsung S 23 FE  256 Go",
+      "family": "s23fe",
+      "specCount": 7
+    },
+    {
+      "name": "galaxie Z flip4  ",
+      "family": "zflip4",
+      "specCount": 6
+    },
+    {
+      "name": "galaxie Z flip4  ",
+      "family": "zflip4",
+      "specCount": 6
+    },
+    {
+      "name": "Galaxie Z fold4 512 Go",
+      "family": "zfold4",
+      "specCount": 11
+    },
+    {
+      "name": "Galaxie Z flip 6 ",
+      "family": "zflip6",
+      "specCount": 6
+    },
+    {
+      "name": "Galaxie Z flip 6 ",
+      "family": "zflip6",
+      "specCount": 6
+    },
+    {
+      "name": "Galaxie Z fold4 256 Go",
+      "family": "zfold4",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung S21 128 Go",
+      "family": "s21base",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung S23 256 Go",
+      "family": "s23base",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S23 Ultra 1024 Go Scellé SIM+eSIM (Australia)",
+      "family": "s23ultra",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S23 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+      "family": "s23ultra",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S23+ 256 Go Scellé SIM+eSIM (Korea)",
+      "family": "s23plus",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S23+ 512 Go Scellé SIM+eSIM (Korea)",
+      "family": "s23plus",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S24+ 256 Go Scellé SIM+eSIM (Korea)",
+      "family": "s24plus",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung S23 128Go",
+      "family": "s23base",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S23 FE 256 Go Scellé SIM+eSIM (Korea)",
+      "family": "s23fe",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy Z Flip4 512 Go Scellé SIM+eSIM (Korea)",
+      "family": "zflip4",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy Z Flip6 512 Go Scellé SIM+eSIM (Korea)",
+      "family": "zflip6",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung S23 ultra 512Go ",
+      "family": "s23ultra",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S25 Edge 256 Go Non scellé SIM+eSIM (Korea)",
+      "family": "s25edge",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S10 5G 512 Go Non scellé 1SIM (Korea)",
+      "family": "s105g",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S10 5G 256 Go Non scellé 1SIM (Korea)",
+      "family": "s105g",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy S20 Ultra 256 Go Non scellé 1SIM (Korea)",
+      "family": "s20ultra",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy Note10+ 512 Go Non scellé 1SIM (Korea)",
+      "family": "note10plus",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy Note20 256 Go Non scellé 1SIM (Korea)",
+      "family": "note20",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy A56 256 Go 8 GB RAM Scellé 2SIMS",
+      "family": "galaxyA56",
+      "specCount": 10
+    },
+    {
+      "name": "Samsung Galaxy A56 128 Go 8 GB RAM Scellé 2SIMS",
+      "family": "galaxyA56",
+      "specCount": 10
+    },
+    {
+      "name": "Samsung Galaxy A36 256 Go 8 GB RAM Scellé 2SIMS",
+      "family": "galaxyA36",
+      "specCount": 10
+    },
+    {
+      "name": "Samsung Galaxy A36 128 Go 8 GB RAM Scellé 2SIMS",
+      "family": "galaxyA36",
+      "specCount": 10
+    },
+    {
+      "name": "Samsung Galaxy A16 256 Go 8 GB RAM Scellé 2SIMS",
+      "family": "galaxyA16",
+      "specCount": 10
+    },
+    {
+      "name": "Samsung Galaxy A55 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+      "family": "galaxyA55",
+      "specCount": 12
+    },
+    {
+      "name": "Samsung Galaxy A32 128 Go 4 GB RAM Scellé 1SIM (Korea)",
+      "family": "galaxyAmid",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy A53 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+      "family": "galaxyAmid",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy M53 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+      "family": "galaxyM",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy M33 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+      "family": "galaxyM",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy M44 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+      "family": "galaxyM",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy A25 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+      "family": "galaxyAmid",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy A54 128 Go 8 GB RAM Non scellé 1SIM (Korea)",
+      "family": "galaxyAmid",
+      "specCount": 12
+    },
+    {
+      "name": "Samsung Galaxy A24 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+      "family": "galaxyAmid",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy A33 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+      "family": "galaxyAmid",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy A23 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+      "family": "galaxyAmid",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy A82 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+      "family": "galaxyAmid",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy M44 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+      "family": "galaxyM",
+      "specCount": 11
+    },
+    {
+      "name": "Samsung Galaxy Watch6 Classic (Korea)",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Watch7 Scellé",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Watch Ultra Scellé",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Watch8 Scellé",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Watch8 Classic Scellé",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Watch FIT 3 Scellé",
+      "family": "galaxyWatch",
+      "specCount": 8
+    },
+    {
+      "name": "Samsung Galaxy Buds Core Scellé",
+      "family": "galaxyBuds",
+      "specCount": 7
+    },
+    {
+      "name": "Samsung Galaxy A16 128 Go",
+      "family": "galaxyA16",
+      "specCount": 8
+    },
+    {
+      "name": "Google Pixel 6 Pro 128 Go Non scellé (US/Japan)",
+      "family": "pixel6pro",
+      "specCount": 10
+    },
+    {
+      "name": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+      "family": "pixel6pro",
+      "specCount": 10
+    },
+    {
+      "name": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+      "family": "pixel8pro",
+      "specCount": 10
+    },
+    {
+      "name": "Google Pixel 8 Pro 256 Go Non scellé (US/Japan)",
+      "family": "pixel8pro",
+      "specCount": 10
+    },
+    {
+      "name": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+      "family": "pixel9",
+      "specCount": 10
+    },
+    {
+      "name": "Google Pixel 9 Pro 256 Go Non scellé (US/Japan)",
+      "family": "pixel9pro",
+      "specCount": 10
+    },
+    {
+      "name": "Google Pixel 8a 128 Go Scellé (US/Japan)",
+      "family": "pixel8a",
+      "specCount": 10
+    },
+    {
+      "name": "Google Pixel 8 Pro 128 Go Scellé (US/Japan)",
+      "family": "pixel8pro",
+      "specCount": 10
+    },
+    {
+      "name": "Google Pixel 8 Pro 256 Go Scellé (US/Japan)",
+      "family": "pixel8pro",
+      "specCount": 10
+    },
+    {
+      "name": "Xiaomi Redmi 13 256 Go",
+      "family": "redmiMid",
+      "specCount": 8
+    },
+    {
+      "name": "Xiaomi Redmi 15 256 Go",
+      "family": "redmiMid",
+      "specCount": 8
+    },
+    {
+      "name": "Xiaomi Redmi Note 9 Pro 128 Go",
+      "family": "redmiNote",
+      "specCount": 8
+    },
+    {
+      "name": "Xiaomi Redmi 14C 256 Go",
+      "family": "redmiMid",
+      "specCount": 8
+    },
+    {
+      "name": "Xiaomi Redmi 15C 128 Go",
+      "family": "redmiMid",
+      "specCount": 8
+    },
+    {
+      "name": "Xiaomi Redmi 15C 256 Go",
+      "family": "redmiMid",
+      "specCount": 8
+    },
+    {
+      "name": "Xiaomi Redmi Note 14 256 Go",
+      "family": "redmiNote",
+      "specCount": 8
+    },
+    {
+      "name": "Xiaomi Redmi Note 15 256 Go",
+      "family": "redmiNote",
+      "specCount": 8
+    },
+    {
+      "name": "Infinix Smart 10 HD 64 Go",
+      "family": "infinixSmart10",
+      "specCount": 8
+    },
+    {
+      "name": "Infinix Smart 10 128 Go",
+      "family": "infinixSmart10",
+      "specCount": 8
+    },
+    {
+      "name": "Infinix Hot 50 Pro+ 128 Go",
+      "family": "infinixHot50",
+      "specCount": 8
+    }
+  ],
+  "skipped": []
+}

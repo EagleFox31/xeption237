@@ -110,7 +110,8 @@ export const buildTrocVisionAnalystPrompt = (input: TrocVisionAnalystInput): str
     '- Pour CHAQUE photo, vérifie qu’elle montre bien un smartphone physique réel pris en photo par le client.',
     '- Une photo est NON CONFORME si elle correspond à un de ces cas :',
     '    • capture d’écran (screenshot, interface logicielle, page web) → reason = "screenshot"',
-    '    • objet qui n’est pas un téléphone (personne, plat, document, paysage, animal, autre objet) → reason = "not_a_device"',
+    '    • objet qui n’est pas un téléphone (montre, smartwatch, bracelet connecté, tablette, écouteurs, PC, console, personne, plat, document, paysage, animal, autre objet) → reason = "not_a_device"',
+    '    • un objet avec un écran n’est PAS un smartphone tant qu’il ne s’agit pas clairement d’un téléphone mobile → reason = "not_a_device"',
     '    • image de catalogue, rendu 3D, photo marketing, dessin, illustration → reason = "rendered_or_marketing"',
     '    • photo si floue, sombre ou cadrée que l’appareil n’est PAS identifiable même partiellement → reason = "severely_unreadable"',
     '- Pour chaque photo non conforme, ajoute une entrée dans photoIssues : { "index": <numéro 1-based>, "reason": "<raison>" }.',
@@ -140,6 +141,92 @@ export const buildTrocVisionAnalystPrompt = (input: TrocVisionAnalystInput): str
     '  "warnings": ["string"]',
     '}',
   ].join('\n');
+};
+
+export type TrocPhotoPreflightOutput = {
+  decision: 'ok' | 'photos_to_retake' | 'mismatch';
+  photoIssues: PhotoIssue[];
+  observedBrand: string;
+  observedModel: string;
+};
+
+/** Contrôle léger avant paiement — conformité des photos uniquement. */
+export const buildTrocPhotoPreflightPrompt = (input: Pick<TrocVisionAnalystInput, 'brand' | 'model' | 'photoCount'>): string =>
+  [
+    'Tu es un contrôleur photo pour Smart Troc (Xeption Network).',
+    'Mission : vérifier UNIQUEMENT que les photos montrent le smartphone déclaré, avant paiement.',
+    'Ne score pas l’état, ne rédige pas de rapport — décision binaire.',
+    '',
+    'Appareil déclaré :',
+    `- Marque: ${input.brand}`,
+    `- Modèle: ${input.model}`,
+    `- Nombre de photos: ${input.photoCount} (index 1-based dans l’ordre d’envoi)`,
+    '',
+    'Règles (prioritaires) :',
+    '- Chaque photo doit montrer un smartphone physique réel.',
+    '- NON CONFORME → photoIssues + decision "photos_to_retake" :',
+    '    • screenshot / interface → reason "screenshot"',
+    '    • montre, smartwatch, tablette, écouteurs, PC, autre objet → reason "not_a_device"',
+    '    • catalogue / marketing / illustration → reason "rendered_or_marketing"',
+    '    • illisible / appareil non identifiable → reason "severely_unreadable"',
+    '- Si TOUTES conformes mais marque/modèle visible ≠ déclaration → decision "mismatch", photoIssues vide.',
+    '- Si TOUTES conformes et cohérentes avec la déclaration → decision "ok", photoIssues vide.',
+    '',
+    'JSON uniquement :',
+    '{',
+    '  "decision": "ok | photos_to_retake | mismatch",',
+    '  "observedBrand": "string",',
+    '  "observedModel": "string",',
+    '  "photoIssues": [{"index": 1, "reason": "screenshot | not_a_device | rendered_or_marketing | severely_unreadable"}]',
+    '}',
+  ].join('\n');
+
+export const parseTrocPhotoPreflightOutput = (text: string): TrocPhotoPreflightOutput | null => {
+  const candidate = extractJsonCandidate(text);
+  if (!candidate) return null;
+
+  let parsed: any = null;
+  try {
+    parsed = JSON.parse(candidate);
+  } catch {
+    return null;
+  }
+
+  const photoIssues: PhotoIssue[] = Array.isArray(parsed?.photoIssues)
+    ? parsed.photoIssues
+        .map((item: any): PhotoIssue | null => {
+          const idxRaw = Number(item?.index);
+          if (!Number.isFinite(idxRaw) || idxRaw < 1) return null;
+          const reason = item?.reason;
+          if (
+            reason !== 'screenshot' &&
+            reason !== 'not_a_device' &&
+            reason !== 'rendered_or_marketing' &&
+            reason !== 'severely_unreadable'
+          ) {
+            return null;
+          }
+          return { index: Math.floor(idxRaw), reason };
+        })
+        .filter((x: PhotoIssue | null): x is PhotoIssue => x !== null)
+        .slice(0, 8)
+    : [];
+
+  const decision: TrocPhotoPreflightOutput['decision'] =
+    photoIssues.length > 0
+      ? 'photos_to_retake'
+      : parsed?.decision === 'mismatch'
+        ? 'mismatch'
+        : parsed?.decision === 'ok'
+          ? 'ok'
+          : 'photos_to_retake';
+
+  return {
+    decision,
+    photoIssues,
+    observedBrand: normalizeLine(parsed?.observedBrand),
+    observedModel: normalizeLine(parsed?.observedModel),
+  };
 };
 
 export const parseTrocVisionAnalystOutput = (text: string): TrocVisionAnalystOutput | null => {

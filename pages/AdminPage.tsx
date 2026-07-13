@@ -25,7 +25,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ isAuthenticated, setIsAuthenticat
                     onUpdateProducts={onUpdateProducts}
                 />
             ) : (
-                <StaffLogin onLogin={() => setIsAuthenticated(true)} />
+                <StaffLogin mode="erp" onLogin={() => setIsAuthenticated(true)} />
             )}
         </>
     );

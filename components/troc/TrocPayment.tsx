@@ -1,26 +1,95 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Smartphone, AlertCircle, Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
+import { formatTrocFee, TROC_TIER_LABELS, TROC_TIER_PRICES, type TrocTier } from '../../utils/trocPricing';
+import { detectCameroonOperator, OPERATOR_LABELS, type CameroonOperator } from '../../utils/cameroonOperators';
 
 interface TrocPaymentProps {
+  selectedTier: TrocTier;
+  paymentAmount?: number;
+  initialPhone?: string;
   onInitiate: (phone: string) => Promise<void>;
   onRetry: () => void;
   paymentState: 'idle' | 'initiating' | 'pending' | 'polling' | 'paid' | 'failed' | 'expired' | 'timeout';
   error: string | null;
 }
 
+const POLL_MESSAGES = [
+  'Connexion sécurisée avec Mobile Money…',
+  'Vérification de la transaction en cours…',
+  'Préparez-vous à recevoir votre expertise…',
+] as const;
+
+const OperatorBadge: React.FC<{ operator: CameroonOperator | null }> = ({ operator }) => {
+  if (!operator) {
+    return (
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-600 font-tech" title="Opérateur non détecté">
+        ?
+      </span>
+    );
+  }
+  const styles =
+    operator === 'mtn'
+      ? 'bg-[#FFCC00] text-black border-black/10'
+      : 'bg-[#FF6600] text-white border-white/10';
+  return (
+    <span
+      className={`absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-tech font-bold uppercase px-1.5 py-0.5 rounded border ${styles} transition-opacity`}
+      title={OPERATOR_LABELS[operator]}
+    >
+      {operator === 'mtn' ? 'MoMo' : 'OM'}
+    </span>
+  );
+};
+
 export const TrocPayment: React.FC<TrocPaymentProps> = ({
+  selectedTier,
+  paymentAmount = 0,
+  initialPhone = '',
   onInitiate,
   onRetry,
   paymentState,
   error,
 }) => {
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(initialPhone);
   const [accepted, setAccepted] = useState(false);
+  const [pollMsgIndex, setPollMsgIndex] = useState(0);
+  const [pollProgress, setPollProgress] = useState(12);
+
+  const amountLocked =
+    paymentState === 'pending' ||
+    paymentState === 'polling' ||
+    paymentState === 'paid' ||
+    paymentState === 'initiating';
+  const amountXaf =
+    amountLocked && paymentAmount > 0 ? paymentAmount : TROC_TIER_PRICES[selectedTier];
+  const fee = formatTrocFee(amountXaf);
+  const feeShort = formatTrocFee(amountXaf, { short: true });
+  const tierLabel = TROC_TIER_LABELS[selectedTier];
 
   const phoneDigits = phone.replace(/\s/g, '');
   const isPhoneValid = /^[62]\d{8}$/.test(phoneDigits);
+  const operator = isPhoneValid ? detectCameroonOperator(phoneDigits) : null;
   const isLoading = paymentState === 'initiating' || paymentState === 'pending' || paymentState === 'polling';
+  const isPolling = paymentState === 'pending' || paymentState === 'polling';
+
+  useEffect(() => {
+    if (!isPolling) {
+      setPollMsgIndex(0);
+      setPollProgress(12);
+      return;
+    }
+    const msgTimer = setInterval(() => {
+      setPollMsgIndex((i) => (i + 1) % POLL_MESSAGES.length);
+    }, 3000);
+    const progTimer = setInterval(() => {
+      setPollProgress((p) => (p >= 92 ? 12 : p + 8));
+    }, 2200);
+    return () => {
+      clearInterval(msgTimer);
+      clearInterval(progTimer);
+    };
+  }, [isPolling]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,16 +109,14 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* En-tête */}
       <div className="text-center">
         <p className="text-neutral-300 text-sm leading-relaxed">
-          Pour accéder à l'estimation de votre appareil, un frais de service de{' '}
-          <span className="text-white font-semibold">150 XAF</span> est requis via Mobile Money.
+          Formule <span className="text-white font-semibold">{tierLabel}</span> — frais de service{' '}
+          <span className="text-white font-semibold">{fee}</span> via Mobile Money.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* Numéro de téléphone */}
         <div className="flex flex-col gap-1.5">
           <label className="text-neutral-400 text-xs font-medium uppercase tracking-wide">
             Numéro Mobile Money
@@ -66,15 +133,15 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
               onChange={(e) => setPhone(e.target.value)}
               disabled={isLoading}
               maxLength={12}
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-xl pl-14 pr-4 py-3 text-white placeholder-neutral-600 text-sm focus:outline-none focus:border-neutral-500 disabled:opacity-50"
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-xl pl-14 pr-14 py-3 text-white placeholder-neutral-600 text-sm focus:outline-none focus:border-neutral-500 disabled:opacity-50"
             />
+            <OperatorBadge operator={operator} />
           </div>
           {phone && !isPhoneValid && (
             <p className="text-red-400 text-xs">Format invalide — commencez par 6 ou 2</p>
           )}
         </div>
 
-        {/* Message d'erreur */}
         {error && (
           <div className="flex items-start gap-2 bg-red-900/30 border border-red-800 rounded-xl p-3">
             <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
@@ -82,21 +149,25 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
           </div>
         )}
 
-        {/* État de polling */}
-        {(paymentState === 'pending' || paymentState === 'polling') && (
+        {isPolling && (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <Loader2 className="w-8 h-8 text-neutral-400 animate-spin" />
-            <p className="text-neutral-300 text-sm font-medium">
-              Confirmez le paiement sur votre téléphone
+            <Loader2 className="w-8 h-8 text-xeption-gold animate-spin" />
+            <p className="text-neutral-200 text-sm font-medium min-h-[2.5rem] transition-opacity">
+              {POLL_MESSAGES[pollMsgIndex]}
             </p>
+            <div className="w-full max-w-xs h-1 bg-neutral-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-xeption-gold/80 transition-all duration-700 ease-out"
+                style={{ width: `${pollProgress}%` }}
+              />
+            </div>
             <p className="text-neutral-500 text-xs">
-              Un message USSD a été envoyé au{' '}
-              <span className="text-white">+237 {phone}</span>
+              Confirmez sur votre téléphone — <span className="text-white">+237 {phone}</span>
             </p>
+            <p className="text-neutral-600 text-[10px]">La confirmation peut prendre jusqu&apos;à 60 secondes</p>
           </div>
         )}
 
-        {/* Bouton Réessayer après échec/expiration */}
         {(paymentState === 'failed' || paymentState === 'expired' || paymentState === 'timeout') && (
           <button
             type="button"
@@ -108,7 +179,6 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
           </button>
         )}
 
-        {/* Acceptation des conditions Smart Troc */}
         {(paymentState === 'idle' || paymentState === 'initiating') && (
           <label className="flex items-start gap-3 cursor-pointer select-none group">
             <input
@@ -119,7 +189,7 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
               className="mt-0.5 w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-xeption-gold focus:ring-1 focus:ring-xeption-gold cursor-pointer shrink-0"
             />
             <span className="text-neutral-400 text-xs leading-relaxed group-hover:text-neutral-300 transition-colors">
-              J'ai lu et j'accepte les{' '}
+              J&apos;ai lu et j&apos;accepte les{' '}
               <Link
                 to="/cgv-smart-troc"
                 target="_blank"
@@ -128,12 +198,11 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
               >
                 conditions Smart Troc
               </Link>
-              {' '}— frais de service de 150 XAF non remboursable, estimation indicative confirmée en boutique.
+              {' '}— frais de {feeShort} non remboursable, estimation indicative confirmée en boutique.
             </span>
           </label>
         )}
 
-        {/* Bouton principal */}
         {(paymentState === 'idle' || paymentState === 'initiating') && (
           <button
             type="submit"
@@ -148,7 +217,7 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
             ) : (
               <>
                 <Smartphone className="w-4 h-4" />
-                Payer 150 XAF
+                Payer {feeShort}
               </>
             )}
           </button>
@@ -156,7 +225,7 @@ export const TrocPayment: React.FC<TrocPaymentProps> = ({
       </form>
 
       <p className="text-neutral-600 text-xs text-center">
-        Paiement sécurisé — les frais s'appliquent en déduction de votre bon de troc.
+        Paiement sécurisé — les frais s&apos;appliquent en déduction de votre bon de troc.
       </p>
     </div>
   );

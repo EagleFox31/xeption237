@@ -1,10 +1,13 @@
 import React from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import ProductDetail from '../components/ProductDetail';
 import { Product } from '../types';
 import { parseProductIdFromSlug } from '../utils/slug';
 import { getProductSlug } from '../utils/slug';
-import { PageSEO, JsonLd, productJsonLd, breadcrumbJsonLd, toOgImage } from '../utils/seo';
+import { getProductDisplayName } from '../utils/productDisplay';
+import { PageSEO, JsonLd, productJsonLd, breadcrumbJsonLd, faqJsonLd, toOgImage } from '../utils/seo';
+import { buildProductFaq } from '../utils/productFaq';
+import { buildShopReturnPath } from '../utils/shopFilterStorage';
 
 interface ProductPageProps {
     products: Product[];
@@ -14,9 +17,7 @@ interface ProductPageProps {
 const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const activeFilter = searchParams.get('cat') || 'all';
-    const activeBrand = searchParams.get('brand') || 'all';
+    const location = useLocation();
 
     const productId = slug ? parseProductIdFromSlug(slug) : null;
 
@@ -33,25 +34,32 @@ const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
             );
         }
         return (
-            <div className="min-h-screen pt-32 text-center text-white">
-                <h2 className="text-2xl font-bold mb-4">Produit Introuvable</h2>
-                <button onClick={() => navigate('/shop')} className="text-xeption-gold underline">Retour au shop</button>
-            </div>
+            <>
+                <PageSEO
+                    title="Produit introuvable | Xeption"
+                    description="Ce produit n'est pas disponible dans notre catalogue Xeption Network."
+                    path={slug ? `/product/${slug}` : '/shop'}
+                    noindex
+                />
+                <div className="min-h-screen pt-32 text-center text-white">
+                    <h1 className="text-2xl font-bold mb-4">Produit Introuvable</h1>
+                    <button onClick={() => navigate('/shop')} className="text-xeption-gold underline">Retour au shop</button>
+                </div>
+            </>
         );
     }
 
     const handleBack = () => {
+        const shopReturnTo = (location.state as { shopReturnTo?: string } | null)?.shopReturnTo;
+        if (shopReturnTo) {
+            navigate(shopReturnTo);
+            return;
+        }
         if (window.history.state && window.history.state.idx > 0) {
             navigate(-1);
-        } else {
-            const storedCat = sessionStorage.getItem('shop_filter_cat') || activeFilter;
-            const storedBrand = sessionStorage.getItem('shop_filter_brand') || activeBrand;
-            const params = new URLSearchParams();
-            if (storedCat && storedCat !== 'all') params.set('cat', storedCat);
-            if (storedBrand && storedBrand !== 'all') params.set('brand', storedBrand);
-            const suffix = params.toString();
-            navigate(`/shop${suffix ? `?${suffix}` : ''}`);
+            return;
         }
+        navigate(buildShopReturnPath());
     };
 
     const related = (() => {
@@ -77,15 +85,16 @@ const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
             .slice(0, 5);
     })();
 
+    const displayName = getProductDisplayName(product);
     const productPath = `/product/${getProductSlug(product)}`;
     const productUrl = `https://www.xeptionetwork.shop${productPath}`;
     const productImages = [product.image, ...(product.images || [])].filter(Boolean);
     const ogImage = toOgImage(productImages[0]) ?? null;
-    const seoTitle = `${product.name} — Acheter au Cameroun | Xeption`;
+    const seoTitle = `${displayName} — Acheter au Cameroun | Xeption`;
     const seoDescription = (product.description || '')
         .replace(/\s+/g, ' ')
         .trim()
-        .slice(0, 160) || `${product.name} disponible chez Xeption Network. Livraison Yaoundé & Douala, paiement Mobile Money.`;
+        .slice(0, 160) || `${displayName} disponible chez Xeption Network. Livraison Yaoundé & Douala, paiement Mobile Money.`;
 
     return (
         <>
@@ -99,13 +108,15 @@ const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
             <JsonLd
                 data={[
                     productJsonLd({
-                        name: product.name,
+                        name: displayName,
                         description: product.description,
                         images: productImages,
                         brand: product.brand,
                         price: product.price,
                         currency: 'XAF',
                         availability: product.stock > 0 ? 'InStock' : 'OutOfStock',
+                        condition: product.condition === 'refurbished' ? 'refurbished' : 'new',
+                        specs: product.specs,
                         url: productUrl,
                         rating: product.rating && product.reviews?.length
                             ? { value: product.rating, count: product.reviews.length }
@@ -114,8 +125,10 @@ const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
                     breadcrumbJsonLd([
                         { name: 'Accueil', path: '/' },
                         { name: 'Boutique', path: '/shop' },
-                        { name: product.name },
+                        { name: displayName },
                     ]),
+                    // FAQPage : mêmes Q/R que le bloc FAQ visible de ProductDetail.
+                    faqJsonLd(buildProductFaq(product)),
                 ]}
             />
             <ProductDetail

@@ -17,36 +17,19 @@
   <!-- SEO & Categorization -->
   <title>Xeption | Leader High-Tech & Troc au Cameroun</title>
 
-  <!-- Meta Description Optimisée -->
-  <meta name="description"
-    content="Achetez, Vendez ou Troquez vos Smartphones et PC au Cameroun chez Xeption. iPhone, Samsung, MacBook, PC Gamer au meilleur prix. Livraison Yaoundé & Douala." />
-
   <meta name="author" content="Xeption" />
-  <link rel="canonical" href="https://www.xeptionetwork.shop/" />
   <meta name="robots" content="index, follow" />
 
-  <!-- Open Graph / Facebook / WhatsApp -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://www.xeptionetwork.shop/" />
-  <meta property="og:title" content="Xeption | Le Ndamba du Digital au Cameroun" />
-  <meta property="og:description"
-    content="Le 1er hub High-Tech du 237. Smartphones, PC Gamers, Troc & Échange. Prix imbattables et Livraison partout au Cameroun." />
-  <meta property="og:image"
-    content="https://res.cloudinary.com/dli0kdkg9/image/upload/w_1200,h_630,c_pad,b_rgb:050505/v1768287078/logo_mbajfa.png" />
-  <meta property="og:image:alt" content="Logo Xeption Network sur fond noir" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:site_name" content="Xeption 237" />
-
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image" />
+  <!--
+    SEO par page (description, canonical, Open Graph, Twitter) = géré dynamiquement
+    par utils/seo.tsx (react-helmet-async) et capturé au prerender (scripts/prerender.mjs).
+    NE PAS remettre ici de balises description / canonical / og:* / twitter:* statiques :
+    Helmet AJOUTE les siennes sans supprimer celles-ci → doublons sur les pages prerendues.
+    Conséquences observées : canonical produit + canonical accueil (risque de non-indexation),
+    et aperçu de partage affichant le LOGO au lieu de la photo produit (1re balise gagne).
+    Seul twitter:site reste ici (non géré par Helmet).
+  -->
   <meta property="twitter:site" content="@xeption237" />
-  <meta property="twitter:url" content="https://www.xeptionetwork.shop/" />
-  <meta property="twitter:title" content="Xeption | Smartphones & PC au Cameroun" />
-  <meta property="twitter:description"
-    content="Achetez ou Troquez votre matériel High-Tech chez Xeption. Garantie et Livraison rapide Yaoundé/Douala." />
-  <meta property="twitter:image"
-    content="https://res.cloudinary.com/dli0kdkg9/image/upload/w_1200,h_630,c_pad,b_rgb:050505/v1768287078/logo_mbajfa.png" />
 
   <!-- Favicon - Correction complète pour Google (48px multiples) -->
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -160,9 +143,9 @@
   <style>
     html {
       background: #111;
-      /* Dark grey fallback */
       overflow-y: scroll;
-      /* Force vertical scrollbar to prevent layout shift */
+      overflow-x: hidden;
+      max-width: 100%;
     }
 
     body {
@@ -202,6 +185,57 @@
       background: #FFD700;
     }
 
+    /* Shimmer cards produit (chargement image) */
+    @keyframes productImageShimmer {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    .product-image-shimmer {
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 215, 0, 0.08) 45%,
+        rgba(255, 255, 255, 0.12) 50%,
+        rgba(255, 215, 0, 0.08) 55%,
+        transparent 100%
+      );
+      animation: productImageShimmer 1.35s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .product-image-shimmer {
+        animation: none;
+        opacity: 0.35;
+      }
+    }
+
+  /* Zoom lent sur fonds clairs (pages institutionnelles) */
+    @keyframes siteLightBgZoomIn {
+      from {
+        transform: scale(1);
+      }
+      to {
+        transform: scale(1.1);
+      }
+    }
+
+    .site-light-bg-zoom {
+      transform-origin: center center;
+      will-change: transform;
+      animation: siteLightBgZoomIn var(--site-light-bg-zoom-duration, 75s) ease-out forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .site-light-bg-zoom {
+        animation: none;
+      }
+    }
+
     .glass-panel {
       background: rgba(15, 15, 15, 0.8);
       backdrop-filter: blur(12px);
@@ -218,6 +252,46 @@
       background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
       mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+    }
+
+    .shop-price-range {
+      height: 1.5rem;
+      margin: 0;
+    }
+
+    .shop-price-range::-webkit-slider-runnable-track {
+      height: 0;
+      background: transparent;
+    }
+
+    .shop-price-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      pointer-events: auto;
+      width: 14px;
+      height: 18px;
+      margin-top: -8px;
+      border-radius: 2px;
+      background: #ffd700;
+      border: 2px solid #0a0a0a;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.35);
+      cursor: grab;
+    }
+
+    .shop-price-range::-moz-range-track {
+      height: 0;
+      background: transparent;
+    }
+
+    .shop-price-range::-moz-range-thumb {
+      pointer-events: auto;
+      width: 14px;
+      height: 18px;
+      border-radius: 2px;
+      background: #ffd700;
+      border: 2px solid #0a0a0a;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.35);
+      cursor: grab;
     }
   </style>
   <script type="importmap">

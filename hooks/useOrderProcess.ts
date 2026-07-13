@@ -53,8 +53,18 @@ export const useOrderProcess = () => {
                 p_date: dbDate
             });
 
-            if (rpcError) throw rpcError;
-            if (rpcData && !rpcData.success) throw new Error(rpcData.error || "Erreur lors de la commande (Stock épuisé ?)");
+            if (rpcError) {
+                throw new Error(rpcError.message || 'Erreur lors de la création de la commande.');
+            }
+            if (rpcData && !rpcData.success) {
+                const rpcMessage = typeof rpcData.error === 'string' ? rpcData.error : '';
+                if (rpcMessage.includes('timestamp with time zone') && rpcMessage.includes('text')) {
+                    throw new Error(
+                        'Mise à jour serveur requise (date de commande). Applique la migration Supabase 20260611_002 puis réessaie.',
+                    );
+                }
+                throw new Error(rpcMessage || 'Erreur lors de la commande (stock épuisé ?)');
+            }
 
             setCreatedOrderId(newOrderId);
 

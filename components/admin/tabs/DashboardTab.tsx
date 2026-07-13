@@ -2,7 +2,10 @@
 import React from 'react';
 import { TrendingUp, Package, Users, AlertCircle, ShoppingBag } from 'lucide-react';
 import { Order, Staff, Customer, Product } from '../../../types';
+import { getProductDisplayName } from '../../../utils/productDisplay';
+import { getOrderStatusLabel } from '../../../utils/orderWorkflow';
 import StatCard from '../shared/StatCard';
+import { adminUi } from '../shared/adminUi';
 
 interface DashboardTabProps {
   orders: Order[];
@@ -12,57 +15,62 @@ interface DashboardTabProps {
 }
 
 const DashboardTab: React.FC<DashboardTabProps> = ({ orders, staffMembers, customers, products }) => {
-  const revenue = orders.filter(o => o.status === 'delivered').reduce((acc, o) => acc + o.total, 0).toLocaleString();
-  const pending = orders.filter(o => o.status === 'pending').length.toString();
-  
+  const revenue = orders
+    .filter((o) => o.status === 'delivered')
+    .reduce((acc, o) => acc + o.total, 0)
+    .toLocaleString('fr-FR');
+  const pending = orders.filter((o) => o.status === 'pending').length.toString();
+  const lowStock = products.filter((p) => p.stock < 5);
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5">
-        <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Tableau de bord</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatCard label="Revenu Total" value={revenue} sub="FCFA" icon={TrendingUp} color="text-green-500" />
-            <StatCard label="Commandes" value={pending} sub="En attente" icon={Package} color="text-xeption-gold" />
-            <StatCard label="Staff Actif" value={staffMembers.length.toString()} sub="Membres" icon={Users} color="text-blue-500" />
-            <StatCard label="Base Clients" value={customers.length.toString()} sub="Enregistrés" icon={Users} color="text-purple-500" />
+    <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <StatCard label="Revenu livré" value={revenue} sub="FCFA" icon={TrendingUp} tone="green" />
+            <StatCard label="Commandes en attente" value={pending} sub="À traiter" icon={Package} tone="gold" />
+            <StatCard label="Équipe active" value={staffMembers.length.toString()} sub="Membres staff" icon={Users} tone="cyan" />
+            <StatCard label="Clients enregistrés" value={customers.length.toString()} sub="CRM" icon={Users} tone="neutral" />
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Alertes Stock */}
-            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm shadow-xl">
-                <h3 className="text-white font-tech uppercase font-bold mb-4 flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-xeption-red" /> Alertes Rupture
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <section className={adminUi.card}>
+                <h3 className={`${adminUi.cardTitle} mb-4`}>
+                    <AlertCircle className="w-4 h-4 text-xeption-red" /> Alertes rupture
                 </h3>
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                    {products.filter(p => p.stock < 5).length === 0 ? (
-                        <p className="text-gray-500 italic text-sm">Stock optimal.</p>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                    {lowStock.length === 0 ? (
+                        <p className={adminUi.muted}>Stock confortable sur l’ensemble du catalogue.</p>
                     ) : (
-                        products.filter(p => p.stock < 5).map(p => (
-                            <div key={p.id} className="flex justify-between items-center bg-white/5 p-3 rounded hover:bg-black/60 transition-colors border border-white/5">
-                                <span className="text-gray-200 text-sm font-bold truncate pr-2">{p.name}</span>
-                                <span className="text-xeption-red font-bold text-xs px-2 py-1 bg-xeption-red/10 rounded whitespace-nowrap">Reste: {p.stock}</span>
+                        lowStock.map((p) => (
+                            <div key={p.id} className={`flex justify-between items-center gap-3 p-3 rounded-md border border-white/10 bg-black/20 backdrop-blur-sm ${adminUi.surfaceHover}`}>
+                                <span className="text-white text-sm font-medium truncate">{getProductDisplayName(p)}</span>
+                                <span className="text-xeption-red font-bold text-[10px] uppercase tracking-wider px-2 py-1 bg-xeption-red/10 rounded shrink-0">
+                                  Reste {p.stock}
+                                </span>
                             </div>
                         ))
                     )}
                 </div>
-            </div>
+            </section>
 
-            {/* Dernières Ventes */}
-            <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm shadow-xl">
-                <h3 className="text-white font-tech uppercase font-bold mb-4 flex items-center gap-2">
-                    <ShoppingBag className="w-5 h-5 text-xeption-gold" /> Dernières Ventes
+            <section className={adminUi.card}>
+                <h3 className={`${adminUi.cardTitle} mb-4`}>
+                    <ShoppingBag className="w-4 h-4 text-xeption-gold" /> Dernières ventes
                 </h3>
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                     {orders.slice(0,5).map((o) => (
-                        <div key={o.id} className="flex items-center justify-between bg-white/5 p-3 rounded hover:bg-black/60 transition-colors border border-white/5">
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                     {orders.slice(0, 5).map((o) => (
+                        <div key={o.id} className={`flex items-center justify-between gap-3 p-3 rounded-md border border-white/10 bg-black/20 backdrop-blur-sm ${adminUi.surfaceHover}`}>
                             <div className="flex-1 min-w-0">
-                                <span className="text-gray-200 text-sm block font-bold truncate">{o.customerName}</span>
-                                <span className={`text-[10px] font-bold uppercase ${o.status === 'delivered' ? 'text-green-500' : 'text-gray-500'}`}>{o.status}</span>
+                                <span className="text-white text-sm block font-medium truncate">{o.customerName}</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${o.status === 'delivered' ? 'text-emerald-400' : 'text-white/55'}`}>
+                                  {getOrderStatusLabel(o.status)}
+                                </span>
                             </div>
-                            <span className="text-white font-mono text-sm ml-4">{o.total.toLocaleString()} FCFA</span>
+                            <span className="text-white font-mono text-sm shrink-0 tabular-nums">{o.total.toLocaleString('fr-FR')} F</span>
                         </div>
                      ))}
+                     {orders.length === 0 && <p className={adminUi.muted}>Aucune commande pour le moment.</p>}
                 </div>
-            </div>
+            </section>
         </div>
     </div>
   );

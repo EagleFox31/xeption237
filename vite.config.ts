@@ -13,7 +13,9 @@ export default defineConfig(({ mode }) => {
     ],
     define: {
       // Polyfill spécifique pour API_KEY
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY),
+      'process.env.API_KEY': JSON.stringify(
+        env.VITE_GEMINI_API_KEY || env.API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.API_KEY || ''
+      ),
       // Polyfill sûr pour process.env pour éviter les crashs si d'autres libs l'utilisent, mais sans injecter l'objet Node complet
       'process.env': {}
     },

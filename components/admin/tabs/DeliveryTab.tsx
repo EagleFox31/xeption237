@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { DeliveryZone } from '../../../types';
-import { Truck, Plus, Trash2, Loader2, Save } from 'lucide-react';
+import { Plus, Trash2, Loader2, Save } from 'lucide-react';
 import TableShell from '../shared/TableShell';
+import { adminUi } from '../shared/adminUi';
 import { DB_TABLES, DB_SCHEMA } from '../../../constants/dbSchema';
 
 const DeliveryTab: React.FC = () => {
@@ -110,55 +111,45 @@ const DeliveryTab: React.FC = () => {
     return (
         <div className="animate-in fade-in h-[calc(100vh-140px)] flex flex-col gap-6">
             <div className="shrink-0 space-y-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 className="text-3xl font-tech font-bold uppercase text-white flex items-center gap-3">
-                            <Truck className="text-xeption-gold w-8 h-8" /> Zones de Livraison
-                        </h2>
-                        <p className="text-gray-400 text-sm mt-1">
-                            Configurez les villes, délais et tarifs.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-6 rounded-sm">
-                    <h3 className="text-white font-bold uppercase mb-4 text-xs flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-green-500" /> Ajouter une destination
+                <div className={`${adminUi.card} p-5 md:p-6`}>
+                    <h3 className={`${adminUi.cardTitle} mb-4`}>
+                        <Plus className="w-4 h-4 text-emerald-400" /> Ajouter une destination
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <div className="md:col-span-2">
-                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Ville / Zone</label>
+                            <label className={`${adminUi.label} block mb-1.5`}>Ville / Zone</label>
                             <input 
                                 type="text" 
                                 placeholder="Ex: Ebolowa"
                                 value={newZone.name}
                                 onChange={e => setNewZone({...newZone, name: e.target.value})}
-                                className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm"
+                                className={adminUi.input}
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Délai estimé</label>
+                            <label className={`${adminUi.label} block mb-1.5`}>Délai estimé</label>
                             <input 
                                 type="text" 
                                 placeholder="Ex: 48h"
                                 value={newZone.delay}
                                 onChange={e => setNewZone({...newZone, delay: e.target.value})}
-                                className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm"
+                                className={adminUi.input}
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Prix (FCFA)</label>
+                            <label className={`${adminUi.label} block mb-1.5`}>Prix (FCFA)</label>
                             <input 
                                 type="number" 
                                 placeholder="0"
                                 value={newZone.price}
                                 onChange={e => setNewZone({...newZone, price: parseInt(e.target.value) || 0})}
-                                className="w-full bg-black/50 border border-white/10 text-white p-3 rounded-sm text-sm font-mono text-xeption-gold"
+                                className={`${adminUi.input} font-mono text-xeption-gold`}
                             />
                         </div>
                         <button 
+                            type="button"
                             onClick={handleAddZone}
-                            className="w-full bg-white/10 hover:bg-xeption-gold hover:text-black text-white font-bold uppercase py-3 rounded-sm transition-all text-xs tracking-widest mt-2"
+                            className={`${adminUi.btnGhost} w-full mt-2`}
                         >
                             Ajouter
                         </button>
@@ -169,7 +160,7 @@ const DeliveryTab: React.FC = () => {
             <div className="flex-1 min-h-0 relative">
                 <TableShell className="h-full overflow-y-auto border-t border-white/10">
                     <table className="w-full text-left">
-                        <thead className="sticky top-0 z-20 bg-[#0c0c0e] text-gray-400 text-xs uppercase font-bold shadow-md">
+                        <thead className={adminUi.tableHead}>
                             <tr>
                                 <th className="px-6 py-4">Destination</th>
                                 <th className="px-6 py-4">Délai</th>
@@ -179,9 +170,9 @@ const DeliveryTab: React.FC = () => {
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5 text-sm">
+                        <tbody className={adminUi.tableBody}>
                             {loading ? (
-                                <tr><td colSpan={6} className="text-center py-8 text-gray-500"><Loader2 className="w-6 h-6 animate-spin mx-auto"/> Chargement...</td></tr>
+                                <tr><td colSpan={6} className={adminUi.emptyCell}><Loader2 className="w-6 h-6 animate-spin mx-auto"/> Chargement…</td></tr>
                             ) : zones.map(zone => (
                                 <tr key={zone.id} className="hover:bg-white/5 transition-colors group">
                                     <td className="px-6 py-4">
@@ -195,7 +186,7 @@ const DeliveryTab: React.FC = () => {
                                         <input 
                                             value={zone.delay} 
                                             onChange={(e) => handleLocalChange(zone.id, { delay: e.target.value })}
-                                            className="bg-transparent border-b border-transparent focus:border-white/30 outline-none w-full text-gray-400 transition-colors"
+                                            className="bg-transparent border-b border-transparent focus:border-white/30 outline-none w-full text-white/70 transition-colors"
                                         />
                                     </td>
                                     <td className="px-6 py-4">

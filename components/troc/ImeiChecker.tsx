@@ -1,5 +1,6 @@
-import React from 'react';
-import { ShieldAlert, ShieldCheck, ShieldX, ArrowRight, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShieldAlert, ShieldCheck, ShieldX, ArrowRight, Loader2, Info } from 'lucide-react';
+import { ImeiHelpModal } from './ImeiHelpModal';
 
 type ImeiStatus = 'not_checked' | 'valid' | 'invalid' | 'check_failed';
 type BlacklistStatus = 'unknown' | 'clear' | 'blacklisted';
@@ -37,6 +38,7 @@ export const ImeiChecker: React.FC<ImeiCheckerProps> = ({
   isChecking,
   onSkip,
 }) => {
+  const [showHelp, setShowHelp] = useState(false);
   const norm = (value?: string) => (value || '').trim().toLowerCase();
 
   const hasDetected = Boolean(norm(imeiDeviceInfo?.brand) || norm(imeiDeviceInfo?.model));
@@ -55,9 +57,19 @@ export const ImeiChecker: React.FC<ImeiCheckerProps> = ({
       </div>
 
       <div>
-        <label className="block text-[10px] font-tech font-bold uppercase tracking-widest text-gray-500 mb-1.5">
-          Code IMEI (15 chiffres)
-        </label>
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <label className="block text-[10px] font-tech font-bold uppercase tracking-widest text-gray-500">
+            Code IMEI (15 chiffres)
+          </label>
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="flex items-center gap-1 text-[10px] font-tech uppercase tracking-widest text-xeption-gold/80 hover:text-xeption-gold transition-colors"
+          >
+            <Info className="w-3.5 h-3.5" />
+            Comment trouver ?
+          </button>
+        </div>
         <input
           type="text"
           placeholder="IMEI - ex: 353879234567890"
@@ -166,6 +178,8 @@ export const ImeiChecker: React.FC<ImeiCheckerProps> = ({
           Passer
         </button>
       </div>
+
+      <ImeiHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   );
 };

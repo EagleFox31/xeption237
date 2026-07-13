@@ -1,122 +1,126 @@
 
-import React, { useState, useEffect } from 'react';
-import { ArrowRight, Star, Cpu } from 'lucide-react';
-import AdSpot from './AdSpot';
+import React from 'react';
+import { ArrowRight, RefreshCw } from 'lucide-react';
+import { Product } from '../types';
+import { HeroDesktopProductSection } from './hero/HeroProductShowcase';
+import HeroWelcomeSlide from './hero/HeroWelcomeSlide';
+import HeroMobileCarousel from './hero/HeroMobileCarousel';
 
 interface HeroProps {
+  products: Product[];
   onShopNow: () => void;
+  onNavigateTroc?: () => void;
+  onProductClick?: (product: Product) => void;
+  onAddToCart: (product: Product) => void;
 }
 
-const Hero: React.FC<HeroProps> = ({ onShopNow }) => {
-  // Phase management: 'text' -> 'ad' -> 'hidden'
-  const [phase, setPhase] = useState<'text' | 'ad' | 'hidden'>('text');
+const HeroCtaButtons: React.FC<{
+  onShopNow: () => void;
+  onNavigateTroc?: () => void;
+  dense?: boolean;
+  pinBottom?: boolean;
+}> = ({ onShopNow, onNavigateTroc, dense, pinBottom }) => (
+  <div
+    className={`flex flex-row gap-2 w-full min-w-0 max-w-full border-t border-white/10 ${
+      pinBottom ? 'mt-auto pt-3' : dense ? 'pt-3 mt-3' : 'pt-4 lg:pt-5 mt-4 lg:mt-5'
+    }`}
+  >
+    <button
+      type="button"
+      onClick={onShopNow}
+      className="group flex-1 basis-0 min-w-0 px-2 lg:px-4 py-2.5 lg:py-3 rounded-lg lg:rounded-none bg-xeption-gold text-black font-tech font-bold text-xs lg:text-sm leading-snug uppercase tracking-wide lg:tracking-wider shadow-[0_0_16px_rgba(255,215,0,0.35)] hover:shadow-[0_0_24px_rgba(255,215,0,0.45)] transition-all flex items-center justify-center gap-1"
+    >
+      <span className="truncate lg:hidden">Explorer</span>
+      <span className="truncate hidden lg:inline">Explorer le shop</span>
+      <ArrowRight className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+    </button>
+    {onNavigateTroc && (
+      <button
+        type="button"
+        onClick={onNavigateTroc}
+        className="flex-1 basis-0 min-w-0 px-2 lg:px-4 py-2.5 lg:py-3 rounded-lg lg:rounded-none border-2 lg:border border-xeption-gold/70 lg:border-xeption-gold/30 text-xeption-gold font-tech font-bold text-xs lg:text-sm uppercase tracking-wide lg:tracking-wider bg-xeption-gold/15 lg:bg-transparent hover:bg-xeption-gold/20 lg:hover:bg-xeption-gold/10 transition-all flex items-center justify-center gap-1.5"
+      >
+        <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+        <span className="truncate lg:hidden">Mon Troc</span>
+        <span className="truncate hidden lg:inline">Estimer mon téléphone</span>
+      </button>
+    )}
+  </div>
+);
 
-  useEffect(() => {
-    // Phase 1 -> 2 (After 5s)
-    const timer1 = setTimeout(() => {
-      setPhase('ad');
-    }, 5000);
-
-    // Phase 2 -> 3 (After 5s + 3s = 8s)
-    const timer2 = setTimeout(() => {
-      setPhase('hidden');
-    }, 8000);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
-  }, []);
-
-  return (
-    // Hauteur réduite à min-h-[55vh] pour prendre environ la moitié de l'écran
-    // Padding ajusté pour centrer visuellement dans ce nouvel espace
-    <div className="relative overflow-hidden min-h-[55vh] flex items-center justify-center pb-12 md:pb-16 pt-24">
-      {/* Background Overlay */}
-      <div className="absolute inset-0 z-0 bg-transparent"></div>
-
-      {/* Abstract Glows - Réduits en taille pour correspondre à la nouvelle hauteur */}
-      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-xeption-red/10 rounded-full blur-[80px] mix-blend-screen animate-pulse duration-1000 z-0"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-xeption-gold/10 rounded-full blur-[80px] mix-blend-screen z-0"></div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10 w-full">
-        
-        {/* Badge - Texte plus petit */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-xeption-gold/30 bg-black/40 backdrop-blur-md mb-4 shadow-[0_0_15px_rgba(255,215,0,0.1)] hover:scale-105 transition-transform group cursor-default">
-          <Cpu className="h-3 w-3 text-xeption-gold animate-spin-slow group-hover:text-white transition-colors" />
-          <span className="text-xeption-gold group-hover:text-white transition-colors text-[10px] font-bold tracking-[0.2em] font-tech uppercase">
-            Collection Future 2026
-          </span>
-        </div>
-        
-        {/* Main Title - Renommé en XEPTION seul avec effet Gold */}
-        <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tighter mb-4 leading-none drop-shadow-[0_0_25px_rgba(0,0,0,0.8)]">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-xeption-gold via-yellow-100 to-xeption-goldDim drop-shadow-sm">
-            XEPTION
-          </span>
-        </h1>
-        
-        {/* Dynamic Zone: Description -> Ad -> Hidden */}
-        <div className="relative min-h-[40px] flex justify-center items-center flex-col transition-all duration-500 ease-in-out w-full max-w-3xl mx-auto">
-            
-            {/* PHASE 1: TEXTE (0s - 5s) */}
-            <div 
-                className={`transition-all duration-700 ease-in-out absolute w-full ${
-                    phase === 'text' ? 'opacity-100 translate-y-0 relative' : 'opacity-0 -translate-y-4 absolute pointer-events-none'
-                }`}
-            >
-               {phase === 'text' && (
-                <div className="mb-8 mt-2">
-                    <p className="max-w-xl mx-auto text-sm sm:text-base text-gray-200 font-light tracking-wide drop-shadow-md bg-black/20 backdrop-blur-sm p-3 rounded-xl border border-white/5 animate-in fade-in zoom-in duration-700">
-                    Le futur du e-commerce au Mboa. <br/>
-                    <span className="text-white font-bold">Smartphones. Laptops. Accessoires.</span> <br/>
-                    Ambiance Tech, Paiement Easy, Livraison au calme.
-                    </p>
-                </div>
-               )}
-            </div>
-
-            {/* PHASE 2: ADSPOT (5s - 8s) */}
-            <div 
-                className={`transition-all duration-700 ease-in-out w-full ${
-                    phase === 'ad' ? 'opacity-100 translate-y-0 relative mb-8' : 'opacity-0 translate-y-4 absolute pointer-events-none'
-                }`}
-            >
-                {phase === 'ad' && (
-                    <AdSpot 
-                        variant="banner"
-                        compact={true}
-                        title="Troc Express"
-                        subtitle="Échange ton ancien téléphone contre du cash."
-                        image="https://images.unsplash.com/photo-1596742578443-7682e525c489?q=80&w=2000&auto=format&fit=crop"
-                        cta="Estimer"
-                        onAdClick={() => window.location.href = '/?page=troc'}
-                    />
-                )}
-            </div>
-
-            {/* PHASE 3: HIDDEN (8s+) - Just a spacer if needed, or 0 height handled by css above */}
-        </div>
-        
-        {/* Actions - Boutons légèrement plus compacts */}
-        <div className={`flex flex-col sm:flex-row justify-center gap-4 transition-all duration-1000 ${phase === 'hidden' ? 'mt-0' : 'mt-2'}`}>
-          <button 
-            onClick={onShopNow}
-            className="group relative px-6 py-3 bg-xeption-gold text-black font-tech font-bold text-sm uppercase tracking-wider overflow-hidden clip-path-slant shadow-[0_0_20px_rgba(255,215,0,0.4)] hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition-all"
-          >
-            <span className="relative z-10 flex items-center">
-              Explorer le Shop
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </span>
-            <div className="absolute inset-0 bg-white transform -skew-x-12 -translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
-          </button>
-          
-          <button className="px-6 py-3 border border-white/30 text-white font-tech font-bold text-sm uppercase tracking-wider hover:border-xeption-red hover:text-xeption-red hover:shadow-[0_0_20px_rgba(220,20,60,0.3)] transition-all bg-black/30 backdrop-blur-md">
-            Voir les Promos
-          </button>
-        </div>
-      </div>
+const HeroCardShell: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  compact?: boolean;
+  fillHeight?: boolean;
+}> = ({ children, className = '', compact, fillHeight }) => (
+  <div
+    className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-white/10 bg-[#09090b]/75 backdrop-blur-xl shadow-2xl hover:border-xeption-gold/20 transition-colors box-border ${
+      fillHeight ? 'h-full flex flex-col' : ''
+    } ${className}`}
+  >
+    <div className="absolute inset-0 tech-pattern opacity-[0.07] pointer-events-none" />
+    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-xeption-gold/50 to-transparent" />
+    <div
+      className={`relative z-10 w-full max-w-full overflow-hidden box-border ${
+        compact ? 'p-4 lg:p-5' : 'p-4 sm:p-6 md:p-8'
+      } ${fillHeight ? 'flex flex-col flex-1 h-full min-h-0' : ''}`}
+    >
+      {children}
     </div>
+  </div>
+);
+
+const Hero: React.FC<HeroProps> = ({
+  products,
+  onShopNow,
+  onNavigateTroc,
+  onProductClick,
+  onAddToCart,
+}) => {
+  return (
+    <section className="relative z-10 w-full min-w-0 max-w-[1400px] mx-auto px-2 sm:px-6 lg:px-8 pt-3 pb-8 md:pt-5 md:pb-10 overflow-x-hidden box-border">
+      <div className="absolute top-1/3 left-1/4 w-48 h-48 bg-xeption-gold/5 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-xeption-red/5 rounded-full blur-[70px] pointer-events-none" />
+
+      {/* Mobile */}
+      <div className="lg:hidden w-full min-w-0">
+        <HeroCardShell className="w-full min-w-0">
+          <HeroMobileCarousel
+            products={products}
+            onProductClick={onProductClick}
+            onAddToCart={onAddToCart}
+          />
+          <HeroCtaButtons
+            onShopNow={onShopNow}
+            onNavigateTroc={onNavigateTroc}
+          />
+        </HeroCardShell>
+      </div>
+
+      {/* Desktop — colonne gauche étroite, 3 produits à droite */}
+      <div
+        className="hidden lg:grid lg:grid-cols-[minmax(0,34%)_minmax(0,66%)] lg:gap-6 items-stretch min-w-0"
+      >
+        <HeroCardShell className="text-left" compact fillHeight>
+          <div className="flex flex-col h-full min-h-0">
+            <HeroWelcomeSlide desktopCompact />
+            <HeroCtaButtons
+              onShopNow={onShopNow}
+              onNavigateTroc={onNavigateTroc}
+              dense
+              pinBottom
+            />
+          </div>
+        </HeroCardShell>
+
+        <HeroDesktopProductSection
+          products={products}
+          onProductClick={onProductClick}
+          onAddToCart={onAddToCart}
+        />
+      </div>
+    </section>
   );
 };
 

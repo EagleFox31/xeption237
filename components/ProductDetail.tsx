@@ -1,9 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
-import { ArrowLeft, ShoppingCart, Check, X, Cpu, Award, Play, Share2, Link as LinkIcon, CheckCircle2, Sparkles, ShieldCheck, Star, MapPin } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Check, X, Cpu, Play, Share2, Link as LinkIcon, CheckCircle2, ShieldCheck, Star, MapPin, ChevronDown, HelpCircle } from 'lucide-react';
+import { buildProductFaq } from '../utils/productFaq';
 import { optimizeImage } from '../utils/mediaOptimization';
 import { getProductSlug } from '../utils/slug';
+import { getProductDisplayName, normalizeSamsungGalaxySpelling } from '../utils/productDisplay';
+import { ProductBadgeChips } from './product/ProductBadgeChips';
+import ProductHighlightCards from './product/ProductHighlightCards';
 
 interface ProductDetailProps {
     product: Product;
@@ -39,57 +43,23 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         setActiveIndex(0);
     }, [product.id]);
 
-    // SEO: Dynamic Page Title & Structured Data (JSON-LD)
+    // Carrousel lent (6 s par image)
     useEffect(() => {
-        // SEO KEYWORD INJECTION IN TITLE
-        document.title = `${product.name} - Prix au Cameroun | Xeption`;
+        if (galleryImages.length < 2) return;
+        const timer = window.setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % galleryImages.length);
+        }, 6000);
+        return () => window.clearInterval(timer);
+    }, [galleryImages.length, product.id]);
 
-        // Create JSON-LD for Google Rich Snippets
-        const structuredData = {
-            "@context": "https://schema.org/",
-            "@type": "Product",
-            "name": product.name,
-            "image": [product.image, ...(product.images || [])],
-            "description": `Achetez ${product.name} au meilleur prix au Cameroun chez Xeption. ${product.description}`,
-            "brand": {
-                "@type": "Brand",
-                "name": product.brand || "Xeption"
-            },
-            "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": product.rating || 5,
-                "reviewCount": product.reviews?.length || 1
-            },
-            "offers": {
-                "@type": "Offer",
-                "url": `${window.location.origin}/product/${getProductSlug(product)}`,
-                "priceCurrency": "XAF",
-                "price": product.price,
-                "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-                "itemCondition": product.condition === 'new' ? "https://schema.org/NewCondition" : "https://schema.org/RefurbishedCondition",
-                "areaServed": "Cameroun", // SEO Location
-                "seller": {
-                    "@type": "ElectronicsStore",
-                    "name": "Xeption Network",
-                    "address": "Mfoundi Mall, Yaoundé"
-                }
-            }
-        };
+    const displayName = getProductDisplayName(product);
+    // Source unique partagée avec le FAQPage JSON-LD (ProductPage) : affichage == schéma.
+    const faq = buildProductFaq(product);
 
-        // Inject Script into Head
-        const script = document.createElement('script');
-        script.type = 'application/ld+json';
-        script.text = JSON.stringify(structuredData);
-        script.id = 'product-json-ld';
-        document.head.appendChild(script);
-
-        return () => {
-            const existingScript = document.getElementById('product-json-ld');
-            if (existingScript) {
-                document.head.removeChild(existingScript);
-            }
-        };
-    }, [product]);
+    // Le SEO de la page produit (title + JSON-LD Product/Offer/AggregateRating)
+    // est géré par ProductPage via PageSEO + productJsonLd (source unique de vérité).
+    // Voir utils/seo.tsx. Ne pas réinjecter de schéma ici (doublon + risque de
+    // fausse note contraire à la policy Google).
 
     const handlePlayVideo = () => {
         const videoSection = document.getElementById('video-section');
@@ -138,35 +108,25 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 <div className="particle w-96 h-96 bottom-0 left-0 bg-orange-500/10 blur-[120px] animate-pulse" style={{ animationDelay: '3s' }}></div>
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-3 md:pt-6">
                 <button
                     onClick={onBack}
-                    className="mb-6 flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-black hover:bg-black hover:text-xeption-gold hover:border-black transition-all shadow-sm group w-fit"
+                    className="mb-3 md:mb-6 flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-black hover:bg-black hover:text-xeption-gold hover:border-black transition-all shadow-sm group w-fit"
                 >
                     <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                     <span className="font-bold font-tech uppercase tracking-widest text-xs">Retour au Shop</span>
                 </button>
 
                 {/* 1. HERO SECTION */}
-                <div className="relative min-h-[60vh] w-full flex flex-col md:flex-row items-center gap-8 md:gap-12 mb-20">
+                <div className="relative w-full flex flex-col md:flex-row items-start gap-4 md:gap-10 mb-10 md:mb-20 md:min-h-[60vh]">
 
                     <div className="absolute inset-0 z-0 opacity-10 pointer-events-none overflow-hidden">
                         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_49%,rgba(0,0,0,0.2)_50%,transparent_51%)] bg-[size:100%_40px] [transform:perspective(500px)_rotateX(60deg)_scale(2)] origin-bottom"></div>
                     </div>
 
-                    <div className="w-full md:w-1/2 space-y-6 z-10 order-2 md:order-1 text-gray-900">
-                        <div className="flex items-center justify-between">
-                            {product.condition === 'new' ? (
-                                <div className="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
-                                    <Sparkles className="h-4 w-4 text-emerald-600" />
-                                    <span className="text-emerald-700 text-xs font-bold uppercase tracking-[0.2em] font-tech">Produit Neuf Scellé</span>
-                                </div>
-                            ) : (
-                                <div className="inline-flex items-center space-x-2 bg-white/60 border border-xeption-gold/30 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
-                                    <Award className="h-4 w-4 text-xeption-gold" />
-                                    <span className="text-xeption-goldDim text-xs font-bold uppercase tracking-[0.2em] font-tech">Xeption Certified</span>
-                                </div>
-                            )}
+                    <div className="w-full md:w-1/2 space-y-5 z-10 order-2 md:order-1 text-gray-900 md:pt-0">
+                        <div className="hidden md:flex items-start justify-between gap-3">
+                            <ProductBadgeChips product={product} size="md" className="flex-1" />
 
                             <button
                                 onClick={handleShare}
@@ -178,32 +138,38 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                         </div>
 
                         <div>
-                            <h1 className="text-5xl md:text-7xl font-bold font-tech uppercase leading-none text-black drop-shadow-sm mix-blend-hard-light mb-2">
-                                {product.name}
+                            <h1 className="hidden md:block text-5xl md:text-7xl font-bold font-tech uppercase leading-none text-black drop-shadow-sm mix-blend-hard-light mb-2">
+                                {displayName}
                             </h1>
 
-                            <div className="flex items-center gap-2">
+                            <div className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm">
                                 <div className="flex">
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`w-4 h-4 ${i < Math.round(product.rating || 0) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-300 fill-gray-100'}`}
+                                            className={`w-4 h-4 ${i < Math.round(product.rating || 5) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-500 fill-gray-300'}`}
                                         />
                                     ))}
                                 </div>
-                                {product.reviews && product.reviews.length > 0 && (
-                                    <span className="text-xs font-bold text-gray-500 tracking-wide">
+                                {product.reviews && product.reviews.length > 0 ? (
+                                    <span className="text-xs font-bold text-gray-700 tracking-wide">
                                         ({product.rating || 5}/5) &bull; <span className="underline cursor-pointer hover:text-black">Voir les {product.reviews.length} avis</span>
+                                    </span>
+                                ) : (
+                                    <span className="text-xs font-bold text-gray-600 tracking-wide">
+                                        ({product.rating || 5}/5)
                                     </span>
                                 )}
                             </div>
                         </div>
 
                         <p className="text-xl text-gray-800 font-light max-w-lg drop-shadow-sm">
-                            {product.description}
+                            {normalizeSamsungGalaxySpelling(product.description || '')}
                         </p>
 
-                        <div className="flex items-center space-x-6 pt-4">
+                        <ProductHighlightCards product={product} className="pt-1" />
+
+                        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6 pt-4">
                             <div>
                                 <span className="block text-sm text-gray-600 uppercase font-bold tracking-wider mb-1">Prix au Cameroun</span>
 
@@ -222,6 +188,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                     </div>
                                 </div>
                             </div>
+
+                            <button
+                                type="button"
+                                onClick={() => onAddToCart(product)}
+                                className="hidden md:flex shrink-0 bg-black text-white px-8 py-4 font-tech font-bold uppercase text-base tracking-wider hover:bg-xeption-gold hover:text-black transition-colors shadow-xl items-center gap-2 self-start md:self-auto"
+                            >
+                                <ShoppingCart className="h-5 w-5" />
+                                Ajouter au panier
+                            </button>
                         </div>
 
                         {warrantyMonths > 0 && (
@@ -232,21 +207,40 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                 </span>
                             </div>
                         )}
-
-                        <div className="hidden md:flex space-x-4 pt-4">
-                            <button
-                                onClick={() => onAddToCart(product)}
-                                className="bg-black text-white px-8 py-4 font-tech font-bold uppercase text-lg tracking-wider hover:bg-xeption-gold hover:text-black transition-colors shadow-xl flex items-center gap-2"
-                            >
-                                <ShoppingCart className="h-5 w-5" />
-                                Ajouter au panier
-                            </button>
-                        </div>
                     </div>
 
-                    <div className="w-full md:w-1/2 flex flex-col items-center justify-center order-1 md:order-2 z-10">
+                    <div className="w-full md:w-1/2 flex flex-col order-1 md:order-2 z-10">
+                        <div className="md:hidden space-y-2 mb-3">
+                            <div className="flex items-start justify-between gap-2">
+                                <ProductBadgeChips product={product} size="sm" className="flex-1" />
+                                <button
+                                    onClick={handleShare}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/5 text-[10px] font-bold uppercase tracking-wider text-black shrink-0"
+                                >
+                                    {linkCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <Share2 className="h-3.5 w-3.5 text-gray-700" />}
+                                    {linkCopied ? 'Copié' : 'Partager'}
+                                </button>
+                            </div>
+                            <h1 className="text-2xl sm:text-3xl font-bold font-tech uppercase leading-tight text-black">
+                                {displayName}
+                            </h1>
+                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-sm">
+                                <div className="flex">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star
+                                            key={i}
+                                            className={`w-3.5 h-3.5 ${i < Math.round(product.rating || 5) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-500 fill-gray-300'}`}
+                                        />
+                                    ))}
+                                </div>
+                                <span className="text-[10px] font-bold text-gray-600 tracking-wide">
+                                    ({product.rating || 5}/5)
+                                </span>
+                            </div>
+                        </div>
+
                         <div
-                            className="relative h-80 md:h-[500px] w-full flex items-center justify-center group mb-6"
+                            className="relative w-full max-w-[400px] mx-auto aspect-square md:max-w-none md:aspect-auto md:h-[420px] flex items-center justify-center group overflow-hidden rounded-xl md:rounded-none bg-white md:bg-transparent shadow-sm md:shadow-none border border-gray-200/40 md:border-0"
                             onTouchStart={(e) => {
                                 touchStartX.current = e.touches[0]?.clientX ?? null;
                                 touchEndX.current = null;
@@ -267,15 +261,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                 }
                             }}
                         >
-                            <div className={`absolute w-64 h-64 md:w-96 md:h-96 rounded-full blur-[60px] group-hover:blur-[80px] transition-all duration-700 mix-blend-multiply ${product.condition === 'new'
-                                ? 'bg-gradient-to-tr from-emerald-400/30 to-green-200/50'
-                                : 'bg-gradient-to-tr from-xeption-gold/30 to-orange-200/50'
-                                }`}></div>
-
                             <img
-                                src={optimizeImage(activeImage, 1000)}
-                                alt={`${product.name} pas cher Cameroun`} // Keyword injection in alt
-                                className="relative z-10 max-h-full max-w-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform transition-transform duration-500 ease-out animate-in zoom-in-95"
+                                src={optimizeImage(activeImage, 1100)}
+                                alt={`${displayName} — Xeption Cameroun`}
+                                className="relative z-10 w-full h-full object-contain object-center transition-opacity duration-700 ease-in-out"
                                 key={activeImage}
                             />
 
@@ -284,7 +273,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                     <button
                                         type="button"
                                         onClick={() => setActiveIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)}
-                                        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 bg-black/60 text-white border border-white/20 p-2 rounded-full hover:bg-black/80 transition-colors"
+                                        className="absolute left-1 md:left-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 text-white border border-white/20 p-1.5 md:p-2 rounded-full hover:bg-black/75 transition-colors"
                                         aria-label="Image précédente"
                                     >
                                         <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
@@ -292,7 +281,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                     <button
                                         type="button"
                                         onClick={() => setActiveIndex((prev) => (prev + 1) % galleryImages.length)}
-                                        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 bg-black/60 text-white border border-white/20 p-2 rounded-full hover:bg-black/80 transition-colors"
+                                        className="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 text-white border border-white/20 p-1.5 md:p-2 rounded-full hover:bg-black/75 transition-colors"
                                         aria-label="Image suivante"
                                     >
                                         <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 rotate-180" />
@@ -301,12 +290,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                             )}
                         </div>
 
-                        <div className="flex gap-3 overflow-x-auto pb-4 w-full justify-start md:justify-center px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
+                        <div className="flex gap-2 overflow-x-auto pt-2 pb-1 w-full justify-start md:justify-center md:pt-3 md:pb-2 snap-x snap-mandatory scroll-smooth no-scrollbar">
                             {galleryImages.map((img, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => setActiveIndex(idx)}
-                                    className={`relative w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all snap-center ${activeIndex === idx ? 'border-xeption-gold shadow-lg scale-105' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
+                                    className={`relative w-[4.5rem] h-[4.5rem] sm:w-20 sm:h-20 md:w-20 md:h-20 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all snap-center ${activeIndex === idx ? 'border-xeption-gold shadow-lg scale-105' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
                                 >
                                     <img
                                         src={optimizeImage(img, 150)}
@@ -319,7 +308,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                             {product.video && (
                                 <button
                                     onClick={handlePlayVideo}
-                                    className="w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 border-gray-300 bg-black flex items-center justify-center flex-shrink-0 hover:border-xeption-gold transition-colors group snap-center"
+                                    className="w-[4.5rem] h-[4.5rem] sm:w-20 sm:h-20 md:w-20 md:h-20 rounded-lg border-2 border-gray-300 bg-black flex items-center justify-center flex-shrink-0 hover:border-xeption-gold transition-colors group snap-center"
                                 >
                                     <Play className="text-white group-hover:text-xeption-gold" />
                                 </button>
@@ -366,7 +355,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                     Le Verdict
                                 </h2>
                                 <p className="text-lg text-gray-800 leading-relaxed italic border-l-2 border-xeption-gold/30 pl-6 py-2 font-medium">
-                                    "{product.reviewShort || product.description}"
+                                    "{normalizeSamsungGalaxySpelling(product.reviewShort || product.description || '')}"
                                 </p>
                             </div>
 
@@ -422,6 +411,31 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                     <span className="text-gray-600 font-mono text-sm uppercase tracking-wider group-hover:text-xeption-goldDim transition-colors">{spec.label}</span>
                                     <span className="text-black font-bold text-right">{spec.value}</span>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {faq.length > 0 && (
+                    <div className="max-w-5xl mx-auto px-4 pb-16 relative z-10">
+                        <div className="flex items-center gap-4 mb-8">
+                            <HelpCircle className="h-8 w-8 text-gray-600" />
+                            <h2 className="text-3xl font-bold text-black font-tech uppercase">Questions fréquentes</h2>
+                            <div className="h-[1px] flex-1 bg-gray-300/50"></div>
+                        </div>
+
+                        <div className="space-y-3">
+                            {faq.map((item, i) => (
+                                <details
+                                    key={i}
+                                    className="group bg-white/40 backdrop-blur-sm border border-gray-200/60 rounded-lg overflow-hidden"
+                                >
+                                    <summary className="flex justify-between items-center gap-3 cursor-pointer list-none p-4 font-bold text-black">
+                                        <span>{item.q}</span>
+                                        <ChevronDown className="h-5 w-5 text-gray-600 shrink-0 transition-transform group-open:rotate-180" />
+                                    </summary>
+                                    <p className="px-4 pb-4 text-gray-800 leading-relaxed">{item.a}</p>
+                                </details>
                             ))}
                         </div>
                     </div>

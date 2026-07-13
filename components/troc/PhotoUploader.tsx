@@ -8,18 +8,20 @@ interface PhotoUploaderProps {
   onPhotosChange: (photos: File[]) => void;
   onNext?: () => void;
   isUploading?: boolean;
-  /**
-   * Index 1-based des photos signalées comme non conformes par Gemini Vision.
-   * Affichées avec un cadre rouge et un badge d'avertissement.
-   */
+  isCheckingPhotos?: boolean;
   issueIndices?: number[];
+  visionReady?: boolean;
+  visionLoading?: boolean;
+  visionSetupHint?: string | null;
 }
 
 export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
-  photos, onPhotosChange, onNext, isUploading = false, issueIndices = [],
+  photos, onPhotosChange, onNext, isUploading = false, isCheckingPhotos = false, issueIndices = [],
+  visionReady = true, visionLoading = false, visionSetupHint = null,
 }) => {
   const issueSet = new Set(issueIndices);
   const hasIssues = issueSet.size > 0;
+  const isBusy = isUploading || isCheckingPhotos;
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = (files: FileList | null) => {
@@ -39,6 +41,24 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           {photos.length}/{MAX_PHOTOS} — Limite : {MAX_PHOTOS} fichiers
         </p>
       </div>
+
+      {visionLoading && (
+        <p className="text-xs text-gray-400 font-sans">Vérification du canal IA vision…</p>
+      )}
+
+      {!visionLoading && !visionReady && visionSetupHint && (
+        <div className="flex items-start gap-2 bg-red-950/50 border border-red-700/60 rounded-sm p-3">
+          <AlertTriangle className="w-4 h-4 text-red-300 mt-0.5 shrink-0" />
+          <div className="text-red-100 text-xs font-sans leading-relaxed space-y-2">
+            <p className="font-medium text-white">Contrôle photo IA non configuré</p>
+            <p>{visionSetupHint}</p>
+          </div>
+        </div>
+      )}
+
+      {!visionLoading && visionReady && visionSetupHint && (
+        <p className="text-xs text-emerald-400/90 font-sans">{visionSetupHint}</p>
+      )}
 
       {hasIssues && (
         <div className="flex items-start gap-2 bg-amber-950/40 border border-amber-700/50 rounded-sm p-3">
@@ -130,20 +150,20 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       )}
 
       {/* Upload spinner */}
-      {isUploading && (
+      {(isUploading || isCheckingPhotos) && (
         <div role="status" className="flex items-center gap-3 text-xeption-gold text-sm font-tech">
           <Loader2 className="animate-spin w-4 h-4" />
-          <span>Envoi en cours...</span>
+          <span>{isCheckingPhotos ? 'Contrôle IA : smartphone réel, photos authentiques…' : 'Envoi en cours…'}</span>
         </div>
       )}
 
       {onNext && (
         <button
           onClick={onNext}
-          disabled={photos.length === 0 || isUploading}
+          disabled={photos.length === 0 || isBusy || !visionReady || visionLoading}
           className="w-full bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest py-4 text-sm shadow-[0_0_20px_rgba(255,215,0,0.25)] transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none"
         >
-          Continuer
+          {isCheckingPhotos ? 'Contrôle IA en cours…' : isUploading ? 'Envoi…' : 'Continuer'}
         </button>
       )}
     </div>

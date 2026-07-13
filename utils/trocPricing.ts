@@ -4,6 +4,40 @@ export type { BlockerReason };
 
 export const PRICING_RULE_VERSION = 'v2';
 
+/** Paliers Smart Troc — source unique des montants affichés (front). */
+export type TrocTier = 'express' | 'premium' | 'safety' | 'certif';
+
+export const TROC_BASE_PRICE_XAF = 150;
+
+export const TROC_TIER_PRICES: Record<TrocTier, number> = {
+  express: 150,
+  premium: 500,
+  safety:  1000,
+  certif:  300,
+} as const;
+
+export const TROC_TIER_LABELS: Record<TrocTier, string> = {
+  express: 'Express',
+  premium: 'Premium',
+  safety:  'Sûreté',
+  certif:  'Certif',
+};
+
+/** Choix Express / Premium / Sûreté avant paiement — désactivé (2 tunnels, prix fixe en entrée). */
+export const TROC_TIER_SELECTOR_ENABLED = false;
+
+/** Palier imposé au tunnel « Troquer mon appareil ». */
+export const TROC_TUNNEL_TIER: TrocTier = 'express';
+
+/** Affichage uniforme des frais (landing, paiement, CTA). */
+export const formatTrocFee = (
+  amount: number = TROC_TIER_PRICES.express,
+  opts?: { short?: boolean },
+): string => {
+  const n = new Intl.NumberFormat('fr-FR').format(amount).replace(/\u202f/g, ' ').replace(/\s/g, ' ');
+  return opts?.short ? `${n} F` : `${n} XAF`;
+};
+
 export type DesirabilityTier = 'premium' | 'high' | 'mid' | 'standard' | 'budget';
 
 const DESIRABILITY_COEFFICIENTS: Record<DesirabilityTier, number> = {
@@ -14,8 +48,28 @@ const DESIRABILITY_COEFFICIENTS: Record<DesirabilityTier, number> = {
   budget:   0.55,  // Tecno Spark, Infinix Hot, Itel, Nokia entrée
 };
 
-// Le magasin rachète à 70 % du prix revente marché → couvre reconditionnnement + marge.
-const BASE_VALUE_MULTIPLIER = 0.70;
+// Le magasin rachète à 60 % du prix revente marché → couvre reconditionnement + marge.
+// Politique boss : "dès que la marchandise quitte la boutique, l'amortissement a commencé"
+// → ratio volontairement serré (était 0,70).
+const BASE_VALUE_MULTIPLIER = 0.60;
+
+// Décote cash vs crédit boutique.
+// Le crédit boutique est la valeur "marketing principale" (= sortie pure de l'algo).
+// Le client peut aussi choisir cash, mais touche -18 % (écart creusé pour pousser le crédit,
+// qui revient en CA sur le neuf → faible décaissement réel pour le magasin).
+// Marketing : "le crédit boutique inclut un bonus de +18 %" — vrai (credit = cash × 1.18).
+export const CASH_DISCOUNT = 0.18;
+
+/** Bonus crédit affiché (UI) — dérivé de CASH_DISCOUNT pour ne jamais dériver. */
+export const CREDIT_BONUS_PERCENT = Math.round(CASH_DISCOUNT * 100);
+
+/** Plancher digne : un appareil ACCEPTÉ ne reçoit jamais une offre humiliante
+ *  (réputation/bouche-à-oreille > quelques milliers économisés). */
+export const DIGNIFIED_FLOOR_XAF = 15000;
+
+/** Convertit la valeur crédit boutique (= sortie algo) en valeur cash immédiate. */
+export const creditToCash = (credit: number): number =>
+  roundTo5000(credit / (1 + CASH_DISCOUNT));
 
 export const floorTo5000 = (amount: number): number => Math.floor(amount / 5000) * 5000;
 
@@ -173,9 +227,32 @@ export const resolveDesirabilityTier = (brand: string, model: string): Desirabil
 
 // ─── Critères bloquants ───────────────────────────────────────────────────────
 
-export const checkBlockers = (form: TrocDeviceForm, basePrice: number): BlockerReason | null => {
+/** Au-delà de cet âge, l'appareil n'est plus repris. */
+export const MAX_DEVICE_AGE_YEARS = 8;
+
+/**
+ * @param releaseYear   Année de sortie (null = inconnue → pas de blocage d'âge ;
+ *                      on ne refuse jamais sur une donnée manquante).
+ * @param isCatalogModel true = modèle référencé dans `trade_in_models` (prix curé par le staff).
+ *                      Le catalogue PRIME sur l'âge : un modèle référencé est acheté quel que
+ *                      soit son âge (le staff décide le plancher en ajoutant/retirant un modèle,
+ *                      pas le calendrier). La règle des 8 ans ne gate que le HORS-catalogue.
+ */
+export const checkBlockers = (
+  form: TrocDeviceForm,
+  basePrice: number,
+  releaseYear?: number | null,
+  isCatalogModel = false,
+): BlockerReason | null => {
   if (form.powersOn === false)      return 'powers_off';
   if (form.hasWaterDamage === true) return 'water_damage';
+  if (
+    !isCatalogModel &&
+    releaseYear != null &&
+    new Date().getFullYear() - releaseYear > MAX_DEVICE_AGE_YEARS
+  ) {
+    return 'too_old';
+  }
   if (!Number.isFinite(basePrice) || basePrice <= 0) return 'no_base_price';
   return null;
 };
@@ -183,6 +260,10 @@ export const checkBlockers = (form: TrocDeviceForm, basePrice: number): BlockerR
 // ─── Arbre de décision principal ─────────────────────────────────────────────
 
 export interface OfferV2Result extends Pick<TrocEvaluationResult, 'tradeInValue' | 'tradeInGrade'> {
+  /** Valeur crédit boutique = sortie pure de l'algo (montant principal affiché). */
+  tradeInValueCredit: number;
+  /** Valeur cash = crédit / 1.10, arrondie au multiple de 5000 inférieur. */
+  tradeInValueCash: number;
   conditionScore: number;
   scoreColor: 'green' | 'orange' | 'red';
   blockerReason: BlockerReason | null;
@@ -191,14 +272,21 @@ export interface OfferV2Result extends Pick<TrocEvaluationResult, 'tradeInValue'
   baseValue: number;
 }
 
-export const computeOfferV2 = (form: TrocDeviceForm, basePrice: number): OfferV2Result => {
-  // Étape 1 — Refus directs
-  const blocker = checkBlockers(form, basePrice);
+export const computeOfferV2 = (
+  form: TrocDeviceForm,
+  basePrice: number,
+  releaseYear?: number | null,
+  isCatalogModel = false,
+): OfferV2Result => {
+  // Étape 1 — Refus directs (le catalogue prime sur l'âge)
+  const blocker = checkBlockers(form, basePrice, releaseYear, isCatalogModel);
   if (blocker) {
     return {
       conditionScore: 0,
       scoreColor: 'red',
       tradeInValue: 0,
+      tradeInValueCredit: 0,
+      tradeInValueCash: 0,
       tradeInGrade: 'refuse',
       blockerReason: blocker,
       desirabilityTier: 'standard',
@@ -221,13 +309,11 @@ export const computeOfferV2 = (form: TrocDeviceForm, basePrice: number): OfferV2
   // Étape 5 — Valeur finale
   // valeur = base × (score/100) × coeff_désirabilité
   const rawValue = baseValue * (conditionScore / 100) * desirabilityCoeff;
-  const tradeInValue = roundTo5000(rawValue);
+  let tradeInValue = roundTo5000(rawValue);
 
-  // Étape 6 — Grade
+  // Étape 6 — Grade (basé sur l'état, pas la valeur)
   let tradeInGrade: TrocTradeInGrade;
-  if (tradeInValue === 0) {
-    tradeInGrade = 'refuse';
-  } else if (conditionScore >= 70) {
+  if (conditionScore >= 70) {
     tradeInGrade = 'excellent';
   } else if (conditionScore >= 40) {
     tradeInGrade = 'bon';
@@ -237,10 +323,25 @@ export const computeOfferV2 = (form: TrocDeviceForm, basePrice: number): OfferV2
     tradeInGrade = 'refuse';
   }
 
+  // Étape 7 — Plancher digne / refus
+  if (tradeInGrade === 'refuse' || tradeInValue <= 0) {
+    tradeInValue = 0;
+    tradeInGrade = 'refuse';
+  } else if (tradeInValue < DIGNIFIED_FLOOR_XAF) {
+    tradeInValue = DIGNIFIED_FLOOR_XAF;
+  }
+
+  // Crédit boutique = valeur principale (= sortie algo).
+  // Cash = -10 %, arrondi inférieur multiple de 5000.
+  const tradeInValueCredit = tradeInValue;
+  const tradeInValueCash   = creditToCash(tradeInValue);
+
   return {
     conditionScore,
     scoreColor,
     tradeInValue,
+    tradeInValueCredit,
+    tradeInValueCash,
     tradeInGrade,
     blockerReason: null,
     desirabilityTier: tier,

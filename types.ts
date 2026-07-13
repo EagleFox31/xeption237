@@ -119,12 +119,14 @@ export interface Customer {
   created_at?: string;
 }
 
+import type { StaffRoleValue } from './constants/staffRoles';
+
 export interface Staff {
   id: string;
   username?: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'editor';
+  role: StaffRoleValue;
   phone?: string;
   avatar?: string;
   created_at?: string;
@@ -195,13 +197,18 @@ export interface TradeInRequest {
   ai_score_color?: 'green' | 'orange' | 'red';
   ai_justification?: string;
   trade_in_value?: number;
+  trade_in_value_cash?: number;
   trade_in_grade?: 'excellent' | 'bon' | 'pieces' | 'refuse';
   /** Raison technique du refus quand trade_in_grade='refuse'. Null sinon. */
   blocker_reason?: BlockerReason | null;
-  status: 'pending' | 'accepted' | 'refused' | 'validated' | 'completed' | 'cancelled';
+  /** Palier de service payé : 'express' | 'premium' | 'safety'. Premium+ déverrouille le certificat PDF. */
+  tier?: 'express' | 'premium' | 'safety' | null;
+  status: 'in_progress' | 'pending' | 'accepted' | 'refused' | 'validated' | 'completed' | 'cancelled';
   admin_notes?: string;
   voucher_reference?: string;
   trade_in_model_id?: string;
+  /** UUID session navigateur — lien direct avec troc_payments.session_key. */
+  session_key?: string;
 }
 
 export interface TrocDeviceForm {
@@ -215,9 +222,14 @@ export interface TrocDeviceForm {
   deviceModel: string;
   deviceStorage: string;
   deviceRam: string;
+  /** Id du modèle catalogue sélectionné (`trade_in_models.id`) — permet au serveur de
+   *  retrouver le base_price par id (exact) plutôt que par matching de nom fragile. */
+  tradeInModelId?: string;
   // Provenance
   acquisitionCondition: 'new' | 'used';
   purchaseDate: string;
+  /** UI : date inconnue — validation serveur assouplie côté Claude Code */
+  purchaseDateUnknown?: boolean;
   ownershipRank: 'unknown' | 'first' | 'second' | 'third_plus';
   // État physique
   batteryHealth: number;
@@ -250,9 +262,17 @@ export interface TrocPayment {
   currency: string;
   channel: 'om' | 'momo';
   phone: string;
+  /** Nom formulaire au moment du paiement (avant save-trade-in). */
+  customer_name?: string;
+  /** Téléphone formulaire (peut différer du numéro OM/Momo `phone`). */
+  customer_phone?: string;
+  /** Palier de service payé. Défaut DB = 'express'. */
+  tier: 'express' | 'premium' | 'safety';
   status: 'pending' | 'paid' | 'failed' | 'expired';
   notchpay_status?: string;
   paid_at?: string;
+  /** Dossier lié après save-trade-in (FK explicite). */
+  trade_in_request_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -268,22 +288,50 @@ export interface TrocSession {
   updated_at: string;
 }
 
-export type TrocEvaluationMode = 'vision_ai' | 'local_heuristic' | 'local_heuristic_fallback';
+export type TrocEvaluationMode =
+  | 'vision_ai'
+  | 'local_heuristic'
+  | 'local_heuristic_fallback'
+  | 'credibility_verified';
 export type TrocTradeInGrade = 'excellent' | 'bon' | 'pieces' | 'refuse';
+
+/**
+ * Cote du marché — tendance d'évolution de la valeur du modèle au Cameroun.
+ * Issue du pipeline cascade Wayback → Bing → Google Trends → fallback âge.
+ * Voir supabase/functions/get-market-trend/index.ts pour le calcul.
+ */
+export interface MarketTrend {
+  label:        'rising' | 'stable' | 'falling' | 'insufficient_data';
+  /** 0 = aucun mouvement, 1 = mouvement majeur. */
+  strength:     number;
+  /** 0 = fallback fragile, 1 = data croisée robuste. */
+  confidence:   number;
+  /** Chaîne des sources qui ont parlé (ex: ['wayback', 'bing']). Debug/admin. */
+  source_chain: string[];
+  /** Phrase prête à afficher côté UI. */
+  message_fr:   string;
+}
 
 /**
  * Raisons techniques de refus issues de checkBlockers (utils/trocPricing.ts).
  * Affiche un message client adapté via resolveEvaluationMessage.
  */
-export type BlockerReason = 'powers_off' | 'water_damage' | 'no_base_price';
+export type BlockerReason = 'powers_off' | 'water_damage' | 'no_base_price' | 'too_old';
 
 export interface TrocEvaluationResult {
   score: number;
   scoreColor: 'green' | 'orange' | 'red';
   justification: string;
+  /** Valeur principale = crédit boutique. Alias historique de tradeInValueCredit. */
   tradeInValue: number;
+  /** Valeur crédit boutique (= sortie pure algo, montant marketing principal). */
+  tradeInValueCredit: number;
+  /** Valeur cash immédiat (= crédit / 1.10, arrondi 5000 inférieur). */
+  tradeInValueCash: number;
   tradeInGrade: TrocTradeInGrade;
   evaluationMode: TrocEvaluationMode;
   pricingRuleVersion: string;
   blockerReason?: BlockerReason | null;
+  /** Cote du marché — issue de get-market-trend, null si indispo. */
+  marketTrend?: MarketTrend | null;
 }

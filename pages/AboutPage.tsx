@@ -2,31 +2,41 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BadgeCheck, ChevronRight, Cpu, MapPin, RefreshCw, ShieldCheck, Sparkles, Store, Truck } from 'lucide-react';
 import { PageSEO } from '../utils/seo';
+import {
+  INSTITUTIONAL_FEATURE_CARD_CLASS,
+  INSTITUTIONAL_HEADER_BADGE_CLASS,
+  INSTITUTIONAL_PAGE_HEADER_CLASS,
+  INSTITUTIONAL_PAGE_LEAD_CLASS,
+  INSTITUTIONAL_PAGE_TITLE_CLASS,
+  INSTITUTIONAL_SECTION_BODY_CLASS,
+  INSTITUTIONAL_SECTION_CLASS,
+  INSTITUTIONAL_SECTION_DIVIDER_CLASS,
+  INSTITUTIONAL_SECTION_HEADING_CLASS,
+  INSTITUTIONAL_TOC_CLASS,
+  INSTITUTIONAL_TOC_LINK_IDLE,
+} from '../constants/institutionalPageStyles';
 
 const Section: React.FC<{ id: string; icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ id, icon, title, children }) => (
-  <section
-    id={id}
-    className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 md:p-8 hover:border-xeption-gold/20 transition-all duration-300 scroll-mt-32 snap-start"
-  >
-    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
+  <section id={id} className={INSTITUTIONAL_SECTION_CLASS}>
+    <div className={`flex items-center gap-3 mb-6 pb-4 ${INSTITUTIONAL_SECTION_DIVIDER_CLASS}`}>
       <div className="w-10 h-10 bg-xeption-gold/10 rounded-lg flex items-center justify-center text-xeption-gold">
         {icon}
       </div>
-      <h2 className="text-xl font-bold text-white font-tech uppercase tracking-wider">{title}</h2>
+      <h2 className={INSTITUTIONAL_SECTION_HEADING_CLASS}>{title}</h2>
     </div>
-    <div className="space-y-4 text-gray-300 text-sm leading-relaxed">
+    <div className={INSTITUTIONAL_SECTION_BODY_CLASS}>
       {children}
     </div>
   </section>
 );
 
 const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; text: string }> = ({ icon, title, text }) => (
-  <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+  <div className={INSTITUTIONAL_FEATURE_CARD_CLASS}>
     <div className="w-10 h-10 bg-xeption-gold/10 rounded-lg flex items-center justify-center text-xeption-gold mb-4">
       {icon}
     </div>
     <h3 className="text-white font-bold font-tech uppercase tracking-wider text-sm mb-2">{title}</h3>
-    <p className="text-gray-400 text-sm leading-relaxed">{text}</p>
+    <p className="text-white/90 text-sm leading-relaxed">{text}</p>
   </div>
 );
 
@@ -39,20 +49,20 @@ const SECTIONS = [
 ];
 
 const TOC: React.FC<{ activeId: string }> = ({ activeId }) => (
-  <nav className="fixed top-24 right-4 w-[min(20rem,calc(100vw-2rem))] max-h-[calc(100vh-7rem)] overflow-auto bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-xl z-40" aria-label="Sommaire">
-    <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest mb-4">Sommaire</p>
-    <ol className="flex flex-col gap-2 text-sm">
+  <nav className={INSTITUTIONAL_TOC_CLASS} aria-label="Sommaire">
+    <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest mb-3 xl:mb-4">Sommaire</p>
+    <ol className="flex gap-2 overflow-x-auto no-scrollbar text-sm xl:flex-col xl:overflow-visible">
       {SECTIONS.map((item, idx) => {
         const isActive = activeId === item.id;
         return (
-          <li key={item.id}>
+          <li key={item.id} className="shrink-0 xl:shrink">
             <a
               href={`#${item.id}`}
-              className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 group ${
-                isActive ? 'bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 group whitespace-nowrap ${
+                isActive ? 'bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold' : INSTITUTIONAL_TOC_LINK_IDLE
               }`}
             >
-              <ChevronRight className={`w-3 h-3 transition-transform duration-300 shrink-0 ${isActive ? 'text-xeption-gold translate-x-1' : 'text-gray-600 group-hover:text-xeption-gold group-hover:translate-x-0.5'}`} />
+              <ChevronRight className={`w-3 h-3 transition-transform duration-300 shrink-0 ${isActive ? 'text-xeption-gold translate-x-1' : 'text-white/60 group-hover:text-xeption-gold group-hover:translate-x-0.5'}`} />
               <span className={`font-mono text-xs w-5 shrink-0 ${isActive ? 'text-xeption-gold' : 'text-xeption-gold/50'}`}>
                 {String(idx + 1).padStart(2, '0')}
               </span>
@@ -98,23 +108,21 @@ const AboutPage: React.FC = () => {
       />
 
       <div className="min-h-screen pt-28 pb-20 px-4 relative">
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-0 pointer-events-none" />
-
         <div className="max-w-4xl mx-auto relative z-10">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-xeption-gold/10 border border-xeption-gold/30 rounded-full px-4 py-2 text-xeption-gold text-xs font-bold uppercase tracking-widest mb-6">
+          <div className={INSTITUTIONAL_PAGE_HEADER_CLASS}>
+            <div className={INSTITUTIONAL_HEADER_BADGE_CLASS}>
               <Sparkles className="w-3.5 h-3.5" />
               Xeption Network
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-lg mb-4">
+            <h1 className={INSTITUTIONAL_PAGE_TITLE_CLASS}>
               À <span className="text-xeption-gold">Propos</span>
             </h1>
-            <p className="text-gray-300 max-w-2xl mx-auto text-sm leading-relaxed">
+            <p className={`${INSTITUTIONAL_PAGE_LEAD_CLASS} max-w-2xl leading-relaxed`}>
               Xeption Network est une boutique tech pensée pour le marché camerounais, avec une approche plus claire,
               plus premium et plus utile que le e-commerce gadget. L'objectif est simple : aider les clients à acheter,
               comparer, faire reprendre ou suivre leurs appareils dans un cadre plus sérieux.
             </p>
-            <div className="flex items-center justify-center gap-2 mt-4 text-gray-500 text-xs">
+            <div className="flex items-center justify-center gap-2 mt-4 text-white/75 text-xs">
               <RefreshCw className="w-3 h-3" />
               Dernière mise à jour : {lastUpdated}
             </div>

@@ -121,12 +121,12 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
     .meta {
       text-align: right;
       font-size: 11px;
-      color: #555555;
+      color: #a0a0a0;
       line-height: 2;
     }
 
     .meta strong {
-      color: #888888;
+      color: #d0d0d0;
       font-weight: 500;
     }
 
@@ -148,7 +148,7 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
       font-weight: 700;
       letter-spacing: 2px;
       text-transform: uppercase;
-      color: #444444;
+      color: #b0b0b0;
       margin-bottom: 6px;
     }
 
@@ -180,7 +180,7 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
       font-weight: 700;
       letter-spacing: 2px;
       text-transform: uppercase;
-      color: #666666;
+      color: #b8b8b8;
       margin-bottom: 10px;
     }
 
@@ -194,7 +194,7 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
 
     .amount-sub {
       font-size: 11px;
-      color: #444444;
+      color: #a0a0a0;
       margin-top: 10px;
       font-weight: 500;
       letter-spacing: 1px;
@@ -212,7 +212,7 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
 
     .validity-label {
       font-size: 10px;
-      color: #555555;
+      color: #a8a8a8;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -236,13 +236,13 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 2px;
-      color: #333333;
+      color: #c0c0c0;
       font-family: monospace;
     }
 
     .ref-label {
       font-size: 9px;
-      color: #333333;
+      color: #a0a0a0;
       letter-spacing: 1px;
       text-transform: uppercase;
     }
@@ -254,7 +254,7 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
 
     .footer p {
       font-size: 10px;
-      color: #333333;
+      color: #909090;
       line-height: 1.7;
     }
 
@@ -354,10 +354,12 @@ export const downloadTradeInVoucher = async (request: TradeInRequest): Promise<v
   const html = generateTradeInVoucherHTML(request);
 
   // Conteneur off-screen pour le rendu — html2canvas a besoin du DOM réel.
+  // Largeur fixée = largeur de capture déterministe (sinon white-space aléatoire).
   const wrapper = document.createElement('div');
   wrapper.style.position = 'fixed';
   wrapper.style.left = '-10000px';
   wrapper.style.top = '0';
+  wrapper.style.width = '520px';
   wrapper.innerHTML = html;
   document.body.appendChild(wrapper);
 
@@ -382,6 +384,11 @@ export const downloadTradeInVoucher = async (request: TradeInRequest): Promise<v
 
   const filename = `Xeption-BonTroc-${request.voucher_reference || request.id}.pdf`;
 
+  // Page PDF = dimensions exactes du bon (px → mm à 96 DPI) → zéro marge blanche.
+  const PX_TO_MM = 25.4 / 96;
+  const pageWidthMm = target.offsetWidth * PX_TO_MM;
+  const pageHeightMm = target.offsetHeight * PX_TO_MM;
+
   try {
     await html2pdf()
       .set({
@@ -393,7 +400,7 @@ export const downloadTradeInVoucher = async (request: TradeInRequest): Promise<v
           backgroundColor: '#0a0a0a',
           useCORS: true,
         },
-        jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' },
+        jsPDF: { unit: 'mm', format: [pageWidthMm, pageHeightMm], orientation: 'portrait' },
       })
       .from(target)
       .save();

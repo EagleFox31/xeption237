@@ -1,27 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Shield, Globe, Server, BookOpen, Mail, Phone, MapPin, Building2, FileText, RefreshCw, ChevronRight } from 'lucide-react';
+import {
+  INSTITUTIONAL_HEADER_BADGE_CLASS,
+  INSTITUTIONAL_PAGE_HEADER_CLASS,
+  INSTITUTIONAL_PAGE_LEAD_CLASS,
+  INSTITUTIONAL_PAGE_TITLE_CLASS,
+  INSTITUTIONAL_SECTION_BODY_CLASS,
+  INSTITUTIONAL_SECTION_CLASS,
+  INSTITUTIONAL_SECTION_DIVIDER_CLASS,
+  INSTITUTIONAL_SECTION_HEADING_CLASS,
+  INSTITUTIONAL_PAGE_FOOTER_CLASS,
+  INSTITUTIONAL_TOC_CLASS,
+  INSTITUTIONAL_TOC_LINK_IDLE,
+} from '../constants/institutionalPageStyles';
 
 const Section: React.FC<{ id: string; icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ id, icon, title, children }) => (
-  <section
-    id={id}
-    className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 md:p-8 hover:border-xeption-gold/20 transition-all duration-300 scroll-mt-32 snap-start"
-  >
-    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
+  <section id={id} className={INSTITUTIONAL_SECTION_CLASS}>
+    <div className={`flex items-center gap-3 mb-6 pb-4 ${INSTITUTIONAL_SECTION_DIVIDER_CLASS}`}>
       <div className="w-10 h-10 bg-xeption-gold/10 rounded-lg flex items-center justify-center text-xeption-gold">
         {icon}
       </div>
-      <h2 className="text-xl font-bold text-white font-tech uppercase tracking-wider">{title}</h2>
+      <h2 className={INSTITUTIONAL_SECTION_HEADING_CLASS}>{title}</h2>
     </div>
-    <div className="space-y-3 text-gray-300 text-sm leading-relaxed">
+    <div className={INSTITUTIONAL_SECTION_BODY_CLASS}>
       {children}
     </div>
   </section>
 );
 
 const Row: React.FC<{ label: string; value: React.ReactNode; icon?: React.ReactNode }> = ({ label, value, icon }) => (
-  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2 border-b border-white/5 last:border-0">
-    <span className="text-gray-500 text-xs font-bold uppercase tracking-widest sm:w-48 shrink-0 flex items-center gap-1.5">
+  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2 border-b border-white/10 last:border-0">
+    <span className="text-white/75 text-xs font-bold uppercase tracking-widest sm:w-48 shrink-0 flex items-center gap-1.5">
       {icon && <span className="text-xeption-gold">{icon}</span>}
       {label}
     </span>
@@ -39,20 +49,20 @@ const SECTIONS = [
 ];
 
 const TOC: React.FC<{ activeId: string }> = ({ activeId }) => (
-  <nav className="fixed top-24 right-4 w-[min(20rem,calc(100vw-2rem))] max-h-[calc(100vh-7rem)] overflow-auto bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-xl z-40" aria-label="Sommaire">
-    <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest mb-4">Sommaire</p>
-    <ol className="flex flex-col gap-2 text-sm">
+  <nav className={INSTITUTIONAL_TOC_CLASS} aria-label="Sommaire">
+    <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest mb-3 xl:mb-4">Sommaire</p>
+    <ol className="flex gap-2 overflow-x-auto no-scrollbar text-sm xl:flex-col xl:overflow-visible">
       {SECTIONS.map((item, idx) => {
         const isActive = activeId === item.id;
         return (
-          <li key={item.id}>
+          <li key={item.id} className="shrink-0 xl:shrink">
             <a
               href={`#${item.id}`}
-              className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 group ${
-                isActive ? 'bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 group whitespace-nowrap ${
+                isActive ? 'bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold' : INSTITUTIONAL_TOC_LINK_IDLE
               }`}
             >
-              <ChevronRight className={`w-3 h-3 transition-transform duration-300 shrink-0 ${isActive ? 'text-xeption-gold translate-x-1' : 'text-gray-600 group-hover:text-xeption-gold group-hover:translate-x-0.5'}`} />
+              <ChevronRight className={`w-3 h-3 transition-transform duration-300 shrink-0 ${isActive ? 'text-xeption-gold translate-x-1' : 'text-white/60 group-hover:text-xeption-gold group-hover:translate-x-0.5'}`} />
               <span className={`font-mono text-xs w-5 shrink-0 ${isActive ? 'text-xeption-gold' : 'text-xeption-gold/50'}`}>
                 {String(idx + 1).padStart(2, '0')}
               </span>
@@ -101,24 +111,22 @@ const MentionsLegalesPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen pt-28 pb-20 px-4 relative">
-        {/* Overlay sombre pour lisibilité sur fond vidéo */}
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-0 pointer-events-none" />
         <div className="max-w-4xl mx-auto relative z-10">
           <TOC activeId={activeSection} />
 
           {/* Header */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-xeption-gold/10 border border-xeption-gold/30 rounded-full px-4 py-2 text-xeption-gold text-xs font-bold uppercase tracking-widest mb-6">
+          <div className={INSTITUTIONAL_PAGE_HEADER_CLASS}>
+            <div className={INSTITUTIONAL_HEADER_BADGE_CLASS}>
               <Shield className="w-3.5 h-3.5" />
               Informations légales
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-lg mb-4">
+            <h1 className={INSTITUTIONAL_PAGE_TITLE_CLASS}>
               Mentions <span className="text-xeption-gold">Légales</span>
             </h1>
-            <p className="text-gray-400 max-w-xl mx-auto text-sm">
+            <p className={INSTITUTIONAL_PAGE_LEAD_CLASS}>
               Conformément aux obligations légales en vigueur, vous trouverez ci-dessous toutes les informations relatives à l'édition et à l'hébergement du présent site.
             </p>
-            <div className="flex items-center justify-center gap-2 mt-4 text-gray-600 text-xs">
+            <div className="flex items-center justify-center gap-2 mt-4 text-white/75 text-xs">
               <RefreshCw className="w-3 h-3" />
               Dernière mise à jour : {lastUpdated}
             </div>
@@ -128,7 +136,7 @@ const MentionsLegalesPage: React.FC = () => {
 
             {/* Éditeur du site */}
             <Section id="editeur" icon={<Building2 className="w-5 h-5" />} title="Éditeur du site">
-              <p className="text-gray-400 text-xs italic mb-4">
+              <p className="text-white text-xs italic mb-4">
                 Le présent site est édité par ETS XEPTION, entreprise individuelle (EI) exerçant ses activités dans le secteur de la vente de produits high-tech.
               </p>
               <Row
@@ -182,7 +190,7 @@ const MentionsLegalesPage: React.FC = () => {
 
             {/* Responsable de la publication */}
             <Section id="publication" icon={<FileText className="w-5 h-5" />} title="Responsable de la publication">
-              <p className="text-gray-400 text-xs italic mb-4">
+              <p className="text-white text-xs italic mb-4">
                 La publication et la conception numérique du site sont assurées par :
               </p>
               <Row
@@ -211,7 +219,7 @@ const MentionsLegalesPage: React.FC = () => {
 
             {/* Hébergement */}
             <Section id="hebergement" icon={<Server className="w-5 h-5" />} title="Hébergement">
-              <p className="text-gray-400 text-xs italic mb-4">
+              <p className="text-white text-xs italic mb-4">
                 Le site est hébergé par la société suivante :
               </p>
               <Row label="Hébergeur" value="Vercel Inc." />
@@ -238,7 +246,7 @@ const MentionsLegalesPage: React.FC = () => {
 
             {/* Nom de domaine */}
             <Section id="domaine" icon={<Globe className="w-5 h-5" />} title="Nom de domaine">
-              <p className="text-gray-400 text-xs italic mb-4">
+              <p className="text-white text-xs italic mb-4">
                 Le nom de domaine <strong className="text-white">xeptionetwork.shop</strong> est enregistré auprès du bureau d'enregistrement suivant :
               </p>
               <Row label="Registraire" value="HOSTINGER operations, UAB" />
@@ -275,7 +283,7 @@ const MentionsLegalesPage: React.FC = () => {
               <p>
                 Toute reproduction, représentation, modification, publication, transmission ou adaptation totale ou partielle de ces éléments, par quelque procédé que ce soit et sur quelque support que ce soit, est <strong className="text-white">strictement interdite sans autorisation préalable écrite</strong> de ETS XEPTION.
               </p>
-              <p className="text-gray-500 text-xs italic">
+              <p className="text-white text-xs italic">
                 Pour toute demande d'autorisation ou de licence, contactez-nous à{' '}
                 <a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline">
                   support@xeptionetwork.shop
@@ -294,7 +302,7 @@ const MentionsLegalesPage: React.FC = () => {
               <p>
                 Pour toute question relative au traitement de vos données personnelles, ou pour exercer vos droits d'accès, de rectification ou de suppression, vous pouvez écrire à :
               </p>
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-4 py-3 mt-2">
+              <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-lg px-4 py-3 mt-2">
                 <Mail className="w-4 h-4 text-xeption-gold" />
                 <a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline font-mono text-sm">
                   support@xeptionetwork.shop
@@ -303,9 +311,9 @@ const MentionsLegalesPage: React.FC = () => {
             </Section>
 
             {/* Note bas de page */}
-            <div className="text-center text-gray-600 text-xs pt-4 pb-8">
+            <div className={INSTITUTIONAL_PAGE_FOOTER_CLASS}>
               <p>© {new Date().getFullYear()} ETS XEPTION — Tous droits réservés.</p>
-              <p className="mt-1">Site réalisé par <span className="text-gray-500">Trigenys Group</span></p>
+              <p className="mt-1">Site réalisé par <span className="text-gray-700">Trigenys Group</span></p>
             </div>
 
           </div>

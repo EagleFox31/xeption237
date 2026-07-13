@@ -1,27 +1,45 @@
 
 import React, { useState, useMemo } from 'react';
 import { Box, User, Phone, Mail, ShoppingCart, Grid, CheckCircle, Printer, ArrowRight, Search, SlidersHorizontal, Filter, X } from 'lucide-react';
-import { Product, CartItem, Order, Category } from '../../../types';
+import { Product, CartItem, Order, Category, Brand } from '../../../types';
 import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
+import { optimizeImage } from '../../../utils/mediaOptimization';
+import {
+  getBrandDisplayName,
+  resolveProductBrandId,
+  UNASSIGNED_BRAND_KEY,
+} from '../../../utils/productBrand';
 
 interface PosTabProps {
   products: Product[];
   categories: Category[];
+  brands: Brand[];
   posCart: CartItem[];
   posSearch: string;
   setPosSearch: (val: string) => void;
   posCustomer: { name: string; phone: string; email: string };
   setPosCustomer: (val: { name: string; phone: string; email: string }) => void;
   addToPosCart: (product: Product) => void;
+  removeFromPosCart: (productId: string) => void;
   onPosSubmit: () => void;
   lastOrder: Order | null;
   onDismissSuccess: () => void;
 }
 
-const PosTab: React.FC<PosTabProps> = ({ 
-    products, categories, posCart, posSearch, setPosSearch, 
-    posCustomer, setPosCustomer, addToPosCart, onPosSubmit,
-    lastOrder, onDismissSuccess 
+const PosTab: React.FC<PosTabProps> = ({
+    products,
+    categories,
+    brands,
+    posCart,
+    posSearch,
+    setPosSearch,
+    posCustomer,
+    setPosCustomer,
+    addToPosCart,
+    removeFromPosCart,
+    onPosSubmit,
+    lastOrder,
+    onDismissSuccess,
 }) => {
   const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -31,9 +49,19 @@ const PosTab: React.FC<PosTabProps> = ({
   const totalItems = posCart.reduce((sum, item) => sum + item.quantity, 0);
 
   // --- FILTRAGE ET TRI ---
+  const getProductBrandLabel = (product: Product) => {
+      const brandId = resolveProductBrandId(product, brands);
+      return getBrandDisplayName(brandId ?? UNASSIGNED_BRAND_KEY, brands);
+  };
+
   const filteredProducts = useMemo(() => {
-      let filtered = products.filter(p => {
-          const matchSearch = p.name.toLowerCase().includes(posSearch.toLowerCase());
+      const q = posSearch.trim().toLowerCase();
+      let filtered = products.filter((p) => {
+          const brandLabel = getProductBrandLabel(p).toLowerCase();
+          const matchSearch =
+              !q ||
+              p.name.toLowerCase().includes(q) ||
+              brandLabel.includes(q);
           const matchCat = selectedCategory === 'all' || p.category === selectedCategory;
           return matchSearch && matchCat;
       });
@@ -43,7 +71,7 @@ const PosTab: React.FC<PosTabProps> = ({
           if (sortBy === 'price-desc') return b.price - a.price;
           return a.name.localeCompare(b.name);
       });
-  }, [products, posSearch, selectedCategory, sortBy]);
+  }, [products, brands, posSearch, selectedCategory, sortBy]);
 
   const handlePrint = () => {
       if (!lastOrder) return;
@@ -126,7 +154,7 @@ const PosTab: React.FC<PosTabProps> = ({
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mask-right">
                     <button 
                         onClick={() => setSelectedCategory('all')} 
-                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap transition-all border ${selectedCategory === 'all' ? 'bg-xeption-gold text-black border-xeption-gold' : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30'}`}
+                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap transition-all border ${selectedCategory === 'all' ? 'bg-xeption-gold text-black border-xeption-gold' : 'bg-white/5 text-white border-white/20 hover:border-white/40'}`}
                     >
                         Tout
                     </button>
@@ -134,7 +162,7 @@ const PosTab: React.FC<PosTabProps> = ({
                         <button 
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat.slug)} 
-                            className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap transition-all border ${selectedCategory === cat.slug ? 'bg-xeption-gold text-black border-xeption-gold' : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30'}`}
+                            className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap transition-all border ${selectedCategory === cat.slug ? 'bg-xeption-gold text-black border-xeption-gold' : 'bg-white/5 text-white border-white/20 hover:border-white/40'}`}
                         >
                             {cat.name}
                         </button>
@@ -142,40 +170,74 @@ const PosTab: React.FC<PosTabProps> = ({
                 </div>
             </div>
 
-            {/* GRILLE PRODUITS - SCROLLABLE */}
-            <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 content-start pb-20 lg:pb-4 custom-scrollbar">
+            {/* GRILLE PRODUITS — scroll sur le wrapper, pas sur la grid (sinon flex-1 écrase les lignes) */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-20 lg:pb-4">
+                <div className="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 content-start items-start">
                 {filteredProducts.length === 0 ? (
-                    <div className="col-span-full text-center py-20 text-gray-500">
+                    <div className="col-span-full text-center py-20 text-white/60">
                         <Box className="w-12 h-12 mx-auto mb-2 opacity-20"/>
                         <p>Aucun produit trouvé.</p>
                     </div>
                 ) : (
-                    filteredProducts.map(p => (
-                        <button 
-                            key={p.id} 
-                            onClick={() => addToPosCart(p)} 
-                            disabled={p.stock<=0} 
-                            className={`bg-[#18181b] border border-white/5 p-2 rounded-sm hover:border-xeption-gold/50 text-left flex flex-col h-full group transition-all active:scale-95 relative overflow-hidden ${p.stock <= 0 ? 'opacity-60 grayscale' : ''}`}
-                        >
-                            {/* Pastille Stock */}
-                            <div className={`absolute top-2 left-2 w-2 h-2 rounded-full z-10 shadow-lg ${p.stock > 5 ? 'bg-green-500' : p.stock > 0 ? 'bg-orange-500' : 'bg-red-500'}`}></div>
+                    filteredProducts.map((p) => {
+                        const brandLabel = getProductBrandLabel(p);
+                        return (
+                            <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => addToPosCart(p)}
+                                disabled={p.stock <= 0}
+                                className={`bg-[#111214] border border-white/10 rounded-sm hover:border-xeption-gold/50 text-left flex flex-col w-full min-w-0 overflow-hidden isolate group transition-all active:scale-[0.98] ${p.stock <= 0 ? 'opacity-60 grayscale' : ''}`}
+                            >
+                                <div className="relative h-28 bg-black shrink-0 overflow-hidden">
+                                    <img
+                                        src={optimizeImage(p.image, 280)}
+                                        className="w-full h-full object-contain p-2 pointer-events-none"
+                                        alt=""
+                                    />
 
-                            <div className="aspect-square bg-black rounded-sm mb-2 relative overflow-hidden">
-                                <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.name}/>
-                                {p.stock<=0 && <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-xs text-red-500 font-bold backdrop-blur-sm uppercase tracking-widest border border-red-500/30">Rupture</div>}
-                            </div>
-                            
-                            <h4 className="text-[11px] font-bold text-gray-200 line-clamp-2 leading-tight group-hover:text-white h-8 mb-1">{p.name}</h4>
-                            
-                            <div className="mt-auto pt-2 border-t border-white/5 flex justify-between items-end">
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] text-gray-500 uppercase">Stock: {p.stock}</span>
+                                    <div
+                                        className={`absolute top-2 left-2 w-2.5 h-2.5 rounded-full z-10 shadow-lg ${p.stock > 5 ? 'bg-green-500' : p.stock > 0 ? 'bg-orange-500' : 'bg-red-500'}`}
+                                        aria-hidden
+                                    />
+
+                                    {p.stock <= 0 && (
+                                        <div className="absolute inset-0 z-20 bg-black/75 flex items-center justify-center text-xs text-red-400 font-bold uppercase tracking-widest">
+                                            Rupture
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="text-xs font-bold text-xeption-gold font-mono">{p.price.toLocaleString()}</span>
-                            </div>
-                        </button>
-                    ))
+
+                                <div className="px-2.5 py-2 bg-[#0c0c0e] border-t border-white/10 shrink-0 min-h-[3.25rem]">
+                                    <p className="text-[9px] font-tech uppercase tracking-[0.18em] text-xeption-gold leading-none mb-1 truncate">
+                                        {brandLabel}
+                                    </p>
+                                    <p className="text-[11px] font-bold text-white font-tech uppercase leading-snug line-clamp-2">
+                                        {p.name}
+                                    </p>
+                                </div>
+
+                                <div className="px-2.5 py-2 bg-[#09090b] border-t border-white/15 flex justify-between items-center gap-2 shrink-0">
+                                    <span
+                                        className={`text-xs font-bold uppercase font-mono tracking-wide ${
+                                            (p.stock ?? 0) > 5
+                                                ? 'text-emerald-400'
+                                                : (p.stock ?? 0) > 0
+                                                  ? 'text-amber-300'
+                                                  : 'text-red-400'
+                                        }`}
+                                    >
+                                        Stock {(p.stock ?? 0)}
+                                    </span>
+                                    <span className="text-sm font-bold text-xeption-gold font-mono whitespace-nowrap">
+                                        {(p.price ?? 0).toLocaleString('fr-FR')} F
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })
                 )}
+                </div>
             </div>
         </div>
 
@@ -186,44 +248,58 @@ const PosTab: React.FC<PosTabProps> = ({
                 <span className="bg-white/10 text-[10px] font-bold px-2 py-0.5 rounded text-white">{totalItems} items</span>
             </div>
             
-            {/* Scrollable Cart Items */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-black/20 min-h-0 custom-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-black/20">
+                <div className="p-4 space-y-2">
                     {posCart.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50">
+                        <div className="py-12 flex flex-col items-center justify-center text-white/40">
                             <ShoppingCart className="w-8 h-8 mb-2" />
                             <span className="text-xs uppercase font-bold">Panier vide</span>
                         </div>
                     ) : (
-                        posCart.map(item => (
-                            <div key={item.id} className="flex justify-between items-center bg-black/40 p-3 rounded-sm border border-white/5 hover:border-white/20 transition-colors">
-                                <div className="flex-1 min-w-0 pr-2">
+                        posCart.map((item) => (
+                            <div
+                                key={item.id}
+                                className="flex items-center gap-2 bg-black/40 p-3 rounded-sm border border-white/5 hover:border-white/20 transition-colors"
+                            >
+                                <div className="flex-1 min-w-0">
                                     <div className="text-xs font-bold text-white truncate">{item.name}</div>
-                                    <div className="text-[10px] text-gray-500 font-mono mt-0.5">
-                                        {item.price.toLocaleString()} x <span className="text-xeption-gold font-bold text-sm">{item.quantity}</span>
+                                    <div className="text-[10px] text-white/85 font-mono mt-0.5">
+                                        {item.price.toLocaleString('fr-FR')} x{' '}
+                                        <span className="text-xeption-gold font-bold text-sm">{item.quantity}</span>
                                     </div>
                                 </div>
-                                <div className="text-right whitespace-nowrap">
-                                    <span className="text-xs font-bold text-white">{(item.price * item.quantity).toLocaleString()}</span>
-                                </div>
+                                <span className="text-xs font-bold text-white font-mono whitespace-nowrap shrink-0">
+                                    {(item.price * item.quantity).toLocaleString('fr-FR')}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => removeFromPosCart(item.id)}
+                                    className="shrink-0 p-1 rounded-sm bg-red-600 text-white border-2 border-white shadow-sm hover:bg-red-500 transition-colors"
+                                    title="Retirer du panier"
+                                    aria-label={`Retirer ${item.name} du panier`}
+                                >
+                                    <X className="w-3.5 h-3.5" strokeWidth={3} />
+                                </button>
                             </div>
                         ))
                     )}
+                </div>
             </div>
 
             {/* Footer Fixe */}
             <div className="p-4 bg-[#0c0c0e] border-t border-white/10 space-y-3 shrink-0 z-10 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
-                <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">Client</div>
+                <div className="text-[10px] uppercase font-bold tracking-wider text-white mb-1">Client</div>
                 
                 <div className="flex gap-2 mb-2">
-                    <input type="text" placeholder="Nom *" className="flex-1 bg-black/50 border border-white/10 px-3 py-2 text-xs text-white rounded-sm focus:border-xeption-gold outline-none" value={posCustomer.name} onChange={e => setPosCustomer({...posCustomer, name: e.target.value})} />
-                    <input type="tel" placeholder="Tél *" className="w-1/3 bg-black/50 border border-white/10 px-3 py-2 text-xs text-white rounded-sm focus:border-xeption-gold outline-none" value={posCustomer.phone} onChange={e => setPosCustomer({...posCustomer, phone: e.target.value})} />
+                    <input type="text" placeholder="Nom *" className="flex-1 bg-black/50 border border-white/25 px-3 py-2 text-xs font-medium text-white placeholder:text-white/75 rounded-sm focus:border-xeption-gold outline-none" value={posCustomer.name} onChange={e => setPosCustomer({...posCustomer, name: e.target.value})} />
+                    <input type="tel" placeholder="Tél *" className="w-1/3 bg-black/50 border border-white/25 px-3 py-2 text-xs font-medium text-white placeholder:text-white/75 rounded-sm focus:border-xeption-gold outline-none" value={posCustomer.phone} onChange={e => setPosCustomer({...posCustomer, phone: e.target.value})} />
                 </div>
-                <input type="email" placeholder="Email (Facture)" className="w-full bg-black/50 border border-white/10 px-3 py-2 text-xs text-white rounded-sm focus:border-xeption-gold outline-none" value={posCustomer.email} onChange={e => setPosCustomer({...posCustomer, email: e.target.value})} />
+                <input type="email" placeholder="Email (Facture)" className="w-full bg-black/50 border border-white/25 px-3 py-2 text-xs font-medium text-white placeholder:text-white/75 rounded-sm focus:border-xeption-gold outline-none" value={posCustomer.email} onChange={e => setPosCustomer({...posCustomer, email: e.target.value})} />
 
                 <div className="h-px bg-white/10 my-2"></div>
 
                 <div className="flex justify-between items-end">
-                    <span className="text-gray-400 text-xs font-bold uppercase">Total à payer</span>
+                    <span className="text-white text-xs font-bold uppercase tracking-wide">Total à payer</span>
                     <span className="text-2xl font-bold font-mono text-white tracking-tighter">
                         {totalAmount.toLocaleString()} <span className="text-xs text-xeption-gold align-top">FCFA</span>
                     </span>

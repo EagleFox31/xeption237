@@ -66,6 +66,18 @@ export const TROC_MESSAGES = {
   heuristic_ai_fallback: (base: string) =>
     `${base} L'analyse photo détaillée est temporairement indisponible — l'estimation s'appuie pour l'instant sur vos déclarations et sera affinée en boutique.`,
 
+  /** Après contrôle crédibilité IA (pré-paiement) — sans prétendre avoir analysé l'écran en détail. */
+  credibilityVerified: (batteryHealth: number) => {
+    const batterySentence =
+      batteryHealth >= 85
+        ? 'La batterie déclarée est bonne.'
+        : batteryHealth >= 70
+          ? 'La batterie déclarée reste correcte pour un usage courant.'
+          : 'La batterie déclarée commence à fatiguer — cela sera confirmé en boutique.';
+
+    return `Vos photos ont été validées par notre contrôle IA : un smartphone réel correspond à votre déclaration. ${batterySentence} L'estimation repose sur vos déclarations et sera confirmée lors du dépôt en boutique.`;
+  },
+
   // IMEI
   imei_invalid_luhn:
     'Ce numéro IMEI semble incorrect. Vérifiez les 15 chiffres affichés en composant *#06# sur votre téléphone.',

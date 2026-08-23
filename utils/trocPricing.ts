@@ -7,10 +7,10 @@ export const PRICING_RULE_VERSION = 'v2';
 /** Paliers Smart Troc — source unique des montants affichés (front). */
 export type TrocTier = 'express' | 'premium' | 'safety' | 'certif';
 
-export const TROC_BASE_PRICE_XAF = 150;
+export const TROC_BASE_PRICE_XAF = 100;
 
 export const TROC_TIER_PRICES: Record<TrocTier, number> = {
-  express: 150,
+  express: 100,
   premium: 500,
   safety:  1000,
   certif:  300,
@@ -167,9 +167,18 @@ export const computeConditionScore = (form: TrocDeviceForm): number => {
 // Mesure la liquidité de revente : à score d'état égal, un modèle désirable
 // se revend plus vite → on peut offrir plus au client.
 
+/** "14 T", "14T", "14-T" → même clé compacte pour le matching. */
+export const compactModelName = (model: string): string =>
+  (model || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+
 export const resolveDesirabilityTier = (brand: string, model: string): DesirabilityTier => {
   const b = (brand || '').toLowerCase();
   const m = (model || '').toLowerCase();
+  const compact = compactModelName(model);
 
   const isApple   = b.includes('iphone') || b.includes('apple');
   const isSamsung = b.includes('samsung');
@@ -177,28 +186,28 @@ export const resolveDesirabilityTier = (brand: string, model: string): Desirabil
 
   if (isApple) {
     // iPhone 14, 15, 16 (et Pro/Max/Plus) → premium
-    if (/\b(1[4-9]|[2-9]\d)\b/.test(m) || m.includes('pro') || m.includes('max') || m.includes('plus')) return 'premium';
+    if (/(?:1[4-9]|[2-9]\d)/.test(compact) || m.includes('pro') || m.includes('max') || m.includes('plus')) return 'premium';
     // iPhone 12, 13
-    if (/\b1[23]\b/.test(m)) return 'high';
+    if (/1[23]/.test(compact)) return 'high';
     // iPhone X, XS, 11
-    if (/\b1[01]\b/.test(m) || m.includes('xs') || / x\b/.test(m)) return 'mid';
+    if (/1[01]/.test(compact) || m.includes('xs') || compact.includes('x')) return 'mid';
     return 'standard';
   }
 
   if (isSamsung) {
     // S23+, S24+, Fold, Flip → premium
-    if (/s2[3-9]|s[3-9]\d/.test(m) || m.includes('fold') || m.includes('flip')) return 'premium';
+    if (/s2[3-9]|s[3-9]\d/.test(compact) || compact.includes('fold') || compact.includes('flip')) return 'premium';
     // S20, S21, S22, A54, A55, A73
-    if (/s2[012]/.test(m) || m.includes('a54') || m.includes('a55') || m.includes('a73')) return 'high';
+    if (/s2[012]/.test(compact) || compact.includes('a54') || compact.includes('a55') || compact.includes('a73')) return 'high';
     // A34, A35, A52, A53
-    if (/a[35][2-9]|a3[45]|a5[23]/.test(m)) return 'mid';
+    if (/a[35][2-9]|a3[45]|a5[23]/.test(compact)) return 'mid';
     // A01-A33, M series
     return 'standard';
   }
 
   if (isXiaomi) {
-    if (/\b1[4-9]\b/.test(m) || m.includes('ultra')) return 'high';
-    if (/\b1[23]\b/.test(m) || m.includes('note 13') || m.includes('note 12')) return 'mid';
+    if (/1[4-9]/.test(compact) || m.includes('ultra')) return 'high';
+    if (/1[23]/.test(compact) || m.includes('note 13') || m.includes('note 12')) return 'mid';
     return 'standard';
   }
 

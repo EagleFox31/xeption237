@@ -4,6 +4,7 @@ import type { TradeInRequest } from '../../types';
 import { downloadTradeInVoucher } from '../../utils/tradeInVoucherGenerator';
 import { buildWhatsAppUrl, buildTradeInVoucherShareMessage, buildTradeInAppointmentMessage } from '../../utils/whatsappShare';
 import { generateCertificate, TierNotEligibleError, type TrocCertificate } from '../../services/trocEvaluationService';
+import { resolveVoucherExpiryIso } from '../../utils/trocVoucher';
 
 interface TrocVoucherProps {
   request: TradeInRequest;
@@ -17,14 +18,8 @@ const formatFCFA = (amount: number): string =>
 const formatDate = (iso: string): string =>
   new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-const addDays = (iso: string, days: number): string => {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
-
 export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNewEvaluation }) => {
-  const { voucher_reference, customer_name, device_brand, device_model, trade_in_value, created_at, tier, id: tradeInId } = request;
+  const { voucher_reference, customer_name, device_brand, device_model, trade_in_value, created_at, voucher_expires_at, tier, id: tradeInId } = request;
   const [isDownloading, setIsDownloading] = useState(false);
   const isCertEligible = tier === 'premium' || tier === 'safety';
 
@@ -99,10 +94,11 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNe
 
         <div className="bg-black/40 border border-white/10 px-4 py-3 rounded-sm text-center">
           <p className="text-[10px] font-tech uppercase tracking-widest text-white">
-            Valable 30 jours - jusqu'au {addDays(created_at, 30)}
+            Valable jusqu'au {formatDate(resolveVoucherExpiryIso(voucher_expires_at, created_at))}
           </p>
           <p className="text-[9px] text-white/75 font-sans mt-1 italic">
-            Offre valable sous reserve de verification physique en boutique Xeption Network
+            Offre valable sous réserve de vérification physique en boutique Xeption Network
+            et du dédouanement de l'appareil
           </p>
         </div>
       </div>

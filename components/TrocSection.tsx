@@ -4,6 +4,7 @@ import { RefreshCw, Check, Sparkles } from 'lucide-react';
 import { formatTrocFee, TROC_BASE_PRICE_XAF, CREDIT_BONUS_PERCENT } from '../utils/trocPricing';
 import { TrocMonthlyCounter } from './troc/TrocMonthlyCounter';
 import { MobileMoneyLogos } from './troc/MobileMoneyLogos';
+import { ChameleoMascot } from './troc/ChameleoMascot';
 
 interface TrocSectionProps {
   onNavigate?: (page: string) => void;
@@ -82,19 +83,48 @@ const TrocSection: React.FC<TrocSectionProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            <div className="flex-1 relative w-full flex justify-center pointer-events-none">
-              <div className="relative w-64 h-64 md:w-80 md:h-80">
-                <div className="absolute inset-0 border-2 border-dashed border-gray-600 rounded-full animate-spin-slow" />
-                <div className="absolute inset-4 border border-white/10 rounded-full" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-black/60 backdrop-blur-md w-32 h-32 rounded-full border border-xeption-gold/30 shadow-[0_0_30px_rgba(255,215,0,0.15)] z-20">
-                  <RefreshCw className="w-12 h-12 text-xeption-gold" />
-                </div>
-                <div className="absolute top-0 left-10 bg-black/80 backdrop-blur p-2 border border-green-500/30 text-green-500 text-xs font-bold rounded animate-bounce delay-75">
+            <div className="flex-1 relative w-full flex flex-col items-center justify-center">
+              {/* Socle Holographique & Mascotte Interactive */}
+              <div 
+                onClick={() => onNavigate?.('troc')}
+                className="relative cursor-pointer group flex flex-col items-center justify-center p-4 transition-transform duration-300 hover:scale-105"
+                title="Clique pour estimer ton téléphone avec Chameleo !"
+              >
+                {/* Anneaux d'énergie en arrière-plan */}
+                <div className="absolute w-72 h-72 md:w-96 md:h-96 rounded-full border border-xeption-gold/20 animate-spin-slow pointer-events-none" />
+                <div className="absolute w-60 h-60 md:w-80 md:h-80 rounded-full border border-dashed border-white/10 animate-[spin_20s_linear_infinite_reverse] pointer-events-none" />
+                <div className="absolute w-44 h-44 rounded-full bg-xeption-gold/10 blur-2xl pointer-events-none group-hover:bg-xeption-gold/20 transition-colors" />
+
+                {/* Badges Flottants Gamifiés */}
+                <div className="absolute -top-2 -left-4 md:left-2 z-20 bg-black/90 backdrop-blur-md px-3 py-1.5 border border-green-500/40 text-green-400 text-xs font-tech font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(34,197,94,0.2)] animate-bounce delay-100 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-ping" />
                   Scan IA
                 </div>
-                <div className="absolute bottom-10 right-0 bg-black/80 backdrop-blur p-2 border border-xeption-gold/30 text-xeption-gold text-xs font-bold rounded animate-bounce delay-150">
+
+                <div className="absolute -bottom-2 -right-4 md:right-2 z-20 bg-black/90 backdrop-blur-md px-3 py-1.5 border border-xeption-gold/40 text-xeption-gold text-xs font-tech font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(255,215,0,0.2)] animate-bounce delay-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-xeption-gold" />
                   +{CREDIT_BONUS_PERCENT}% Crédit
                 </div>
+
+                {/* Mascotte Animée Xepti */}
+                <div className="relative z-10">
+                  <ChameleoMascot 
+                    size="lg"
+                    state="idle"
+                    message="Psst ! Ton téléphone au tiroir vaut de l'or ✨"
+                  />
+                </div>
+
+                {/* Socle 3D au sol */}
+                <div className="relative -mt-6 w-48 h-8 flex items-center justify-center">
+                  <div className="w-full h-4 bg-gradient-to-r from-transparent via-xeption-gold/40 to-transparent rounded-full blur-sm" />
+                  <div className="absolute w-36 h-2 bg-gradient-to-r from-transparent via-xeption-gold to-transparent rounded-full shadow-[0_0_20px_#FFD700]" />
+                </div>
+
+                {/* Indication au survol */}
+                <span className="mt-2 text-[11px] font-tech text-gray-400 group-hover:text-xeption-gold uppercase tracking-widest transition-colors flex items-center gap-1">
+                  Estimer mon appareil avec Xepti ➔
+                </span>
               </div>
             </div>
           </div>

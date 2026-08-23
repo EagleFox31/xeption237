@@ -1,16 +1,11 @@
 import type { TradeInRequest } from '../types';
+import { resolveVoucherExpiryIso } from './trocVoucher';
 
 const formatFCFA = (amount: number): string =>
   `${new Intl.NumberFormat('fr-FR').format(amount).replace(/\s/g, '.')} FCFA`;
 
 const formatDate = (iso: string): string =>
   new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-const addDays = (iso: string, days: number): string => {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
 
 const escapeHtml = (value: string): string =>
   value
@@ -24,9 +19,10 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
   const amount    = Number(request.trade_in_value || 0);
   const customer  = escapeHtml(request.customer_name || '');
   const device    = escapeHtml(`${request.device_brand || ''} ${request.device_model || ''}`.trim());
+  const target    = request.target_product_name ? escapeHtml(request.target_product_name) : '';
   const voucher   = escapeHtml(request.voucher_reference || `TR-${request.id}`);
   const issuedOn  = formatDate(request.created_at);
-  const validUntil = addDays(request.created_at, 30);
+  const validUntil = formatDate(resolveVoucherExpiryIso(request.voucher_expires_at, request.created_at));
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -315,6 +311,11 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
         <div class="field-value">${device}</div>
       </div>
 
+      ${target ? `<div class="field">
+        <div class="field-label">Pour l'achat de</div>
+        <div class="field-value">${target}</div>
+      </div>` : ''}
+
       <div class="amount-block">
         <div class="amount-label">Votre appareil peut être repris jusqu'à</div>
         <div class="amount-value">${formatFCFA(amount)}</div>
@@ -323,7 +324,7 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
 
       <div class="validity">
         <span class="validity-label">Validité du bon</span>
-        <span class="validity-date">30 jours — jusqu'au ${validUntil}</span>
+        <span class="validity-date">jusqu'au ${validUntil}</span>
       </div>
     </div>
 
@@ -334,7 +335,8 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
 
     <div class="footer">
       <p>
-        Valeur de reprise estimée sous réserve de vérification physique en boutique Xeption Network.<br />
+        Valeur de reprise estimée sous réserve de vérification physique en boutique Xeption Network
+        et du dédouanement de l'appareil (IMEI déclaré à la douane).<br />
         Ce bon n'est pas un paiement — il s'applique en déduction sur votre prochain achat. Non remboursable.
       </p>
     </div>

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   probeTrocVisionHealth,
   type VisionHealthReport,
-  visionChannelLabel,
 } from '../services/trocVisionHealth';
 
 export function useTrocVisionHealth(enabled: boolean) {
@@ -26,11 +25,7 @@ export function useTrocVisionHealth(enabled: boolean) {
   }, [enabled]);
 
   const setupHint =
-    report && !report.ready
-      ? report.actionSteps.join(' ')
-      : report?.primaryChannel
-        ? `Contrôle IA via ${visionChannelLabel[report.primaryChannel]}.`
-        : null;
+    report && !report.ready ? report.actionSteps.join(' ') : null;
 
   return { report, loading, setupHint };
 }

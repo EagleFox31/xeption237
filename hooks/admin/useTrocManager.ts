@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import type { TradeInRequest, TrocPayment } from '../../types';
+import { canTransition, evaluateCompletion } from '../../utils/trocRedemption';
+
+export interface TransitionResult {
+  ok: boolean;
+  error?: string;
+}
 
 export type TrocStatusFilter = TradeInRequest['status'] | 'all';
 
@@ -58,6 +64,10 @@ export const useTrocManager = () => {
     return () => { supabase.removeChannel(channel); };
   }, [refreshAll, fetchRequests, fetchPayments]);
 
+  /**
+   * Écriture de statut bas niveau, SANS garde-fou. Conservée pour compat/tests.
+   * Pour le rachat en boutique, préférer `transitionStatus` (machine à états + expiration).
+   */
   const updateStatus = useCallback(async (id: string, status: TradeInRequest['status']) => {
     const { error } = await supabase
       .from('trade_in_requests')
@@ -68,6 +78,55 @@ export const useTrocManager = () => {
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
     }
   }, []);
+
+  /**
+   * Transition de statut GARDÉE (rachat boutique) : respecte la machine à états
+   * (`utils/trocRedemption`) et la validité du bon (échéance + grâce 7 j), horodate
+   * `validated_at`/`completed_at` et trace le motif d'override/ré-évaluation.
+   */
+  const transitionStatus = useCallback(
+    async (
+      id: string,
+      to: TradeInRequest['status'],
+      opts?: { reason?: string },
+    ): Promise<TransitionResult> => {
+      const req = requests.find(r => r.id === id);
+      if (!req) return { ok: false, error: 'Dossier introuvable.' };
+      if (!canTransition(req.status, to)) {
+        return { ok: false, error: `Transition ${req.status} → ${to} non autorisée.` };
+      }
+
+      const nowIso = new Date().toISOString();
+      const reason = opts?.reason?.trim();
+      const patch: Partial<TradeInRequest> = { status: to };
+
+      if (to === 'validated') {
+        patch.validated_at = nowIso;
+      }
+      if (to === 'completed') {
+        const gate = evaluateCompletion(req, new Date(), !!reason);
+        if (gate.needsReeval) {
+          return { ok: false, error: 'Bon périmé (au-delà de la grâce de 7 j) : ré-évaluation requise avant clôture.' };
+        }
+        if (!gate.allowed) {
+          return { ok: false, error: 'Bon en période de grâce : un motif est obligatoire pour clôturer.' };
+        }
+        patch.completed_at = nowIso;
+        if (reason) patch.redemption_reason = reason;
+      }
+
+      const { error } = await supabase
+        .from('trade_in_requests')
+        .update(patch)
+        .eq('id', id);
+
+      if (error) return { ok: false, error: error.message };
+
+      setRequests(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
+      return { ok: true };
+    },
+    [requests],
+  );
 
   const filtered = useMemo(() => {
     let list = requests;
@@ -101,6 +160,7 @@ export const useTrocManager = () => {
     search,
     setSearch,
     updateStatus,
+    transitionStatus,
     fetchRequests,
     fetchPayments,
     refreshAll,

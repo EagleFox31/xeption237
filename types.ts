@@ -53,6 +53,8 @@ export interface Product {
   manualChecks?: string[];
   reviews?: Review[]; // NOUVEAU : Avis générés par IA
   warrantyMonths?: number;
+  releaseYear?: number; // Année de sortie du modèle de base (colonne release_year)
+  updated_at?: string; // Date DB — proxy de fraîcheur pour la rangée "Nouveautés"
 }
 
 export interface PackItem {
@@ -187,6 +189,15 @@ export interface TradeInRequest {
   battery_health?: number;
   screen_condition?: string;
   body_condition?: string;
+  camera_condition?: string;
+  previous_repairs?: string;
+  powers_on?: boolean;
+  charges_normally?: boolean;
+  biometrics_work?: boolean;
+  account_unlocked?: boolean;
+  has_water_damage?: boolean;
+  has_original_box?: boolean;
+  has_invoice?: boolean;
   accessories?: string[];
   photo_urls: string[];
   imei?: string;
@@ -205,8 +216,20 @@ export interface TradeInRequest {
   tier?: 'express' | 'premium' | 'safety' | null;
   status: 'in_progress' | 'pending' | 'accepted' | 'refused' | 'validated' | 'completed' | 'cancelled';
   admin_notes?: string;
+  /** Horodatage du passage en `validated` (vérification physique en boutique). */
+  validated_at?: string | null;
+  /** Horodatage du passage en `completed` (échange finalisé). */
+  completed_at?: string | null;
+  /** Motif staff si le bon était hors validité à la clôture (override en grâce ≤ 7 j, ou ré-évaluation). */
+  redemption_reason?: string | null;
   voucher_reference?: string;
   trade_in_model_id?: string;
+  /** Smart Troc — appareil cible choisi par le client (voucher + précommande boutique). Lié au MÊME dossier, pas de table séparée. */
+  target_product_id?: string | null;
+  /** Snapshot du nom cible au moment du choix (lisibilité staff ; survit au renommage/suppression du produit). */
+  target_product_name?: string | null;
+  /** Échéance de validité du bon de reprise (barème 7/10/14 j selon `release_year` du repris). ISO. */
+  voucher_expires_at?: string | null;
   /** UUID session navigateur — lien direct avec troc_payments.session_key. */
   session_key?: string;
 }

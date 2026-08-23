@@ -21,98 +21,179 @@
 | Tables sans RLS | **products** |
 | Groupes de doublons | **9** |
 
+## Impact réel (synthèse)
+
+| Impact | Nb | Signification |
+|---|---|---|
+| 🟢 `active` | **33** | Active — contrôle un flux client réel |
+| 🔵 `bypass_service_role` | **9** | Contournée — accès edge en service_role (RLS bypass) |
+| 🟡 `redundant_duplicate` | **8** | Redondante — doublon strict (même table/cmd/rôles/qual) |
+| ⚫ `inactive_rls_off` | **6** | Inactive — RLS désactivée sur la table |
+| 🟠 `redundant_shadowed` | **4** | Redondante — couverte par une policy `{public}` équivalente |
+| ⚪ `legacy_no_caller` | **1** | Orpheline — aucun appelant dans le code |
+| 🟣 `active_rare` | **1** | Active rare — insert/update direct legacy (hors RPC principal) |
+
+Légende : 🟢 active · ⚫ RLS off · 🔵 bypass (edge/RPC) · 🟡 doublon strict · 🟠 shadowed par `{public}` · 🟣 flux legacy · ⚪ orpheline
+
+## Inventaire complet (62 policies)
+
+| Table | Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|---|
+| `argus` | `argus_read_service` | SELECT | {public} | ⚪ `legacy_no_caller` | Table `argus` sans référence code — policy probablement morte. |
+| `brands` | `Public read brands` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `brands` | `Staff manage brands` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `categories` | `Public View Categories` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `categories` | `Staff Full Access Categories` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `customers` | `Public insert` | INSERT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `customers` | `Public read` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `customers` | `Public update` | UPDATE | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `customers` | `Staff Full Access Customers` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `delivery_zones` | `Enable read access for all users` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `delivery_zones` | `Enable write access for authenticated users` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `imei_certif_records` | `imei_certif_records_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `imei_premium_calls` | `imei_premium_calls_admin_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `market_demand_signals` | `market_demand_signals_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `market_price_cache` | `market_price_cache_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `market_price_snapshots` | `market_price_snapshots_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `market_trend_cache` | `market_trend_cache_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `orders` | `Enable insert access for all users` | INSERT | {public} | 🟣 `active_rare` | Checkout via RPC (create_order_atomic) ; insert direct encore dans legacy AdminP |
+| `orders` | `Enable read access for all users` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `orders` | `Enable update access for all users` | UPDATE | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `orders` | `Public Create Orders` | INSERT | {anon,authenticated} | 🟠 `redundant_shadowed` | Couvert par `Enable insert access for all users` ({public} inclut anon + authent |
+| `orders` | `Public Insert Orders` | INSERT | {public} | 🟡 `redundant_duplicate` | Doublon strict — garder `Enable insert access for all users`. |
+| `orders` | `Public Read Orders` | SELECT | {public} | 🟡 `redundant_duplicate` | Doublon strict — garder `Enable read access for all users`. |
+| `orders` | `Public View Own Orders` | SELECT | {anon,authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Public read orders`. |
+| `orders` | `Public insert orders` | INSERT | {anon,authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Public Create Orders`. |
+| `orders` | `Public read orders` | SELECT | {anon,authenticated} | 🟠 `redundant_shadowed` | Couvert par `Enable read access for all users` ({public} inclut anon + authentic |
+| `orders` | `Staff Full Access Orders` | ALL | {authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Staff full access orders`. |
+| `orders` | `Staff full access orders` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `packs` | `Packs sont publics` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `packs` | `Staff peut tout gérer` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `phone_releases` | `phone_releases_public_read` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `product_ranges` | `Public read ranges` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `product_ranges` | `Staff manage ranges` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `products` | `Public Read Products` | SELECT | {public} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `products` | `Public View Products` | SELECT | {anon,authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `products` | `Staff Full Access Products` | ALL | {authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `products` | `Staff Write Products` | ALL | {authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `products` | `Staff update products` | ALL | {authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `products` | `TEMP: authenticated can insert products` | INSERT | {authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `repair_tickets` | `Public Create Ticket` | INSERT | {anon,authenticated} | 🟠 `redundant_shadowed` | Couvert par `Public can create tickets` ({public} inclut anon + authenticated). |
+| `repair_tickets` | `Public can create tickets` | INSERT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `repair_tickets` | `Public insert tickets` | INSERT | {anon,authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Public Create Ticket`. |
+| `repair_tickets` | `Staff Manage Tickets` | ALL | {authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Staff full access tickets`. |
+| `repair_tickets` | `Staff can manage tickets` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `repair_tickets` | `Staff full access tickets` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `staff` | `Public Read Staff` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `staff` | `Staff Self Edit` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `tac_cache` | `tac_cache_read_all` | SELECT | {public} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `tac_cache` | `tac_cache_write_service` | ALL | {public} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `trade_in_models` | `Public Read Trade Models` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `trade_in_models` | `Public View Argus` | SELECT | {anon,authenticated} | 🟠 `redundant_shadowed` | Couvert par `Public Read Trade Models` ({public} inclut anon + authenticated). |
+| `trade_in_models` | `Staff Manage Argus` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `trade_in_models` | `Staff Write Trade Models` | ALL | {authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Staff Manage Argus`. |
+| `trade_in_requests` | `staff_delete_trade_in_requests` | DELETE | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `trade_in_requests` | `staff_select_trade_in_requests` | SELECT | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `trade_in_requests` | `staff_update_trade_in_requests` | UPDATE | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `troc_certificates` | `troc_certificates_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `troc_payments` | `troc_payments_insert_anon` | INSERT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `troc_payments` | `troc_payments_select_anon` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `troc_sessions` | `troc_sessions_insert_public` | INSERT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `troc_sessions` | `troc_sessions_select_staff` | SELECT | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `troc_sessions` | `troc_sessions_update_public` | UPDATE | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+
 ## Doublons à fusionner (ne pas recréer)
 
 ### Enable… (2 policies identiques)
 
-Signature : `orders|INSERT|{public}|`
+Signature : `orders|INSERT|{public}||true`
 
 Policies actuelles :
 - `Enable insert access for all users`
 - `Public Insert Orders`
 
-**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.
+**Canonique à garder** : `Enable insert access for all users`
 
 ### Enable… (2 policies identiques)
 
-Signature : `orders|SELECT|{public}|true`
+Signature : `orders|SELECT|{public}|true|true`
 
 Policies actuelles :
 - `Enable read access for all users`
 - `Public Read Orders`
 
-**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.
+**Canonique à garder** : `Enable read access for all users`
 
 ### Public… (2 policies identiques)
 
-Signature : `orders|INSERT|{anon,authenticated}|`
+Signature : `orders|INSERT|{anon,authenticated}||true`
 
 Policies actuelles :
 - `Public Create Orders`
 - `Public insert orders`
 
-**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.
+**Canonique à garder** : `Public Create Orders`
 
 ### Public… (2 policies identiques)
 
-Signature : `orders|SELECT|{anon,authenticated}|true`
+Signature : `orders|SELECT|{anon,authenticated}|true|true`
 
 Policies actuelles :
 - `Public View Own Orders`
 - `Public read orders`
 
-**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.
+**Canonique à garder** : `Public read orders`
 
 ### Staff… (2 policies identiques)
 
-Signature : `orders|ALL|{authenticated}|true`
+Signature : `orders|ALL|{authenticated}|true|true`
 
 Policies actuelles :
 - `Staff Full Access Orders`
 - `Staff full access orders`
 
-**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.
+**Canonique à garder** : `Staff full access orders`
 
 ### Staff… (3 policies identiques)
 
-Signature : `products|ALL|{authenticated}|true`
+Signature : `products|ALL|{authenticated}|true|true`
 
 Policies actuelles :
 - `Staff Full Access Products`
 - `Staff Write Products`
 - `Staff update products`
 
-**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.
+**Canonique à garder** : `Staff Full Access Products`
 
 ### Public… (2 policies identiques)
 
-Signature : `repair_tickets|INSERT|{anon,authenticated}|`
+Signature : `repair_tickets|INSERT|{anon,authenticated}||true`
 
 Policies actuelles :
 - `Public Create Ticket`
 - `Public insert tickets`
 
-**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.
+**Canonique à garder** : `Public Create Ticket`
 
 ### Staff… (2 policies identiques)
 
-Signature : `repair_tickets|ALL|{authenticated}|true`
+Signature : `repair_tickets|ALL|{authenticated}|true|true`
 
 Policies actuelles :
 - `Staff Manage Tickets`
 - `Staff full access tickets`
 
-**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.
+**Canonique à garder** : `Staff full access tickets`
 
 ### Staff… (2 policies identiques)
 
-Signature : `trade_in_models|ALL|{authenticated}|true`
+Signature : `trade_in_models|ALL|{authenticated}|true|true`
 
 Policies actuelles :
 - `Staff Manage Argus`
 - `Staff Write Trade Models`
 
-**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.
+**Canonique à garder** : `Staff Manage Argus`
 
 ## Policies canoniques cibles (post-remédiation RLS)
 
@@ -175,9 +256,9 @@ _Aucun_
 _Aucun_
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `argus_read_service` | SELECT | {public} | (auth.role() = 'service_role'::text) |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `argus_read_service` | SELECT | {public} | ⚪ `legacy_no_caller` | Table `argus` sans référence code — policy probablement mort |
 
 ### `brands` (2 policyies)
 
@@ -199,10 +280,10 @@ _Aucun_
 _Aucun_
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Public read brands` | SELECT | {public} | true |
-| `Staff manage brands` | ALL | {public} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Public read brands` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Staff manage brands` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `categories` (2 policyies)
 
@@ -219,10 +300,10 @@ _Aucun_
 _Aucun_
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Public View Categories` | SELECT | {anon,authenticated} | true |
-| `Staff Full Access Categories` | ALL | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Public View Categories` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Staff Full Access Categories` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `customers` (4 policyies)
 
@@ -235,12 +316,12 @@ _Aucun_
 _Aucun_
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Public insert` | INSERT | {public} | true |
-| `Public read` | SELECT | {public} | true |
-| `Public update` | UPDATE | {public} | true |
-| `Staff Full Access Customers` | ALL | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Public insert` | INSERT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Public read` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Public update` | UPDATE | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Staff Full Access Customers` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `delivery_zones` (2 policyies)
 
@@ -253,10 +334,10 @@ _Aucun_
 _Aucun_
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Enable read access for all users` | SELECT | {public} | true |
-| `Enable write access for authenticated users` | ALL | {public} | (auth.role() = 'authenticated'::text) |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Enable read access for all users` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Enable write access for authenticated users` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `imei_certif_records` (1 policy)
 
@@ -268,9 +349,9 @@ _Aucun_
 - `generate-imei-certificate`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `imei_certif_records_staff_read` | SELECT | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `imei_certif_records_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
 
 ### `imei_premium_calls` (1 policy)
 
@@ -282,9 +363,9 @@ _Aucun_
 - `check-imei`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `imei_premium_calls_admin_read` | SELECT | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `imei_premium_calls_admin_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
 
 ### `market_demand_signals` (1 policy)
 
@@ -296,9 +377,9 @@ _Aucun_
 - `get-market-trend`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `market_demand_signals_staff_read` | SELECT | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `market_demand_signals_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
 
 ### `market_price_cache` (1 policy)
 
@@ -310,11 +391,9 @@ _Aucun_
 - `market-price-intel`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `market_price_cache_staff_read` | SELECT | {authenticated} | (EXISTS ( SELECT 1
-   FROM staff s
-  WHE |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `market_price_cache_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
 
 ### `market_price_snapshots` (1 policy)
 
@@ -328,9 +407,9 @@ _Aucun_
 - `snapshot-market-prices`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `market_price_snapshots_staff_read` | SELECT | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `market_price_snapshots_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
 
 ### `market_trend_cache` (1 policy)
 
@@ -342,9 +421,9 @@ _Aucun_
 - `get-market-trend`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `market_trend_cache_staff_read` | SELECT | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `market_trend_cache_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
 
 ### `orders` (11 policyies)
 
@@ -366,19 +445,19 @@ _Aucun_
 - `complete_troc_with_sale_atomic`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Enable insert access for all users` | INSERT | {public} | true |
-| `Enable read access for all users` | SELECT | {public} | true |
-| `Enable update access for all users` | UPDATE | {public} | true |
-| `Public Create Orders` | INSERT | {anon,authenticated} | true |
-| `Public Insert Orders` | INSERT | {public} | true |
-| `Public Read Orders` | SELECT | {public} | true |
-| `Public View Own Orders` | SELECT | {anon,authenticated} | true |
-| `Public insert orders` | INSERT | {anon,authenticated} | true |
-| `Public read orders` | SELECT | {anon,authenticated} | true |
-| `Staff Full Access Orders` | ALL | {authenticated} | true |
-| `Staff full access orders` | ALL | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Enable insert access for all users` | INSERT | {public} | 🟣 `active_rare` | Checkout via RPC (create_order_atomic) ; insert direct encor |
+| `Enable read access for all users` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Enable update access for all users` | UPDATE | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Public Create Orders` | INSERT | {anon,authenticated} | 🟠 `redundant_shadowed` | Couvert par `Enable insert access for all users` ({public} i |
+| `Public Insert Orders` | INSERT | {public} | 🟡 `redundant_duplicate` | Doublon strict — garder `Enable insert access for all users` |
+| `Public Read Orders` | SELECT | {public} | 🟡 `redundant_duplicate` | Doublon strict — garder `Enable read access for all users`. |
+| `Public View Own Orders` | SELECT | {anon,authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Public read orders`. |
+| `Public insert orders` | INSERT | {anon,authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Public Create Orders`. |
+| `Public read orders` | SELECT | {anon,authenticated} | 🟠 `redundant_shadowed` | Couvert par `Enable read access for all users` ({public} inc |
+| `Staff Full Access Orders` | ALL | {authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Staff full access orders`. |
+| `Staff full access orders` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `packs` (2 policyies)
 
@@ -390,10 +469,10 @@ _Aucun_
 _Aucun_
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Packs sont publics` | SELECT | {public} | true |
-| `Staff peut tout gérer` | ALL | {public} | (auth.role() = 'authenticated'::text) |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Packs sont publics` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Staff peut tout gérer` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `phone_releases` (1 policy)
 
@@ -407,9 +486,9 @@ _Aucun_
 _Aucun_
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `phone_releases_public_read` | SELECT | {anon,authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `phone_releases_public_read` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `product_ranges` (2 policyies)
 
@@ -425,10 +504,10 @@ _Aucun_
 _Aucun_
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Public read ranges` | SELECT | {public} | true |
-| `Staff manage ranges` | ALL | {public} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Public read ranges` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Staff manage ranges` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `products` (6 policyies)
 
@@ -459,14 +538,14 @@ _+ 6 autres — voir JSON_
 - `complete_troc_with_sale_atomic`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Public Read Products` | SELECT | {public} | true |
-| `Public View Products` | SELECT | {anon,authenticated} | true |
-| `Staff Full Access Products` | ALL | {authenticated} | true |
-| `Staff Write Products` | ALL | {authenticated} | true |
-| `Staff update products` | ALL | {authenticated} | true |
-| `TEMP: authenticated can insert products` | INSERT | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Public Read Products` | SELECT | {public} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `Public View Products` | SELECT | {anon,authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `Staff Full Access Products` | ALL | {authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `Staff Write Products` | ALL | {authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `Staff update products` | ALL | {authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
+| `TEMP: authenticated can insert products` | INSERT | {authenticated} | ⚫ `inactive_rls_off` | RLS désactivée : policy ignorée par Postgres. |
 
 ### `repair_tickets` (6 policyies)
 
@@ -478,14 +557,14 @@ _+ 6 autres — voir JSON_
 _Aucun_
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Public Create Ticket` | INSERT | {anon,authenticated} | true |
-| `Public can create tickets` | INSERT | {public} | true |
-| `Public insert tickets` | INSERT | {anon,authenticated} | true |
-| `Staff Manage Tickets` | ALL | {authenticated} | true |
-| `Staff can manage tickets` | ALL | {public} | (auth.role() = 'authenticated'::text) |
-| `Staff full access tickets` | ALL | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Public Create Ticket` | INSERT | {anon,authenticated} | 🟠 `redundant_shadowed` | Couvert par `Public can create tickets` ({public} inclut ano |
+| `Public can create tickets` | INSERT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Public insert tickets` | INSERT | {anon,authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Public Create Ticket`. |
+| `Staff Manage Tickets` | ALL | {authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Staff full access tickets`. |
+| `Staff can manage tickets` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Staff full access tickets` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `staff` (2 policyies)
 
@@ -503,10 +582,10 @@ _Aucun_
 - `sync_staff_auth_display_name RPC`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Public Read Staff` | SELECT | {anon,authenticated} | true |
-| `Staff Self Edit` | ALL | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Public Read Staff` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Staff Self Edit` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `tac_cache` (2 policyies)
 
@@ -518,10 +597,10 @@ _Aucun_
 - `check-imei`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `tac_cache_read_all` | SELECT | {public} | true |
-| `tac_cache_write_service` | ALL | {public} | (auth.role() = 'service_role'::text) |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `tac_cache_read_all` | SELECT | {public} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
+| `tac_cache_write_service` | ALL | {public} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
 
 ### `trade_in_models` (4 policyies)
 
@@ -536,12 +615,12 @@ _Aucun_
 - `evaluate-device`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `Public Read Trade Models` | SELECT | {public} | true |
-| `Public View Argus` | SELECT | {anon,authenticated} | true |
-| `Staff Manage Argus` | ALL | {authenticated} | true |
-| `Staff Write Trade Models` | ALL | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `Public Read Trade Models` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Public View Argus` | SELECT | {anon,authenticated} | 🟠 `redundant_shadowed` | Couvert par `Public Read Trade Models` ({public} inclut anon |
+| `Staff Manage Argus` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `Staff Write Trade Models` | ALL | {authenticated} | 🟡 `redundant_duplicate` | Doublon strict — garder `Staff Manage Argus`. |
 
 ### `trade_in_requests` (3 policyies)
 
@@ -564,17 +643,11 @@ _Aucun_
 - `get_troc_monthly_count`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `staff_delete_trade_in_requests` | DELETE | {authenticated} | (EXISTS ( SELECT 1
-   FROM staff s
-  WHE |
-| `staff_select_trade_in_requests` | SELECT | {authenticated} | (EXISTS ( SELECT 1
-   FROM staff s
-  WHE |
-| `staff_update_trade_in_requests` | UPDATE | {authenticated} | (EXISTS ( SELECT 1
-   FROM staff s
-  WHE |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `staff_delete_trade_in_requests` | DELETE | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `staff_select_trade_in_requests` | SELECT | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `staff_update_trade_in_requests` | UPDATE | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `troc_certificates` (1 policy)
 
@@ -586,9 +659,9 @@ _Aucun_
 - `generate-troc-certificate`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `troc_certificates_staff_read` | SELECT | {authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `troc_certificates_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
 
 ### `troc_payments` (2 policyies)
 
@@ -606,10 +679,10 @@ _Aucun_
 - `save-trade-in`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `troc_payments_insert_anon` | INSERT | {anon,authenticated} | true |
-| `troc_payments_select_anon` | SELECT | {anon,authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `troc_payments_insert_anon` | INSERT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `troc_payments_select_anon` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `troc_sessions` (3 policyies)
 
@@ -624,13 +697,11 @@ _Aucun_
 - `upsert-troc-intake`
 **Policies live**
 
-| Policy | CMD | Rôles | Qual |
-|---|---|---|---|
-| `troc_sessions_insert_public` | INSERT | {anon,authenticated} | true |
-| `troc_sessions_select_staff` | SELECT | {authenticated} | (EXISTS ( SELECT 1
-   FROM staff s
-  WHE |
-| `troc_sessions_update_public` | UPDATE | {anon,authenticated} | true |
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `troc_sessions_insert_public` | INSERT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `troc_sessions_select_staff` | SELECT | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `troc_sessions_update_public` | UPDATE | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ## Chaîne cron prix marché
 
@@ -650,4 +721,5 @@ pg_cron (lundi 3h)
 |---|---|
 | 2026-08-23 | Inventaire initial 61 policies + registre |
 | 2026-08-23 | Migration `20260823_002_market_price_cache_fix.sql` |
+| 2026-08-23 | Colonne **impact réel** par policy (classif. automatique) |
 

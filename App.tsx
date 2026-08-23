@@ -31,6 +31,7 @@ import PolitiqueCookiesPage from './pages/PolitiqueCookiesPage';
 import CGVPage from './pages/CGVPage';
 import CGVSmartTrocPage from './pages/CGVSmartTrocPage';
 import VerifyCertificatePage from './pages/VerifyCertificatePage';
+import FeedbackPage from './pages/FeedbackPage';
 
 const Checkout = lazy(() => import('./components/Checkout'));
 const AiConsultant = lazy(() => import('./components/AiConsultant'));
@@ -354,6 +355,7 @@ const App: React.FC = () => {
           <Route path="/cgv" element={<CGVPage />} />
           <Route path="/cgv-smart-troc" element={<CGVSmartTrocPage />} />
           <Route path="/verify/:token" element={<VerifyCertificatePage />} />
+          <Route path="/avis/:token" element={<FeedbackPage />} />
           <Route path="/admin/*" element={
             <Suspense fallback={<PageFallback />}>
               <AdminPage

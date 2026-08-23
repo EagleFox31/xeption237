@@ -191,7 +191,7 @@ const CGVPage: React.FC = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-4">
                   <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">Téléphone</span>
-                  <a href="tel:+237697686684" className="text-xeption-gold hover:underline">+237 697 686 684</a>
+                  <a href="tel:+237641891031" className="text-xeption-gold hover:underline">+237 641 891 031</a>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-4">
                   <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">Email</span>

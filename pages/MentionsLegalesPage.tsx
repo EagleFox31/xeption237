@@ -161,8 +161,8 @@ const MentionsLegalesPage: React.FC = () => {
               <Row
                 label="Téléphone"
                 value={
-                  <a href="tel:+237697686684" className="text-xeption-gold hover:underline">
-                    +237 697 686 684
+                  <a href="tel:+237641891031" className="text-xeption-gold hover:underline">
+                    +237 641 891 031
                   </a>
                 }
                 icon={<Phone className="w-3 h-3" />}

@@ -1,75 +1,103 @@
 {
-  "generated_at": "2026-08-23T09:41:04.272Z",
+  "generated_at": "2026-08-23T11:00:27.596Z",
   "policy_count": 62,
   "tables_without_rls": [
     "products"
   ],
   "duplicate_groups": [
     {
-      "signature": "orders|INSERT|{public}|",
+      "signature": "orders|INSERT|{public}||true",
       "policies": [
         "Enable insert access for all users",
         "Public Insert Orders"
-      ]
+      ],
+      "canonical": "Enable insert access for all users"
     },
     {
-      "signature": "orders|SELECT|{public}|true",
+      "signature": "orders|SELECT|{public}|true|true",
       "policies": [
         "Enable read access for all users",
         "Public Read Orders"
-      ]
+      ],
+      "canonical": "Enable read access for all users"
     },
     {
-      "signature": "orders|INSERT|{anon,authenticated}|",
+      "signature": "orders|INSERT|{anon,authenticated}||true",
       "policies": [
         "Public Create Orders",
         "Public insert orders"
-      ]
+      ],
+      "canonical": "Public Create Orders"
     },
     {
-      "signature": "orders|SELECT|{anon,authenticated}|true",
+      "signature": "orders|SELECT|{anon,authenticated}|true|true",
       "policies": [
         "Public View Own Orders",
         "Public read orders"
-      ]
+      ],
+      "canonical": "Public read orders"
     },
     {
-      "signature": "orders|ALL|{authenticated}|true",
+      "signature": "orders|ALL|{authenticated}|true|true",
       "policies": [
         "Staff Full Access Orders",
         "Staff full access orders"
-      ]
+      ],
+      "canonical": "Staff full access orders"
     },
     {
-      "signature": "products|ALL|{authenticated}|true",
+      "signature": "products|ALL|{authenticated}|true|true",
       "policies": [
         "Staff Full Access Products",
         "Staff Write Products",
         "Staff update products"
-      ]
+      ],
+      "canonical": "Staff Full Access Products"
     },
     {
-      "signature": "repair_tickets|INSERT|{anon,authenticated}|",
+      "signature": "repair_tickets|INSERT|{anon,authenticated}||true",
       "policies": [
         "Public Create Ticket",
         "Public insert tickets"
-      ]
+      ],
+      "canonical": "Public Create Ticket"
     },
     {
-      "signature": "repair_tickets|ALL|{authenticated}|true",
+      "signature": "repair_tickets|ALL|{authenticated}|true|true",
       "policies": [
         "Staff Manage Tickets",
         "Staff full access tickets"
-      ]
+      ],
+      "canonical": "Staff full access tickets"
     },
     {
-      "signature": "trade_in_models|ALL|{authenticated}|true",
+      "signature": "trade_in_models|ALL|{authenticated}|true|true",
       "policies": [
         "Staff Manage Argus",
         "Staff Write Trade Models"
-      ]
+      ],
+      "canonical": "Staff Manage Argus"
     }
   ],
+  "impact_summary": {
+    "legacy_no_caller": 1,
+    "active": 33,
+    "bypass_service_role": 9,
+    "active_rare": 1,
+    "redundant_shadowed": 4,
+    "redundant_duplicate": 8,
+    "inactive_rls_off": 6
+  },
+  "impact_labels": {
+    "active": "Active — contrôle un flux client réel",
+    "inactive_rls_off": "Inactive — RLS désactivée sur la table",
+    "bypass_service_role": "Contournée — accès edge en service_role (RLS bypass)",
+    "redundant_duplicate": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+    "redundant_shadowed": "Redondante — couverte par une policy `{public}` équivalente",
+    "legacy_no_caller": "Orpheline — aucun appelant dans le code",
+    "bypass_rpc": "Contournée — flux principal via RPC SECURITY DEFINER",
+    "active_rare": "Active rare — insert/update direct legacy (hors RPC principal)"
+  },
   "policies": [
     {
       "table": "argus",
@@ -79,7 +107,10 @@
       "qual": "(auth.role() = 'service_role'::text)",
       "with_check": null,
       "migration_sources": [],
-      "code_callers": []
+      "code_callers": [],
+      "impact": "legacy_no_caller",
+      "impact_label": "Orpheline — aucun appelant dans le code",
+      "impact_note": "Table `argus` sans référence code — policy probablement morte."
     },
     {
       "table": "brands",
@@ -101,7 +132,10 @@
         "scripts\\generate-mfoundi-import.mjs",
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "brands",
@@ -123,7 +157,10 @@
         "scripts\\generate-mfoundi-import.mjs",
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "categories",
@@ -140,7 +177,10 @@
         "components\\shop\\ShopHero.tsx",
         "hooks\\admin\\useAdminData.ts",
         "hooks\\admin\\useCategoriesManager.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "categories",
@@ -157,7 +197,10 @@
         "components\\shop\\ShopHero.tsx",
         "hooks\\admin\\useAdminData.ts",
         "hooks\\admin\\useCategoriesManager.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "customers",
@@ -170,7 +213,10 @@
       "code_callers": [
         "components\\AdminPanel.tsx",
         "hooks\\admin\\useAdminData.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "customers",
@@ -185,7 +231,10 @@
       "code_callers": [
         "components\\AdminPanel.tsx",
         "hooks\\admin\\useAdminData.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "customers",
@@ -198,7 +247,10 @@
       "code_callers": [
         "components\\AdminPanel.tsx",
         "hooks\\admin\\useAdminData.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "customers",
@@ -211,7 +263,10 @@
       "code_callers": [
         "components\\AdminPanel.tsx",
         "hooks\\admin\\useAdminData.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "delivery_zones",
@@ -224,7 +279,10 @@
       "code_callers": [
         "components\\admin\\tabs\\DeliveryTab.tsx",
         "components\\delivery\\deliveryZoneUi.tsx"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "delivery_zones",
@@ -237,7 +295,10 @@
       "code_callers": [
         "components\\admin\\tabs\\DeliveryTab.tsx",
         "components\\delivery\\deliveryZoneUi.tsx"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "imei_certif_records",
@@ -251,7 +312,10 @@
       ],
       "code_callers": [
         "supabase\\functions\\generate-imei-certificate\\index.ts"
-      ]
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
     },
     {
       "table": "imei_premium_calls",
@@ -265,7 +329,10 @@
       ],
       "code_callers": [
         "supabase\\functions\\check-imei\\index.ts"
-      ]
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
     },
     {
       "table": "market_demand_signals",
@@ -279,7 +346,10 @@
       ],
       "code_callers": [
         "supabase\\functions\\get-market-trend\\index.ts"
-      ]
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
     },
     {
       "table": "market_price_cache",
@@ -293,7 +363,10 @@
       ],
       "code_callers": [
         "supabase\\functions\\market-price-intel\\index.ts"
-      ]
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
     },
     {
       "table": "market_price_snapshots",
@@ -308,7 +381,10 @@
       "code_callers": [
         "supabase\\functions\\get-market-trend\\index.ts",
         "supabase\\functions\\snapshot-market-prices\\index.ts"
-      ]
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
     },
     {
       "table": "market_trend_cache",
@@ -322,7 +398,10 @@
       ],
       "code_callers": [
         "supabase\\functions\\get-market-trend\\index.ts"
-      ]
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
     },
     {
       "table": "orders",
@@ -338,7 +417,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "active_rare",
+      "impact_label": "Active rare — insert/update direct legacy (hors RPC principal)",
+      "impact_note": "Checkout via RPC (create_order_atomic) ; insert direct encore dans legacy AdminPanel."
     },
     {
       "table": "orders",
@@ -354,7 +436,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "orders",
@@ -370,7 +455,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "orders",
@@ -386,7 +474,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "redundant_shadowed",
+      "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
+      "impact_note": "Couvert par `Enable insert access for all users` ({public} inclut anon + authenticated)."
     },
     {
       "table": "orders",
@@ -402,7 +493,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Enable insert access for all users`."
     },
     {
       "table": "orders",
@@ -418,7 +512,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Enable read access for all users`."
     },
     {
       "table": "orders",
@@ -434,7 +531,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Public read orders`."
     },
     {
       "table": "orders",
@@ -450,7 +550,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Public Create Orders`."
     },
     {
       "table": "orders",
@@ -466,7 +569,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "redundant_shadowed",
+      "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
+      "impact_note": "Couvert par `Enable read access for all users` ({public} inclut anon + authenticated)."
     },
     {
       "table": "orders",
@@ -482,7 +588,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Staff full access orders`."
     },
     {
       "table": "orders",
@@ -498,7 +607,10 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "packs",
@@ -510,7 +622,10 @@
       "migration_sources": [],
       "code_callers": [
         "hooks\\admin\\usePacksManager.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "packs",
@@ -522,7 +637,10 @@
       "migration_sources": [],
       "code_callers": [
         "hooks\\admin\\usePacksManager.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "phone_releases",
@@ -538,7 +656,10 @@
         "scripts\\batch-enrich-release-year.mjs",
         "scripts\\import-phone-releases.mjs",
         "services\\trocEvaluationService.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "product_ranges",
@@ -554,7 +675,10 @@
         "scripts\\generate-mfoundi-import.mjs",
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "product_ranges",
@@ -570,7 +694,10 @@
         "scripts\\generate-mfoundi-import.mjs",
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "products",
@@ -599,7 +726,10 @@
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres."
     },
     {
       "table": "products",
@@ -628,7 +758,10 @@
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres."
     },
     {
       "table": "products",
@@ -657,7 +790,10 @@
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres."
     },
     {
       "table": "products",
@@ -686,7 +822,10 @@
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres."
     },
     {
       "table": "products",
@@ -715,7 +854,10 @@
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres."
     },
     {
       "table": "products",
@@ -744,7 +886,10 @@
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
         "scripts\\product-ingestion-funnel.mjs"
-      ]
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres."
     },
     {
       "table": "repair_tickets",
@@ -756,7 +901,10 @@
       "migration_sources": [],
       "code_callers": [
         "components\\RepairTicketManagement.tsx"
-      ]
+      ],
+      "impact": "redundant_shadowed",
+      "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
+      "impact_note": "Couvert par `Public can create tickets` ({public} inclut anon + authenticated)."
     },
     {
       "table": "repair_tickets",
@@ -768,7 +916,10 @@
       "migration_sources": [],
       "code_callers": [
         "components\\RepairTicketManagement.tsx"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "repair_tickets",
@@ -780,7 +931,10 @@
       "migration_sources": [],
       "code_callers": [
         "components\\RepairTicketManagement.tsx"
-      ]
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Public Create Ticket`."
     },
     {
       "table": "repair_tickets",
@@ -792,7 +946,10 @@
       "migration_sources": [],
       "code_callers": [
         "components\\RepairTicketManagement.tsx"
-      ]
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Staff full access tickets`."
     },
     {
       "table": "repair_tickets",
@@ -804,7 +961,10 @@
       "migration_sources": [],
       "code_callers": [
         "components\\RepairTicketManagement.tsx"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "repair_tickets",
@@ -816,7 +976,10 @@
       "migration_sources": [],
       "code_callers": [
         "components\\RepairTicketManagement.tsx"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "staff",
@@ -833,7 +996,10 @@
         "hooks\\admin\\useStaffManager.ts",
         "supabase\\functions\\create-staff-auth\\index.ts",
         "utils\\superAdmin.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "staff",
@@ -850,7 +1016,10 @@
         "hooks\\admin\\useStaffManager.ts",
         "supabase\\functions\\create-staff-auth\\index.ts",
         "utils\\superAdmin.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "tac_cache",
@@ -864,7 +1033,10 @@
       ],
       "code_callers": [
         "supabase\\functions\\check-imei\\index.ts"
-      ]
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
     },
     {
       "table": "tac_cache",
@@ -878,7 +1050,10 @@
       ],
       "code_callers": [
         "supabase\\functions\\check-imei\\index.ts"
-      ]
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
     },
     {
       "table": "trade_in_models",
@@ -892,7 +1067,10 @@
         "services\\trocEvaluationService.ts",
         "supabase\\functions\\save-trade-in\\index.ts",
         "supabase\\functions\\snapshot-market-prices\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "trade_in_models",
@@ -906,7 +1084,10 @@
         "services\\trocEvaluationService.ts",
         "supabase\\functions\\save-trade-in\\index.ts",
         "supabase\\functions\\snapshot-market-prices\\index.ts"
-      ]
+      ],
+      "impact": "redundant_shadowed",
+      "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
+      "impact_note": "Couvert par `Public Read Trade Models` ({public} inclut anon + authenticated)."
     },
     {
       "table": "trade_in_models",
@@ -920,7 +1101,10 @@
         "services\\trocEvaluationService.ts",
         "supabase\\functions\\save-trade-in\\index.ts",
         "supabase\\functions\\snapshot-market-prices\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "trade_in_models",
@@ -934,7 +1118,10 @@
         "services\\trocEvaluationService.ts",
         "supabase\\functions\\save-trade-in\\index.ts",
         "supabase\\functions\\snapshot-market-prices\\index.ts"
-      ]
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Staff Manage Argus`."
     },
     {
       "table": "trade_in_requests",
@@ -952,7 +1139,10 @@
         "supabase\\functions\\generate-certificate\\index.ts",
         "supabase\\functions\\save-trade-in\\index.ts",
         "supabase\\functions\\upsert-troc-intake\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "trade_in_requests",
@@ -970,7 +1160,10 @@
         "supabase\\functions\\generate-certificate\\index.ts",
         "supabase\\functions\\save-trade-in\\index.ts",
         "supabase\\functions\\upsert-troc-intake\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "trade_in_requests",
@@ -988,7 +1181,10 @@
         "supabase\\functions\\generate-certificate\\index.ts",
         "supabase\\functions\\save-trade-in\\index.ts",
         "supabase\\functions\\upsert-troc-intake\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "troc_certificates",
@@ -1002,7 +1198,10 @@
       ],
       "code_callers": [
         "supabase\\functions\\generate-certificate\\index.ts"
-      ]
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
     },
     {
       "table": "troc_payments",
@@ -1021,7 +1220,10 @@
         "supabase\\functions\\get-payment-status\\index.ts",
         "supabase\\functions\\payment-webhook\\index.ts",
         "supabase\\functions\\save-trade-in\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "troc_payments",
@@ -1040,7 +1242,10 @@
         "supabase\\functions\\get-payment-status\\index.ts",
         "supabase\\functions\\payment-webhook\\index.ts",
         "supabase\\functions\\save-trade-in\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "troc_sessions",
@@ -1056,7 +1261,10 @@
         "hooks\\admin\\useAdminData.ts",
         "services\\trocEvaluationService.ts",
         "supabase\\functions\\upsert-troc-intake\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "troc_sessions",
@@ -1072,7 +1280,10 @@
         "hooks\\admin\\useAdminData.ts",
         "services\\trocEvaluationService.ts",
         "supabase\\functions\\upsert-troc-intake\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     },
     {
       "table": "troc_sessions",
@@ -1088,14 +1299,23 @@
         "hooks\\admin\\useAdminData.ts",
         "services\\trocEvaluationService.ts",
         "supabase\\functions\\upsert-troc-intake\\index.ts"
-      ]
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel"
     }
   ],
   "table_index": [
     {
       "table": "argus",
       "policy_count": 1,
-      "code_callers": []
+      "code_callers": [],
+      "impact_by_policy": [
+        {
+          "policy": "argus_read_service",
+          "impact": "legacy_no_caller"
+        }
+      ]
     },
     {
       "table": "brands",
@@ -1112,6 +1332,16 @@
         "scripts\\generate-mfoundi-import.mjs",
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\product-ingestion-funnel.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public read brands",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff manage brands",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1124,6 +1354,16 @@
         "components\\shop\\ShopHero.tsx",
         "hooks\\admin\\useAdminData.ts",
         "hooks\\admin\\useCategoriesManager.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public View Categories",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff Full Access Categories",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1132,6 +1372,24 @@
       "code_callers": [
         "components\\AdminPanel.tsx",
         "hooks\\admin\\useAdminData.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public insert",
+          "impact": "active"
+        },
+        {
+          "policy": "Public read",
+          "impact": "active"
+        },
+        {
+          "policy": "Public update",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff Full Access Customers",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1140,6 +1398,16 @@
       "code_callers": [
         "components\\admin\\tabs\\DeliveryTab.tsx",
         "components\\delivery\\deliveryZoneUi.tsx"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Enable read access for all users",
+          "impact": "active"
+        },
+        {
+          "policy": "Enable write access for authenticated users",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1147,6 +1415,12 @@
       "policy_count": 1,
       "code_callers": [
         "supabase\\functions\\generate-imei-certificate\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "imei_certif_records_staff_read",
+          "impact": "bypass_service_role"
+        }
       ]
     },
     {
@@ -1154,6 +1428,12 @@
       "policy_count": 1,
       "code_callers": [
         "supabase\\functions\\check-imei\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "imei_premium_calls_admin_read",
+          "impact": "bypass_service_role"
+        }
       ]
     },
     {
@@ -1161,6 +1441,12 @@
       "policy_count": 1,
       "code_callers": [
         "supabase\\functions\\get-market-trend\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "market_demand_signals_staff_read",
+          "impact": "bypass_service_role"
+        }
       ]
     },
     {
@@ -1168,6 +1454,12 @@
       "policy_count": 1,
       "code_callers": [
         "supabase\\functions\\market-price-intel\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "market_price_cache_staff_read",
+          "impact": "bypass_service_role"
+        }
       ]
     },
     {
@@ -1176,6 +1468,12 @@
       "code_callers": [
         "supabase\\functions\\get-market-trend\\index.ts",
         "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "market_price_snapshots_staff_read",
+          "impact": "bypass_service_role"
+        }
       ]
     },
     {
@@ -1183,6 +1481,12 @@
       "policy_count": 1,
       "code_callers": [
         "supabase\\functions\\get-market-trend\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "market_trend_cache_staff_read",
+          "impact": "bypass_service_role"
+        }
       ]
     },
     {
@@ -1194,6 +1498,52 @@
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
         "scripts\\apply-migration.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Enable insert access for all users",
+          "impact": "active_rare"
+        },
+        {
+          "policy": "Enable read access for all users",
+          "impact": "active"
+        },
+        {
+          "policy": "Enable update access for all users",
+          "impact": "active"
+        },
+        {
+          "policy": "Public Create Orders",
+          "impact": "redundant_shadowed"
+        },
+        {
+          "policy": "Public Insert Orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Public Read Orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Public View Own Orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Public insert orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Public read orders",
+          "impact": "redundant_shadowed"
+        },
+        {
+          "policy": "Staff Full Access Orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Staff full access orders",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1201,6 +1551,16 @@
       "policy_count": 2,
       "code_callers": [
         "hooks\\admin\\usePacksManager.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Packs sont publics",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff peut tout gérer",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1210,6 +1570,12 @@
         "scripts\\batch-enrich-release-year.mjs",
         "scripts\\import-phone-releases.mjs",
         "services\\trocEvaluationService.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "phone_releases_public_read",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1221,6 +1587,16 @@
         "scripts\\generate-mfoundi-import.mjs",
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\product-ingestion-funnel.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public read ranges",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff manage ranges",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1245,6 +1621,32 @@
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
         "scripts\\product-ingestion-funnel.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public Read Products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "Public View Products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "Staff Full Access Products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "Staff Write Products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "Staff update products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "TEMP: authenticated can insert products",
+          "impact": "inactive_rls_off"
+        }
       ]
     },
     {
@@ -1252,6 +1654,32 @@
       "policy_count": 6,
       "code_callers": [
         "components\\RepairTicketManagement.tsx"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public Create Ticket",
+          "impact": "redundant_shadowed"
+        },
+        {
+          "policy": "Public can create tickets",
+          "impact": "active"
+        },
+        {
+          "policy": "Public insert tickets",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Staff Manage Tickets",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Staff can manage tickets",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff full access tickets",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1264,6 +1692,16 @@
         "hooks\\admin\\useStaffManager.ts",
         "supabase\\functions\\create-staff-auth\\index.ts",
         "utils\\superAdmin.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public Read Staff",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff Self Edit",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1271,6 +1709,16 @@
       "policy_count": 2,
       "code_callers": [
         "supabase\\functions\\check-imei\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "tac_cache_read_all",
+          "impact": "bypass_service_role"
+        },
+        {
+          "policy": "tac_cache_write_service",
+          "impact": "bypass_service_role"
+        }
       ]
     },
     {
@@ -1280,6 +1728,24 @@
         "services\\trocEvaluationService.ts",
         "supabase\\functions\\save-trade-in\\index.ts",
         "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public Read Trade Models",
+          "impact": "active"
+        },
+        {
+          "policy": "Public View Argus",
+          "impact": "redundant_shadowed"
+        },
+        {
+          "policy": "Staff Manage Argus",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff Write Trade Models",
+          "impact": "redundant_duplicate"
+        }
       ]
     },
     {
@@ -1293,6 +1759,20 @@
         "supabase\\functions\\generate-certificate\\index.ts",
         "supabase\\functions\\save-trade-in\\index.ts",
         "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "staff_delete_trade_in_requests",
+          "impact": "active"
+        },
+        {
+          "policy": "staff_select_trade_in_requests",
+          "impact": "active"
+        },
+        {
+          "policy": "staff_update_trade_in_requests",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1300,6 +1780,12 @@
       "policy_count": 1,
       "code_callers": [
         "supabase\\functions\\generate-certificate\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "troc_certificates_staff_read",
+          "impact": "bypass_service_role"
+        }
       ]
     },
     {
@@ -1312,6 +1798,16 @@
         "supabase\\functions\\get-payment-status\\index.ts",
         "supabase\\functions\\payment-webhook\\index.ts",
         "supabase\\functions\\save-trade-in\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "troc_payments_insert_anon",
+          "impact": "active"
+        },
+        {
+          "policy": "troc_payments_select_anon",
+          "impact": "active"
+        }
       ]
     },
     {
@@ -1321,6 +1817,20 @@
         "hooks\\admin\\useAdminData.ts",
         "services\\trocEvaluationService.ts",
         "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "troc_sessions_insert_public",
+          "impact": "active"
+        },
+        {
+          "policy": "troc_sessions_select_staff",
+          "impact": "active"
+        },
+        {
+          "policy": "troc_sessions_update_public",
+          "impact": "active"
+        }
       ]
     }
   ]

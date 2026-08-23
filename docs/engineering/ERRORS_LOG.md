@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-08-23 — Méthode : conclusions publiées avant la fin de la vérification (6 revirements)
+
+- **Symptôme** : sur une même session, six affirmations contredites peu après. « Le baseline des 49 migrations est fiable » (5 vérifiées sur 49) · « la connexion DB est bloquée par l'environnement » (×2) · « il n'y a aucun gating par rôle » · « activer la RLS suffit » · « l'étape 1 = 3 failles » (5 le message suivant) · conseil d'interroger la consultante externe (c'était l'utilisatrice). Le user a fini par dire : « depuis là tu changes tout le temps d'avis ».
+- **Cause racine** : affirmer puis vérifier, au lieu de vérifier puis affirmer. Deux variantes précises : (a) **conclure d'une absence de résultat sur un grep trop étroit** — `grep role adminMenuConfig.ts` ne renvoyait rien, or la logique était dans `utils/adminAccess.ts` ; (b) **généraliser un échantillon** — 5 migrations contrôlées, conclusion étendue à 49. Aggravant : la roadmap contredisait mon propre rapport d'audit écrit 2 jours plus tôt, qui classait déjà `brands`/`product_ranges`/`customers` en 🟠 Élevé.
+- **Résolution** : outil `npm run db:verify` (fichiers → base) et `npm run db:inventory` (base → fichiers) pour ne plus raisonner par échantillon ; recensement explicite des faits vérifiés vs non vérifiés remis au user.
+- **Comment ne plus la refaire** : (a) **avant d'affirmer qu'une chose n'existe pas, chercher par symbole dans TOUT le repo** (`Grep` sur le nom de la fonction), jamais dans un seul fichier supposé. (b) **Ne jamais extrapoler d'un échantillon à un ensemble** — soit on vérifie tout par script, soit on énonce le taux de couverture réel dans la phrase. (c) **Relire ses propres documents antérieurs avant d'écrire une synthèse** qui les recoupe. (d) Marquer l'incertitude dans la phrase même, pas après la question du user.
+
+---
+
+## 2026-08-23 — Supabase RLS : `signInAnonymously` donne le rôle `authenticated`, pas `anon`
+
+- **Symptôme** : conseil initial « activer la RLS sur `products` suffit, les policies staff existent ». Faux : les policies d'écriture sont `TO authenticated USING (true)`, et le checkout public appelle `supabase.auth.signInAnonymously()` (`hooks/useOrderProcess.ts:31`).
+- **Cause racine** : chez Supabase, un utilisateur **anonyme** est authentifié — il porte le rôle Postgres `authenticated` (avec `is_anonymous: true` dans le JWT), pas `anon`. Une policy `TO authenticated USING (true)` est donc ouverte à tout visiteur qui déclenche une connexion anonyme — ce que le site fait tout seul au tunnel de commande. Le même piège s'aggrave à l'arrivée des comptes clients acheteurs : « connecté » cessera de vouloir dire « staff ».
+- **Résolution** : adosser les policies d'écriture à une **appartenance réelle au staff**. `staff.id` est un uuid autonome (≠ `auth.users.id`) → jointure par email : `EXISTS (SELECT 1 FROM public.staff s WHERE lower(s.email) = lower(auth.jwt() ->> 'email'))`. Validé par simulation en transaction annulée : staff → autorisé, session anonyme → refusée, futur client → refusé.
+- **Comment ne plus la refaire** : **ne jamais assimiler `authenticated` à « membre du staff »**. Toute policy d'écriture sensible doit vérifier une appartenance explicite, jamais le simple fait d'avoir une session. Tester une policy AVANT de l'activer via `BEGIN; SELECT set_config('request.jwt.claims', …, true); … ROLLBACK;`.
+
+---
+
+## 2026-08-23 — Script `.mjs` sans `dotenv` : erreur réseau trompeuse, diagnostic à côté
+
+- **Symptôme** : `The server does not support SSL connections`, puis `AggregateError [ETIMEDOUT]` sur des scripts DB ad hoc, alors que `npm run db:introspect` fonctionnait. Conclusion erronée annoncée au user : « l'environnement/le sandbox bloque la connexion » — deux fois, dont une où j'ai renoncé à une requête qu'il demandait.
+- **Cause racine** : les scripts ad hoc n'appelaient pas `dotenv.config()`. Sans lui `process.env.DATABASE_URL` est vide, `resolveDatabaseUrl()` retombe sur une construction depuis `SUPABASE_DB_PASSWORD` (absent aussi) et produit une URL bancale → la connexion aboutit sur autre chose qu'un Postgres, d'où un message d'erreur qui parle de SSL ou de timeout et **oriente vers le réseau**. `db-introspect.mjs` et `apply-migration.mjs` marchaient parce qu'eux chargent `.env`.
+- **Résolution** : `dotenv.config({ path: resolve(root, '.env') })` en tête de script. Ajout d'un handler d'erreur qui affiche `err.detail`, `err.hint` et la pile — c'est lui qui a révélé le vrai `ETIMEDOUT` derrière un `✗` vide.
+- **Comment ne plus la refaire** : (a) **tout script `.mjs` qui parle à la base charge `.env`** — copier l'amorçage de `db-introspect.mjs`, ne pas repartir de zéro (règle ajoutée dans `AGENTS.md`). (b) **Ne jamais imputer un échec à l'environnement tant qu'un script voisin fonctionne** : la différence est dans le code, pas dans le réseau. (c) Ne jamais logger `err.message` seul — un message vide masque la cause.
+
+---
+
+## 2026-08-21 — Conception Cadrage IMEI CAMCIS : Scraping illusoire, duplication Luhn & pricing sur source déclarative
+
+- **Symptôme** : Propositions initiales de cadrage irréalistes (tentative de scraping serveur via Turnstile, création d'une 2e Edge Function `verify-camcis-imei`, 6e copie Luhn, cache TTL 30j, pricing ferme sur saisie client).
+- **Cause racine** : (1) Absence d'inspection préalable de la codebase existante (`TrocQuickForm.tsx` et `check-imei/index.ts` contenaient déjà l'IMEI et le provider cascade). (2) Méconnaissance de Cloudflare Turnstile (bloque 100% des requêtes serveur automatiques). (3) Absence de distinction entre estimation déclarative client et engagement financier opposable. (4) Oubli des frontières d'environnement (Vite `src/` vs Deno `supabase/functions/`).
+- **Résolution** : (1) Séquencement 2-Phases (Phase 1 assistée humain/CSV, Phase 2 API officielle B2B). (2) Factorisation Luhn étanche en 2 fichiers (`utils/imei.ts` pour Vite, `supabase/functions/_shared/imei.ts` pour Deno). (3) Règle de source typée `CamcisSource` (`user_declarative` non opposable vs `staff_verified` opposable). (4) Bloc `customsStatus` orthogonal dans `check-imei`. (5) RLS stricte (`service_role`) et migrations SQL additives.
+- **Comment ne plus la refaire** : (a) **Toujours introspecter la codebase ET la base réelle AVANT de concevoir un plan**. (b) **Ne jamais planifier un scraping serveur contre un service protégé par Captcha/Turnstile sans jeton API**. (c) **Ne jamais engager d'argent sur une donnée déclarative utilisateur (`user_declarative`)**. (d) Respecter les frontières d'importation entre le bundler Front et les Edge Functions.
+
+---
+
 ## 2026-06-15 — Troc : prix client ≠ admin + paiement orphelin (refus invisible)
 
 - **Symptôme** : (A) client voit 74/140k, admin affiche 0/100, 0 F « Modèle non référencé ». (B) un appareil refusé mais **payé** (Nokia) n'apparaît nulle part en admin.

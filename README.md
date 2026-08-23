@@ -33,8 +33,8 @@ L'objectif : offrir l'expérience d'achat la plus premium du "Mboa" (237), avec 
 - Ton adapté : Professionnel, Chill, avec une touche locale.
 
 ### 💳 Paiement & Services Locaux
-- **Checkout Optimisé :** Simulation d'intégration Orange Money (OM) et MTN Mobile Money (MoMo).
-- **Zone Troc :** Interface dédiée à l'estimation et l'échange d'anciens appareils.
+- **Checkout Boutique :** Paiements manuels par instructions de transfert Orange Money (OM) et MTN Mobile Money (MoMo).
+- **Zone Troc (Smart Troc) :** Intégration complète via l'API **CamPay** pour le paiement automatisé (Push USSD) des frais de dossier OM/MoMo.
 - **Command Center :** Tableau de bord administrateur pour le suivi des stocks et revenus.
 
 ---

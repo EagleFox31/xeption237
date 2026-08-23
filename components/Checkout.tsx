@@ -881,7 +881,7 @@ const Checkout: React.FC<CheckoutProps> = ({
             <div className="flex justify-between"><span>Montant à payer</span> <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span></div>
           </div>
           <p className="text-gray-400 text-xs mt-4 relative z-10">
-            La commande est enregistrée sur le site. Le règlement Mobile Money est ensuite confirmé avec la boutique avant préparation ou retrait.
+            La commande est enregistrée et le stock réservé. Le règlement Orange Money se fait à la livraison ou au retrait en boutique — notre équipe t&apos;appelle pour confirmer.
           </p>
         </div>
       )}
@@ -894,7 +894,7 @@ const Checkout: React.FC<CheckoutProps> = ({
             <div className="flex justify-between border-b border-yellow-500/10 pb-2"><span>Code Marchand</span> <span className="text-white font-bold">{PAYMENT_DETAILS.MOMO.merchantCode}</span></div>
           </div>
           <p className="text-gray-400 text-xs mt-4 relative z-10">
-            La validation finale du règlement peut nécessiter une confirmation manuelle avec la boutique avant expédition ou retrait.
+            La commande est enregistrée et le stock réservé. Le règlement MTN MoMo se fait à la livraison ou au retrait — notre équipe te contacte avant l&apos;encaissement.
           </p>
         </div>
       )}

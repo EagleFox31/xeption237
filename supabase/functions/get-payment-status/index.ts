@@ -1,25 +1,18 @@
 // @ts-ignore
 const Deno = globalThis.Deno;
 
+import {
+  fetchWithTimeout,
+  isOrderPaymentReference,
+  mapCampayStatus,
+  patchOrderPaymentPaid,
+} from '../_shared/orderPayment.ts';
+
 export {};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const fetchWithTimeout = async (
-  input: RequestInfo | URL,
-  init: RequestInit = {},
-  timeoutMs = 10_000,
-): Promise<Response> => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(id);
-  }
 };
 
 Deno.serve(async (req: Request) => {
@@ -28,29 +21,38 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { sessionKey, reference } = await req.json();
+    const body = await req.json();
+    const sessionKey = body.sessionKey as string | undefined;
+    const reference = body.reference as string | undefined;
 
-    if (!sessionKey || !reference) {
-      return new Response(JSON.stringify({ error: 'sessionKey et reference requis' }), {
+    if (!reference) {
+      return new Response(JSON.stringify({ error: 'reference requis' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
     }
 
-    const rawToken    = Deno.env.get('CAMPAY_API_TOKEN')?.trim() || '';
+    const rawToken = Deno.env.get('CAMPAY_API_TOKEN')?.trim() || '';
     const campayToken = rawToken.startsWith('Token ') ? rawToken : `Token ${rawToken}`;
-    const campayBase  = Deno.env.get('CAMPAY_BASE_URL') || 'https://campay.net/api';
+    const campayBase = Deno.env.get('CAMPAY_BASE_URL') || 'https://campay.net/api';
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    // 1. Lire le statut en DB
-    const dbRes = await fetchWithTimeout(
-      `${supabaseUrl}/rest/v1/troc_payments?session_key=eq.${encodeURIComponent(sessionKey)}&reference=eq.${encodeURIComponent(reference)}&select=status,notchpay_status&limit=1`,
-      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Accept: 'application/json' } },
-    );
+    const isOrder = isOrderPaymentReference(reference);
+    const table = isOrder ? 'order_payments' : 'troc_payments';
+    const campayField = isOrder ? 'campay_reference' : 'notchpay_status';
+
+    let query = `${supabaseUrl}/rest/v1/${table}?reference=eq.${encodeURIComponent(reference)}&select=status,${campayField}${isOrder ? ',order_id' : ''}&limit=1`;
+    if (!isOrder && sessionKey) {
+      query = `${supabaseUrl}/rest/v1/troc_payments?session_key=eq.${encodeURIComponent(sessionKey)}&reference=eq.${encodeURIComponent(reference)}&select=status,notchpay_status&limit=1`;
+    }
+
+    const dbRes = await fetchWithTimeout(query, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Accept: 'application/json' },
+    });
 
     const rows = dbRes.ok ? await dbRes.json() : [];
-    const row  = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
     if (!row) {
       return new Response(JSON.stringify({ status: 'not_found' }), {
@@ -59,17 +61,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Si déjà paid/failed/expired en DB → retourner directement
     if (row.status !== 'pending') {
-      return new Response(JSON.stringify({ status: row.status }), {
+      return new Response(JSON.stringify({ status: row.status, kind: isOrder ? 'order' : 'troc' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
     }
 
-    // 2. Toujours pending → interroger CamPay directement
-    // campayReference = UUID interne CamPay stocké dans notchpay_status
-    const campayRef = row.notchpay_status;
+    const campayRef = row[campayField];
     if (!campayRef || !campayToken) {
       return new Response(JSON.stringify({ status: 'pending' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -77,31 +76,25 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const campayRes = await fetchWithTimeout(
-      `${campayBase}/transaction/${campayRef}/`,
-      { headers: { Authorization: campayToken, Accept: 'application/json' } },
-    );
+    const campayRes = await fetchWithTimeout(`${campayBase}/transaction/${campayRef}/`, {
+      headers: { Authorization: campayToken, Accept: 'application/json' },
+    });
 
     if (!campayRes.ok) {
-      console.warn('[get-payment-status] campay_status_check_failed', campayRes.status);
       return new Response(JSON.stringify({ status: 'pending' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
     }
 
-    const campayData  = await campayRes.json();
-    const campayStatus = (campayData?.status ?? '').toUpperCase();
+    const campayData = await campayRes.json();
+    const internalStatus = mapCampayStatus(campayData?.status ?? '');
 
-    const internalStatus: 'paid' | 'failed' | 'pending' =
-      campayStatus === 'SUCCESSFUL' ? 'paid'    :
-      campayStatus === 'FAILED'     ? 'failed'  :
-      'pending';
-
-    // 3. Si le statut a changé, mettre à jour la DB
-    if (internalStatus !== 'pending') {
+    if (internalStatus === 'paid' && isOrder) {
+      await patchOrderPaymentPaid(supabaseUrl, serviceKey, reference, campayRef);
+    } else if (internalStatus !== 'pending' && !isOrder) {
       const updatePayload: Record<string, unknown> = {
-        status:     internalStatus,
+        status: internalStatus,
         updated_at: new Date().toISOString(),
       };
       if (internalStatus === 'paid') updatePayload.paid_at = new Date().toISOString();
@@ -119,15 +112,27 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify(updatePayload),
         },
       );
-
-      console.info('[get-payment-status] status updated', { reference, internalStatus, campayStatus });
+    } else if (internalStatus === 'failed' && isOrder) {
+      await fetchWithTimeout(
+        `${supabaseUrl}/rest/v1/order_payments?reference=eq.${encodeURIComponent(reference)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({ status: 'failed', updated_at: new Date().toISOString() }),
+        },
+      );
     }
 
-    return new Response(JSON.stringify({ status: internalStatus }), {
+    return new Response(JSON.stringify({ status: internalStatus, kind: isOrder ? 'order' : 'troc' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[get-payment-status] fatal', error);
     return new Response(JSON.stringify({ status: 'pending' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

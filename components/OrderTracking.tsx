@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Package, Truck, CheckCircle, Clock, MapPin, ShoppingBag, ArrowRight, XCircle, Store, ShieldAlert, Activity } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { Order, TradeInRequest } from '../types';
+import { ChameleoMascot } from './troc/ChameleoMascot';
 
 const OrderTracking: React.FC = () => {
   const [trackingId, setTrackingId] = useState('');
@@ -109,19 +110,47 @@ const OrderTracking: React.FC = () => {
     return 'inactive';
   };
 
+  const deliveryMsg = loading
+    ? "Recherche de ton colis dans le réseau... 📡🚀"
+    : error
+      ? "Numéro introuvable, vérifie ton ID de commande ou de troc !"
+      : order
+        ? order.status === 'delivered'
+          ? "Colis livré avec succès ! Merci de ta confiance 🎉✨"
+          : order.status === 'shipped' || order.status === 'ready'
+            ? "Colis en route avec notre coursier express ! 🚀📦"
+            : order.status === 'confirmed'
+              ? "Commande confirmée ! Préparation du colis en cours 📦✨"
+              : "Suivi de commande actif !"
+        : troc
+          ? troc.status === 'accepted' || troc.status === 'completed'
+            ? "Dossier Troc validé ! Switch prêt 🎉✨"
+            : "Dossier Troc en cours de traitement par nos experts 📱✨"
+          : "Entre ton identifiant pour localiser ton colis en temps réel ! 📦🚀";
+
   return (
     <div className="pt-24 pb-20 px-4 min-h-screen max-w-4xl mx-auto">
-        <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-5">
-            <h1 className="text-4xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-lg mb-4">
-                Suivi de <span className="text-xeption-gold">Dossier</span>
+        <div className="flex flex-col items-center text-center mb-8 animate-in fade-in slide-in-from-bottom-5">
+            {/* Mascotte Xepti Livreur Express avec Colis */}
+            <div className="mb-4">
+              <ChameleoMascot 
+                size="md"
+                pose="delivery"
+                state={loading ? 'scanning' : order?.status === 'delivered' || troc?.status === 'completed' ? 'happy' : 'idle'}
+                message={deliveryMsg}
+              />
+            </div>
+
+            <h1 className="text-3xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-lg mb-3">
+                Suivi de <span className="text-xeption-gold">Dossier & Colis</span>
             </h1>
-            <p className="text-gray-300 max-w-xl mx-auto">
-                Saisissez votre numéro de commande ou de dossier Troc pour voir où en est votre demande en temps réel.
+            <p className="text-gray-300 max-w-xl mx-auto text-xs md:text-sm">
+                Saisissez votre numéro de commande ou de dossier Troc pour voir où en est votre colis en temps réel.
             </p>
         </div>
 
         {/* Search Box */}
-        <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-8 rounded-xl shadow-2xl mb-12 max-w-2xl mx-auto relative overflow-hidden">
+        <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-6 sm:p-8 rounded-xl shadow-2xl mb-12 max-w-2xl mx-auto relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-xeption-gold/10 rounded-full blur-[60px]"></div>
             
             <form onSubmit={handleTrack} className="relative z-10 flex flex-col md:flex-row gap-4">

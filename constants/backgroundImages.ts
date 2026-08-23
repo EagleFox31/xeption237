@@ -28,6 +28,7 @@ export const LIGHT_BACKGROUND_ROUTES = [
   '/politique-cookies',
   '/cgv',
   '/cgv-smart-troc',
+  '/avis',
 ] as const;
 
 export const isLightBackgroundRoute = (pathname: string): boolean =>

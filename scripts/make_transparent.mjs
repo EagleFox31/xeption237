@@ -63,11 +63,11 @@ async function processOne(inputPath, outputPath) {
 async function main() {
   const brainPath = 'C:/Users/jakaa/.gemini/antigravity-ide/brain/4e4de079-ab0d-413d-824b-4b0010e62d61';
   
-  // Delivery pose
-  const deliverySrc = `${brainPath}/mascot_xepti_delivery_1787477391520.jpg`;
-  if (fs.existsSync(deliverySrc)) {
-    fs.copyFileSync(deliverySrc, 'public/mascot/xepti_delivery.jpg');
-    await processOne('public/mascot/xepti_delivery.jpg', 'public/mascot/xepti_delivery_transparent.png');
+  // Engineer pose
+  const engineerSrc = `${brainPath}/mascot_xepti_engineer_1787479818552.jpg`;
+  if (fs.existsSync(engineerSrc)) {
+    fs.copyFileSync(engineerSrc, 'public/mascot/xepti_engineer.jpg');
+    await processOne('public/mascot/xepti_engineer.jpg', 'public/mascot/xepti_engineer_transparent.png');
   }
 }
 

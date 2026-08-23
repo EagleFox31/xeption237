@@ -4,7 +4,12 @@ import {
   BadgeCheck, ShieldCheck, ShieldAlert, Smartphone, Award, ScanLine, AlertTriangle, ArrowLeft,
 } from 'lucide-react';
 import { PageSEO } from '../utils/seo';
-import { getCertificateByToken, type CertificateVerifyResult } from '../services/trocEvaluationService';
+import {
+  getPublicCertificateByToken,
+  type CertificateVerifyResult,
+  type ImeiCertificateVerifyResult,
+  type PublicCertificate,
+} from '../services/trocEvaluationService';
 import { CREDIT_BONUS_PERCENT } from '../utils/trocPricing';
 
 type FetchState = 'loading' | 'ok' | 'not_found' | 'error';
@@ -38,10 +43,22 @@ const gradeLabel = (g: string | null): string => {
   return '—';
 };
 
+const imeiStatusLabel = (s: string): string => {
+  if (s === 'valid') return 'Valide';
+  if (s === 'invalid') return 'Invalide';
+  return 'Non confirmé';
+};
+
+const blacklistLabel = (s: string): string => {
+  if (s === 'clear') return 'Propre — non signalé';
+  if (s === 'blacklisted') return 'Signalé (volé / bloqué)';
+  return 'Non vérifié';
+};
+
 const VerifyCertificatePage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const [state, setState]   = useState<FetchState>('loading');
-  const [cert, setCert]     = useState<CertificateVerifyResult | null>(null);
+  const [cert, setCert]     = useState<PublicCertificate | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +68,7 @@ const VerifyCertificatePage: React.FC = () => {
         return;
       }
       try {
-        const data = await getCertificateByToken(token);
+        const data = await getPublicCertificateByToken(token);
         if (cancelled) return;
         if (!data) {
           setState('not_found');
@@ -67,11 +84,19 @@ const VerifyCertificatePage: React.FC = () => {
     return () => { cancelled = true; };
   }, [token]);
 
+  const isImei = cert?.kind === 'imei';
+  const pageTitle = isImei
+    ? 'Vérification Certifié Xeption'
+    : 'Vérification de certificat Smart Troc';
+  const pageDesc = isImei
+    ? 'Vérifiez l\'authenticité d\'un certificat IMEI Certifié Xeption.'
+    : 'Vérifiez l\'authenticité d\'un rapport d\'expertise Smart Troc Xeption.';
+
   return (
     <div className="min-h-screen bg-black text-white py-10 px-4">
       <PageSEO
-        title="Vérification de certificat Smart Troc"
-        description="Vérifiez l'authenticité d'un rapport d'expertise Smart Troc Xeption."
+        title={pageTitle}
+        description={pageDesc}
         path={token ? `/verify/${token}` : '/verify'}
         noindex
       />
@@ -124,105 +149,162 @@ const VerifyCertificatePage: React.FC = () => {
           </div>
         )}
 
-        {state === 'ok' && cert && (
-          <>
-            {/* En-tête authentifié */}
-            <div className="bg-gradient-to-br from-xeption-gold/15 to-transparent border border-xeption-gold/30 rounded-xl p-6 mb-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-xeption-gold rounded-full flex items-center justify-center">
-                  <BadgeCheck className="w-6 h-6 text-black" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-tech uppercase tracking-widest text-xeption-gold">
-                    Certificat authentique
-                  </p>
-                  <p className="text-white font-tech font-bold text-lg">{cert.reference}</p>
-                </div>
-              </div>
-              <p className="text-gray-300 text-xs">
-                Émis le <span className="text-white">{formatDateFr(cert.created_at)}</span> · {cert.verified_count} vérification{cert.verified_count > 1 ? 's' : ''} enregistrée{cert.verified_count > 1 ? 's' : ''}
-              </p>
-            </div>
+        {state === 'ok' && cert?.kind === 'imei' && (
+          <ImeiCertView cert={cert.data} />
+        )}
 
-            {/* Appareil */}
-            <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Smartphone className="w-5 h-5 text-xeption-gold" />
-                <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Appareil évalué</h2>
-              </div>
-              <p className="text-white font-bold text-xl">
-                {cert.device_brand} {cert.device_model}
-              </p>
-              {cert.device_storage && (
-                <p className="text-gray-400 text-sm mt-1">{cert.device_storage}</p>
-              )}
-              {cert.imei_last4 && (
-                <p className="text-gray-500 text-xs mt-2 font-mono">IMEI {cert.imei_last4}</p>
-              )}
-            </div>
-
-            {/* Diagnostic */}
-            <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-4">
-              <div className="flex items-center gap-2 mb-4">
-                <ScanLine className="w-5 h-5 text-xeption-gold" />
-                <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Diagnostic</h2>
-              </div>
-              <div className="space-y-3">
-                <Row label="Score d'état"   value={`${cert.ai_score ?? '—'} / 100`} />
-                <Row label="Grade"          value={gradeLabel(cert.trade_in_grade)} />
-                <Row
-                  label="Vérification IMEI"
-                  value={
-                    cert.imei_assurance_level === 'premium'
-                      ? (cert.imei_blacklist_status === 'clear'
-                          ? 'Premium — blacklist mondiale ✓'
-                          : 'Premium')
-                      : 'Standard'
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Valeur de reprise */}
-            <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Award className="w-5 h-5 text-xeption-gold" />
-                <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Offre de reprise</h2>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-xeption-gold/10 border border-xeption-gold/30 rounded-lg p-4">
-                  <p className="text-[10px] font-tech uppercase tracking-widest text-xeption-gold mb-1">Crédit boutique</p>
-                  <p className="text-2xl font-bold text-white">{formatXaf(cert.trade_in_value)}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">+{CREDIT_BONUS_PERCENT} % bonus inclus</p>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <p className="text-[10px] font-tech uppercase tracking-widest text-gray-500 mb-1">Cash immédiat</p>
-                  <p className="text-2xl font-bold text-gray-200">{formatXaf(cert.trade_in_value_cash)}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Formule */}
-            <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <ShieldCheck className="w-5 h-5 text-xeption-gold" />
-                <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Formule de service</h2>
-              </div>
-              <p className="text-white text-lg font-tech font-bold">{tierLabel(cert.tier)}</p>
-            </div>
-
-            {/* Mentions légales */}
-            <p className="text-[10px] text-gray-600 text-center leading-relaxed">
-              Ce certificat atteste d'une évaluation Smart Troc effectuée via l'IA Xeption.
-              La validation définitive est faite en boutique sur présentation de l'appareil.
-              Xeption Network 237 · Mfoundi Mall · Olembé, Yaoundé · xeptionetwork.shop
-            </p>
-          </>
+        {state === 'ok' && cert?.kind === 'trade_in' && (
+          <TradeInCertView cert={cert.data} />
         )}
       </div>
     </div>
   );
 };
+
+const ImeiCertView: React.FC<{ cert: ImeiCertificateVerifyResult }> = ({ cert }) => (
+  <>
+    <div className="bg-gradient-to-br from-emerald-500/15 to-transparent border border-emerald-400/30 rounded-xl p-6 mb-4">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
+          <BadgeCheck className="w-6 h-6 text-black" />
+        </div>
+        <div>
+          <p className="text-[10px] font-tech uppercase tracking-widest text-emerald-400">
+            Certifié Xeption — authentique
+          </p>
+          <p className="text-white font-tech font-bold text-lg">{cert.reference}</p>
+        </div>
+      </div>
+      <p className="text-gray-300 text-xs">
+        Émis le <span className="text-white">{formatDateFr(cert.created_at)}</span>
+        {' · '}
+        {cert.verified_count} vérification{cert.verified_count > 1 ? 's' : ''} enregistrée{cert.verified_count > 1 ? 's' : ''}
+      </p>
+    </div>
+
+    <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Smartphone className="w-5 h-5 text-emerald-400" />
+        <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Appareil vérifié</h2>
+      </div>
+      <p className="text-white font-bold text-xl">
+        {[cert.device_brand, cert.device_model].filter(Boolean).join(' ') || 'Non identifié'}
+      </p>
+      {cert.imei_last4 && (
+        <p className="text-gray-500 text-xs mt-2 font-mono">IMEI {cert.imei_last4}</p>
+      )}
+    </div>
+
+    <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <ScanLine className="w-5 h-5 text-emerald-400" />
+        <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Résultat IMEI</h2>
+      </div>
+      <div className="space-y-3">
+        <Row label="Format IMEI (Luhn)" value={imeiStatusLabel(cert.imei_status)} />
+        <Row label="Liste noire mondiale" value={blacklistLabel(cert.blacklist_status)} />
+      </div>
+    </div>
+
+    <p className="text-[10px] text-gray-600 text-center leading-relaxed">
+      Ce certificat atteste une vérification IMEI via le service Certifier Xeption.
+      Il ne constitue pas un rapport d'expertise Smart Troc ni une offre de reprise.
+      Xeption Network 237 · Mfoundi Mall · Olembé, Yaoundé · xeptionetwork.shop
+    </p>
+  </>
+);
+
+const TradeInCertView: React.FC<{ cert: CertificateVerifyResult }> = ({ cert }) => (
+  <>
+    <div className="bg-gradient-to-br from-xeption-gold/15 to-transparent border border-xeption-gold/30 rounded-xl p-6 mb-4">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 bg-xeption-gold rounded-full flex items-center justify-center">
+          <BadgeCheck className="w-6 h-6 text-black" />
+        </div>
+        <div>
+          <p className="text-[10px] font-tech uppercase tracking-widest text-xeption-gold">
+            Certificat Smart Troc — authentique
+          </p>
+          <p className="text-white font-tech font-bold text-lg">{cert.reference}</p>
+        </div>
+      </div>
+      <p className="text-gray-300 text-xs">
+        Émis le <span className="text-white">{formatDateFr(cert.created_at)}</span>
+        {' · '}
+        {cert.verified_count} vérification{cert.verified_count > 1 ? 's' : ''} enregistrée{cert.verified_count > 1 ? 's' : ''}
+      </p>
+    </div>
+
+    <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Smartphone className="w-5 h-5 text-xeption-gold" />
+        <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Appareil évalué</h2>
+      </div>
+      <p className="text-white font-bold text-xl">
+        {cert.device_brand} {cert.device_model}
+      </p>
+      {cert.device_storage && (
+        <p className="text-gray-400 text-sm mt-1">{cert.device_storage}</p>
+      )}
+      {cert.imei_last4 && (
+        <p className="text-gray-500 text-xs mt-2 font-mono">IMEI {cert.imei_last4}</p>
+      )}
+    </div>
+
+    <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-4">
+      <div className="flex items-center gap-2 mb-4">
+        <ScanLine className="w-5 h-5 text-xeption-gold" />
+        <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Diagnostic</h2>
+      </div>
+      <div className="space-y-3">
+        <Row label="Score d'état"   value={`${cert.ai_score ?? '—'} / 100`} />
+        <Row label="Grade"          value={gradeLabel(cert.trade_in_grade)} />
+        <Row
+          label="Vérification IMEI"
+          value={
+            cert.imei_assurance_level === 'premium'
+              ? (cert.imei_blacklist_status === 'clear'
+                  ? 'Premium — blacklist mondiale ✓'
+                  : 'Premium')
+              : 'Standard'
+          }
+        />
+      </div>
+    </div>
+
+    <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Award className="w-5 h-5 text-xeption-gold" />
+        <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Offre de reprise</h2>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-xeption-gold/10 border border-xeption-gold/30 rounded-lg p-4">
+          <p className="text-[10px] font-tech uppercase tracking-widest text-xeption-gold mb-1">Crédit boutique</p>
+          <p className="text-2xl font-bold text-white">{formatXaf(cert.trade_in_value)}</p>
+          <p className="text-[10px] text-gray-400 mt-1">+{CREDIT_BONUS_PERCENT} % bonus inclus</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+          <p className="text-[10px] font-tech uppercase tracking-widest text-gray-500 mb-1">Cash immédiat</p>
+          <p className="text-2xl font-bold text-gray-200">{formatXaf(cert.trade_in_value_cash)}</p>
+        </div>
+      </div>
+    </div>
+
+    <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <ShieldCheck className="w-5 h-5 text-xeption-gold" />
+        <h2 className="text-sm font-tech font-bold uppercase tracking-wider text-gray-400">Formule de service</h2>
+      </div>
+      <p className="text-white text-lg font-tech font-bold">{tierLabel(cert.tier)}</p>
+    </div>
+
+    <p className="text-[10px] text-gray-600 text-center leading-relaxed">
+      Ce certificat atteste d'une évaluation Smart Troc effectuée via l'IA Xeption.
+      La validation définitive est faite en boutique sur présentation de l'appareil.
+      Xeption Network 237 · Mfoundi Mall · Olembé, Yaoundé · xeptionetwork.shop
+    </p>
+  </>
+);
 
 const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="flex justify-between items-center text-sm">

@@ -26,6 +26,22 @@ dotenv.config({ path: resolve(root, '.env') });
 const MIGRATIONS_DIR = resolve(root, 'supabase/migrations');
 const full = process.argv.includes('--full');
 
+/** RPC volontairement publiques (checkout / jeton / compteur). Ne pas alerter. */
+const PUBLIC_RPC_ALLOWLIST = new Set([
+  'create_order_atomic',
+  'get_feedback_invite',
+  'submit_feedback',
+  'get_certificate_by_token',
+  'get_imei_certificate_by_token',
+  'get_troc_monthly_count',
+]);
+
+/** Heuristique : garde appartenance staff explicite (pas seulement _staff_from_jwt). */
+const hasStaffGuard = (def) =>
+  /not\s+exists\s*\(\s*select\s+1\s+from\s+public\.staff\b/i.test(def) ||
+  /accès réservé à l['']équipe/i.test(def) ||
+  /staff_uuid\s+is\s+null/i.test(def);
+
 /** Texte concaténé de toutes les migrations, pour chercher si un objet y est mentionné. */
 function migrationsCorpus() {
   if (!existsSync(MIGRATIONS_DIR)) return '';
@@ -74,6 +90,18 @@ const Q = {
     join pg_namespace n on n.oid = t.typnamespace
     where n.nspname = 'public'
     group by t.typname order by t.typname`,
+  /** SECURITY DEFINER exécutable par anon — hors allowlist checkout/public. */
+  rpcAnonOpen: `
+    select p.proname as name,
+           pg_get_function_identity_arguments(p.oid) as args,
+           pg_get_functiondef(p.oid) as def
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prokind = 'f'
+      and p.prosecdef = true
+      and has_function_privilege('anon', p.oid, 'EXECUTE')
+    order by p.proname, args`,
 };
 
 async function main() {
@@ -135,6 +163,31 @@ async function main() {
       );
     }
     if (orphanTotal === 0) console.log('   (aucun)');
+
+    // ── Point d'attention 3 : RPC SECURITY DEFINER ouvertes à anon ───────────
+    const anonOpenRpc = data.rpcAnonOpen ?? [];
+    const rpcLeaks = anonOpenRpc.filter((f) => {
+      if (PUBLIC_RPC_ALLOWLIST.has(f.name)) return false;
+      if (f.name.startsWith('trg_') || f.name.startsWith('handle_') || f.name.startsWith('set_')) {
+        return false;
+      }
+      return !hasStaffGuard(f.def ?? '');
+    });
+
+    console.log(`\n── ⚠ RPC SECURITY DEFINER exécutable par anon sans garde staff (${rpcLeaks.length}) ──`);
+    console.log('   Postgres accorde EXECUTE à PUBLIC par défaut ; anon en hérite.');
+    console.log('   Allowlist checkout/public : ' + [...PUBLIC_RPC_ALLOWLIST].join(', '));
+    if (rpcLeaks.length === 0) {
+      console.log('   (aucune — OK)');
+    } else {
+      rpcLeaks.forEach((f) => console.log(`   • ${f.name}(${f.args})`));
+    }
+
+    const anonOpenPublicOk = anonOpenRpc.filter((f) => PUBLIC_RPC_ALLOWLIST.has(f.name));
+    if (anonOpenPublicOk.length) {
+      console.log(`\n── ✓ RPC publiques volontaires (anon OK, ${anonOpenPublicOk.length}) ──`);
+      anonOpenPublicOk.forEach((f) => console.log(`   • ${f.name}(${f.args})`));
+    }
 
     // ── Détail ───────────────────────────────────────────────────────────────
     console.log(`\n── Triggers (${data.triggers.length}) ──`);

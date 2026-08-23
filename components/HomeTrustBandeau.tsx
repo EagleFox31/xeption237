@@ -26,7 +26,7 @@ type CarouselItem =
   | { type: 'zone'; zone: DeliveryZone };
 
 const pillClass =
-  'flex items-center gap-1.5 w-full min-w-0 rounded-full border border-white/10 bg-[#09090b]/90 backdrop-blur-xl px-2 py-2 shadow-sm justify-center';
+  'flex items-center gap-2 w-full min-w-0 rounded-full border border-white/10 bg-[#09090b]/90 backdrop-blur-xl px-3 py-2.5 shadow-sm justify-center';
 
 const HomeTrustBandeau: React.FC = () => {
   const { zones, selectedZone, setSelectedZone, isLoading } = useDeliveryZones();
@@ -128,8 +128,8 @@ const HomeTrustBandeau: React.FC = () => {
       const Icon = item.icon;
       return (
         <div className={pillClass}>
-          <Icon className={`w-3.5 h-3.5 shrink-0 ${item.iconColor}`} strokeWidth={1.5} />
-          <span className="text-white font-tech font-bold uppercase text-[9px] tracking-wide truncate min-w-0">
+          <Icon className={`w-4 h-4 shrink-0 ${item.iconColor}`} strokeWidth={1.5} />
+          <span className="text-white font-tech font-bold uppercase text-[10px] sm:text-[11px] md:text-xs tracking-wide truncate min-w-0">
             {item.title}
           </span>
         </div>
@@ -143,8 +143,8 @@ const HomeTrustBandeau: React.FC = () => {
           onClick={() => openModal()}
           className={`${pillClass} hover:border-xeption-gold/50 transition-colors`}
         >
-          <Truck className="w-3.5 h-3.5 shrink-0 text-xeption-gold" strokeWidth={1.5} />
-          <span className="text-white font-tech font-bold uppercase text-[9px] tracking-wide truncate min-w-0">
+          <Truck className="w-4 h-4 shrink-0 text-xeption-gold" strokeWidth={1.5} />
+          <span className="text-white font-tech font-bold uppercase text-[10px] sm:text-[11px] md:text-xs tracking-wide truncate min-w-0">
             {NATIONWIDE_DELIVERY_LABEL}
           </span>
         </button>
@@ -158,8 +158,8 @@ const HomeTrustBandeau: React.FC = () => {
         onClick={() => openModal(item.zone)}
         className={`${pillClass} hover:border-xeption-gold/50 transition-colors`}
       >
-        <MapPin className="w-3.5 h-3.5 shrink-0 text-xeption-gold" strokeWidth={1.5} />
-        <span className="text-white font-tech font-bold uppercase text-[9px] tracking-wide truncate min-w-0">
+        <MapPin className="w-4 h-4 shrink-0 text-xeption-gold" strokeWidth={1.5} />
+        <span className="text-white font-tech font-bold uppercase text-[10px] sm:text-[11px] md:text-xs tracking-wide truncate min-w-0">
           Livrer à · {city}
         </span>
       </button>
@@ -168,7 +168,7 @@ const HomeTrustBandeau: React.FC = () => {
 
   return (
     <section
-      className="relative z-30 w-full min-w-0 max-w-[1400px] mx-auto px-2 sm:px-6 lg:px-8 pt-2 pb-1 box-border"
+      className="relative z-30 w-full min-w-0 max-w-[1600px] mx-auto px-2 sm:px-6 lg:px-8 pt-2 pb-1 box-border"
       aria-label="Réassurance et livraison"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}

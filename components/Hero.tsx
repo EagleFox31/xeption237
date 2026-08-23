@@ -41,8 +41,8 @@ const HeroCtaButtons: React.FC<{
         className="flex-1 basis-0 min-w-0 px-2 lg:px-4 py-2.5 lg:py-3 rounded-lg lg:rounded-none border-2 lg:border border-xeption-gold/70 lg:border-xeption-gold/30 text-xeption-gold font-tech font-bold text-xs lg:text-sm uppercase tracking-wide lg:tracking-wider bg-xeption-gold/15 lg:bg-transparent hover:bg-xeption-gold/20 lg:hover:bg-xeption-gold/10 transition-all flex items-center justify-center gap-1.5"
       >
         <RefreshCw className="w-3.5 h-3.5 shrink-0" />
-        <span className="truncate lg:hidden">Mon Troc</span>
-        <span className="truncate hidden lg:inline">Estimer mon téléphone</span>
+        <span className="truncate lg:hidden">Troc</span>
+        <span className="truncate hidden lg:inline">TROQUER Mon téléphone</span>
       </button>
     )}
   </div>
@@ -79,7 +79,7 @@ const Hero: React.FC<HeroProps> = ({
   onAddToCart,
 }) => {
   return (
-    <section className="relative z-10 w-full min-w-0 max-w-[1400px] mx-auto px-2 sm:px-6 lg:px-8 pt-3 pb-8 md:pt-5 md:pb-10 overflow-x-hidden box-border">
+    <section className="relative z-10 w-full min-w-0 max-w-[1600px] mx-auto px-2 sm:px-6 lg:px-8 pt-2 pb-2 md:pt-3 md:pb-3 overflow-x-hidden box-border">
       <div className="absolute top-1/3 left-1/4 w-48 h-48 bg-xeption-gold/5 rounded-full blur-[80px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-xeption-red/5 rounded-full blur-[70px] pointer-events-none" />
 

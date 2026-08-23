@@ -12,8 +12,8 @@ type ProductCardImageProps = {
 };
 
 /**
- * Image produit avec shimmer pendant le chargement, puis fondu.
- * Remet le shimmer si `src` change (carousel / filtre).
+ * Image produit avec shimmer pendant le chargement, puis fondu + léger scale.
+ * Pas d’anim de scale si prefers-reduced-motion. Remet le shimmer si `src` change.
  */
 const ProductCardImage: React.FC<ProductCardImageProps> = ({
   src,
@@ -38,7 +38,7 @@ const ProductCardImage: React.FC<ProductCardImageProps> = ({
           aria-hidden
         >
           <div className="absolute inset-0 product-image-shimmer" />
-          <div className="absolute inset-[18%] rounded-md border border-white/5 bg-white/[0.04]" />
+          <div className="absolute inset-[6%] rounded-md border border-white/5 bg-white/[0.04]" />
         </div>
       )}
       <img
@@ -53,8 +53,10 @@ const ProductCardImage: React.FC<ProductCardImageProps> = ({
         }}
         onLoad={() => setLoaded(true)}
         onError={() => setLoaded(true)}
-        className={`${className} transition-opacity duration-500 ease-out ${
-          loaded ? 'opacity-100' : 'opacity-0'
+        className={`${className} transition-[opacity,transform] duration-300 ease-out ${
+          loaded
+            ? 'opacity-100 motion-safe:scale-100'
+            : 'opacity-0 motion-safe:scale-[0.97]'
         }`}
       />
     </>

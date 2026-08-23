@@ -34,15 +34,15 @@ const HeroProductCard: React.FC<{
   >
     {product.isPromo && (
       <div className="absolute top-1.5 right-1.5 z-20">
-        <span className="bg-red-600 text-white text-[7px] font-bold px-1 py-0.5 font-tech uppercase rounded-sm">
+        <span className="bg-red-600 text-white text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase rounded-sm border border-red-400 shadow-md shadow-red-900/50">
           Promo
         </span>
       </div>
     )}
     {product.condition === 'new' && (
       <div className="absolute top-1.5 left-1.5 z-20">
-        <span className="bg-emerald-500/90 text-white text-[7px] font-bold px-1 py-0.5 font-tech uppercase rounded-sm flex items-center gap-0.5">
-          <Sparkles className="w-2 h-2" /> Neuf
+        <span className="bg-emerald-500/90 text-white text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase rounded-sm flex items-center gap-0.5 border border-emerald-400 shadow-md shadow-emerald-900/50">
+          <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3" /> Neuf
         </span>
       </div>
     )}
@@ -71,32 +71,32 @@ const HeroProductCard: React.FC<{
           e.stopPropagation();
           onAddToCart(product);
         }}
-        className={`absolute bottom-1.5 right-1.5 bg-xeption-gold text-black rounded-full shadow-lg opacity-90 hover:opacity-100 z-10 ${
-          dense ? 'p-1.5' : 'p-2'
+        className={`absolute bottom-2 right-2 bg-xeption-gold text-black rounded-full shadow-lg opacity-90 hover:opacity-100 z-10 ${
+          dense ? 'p-2' : 'p-2.5 md:p-3'
         }`}
         aria-label="Ajouter au panier"
       >
-        <ShoppingCart className={dense ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+        <ShoppingCart className={dense ? 'h-4 w-4' : 'h-5 w-5'} />
       </button>
     </div>
     <div className={dense ? 'p-2' : 'p-2.5 md:p-3'}>
       <h3
         className={`font-bold text-white font-tech uppercase tracking-wide truncate group-hover:text-xeption-gold transition-colors ${
-          dense ? 'text-[10px]' : 'text-[11px] md:text-sm'
+          dense ? 'text-xs md:text-sm' : 'text-sm md:text-base'
         }`}
       >
         {displayName}
       </h3>
       <div className="flex items-baseline gap-1 mt-0.5">
         {product.oldPrice && (
-          <span className="text-[8px] text-red-400 line-through font-mono">
+          <span className="text-[9px] md:text-[11px] text-red-400 line-through font-mono">
             {product.oldPrice.toLocaleString('fr-FR')}
           </span>
         )}
-        <span className={`font-bold text-white font-tech ${dense ? 'text-xs' : 'text-sm md:text-base'}`}>
+        <span className={`font-bold text-white font-tech ${dense ? 'text-sm' : 'text-base md:text-lg'}`}>
           {product.price.toLocaleString('fr-FR')}
         </span>
-        <span className="text-[7px] text-xeption-gold font-bold uppercase">FCFA</span>
+        <span className="text-[8px] md:text-[9px] text-xeption-gold font-bold uppercase">FCFA</span>
       </div>
     </div>
   </div>
@@ -168,18 +168,18 @@ function useProductSlides(products: Product[], slideSize: number, autoPlay = tru
         <button
           type="button"
           onClick={() => setSlide((s) => (s <= 0 ? maxSlide : s - 1))}
-          className="p-1.5 rounded-full border border-white/20 hover:border-xeption-gold/50 text-gray-300 hover:text-white transition-colors bg-black/40"
+          className="p-1.5 rounded-full border border-xeption-gold/50 hover:border-xeption-gold text-xeption-gold hover:text-white transition-colors bg-black/40 hover:bg-xeption-gold/20"
           aria-label="Produits précédents"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
         </button>
         <button
           type="button"
           onClick={() => setSlide((s) => (s >= maxSlide ? 0 : s + 1))}
-          className="p-1.5 rounded-full border border-white/20 hover:border-xeption-gold/50 text-gray-300 hover:text-white transition-colors bg-black/40"
+          className="p-1.5 rounded-full border border-xeption-gold/50 hover:border-xeption-gold text-xeption-gold hover:text-white transition-colors bg-black/40 hover:bg-xeption-gold/20"
           aria-label="Produits suivants"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
         </button>
       </div>
     ) : null;

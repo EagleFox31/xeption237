@@ -8,6 +8,7 @@ import { getProductSlug } from '../utils/slug';
 import { getProductDisplayName } from '../utils/productDisplay';
 import { parsePriceParam } from '../utils/shopPriceFilter';
 import { persistShopFilters } from '../utils/shopFilterStorage';
+import { parsePageParam } from '../utils/shopPagination';
 
 interface ShopPageProps {
     products: Product[];
@@ -35,20 +36,26 @@ const ShopPage: React.FC<ShopPageProps> = ({ products, onAddToCart }) => {
     const conditionFilter = searchParams.get('condition') || 'all';
     const priceMin = parsePriceParam(searchParams.get('price_min'));
     const priceMax = parsePriceParam(searchParams.get('price_max'));
+    const page = parsePageParam(searchParams.get('page'));
     const [resultCount, setResultCount] = useState(products.length);
+
+    const commitParams = (next: URLSearchParams, resetPage = true) => {
+        if (resetPage) next.delete('page');
+        setSearchParams(next, { replace: true });
+    };
 
     const setParam = (key: string, value: string) => {
         const next = new URLSearchParams(searchParams);
         if (!value || value === 'all') next.delete(key);
         else next.set(key, value);
-        setSearchParams(next, { replace: true });
+        commitParams(next);
     };
 
     const setBoolParam = (key: string, enabled: boolean) => {
         const next = new URLSearchParams(searchParams);
         if (enabled) next.set(key, '1');
         else next.delete(key);
-        setSearchParams(next, { replace: true });
+        commitParams(next);
     };
 
     const setPriceRange = (min: number | null, max: number | null) => {
@@ -57,7 +64,14 @@ const ShopPage: React.FC<ShopPageProps> = ({ products, onAddToCart }) => {
         else next.set('price_min', String(min));
         if (max === null) next.delete('price_max');
         else next.set('price_max', String(max));
-        setSearchParams(next, { replace: true });
+        commitParams(next);
+    };
+
+    const setPage = (nextPage: number) => {
+        const next = new URLSearchParams(searchParams);
+        if (nextPage <= 1) next.delete('page');
+        else next.set('page', String(nextPage));
+        commitParams(next, false);
     };
 
     useEffect(() => {
@@ -78,9 +92,13 @@ const ShopPage: React.FC<ShopPageProps> = ({ products, onAddToCart }) => {
     );
 
     return (
-        <div className="min-h-screen">
+        <div className="flex-1 flex flex-col min-h-0">
             <PageSEO
-                title="Boutique High-Tech Cameroun — Smartphones, PC, Gaming | Xeption"
+                title={
+                    page > 1
+                        ? `Boutique High-Tech Cameroun — page ${page} | Xeption`
+                        : 'Boutique High-Tech Cameroun — Smartphones, PC, Gaming | Xeption'
+                }
                 description="Découvrez notre catalogue complet : Smartphones iPhone & Samsung, Laptops, PC Gamer, Gadgets. Prix imbattables, livraison rapide Yaoundé & Douala."
                 path="/shop"
             />
@@ -125,8 +143,10 @@ const ShopPage: React.FC<ShopPageProps> = ({ products, onAddToCart }) => {
                     params.delete('condition');
                     params.delete('price_min');
                     params.delete('price_max');
-                    setSearchParams(params, { replace: true });
+                    commitParams(params);
                 }}
+                page={page}
+                onPageChange={setPage}
                 brandFilter={activeBrand}
                 onBrandChange={(next) => setParam('brand', next)}
                 onSortChange={(next) => setParam('sort', next === 'default' ? '' : next)}

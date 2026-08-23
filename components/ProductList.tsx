@@ -6,14 +6,16 @@ import { optimizeImage } from '../utils/mediaOptimization';
 import { getProductDisplayName, normalizeSamsungGalaxySpelling } from '../utils/productDisplay';
 import { ProductBadgeChips } from './product/ProductBadgeChips';
 import ProductCardImage from './common/ProductCardImage';
+import ProductCard from './product/ProductCard';
 import {
   getBrandDisplayName,
+  canonicalizeBrandKey,
   UNASSIGNED_BRAND_KEY,
   type BrandRef,
 } from '../utils/productBrand';
 import { supabase } from '../services/supabaseClient';
-import AdSpot from './AdSpot';
 import ShopFiltersPanel from './shop/ShopFiltersPanel';
+import ShopFixedFiltersSidebar from './shop/ShopFixedFiltersSidebar';
 import ProductListRow from './shop/ProductListRow';
 import {
   buildFacetedFacetGroups,
@@ -28,6 +30,13 @@ import {
   getProductPriceBounds,
   isPriceFilterActive,
 } from '../utils/shopPriceFilter';
+import {
+  SHOP_PAGE_SIZE,
+  clampPage,
+  paginateItems,
+  totalPages,
+} from '../utils/shopPagination';
+import ShopPagination from './shop/ShopPagination';
 
 type ViewMode = 'grid' | 'list';
 
@@ -65,6 +74,8 @@ interface ProductListProps {
   priceMax?: number | null;
   onPriceRangeChange?: (min: number | null, max: number | null) => void;
   onResultCountChange?: (count: number) => void;
+  page?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const ProductList: React.FC<ProductListProps> = ({
@@ -98,6 +109,8 @@ const ProductList: React.FC<ProductListProps> = ({
   priceMax = null,
   onPriceRangeChange,
   onResultCountChange,
+  page = 1,
+  onPageChange,
 }) => {
   const [internalFilter, setInternalFilter] = useState<string>('all');
   const [internalBrandFilter, setInternalBrandFilter] = useState<string>('all');
@@ -111,11 +124,20 @@ const ProductList: React.FC<ProductListProps> = ({
     return 'grid';
   });
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const shopToolbarRef = React.useRef<HTMLDivElement>(null);
+  const skipPageScrollRef = React.useRef(true);
 
   const isShopLayout = stickyToolbar && hasShopHero;
 
   const activeFilter = filter ?? internalFilter;
   const activeBrand = brandFilter ?? internalBrandFilter;
+  // L'URL/filtre porte un SLUG (?brand=samsung, pro & SEO). On le résout ici vers l'ID
+  // canonique de marque pour le matching/les compteurs (rétro-compat si un ID est passé).
+  const resolvedBrand = useMemo(() => {
+    if (!activeBrand || activeBrand === 'all' || activeBrand === UNASSIGNED_BRAND_KEY) return activeBrand;
+    const bySlug = brands.find((b) => b.slug === activeBrand);
+    return canonicalizeBrandKey(bySlug ? bySlug.id : activeBrand, brands);
+  }, [activeBrand, brands]);
   const setFilter = (next: string) => {
     if (onFilterChange) onFilterChange(next);
     else setInternalFilter(next);
@@ -149,7 +171,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   const filterCriteria = useMemo<ShopFilterCriteria>(
     () => ({
-      activeBrand,
+      activeBrand: resolvedBrand,
       searchQuery,
       promoOnly,
       inStockOnly,
@@ -159,7 +181,7 @@ const ProductList: React.FC<ProductListProps> = ({
       priceMin,
       priceMax,
     }),
-    [activeBrand, searchQuery, promoOnly, inStockOnly, storageFilter, ramFilter, conditionFilter, priceMin, priceMax],
+    [resolvedBrand, searchQuery, promoOnly, inStockOnly, storageFilter, ramFilter, conditionFilter, priceMin, priceMax],
   );
 
   const priceBoundsPool = useMemo(
@@ -185,6 +207,28 @@ const ProductList: React.FC<ProductListProps> = ({
   useEffect(() => {
     onResultCountChange?.(filteredProducts.length);
   }, [filteredProducts.length, onResultCountChange]);
+
+  const shopPaging = isShopLayout && Boolean(onPageChange);
+  const shopPageCount = totalPages(filteredProducts.length, SHOP_PAGE_SIZE);
+  const pagedProducts = useMemo(
+    () => (shopPaging ? paginateItems(filteredProducts, page, SHOP_PAGE_SIZE) : filteredProducts),
+    [filteredProducts, page, shopPaging],
+  );
+
+  useEffect(() => {
+    if (!shopPaging || !onPageChange) return;
+    const safe = clampPage(page, filteredProducts.length, SHOP_PAGE_SIZE);
+    if (safe !== page) onPageChange(safe);
+  }, [filteredProducts.length, onPageChange, page, shopPaging]);
+
+  useEffect(() => {
+    if (!shopPaging) return;
+    if (skipPageScrollRef.current) {
+      skipPageScrollRef.current = false;
+      return;
+    }
+    shopToolbarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [page, shopPaging]);
 
   const facetGroups = useMemo(
     () =>
@@ -268,12 +312,14 @@ const ProductList: React.FC<ProductListProps> = ({
   }, [brandPool, brands]);
 
   useEffect(() => {
-    if (!brandsLoaded || activeBrand === 'all') return;
+    // Ne pas reset tant que les options ne sont pas prêtes (produits en cours de
+    // chargement) : sinon un ?brand=<slug> arrivant à froid serait vidé à tort.
+    if (!brandsLoaded || activeBrand === 'all' || brandOptions.length === 0) return;
     const exists =
-      activeBrand === UNASSIGNED_BRAND_KEY ||
-      brandOptions.some((b) => b.id === activeBrand);
+      resolvedBrand === UNASSIGNED_BRAND_KEY ||
+      brandOptions.some((b) => b.id === resolvedBrand);
     if (!exists) setBrand('all');
-  }, [activeBrand, brandOptions, brandsLoaded]);
+  }, [activeBrand, resolvedBrand, brandOptions, brandsLoaded]);
 
   useEffect(() => {
     if (!brandsLoaded || activeFilter === 'all') return;
@@ -369,7 +415,6 @@ const ProductList: React.FC<ProductListProps> = ({
   };
 
   // Logique pour insérer la pub au milieu (après le 5ème produit par ex)
-  const AD_POSITION = 5;
 
   const SORT_LABELS: Record<string, string> = {
     'price-asc': 'Prix croissant',
@@ -385,7 +430,7 @@ const ProductList: React.FC<ProductListProps> = ({
   const activeBrandName =
     activeBrand === 'all'
       ? null
-      : getBrandDisplayName(activeBrand, brands);
+      : getBrandDisplayName(resolvedBrand, brands);
 
   const activeFilterChipClass =
     'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-xeption-gold/40 bg-xeption-gold/15 text-xeption-gold text-[10px] md:text-xs font-tech font-bold uppercase tracking-wide hover:bg-xeption-gold/25 transition-colors';
@@ -479,23 +524,23 @@ const ProductList: React.FC<ProductListProps> = ({
   ) : null;
 
   const filterCardClass =
-    'rounded-md bg-white shadow-[0_4px_24px_rgba(0,0,0,0.45)] border border-gray-200 p-3 md:p-4';
+    'rounded-xl bg-[#09090b]/70 backdrop-blur-md shadow-[0_4px_24px_rgba(0,0,0,0.45)] border border-white/10 p-3 md:p-4';
 
   const filterLabelClass =
-    'block text-[9px] md:text-[10px] font-tech uppercase tracking-widest text-gray-600 px-1';
+    'block text-[9px] md:text-[10px] font-tech uppercase tracking-widest text-gray-400 px-1';
 
   const categoryChipClass = (active: boolean) =>
-    `shrink-0 px-3 py-1.5 rounded-sm border font-tech font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all ${
+    `shrink-0 px-3 py-1.5 rounded-md border font-tech font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all ${
       active
         ? 'bg-xeption-gold text-black border-xeption-gold shadow-[0_0_12px_rgba(255,215,0,0.35)]'
-        : 'bg-white text-gray-900 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+        : 'bg-white/5 text-gray-300 border-white/10 hover:border-white/30 hover:bg-white/10 hover:text-white'
     }`;
 
   const brandChipClass = (active: boolean) =>
-    `shrink-0 px-3 py-1.5 rounded-sm border font-tech font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all ${
+    `shrink-0 px-3 py-1.5 rounded-md border font-tech font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all ${
       active
-        ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-        : 'bg-white text-gray-900 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+        ? 'bg-white text-black border-white shadow-[0_0_12px_rgba(255,255,255,0.35)]'
+        : 'bg-white/5 text-gray-300 border-white/10 hover:border-white/30 hover:bg-white/10 hover:text-white'
     }`;
 
   const toggleClass = (active: boolean) =>
@@ -506,7 +551,7 @@ const ProductList: React.FC<ProductListProps> = ({
     }`;
 
   const filterSelectClass =
-    'w-full min-w-0 bg-white border border-gray-300 text-gray-900 text-[10px] sm:text-xs font-tech font-bold uppercase tracking-wide px-2 py-2 pr-7 rounded-sm outline-none focus:border-xeption-gold focus:ring-1 focus:ring-xeption-gold/40 cursor-pointer appearance-none truncate';
+    'w-full min-w-0 bg-[#121212]/80 backdrop-blur-md border border-white/10 text-white text-[10px] sm:text-xs font-tech font-bold uppercase tracking-wide px-2 py-2 pr-7 rounded-md outline-none focus:border-xeption-gold focus:ring-1 focus:ring-xeption-gold/40 cursor-pointer appearance-none truncate';
 
   const categoryChips = (
     <>
@@ -545,7 +590,7 @@ const ProductList: React.FC<ProductListProps> = ({
           {children}
         </select>
         <ChevronDown
-          className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500"
+          className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"
           aria-hidden
         />
       </div>
@@ -577,7 +622,7 @@ const ProductList: React.FC<ProductListProps> = ({
           <MobileFilterSelect
             id="shop-filter-brand"
             label="Marque"
-            value={activeBrand}
+            value={resolvedBrand}
             onChange={setBrand}
           >
             <option value="all">Toutes ({brandCategoryTotal})</option>
@@ -608,7 +653,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   const brandFiltersDesktop =
     activeFilter !== 'all' ? (
-      <div className="hidden md:block mt-3 pt-3 border-t border-gray-200 space-y-1.5">
+      <div className="hidden md:block mt-3 pt-3 border-t border-white/10 space-y-1.5">
         <span className={filterLabelClass}>Marque</span>
         {brandOptions.length > 0 ? (
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
@@ -622,7 +667,7 @@ const ProductList: React.FC<ProductListProps> = ({
               <button
                 key={brand.id}
                 onClick={() => setBrand(brand.id)}
-                className={brandChipClass(activeBrand === brand.id)}
+                className={brandChipClass(resolvedBrand === brand.id)}
               >
                 {brand.name} ({brand.count})
               </button>
@@ -653,7 +698,7 @@ const ProductList: React.FC<ProductListProps> = ({
       productsTotal={products.length}
       brandCategoryTotal={brandCategoryTotal}
       activeFilter={activeFilter}
-      activeBrand={activeBrand}
+      activeBrand={resolvedBrand}
       activeFacets={activeFacets}
       promoOnly={promoOnly}
       inStockOnly={inStockOnly}
@@ -757,10 +802,10 @@ const ProductList: React.FC<ProductListProps> = ({
 
   return (
     <div
-      className={`max-w-[1400px] mx-auto px-2 sm:px-6 lg:px-8 ${
+      className={`max-w-[1600px] mx-auto px-2 sm:px-6 lg:px-8 ${
         stickyToolbar
           ? isShopLayout
-            ? 'pt-0 pb-10 md:pb-16'
+            ? 'pt-0 pb-10 md:pb-16 flex-1 flex flex-col min-h-0'
             : 'pt-0 pb-10 md:pb-16 flex flex-col gap-24 md:gap-32'
           : tightTop
             ? 'pt-2 pb-10 md:pt-4 md:pb-16'
@@ -769,10 +814,13 @@ const ProductList: React.FC<ProductListProps> = ({
     >
       {stickyToolbar ? (
         <div
-          className={`sticky top-20 z-40 -mx-2 sm:-mx-6 lg:-mx-8 px-2 sm:px-6 lg:px-8 bg-black/95 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] ${
-            hasShopHero
-              ? 'mt-4 md:mt-6 rounded-lg border border-white/10 py-2.5 md:py-3'
-              : 'border-b border-white/10 pt-3 pb-4 md:pb-5 before:pointer-events-none before:absolute before:left-0 before:right-0 before:-top-10 before:h-10 before:bg-black/90 before:backdrop-blur-xl'
+          ref={isShopLayout ? shopToolbarRef : undefined}
+          className={`sticky z-40 bg-black/95 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] ${
+            isShopLayout ? 'top-[132px] scroll-mt-[132px]' : 'top-20'
+          } ${
+            isShopLayout
+              ? 'mt-4 md:mt-6 rounded-lg border border-white/10 px-4 sm:px-5 md:px-6 py-3 md:py-3.5'
+              : '-mx-2 sm:-mx-6 lg:-mx-8 px-2 sm:px-6 lg:px-8 border-b border-white/10 pt-3 pb-4 md:pb-5 before:pointer-events-none before:absolute before:left-0 before:right-0 before:-top-10 before:h-10 before:bg-black/90 before:backdrop-blur-xl'
           }`}
         >
           {!hasShopHero ? (
@@ -793,9 +841,9 @@ const ProductList: React.FC<ProductListProps> = ({
               <div className="hidden md:block">{toolbarControls}</div>
             </div>
           ) : (
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-5">
               <div className="flex-1 min-w-0">{activeFilterChips}</div>
-              <div className="hidden md:flex shrink-0">{toolbarControls}</div>
+              <div className="hidden md:flex shrink-0 items-center">{toolbarControls}</div>
             </div>
           )}
 
@@ -842,7 +890,7 @@ const ProductList: React.FC<ProductListProps> = ({
         </>
       )}
 
-      {filteredProducts.length === 0 && (
+      {filteredProducts.length === 0 && !isShopLayout && (
         <div className="text-center py-16 px-4 border border-white/10 rounded-xl bg-black/40 backdrop-blur-md">
           <p className="text-white font-tech uppercase text-lg mb-2">Aucun produit trouvé</p>
           <p className="text-gray-400 text-sm mb-4">
@@ -863,25 +911,37 @@ const ProductList: React.FC<ProductListProps> = ({
       <div
         className={
           isShopLayout
-            ? 'flex flex-col lg:flex-row gap-6 lg:gap-8 mt-3 md:mt-4 -mx-2 sm:-mx-6 lg:-mx-8 px-2 sm:px-6 lg:px-8'
+            ? 'flex flex-1 flex-col lg:flex-row lg:items-stretch gap-6 lg:gap-8 mt-3 md:mt-4 min-h-[40vh]'
             : ''
         }
       >
         {isShopLayout ? (
-          <aside className="hidden lg:block w-[260px] shrink-0">
-            <div className="sticky top-36 rounded-md bg-[#0a0a0a] shadow-[0_4px_24px_rgba(0,0,0,0.6)] border border-white/15 p-4">
-              <p className="text-xs font-tech font-bold uppercase tracking-widest text-white mb-4 border-b border-white/10 pb-2">
-                Filtres
-              </p>
-              {shopFiltersPanel}
-            </div>
-          </aside>
+          <ShopFixedFiltersSidebar toolbarRef={shopToolbarRef}>
+            {shopFiltersPanel}
+          </ShopFixedFiltersSidebar>
         ) : null}
 
         <div className={isShopLayout ? 'flex-1 min-w-0' : ''}>
+          {isShopLayout && filteredProducts.length === 0 ? (
+            <div className="text-center py-16 px-4 border border-white/10 rounded-xl bg-black/40 backdrop-blur-md">
+              <p className="text-white font-tech uppercase text-lg mb-2">Aucun produit trouvé</p>
+              <p className="text-gray-400 text-sm mb-4">
+                Essaie une autre catégorie ou modifie ta recherche dans le menu.
+              </p>
+              {onResetFilters && hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={onResetFilters}
+                  className="px-4 py-2 bg-xeption-gold text-black font-tech font-bold uppercase text-xs hover:bg-white transition-colors"
+                >
+                  Réinitialiser les filtres
+                </button>
+              )}
+            </div>
+          ) : null}
           {filteredProducts.length > 0 && viewMode === 'list' && isShopLayout ? (
             <div className="flex flex-col gap-2 md:gap-3">
-              {filteredProducts.map((product) => (
+              {pagedProducts.map((product) => (
                 <ProductListRow
                   key={product.id}
                   product={product}
@@ -893,113 +953,26 @@ const ProductList: React.FC<ProductListProps> = ({
           ) : filteredProducts.length > 0 ? (
             <div className={`grid gap-2 md:gap-4 lg:gap-6 ${
               isShopLayout
-                ? 'grid-cols-2 md:grid-cols-2 xl:grid-cols-3'
+                ? 'grid-cols-2 lg:grid-cols-4'
                 : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
             }`}>
-              {filteredProducts.map((product, index) => (
-                <React.Fragment key={product.id}>
-                  {index === AD_POSITION && (
-                    <div className={isShopLayout ? 'col-span-2 xl:col-span-1' : 'col-span-1 md:col-span-1'}>
-                      <AdSpot
-                        variant="card"
-                        title="Réparation Express"
-                        subtitle="Écran cassé ? Batterie HS ? On répare en 1h chrono."
-                        image="https://images.unsplash.com/photo-1597424214771-81ec0c399b38?q=80&w=800&auto=format&fit=crop"
-                        cta="Voir les tarifs"
-                        active={true}
-                        isExternal={false}
-                        onAdClick={() => { window.location.href = '/?page=sav'; }}
-                      />
-                    </div>
-                  )}
-
-                  <div
-                    className="group relative bg-[#0f0f0f]/80 backdrop-blur-2xl border border-white/10 hover:border-xeption-gold/50 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-[0_0_30px_rgba(255,215,0,0.15)] hover:-translate-y-1 cursor-pointer rounded-lg"
-                    onClick={() => onProductClick && onProductClick(product)}
-                  >
-                    {product.isPromo && (
-                      <div className="absolute top-2 right-2 z-20 animate-pulse-slow">
-                        <div className="bg-red-600 text-white text-[8px] md:text-[9px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase tracking-widest shadow-[0_0_15px_rgba(255,0,0,0.6)] rounded-sm border border-red-400">
-                          Promo
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="aspect-square bg-black/50 relative overflow-hidden border-b border-white/5 p-1.5 sm:p-3 md:p-4 flex items-center justify-center">
-                      <ProductCardImage
-                        src={optimizeImage(product.image, 400)}
-                        alt={`${getProductDisplayName(product)} Cameroun`}
-                        width={400}
-                        height={400}
-                        className="w-full h-full object-contain object-center group-hover:scale-105 group-hover:opacity-90 transition-all duration-500"
-                      />
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03),transparent_70%)] opacity-50 pointer-events-none" />
-
-                      <div className="absolute bottom-2 right-2 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-30">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-                          className="bg-xeption-gold text-black p-2 hover:bg-white transition-colors shadow-lg rounded-full"
-                        >
-                          <ShoppingCart className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-2 md:p-3 flex-1 flex flex-col relative">
-                      <div className="mb-1">
-                        <h3 className="text-xs md:text-sm font-bold text-white font-tech uppercase tracking-wide group-hover:text-xeption-gold transition-colors truncate drop-shadow-md">
-                          {getProductDisplayName(product)}
-                        </h3>
-                        <ProductBadgeChips product={product} size="sm" theme="dark" className="mt-1.5" />
-                      </div>
-                      <p className="text-[10px] text-gray-200 mb-1.5 line-clamp-1 font-light leading-snug">
-                        {normalizeSamsungGalaxySpelling(product.description || '')}
-                      </p>
-                      {product.reviews && product.reviews.length > 0 && product.rating != null && (
-                        <div className="flex items-center gap-1 mb-1.5">
-                          <div className="flex gap-0.5">
-                            {[1, 2, 3, 4, 5].map(i => (
-                              <Star
-                                key={i}
-                                size={9}
-                                className="text-xeption-gold"
-                                fill={i <= Math.round(product.rating) ? 'currentColor' : 'none'}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-[9px] text-gray-400">({product.reviews.length})</span>
-                        </div>
-                      )}
-                      <div className="flex items-end justify-between mt-auto border-t border-white/10 pt-2">
-                        <div className="flex items-end gap-2 min-w-0">
-                          <div className="flex items-baseline gap-1 shrink-0">
-                            <span className="text-sm md:text-lg font-bold text-white font-tech shadow-black drop-shadow-md">
-                              {product.price.toLocaleString('fr-FR')}
-                            </span>
-                            <span className="text-[8px] md:text-[10px] text-xeption-gold font-bold uppercase">FCFA</span>
-                          </div>
-                          {product.oldPrice && (
-                            <span className="inline-flex items-baseline gap-1 shrink-0 border-l border-white/20 pl-2 text-red-400">
-                              <span className="text-[9px] md:text-[10px] uppercase tracking-wider font-tech font-bold">
-                                Avant
-                              </span>
-                              <span className="text-xs md:text-sm font-mono tabular-nums font-semibold">
-                                {product.oldPrice.toLocaleString('fr-FR')}
-                              </span>
-                              <span className="text-[8px] md:text-[9px] uppercase font-bold">FCFA</span>
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-white transition-colors border border-white/10 px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-white/5 hover:bg-white/10">
-                          + Info
-                        </span>
-                      </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-xeption-gold to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  </div>
-                </React.Fragment>
+              {pagedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={onAddToCart}
+                  onProductClick={onProductClick}
+                />
               ))}
             </div>
+          ) : null}
+          {shopPaging && onPageChange ? (
+            <ShopPagination
+              page={clampPage(page, filteredProducts.length, SHOP_PAGE_SIZE)}
+              totalPages={shopPageCount}
+              totalItems={filteredProducts.length}
+              onPageChange={onPageChange}
+            />
           ) : null}
         </div>
       </div>

@@ -178,7 +178,7 @@ const ShopFiltersPanel: React.FC<ShopFiltersPanelProps> = ({
     {activeFilter !== 'all' && brandOptions.length > 0 ? (
       <div>
         <SectionTitle icon={Tag} label="Marque" />
-        <div className="space-y-1.5 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+        <div className="space-y-1.5">
           <button
             type="button"
             onClick={() => onBrandChange('all')}

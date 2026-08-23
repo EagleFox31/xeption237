@@ -17,7 +17,7 @@
 
 | Métrique | Valeur |
 |---|---|
-| Policies live | **62** |
+| Policies live | **66** |
 | Tables sans RLS | **products** |
 | Groupes de doublons | **9** |
 
@@ -25,7 +25,7 @@
 
 | Impact | Nb | Signification |
 |---|---|---|
-| 🟢 `active` | **33** | Active — contrôle un flux client réel |
+| 🟢 `active` | **37** | Active — contrôle un flux client réel |
 | 🔵 `bypass_service_role` | **9** | Contournée — accès edge en service_role (RLS bypass) |
 | 🟡 `redundant_duplicate` | **8** | Redondante — doublon strict (même table/cmd/rôles/qual) |
 | ⚫ `inactive_rls_off` | **6** | Inactive — RLS désactivée sur la table |
@@ -35,7 +35,7 @@
 
 Légende : 🟢 active · ⚫ RLS off · 🔵 bypass (edge/RPC) · 🟡 doublon strict · 🟠 shadowed par `{public}` · 🟣 flux legacy · ⚪ orpheline
 
-## Inventaire complet (62 policies)
+## Inventaire complet (66 policies)
 
 | Table | Policy | CMD | Rôles | Impact | Note |
 |---|---|---|---|---|---|
@@ -56,6 +56,7 @@ Légende : 🟢 active · ⚫ RLS off · 🔵 bypass (edge/RPC) · 🟡 doublon 
 | `market_price_cache` | `market_price_cache_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
 | `market_price_snapshots` | `market_price_snapshots_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
 | `market_trend_cache` | `market_trend_cache_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
+| `order_items` | `order_items_staff_all` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 | `orders` | `Enable insert access for all users` | INSERT | {public} | 🟣 `active_rare` | Checkout via RPC (create_order_atomic) ; insert direct encore dans legacy AdminP |
 | `orders` | `Enable read access for all users` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
 | `orders` | `Enable update access for all users` | UPDATE | {public} | 🟢 `active` | Active — contrôle un flux client réel |
@@ -86,6 +87,9 @@ Légende : 🟢 active · ⚫ RLS off · 🔵 bypass (edge/RPC) · 🟡 doublon 
 | `repair_tickets` | `Staff full access tickets` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 | `staff` | `Public Read Staff` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 | `staff` | `Staff Self Edit` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `stock_movements` | `stock_movements_staff_all` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `store_stock` | `store_stock_staff_all` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+| `stores` | `stores_staff_all` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 | `tac_cache` | `tac_cache_read_all` | SELECT | {public} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
 | `tac_cache` | `tac_cache_write_service` | ALL | {public} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_role (bypass RLS). |
 | `trade_in_models` | `Public Read Trade Models` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
@@ -425,6 +429,20 @@ _Aucun_
 |---|---|---|---|---|
 | `market_trend_cache_staff_read` | SELECT | {authenticated} | 🔵 `bypass_service_role` | Seules les Edge Functions touchent cette table, en service_r |
 
+### `order_items` (1 policy)
+
+**Amont (app/scripts)**
+
+- `scripts\verify-erp-step2.mjs`
+**Aval (edge / RPC)**
+
+_Aucun_
+**Policies live**
+
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `order_items_staff_all` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+
 ### `orders` (11 policyies)
 
 **Amont (app/scripts)**
@@ -434,6 +452,7 @@ _Aucun_
 - `components\SocialProof.tsx`
 - `hooks\admin\useAdminData.ts`
 - `scripts\apply-migration.mjs`
+- `scripts\verify-erp-step2.mjs`
 **Aval (edge / RPC)**
 
 - `create-payment`
@@ -525,7 +544,7 @@ _Aucun_
 - `scripts\compare-mfoundi-duplicates.mjs`
 - `scripts\delete-legacy-duplicate-products.mjs`
 - `scripts\fill-product-specs.mjs`
-_+ 6 autres — voir JSON_
+_+ 7 autres — voir JSON_
 
 **Aval (edge / RPC)**
 
@@ -586,6 +605,48 @@ _Aucun_
 |---|---|---|---|---|
 | `Public Read Staff` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 | `Staff Self Edit` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+
+### `stock_movements` (1 policy)
+
+**Amont (app/scripts)**
+
+- `scripts\verify-erp-step2.mjs`
+**Aval (edge / RPC)**
+
+_Aucun_
+**Policies live**
+
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `stock_movements_staff_all` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+
+### `store_stock` (1 policy)
+
+**Amont (app/scripts)**
+
+- `scripts\verify-erp-step2.mjs`
+**Aval (edge / RPC)**
+
+_Aucun_
+**Policies live**
+
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `store_stock_staff_all` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
+
+### `stores` (1 policy)
+
+**Amont (app/scripts)**
+
+- `scripts\verify-erp-step2.mjs`
+**Aval (edge / RPC)**
+
+_Aucun_
+**Policies live**
+
+| Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|
+| `stores_staff_all` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `tac_cache` (2 policyies)
 

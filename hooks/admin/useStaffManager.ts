@@ -117,7 +117,8 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
             [DB_SCHEMA.STAFF.NAME]: cleanData.name!.trim(),
             [DB_SCHEMA.STAFF.EMAIL]: cleanData.email!.trim().toLowerCase(),
             [DB_SCHEMA.STAFF.ROLE]: normalizeStaffRole(cleanData.role),
-            [DB_SCHEMA.STAFF.PHONE]: cleanData.phone
+            [DB_SCHEMA.STAFF.PHONE]: cleanData.phone,
+            [DB_SCHEMA.STAFF.STORE_ID]: cleanData.store_id || null,
         };
         
         if (!isNew) {
@@ -133,6 +134,7 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
                 name: savedDb[DB_SCHEMA.STAFF.NAME],
                 email: savedDb[DB_SCHEMA.STAFF.EMAIL],
                 role: normalizeStaffRole(savedDb[DB_SCHEMA.STAFF.ROLE]),
+                store_id: savedDb[DB_SCHEMA.STAFF.STORE_ID] ?? null,
             };
 
             try {

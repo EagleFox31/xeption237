@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { KeyRound, Loader2, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
-import { Staff } from '../../../types';
+import { Staff, Store } from '../../../types';
 import { getStaffRoleLabel, getStaffRoleShortLabel } from '../../../constants/staffRoles';
 import { staffInitials } from '../../../hooks/admin/useCurrentStaffSession';
 import { STAFF_DEFAULT_PASSWORD } from '../../../services/staffAuthProvisioning';
@@ -10,6 +10,7 @@ import { adminUi } from '../shared/adminUi';
 
 interface StaffTabProps {
   staffMembers: Staff[];
+  stores: Store[];
   authByEmail: Record<string, boolean>;
   provisioningId: string | null;
   isBulkProvisioning: boolean;
@@ -22,6 +23,7 @@ interface StaffTabProps {
 
 const StaffTab: React.FC<StaffTabProps> = ({
   staffMembers,
+  stores,
   authByEmail,
   provisioningId,
   isBulkProvisioning,
@@ -31,6 +33,8 @@ const StaffTab: React.FC<StaffTabProps> = ({
   onProvisionAuth,
   onProvisionAllMissing,
 }) => {
+  const storeNameById = Object.fromEntries(stores.map((s) => [s.id, s.name]));
+
   if (!staffMembers.length) {
     return (
       <div className="animate-in fade-in flex flex-col items-center justify-center min-h-[50vh] px-4 text-center">
@@ -87,6 +91,7 @@ const StaffTab: React.FC<StaffTabProps> = ({
                         <tr>
                             <th className="px-6 py-4">Membre</th>
                             <th className="px-6 py-4">Profil</th>
+                            <th className="px-6 py-4">Boutique</th>
                             <th className="px-6 py-4">Connexion</th>
                             <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
@@ -118,6 +123,11 @@ const StaffTab: React.FC<StaffTabProps> = ({
                                 <td className="px-6 py-4">
                                   <span className="px-2.5 py-1 rounded-md bg-white/8 text-xs font-bold text-white">
                                     {getStaffRoleLabel(s.role)}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="text-xs text-white/75">
+                                    {s.store_id ? storeNameById[s.store_id] ?? '—' : '—'}
                                   </span>
                                 </td>
                                 <td className="px-6 py-4">

@@ -27,11 +27,9 @@ CREATE INDEX IF NOT EXISTS idx_market_price_cache_brand_model
 
 ALTER TABLE market_price_cache ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "market_price_cache_read_all"
-  ON market_price_cache FOR SELECT USING (true);
+DROP POLICY IF EXISTS "market_price_cache_read_all" ON market_price_cache;
+DROP POLICY IF EXISTS "market_price_cache_write_service" ON market_price_cache;
 
-CREATE POLICY "market_price_cache_write_service"
-  ON market_price_cache FOR ALL
-  USING (auth.role() = 'service_role')
-  WITH CHECK (auth.role() = 'service_role');
+-- Lecture publique retirée (offers_json sensible). Écriture via service_role (bypass RLS).
+-- Voir 20260823_002_market_price_cache_fix.sql pour policies staff_read.
 

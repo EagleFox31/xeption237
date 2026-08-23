@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { Product, CartItem, Order } from '../../types';
 import { supabase } from '../../services/supabaseClient';
-import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
 import { generateInvoiceHTML } from '../../utils/invoiceGenerator';
+import { assertRpcSuccess } from '../../utils/rpcResult';
 
 interface UsePosSystemProps {
     products: Product[];
@@ -37,39 +37,33 @@ export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePos
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
         
-        // Mapping strict avec DB_SCHEMA
-        const orderPayload = {
-            [DB_SCHEMA.ORDERS.ID]: newOrderId,
-            [DB_SCHEMA.ORDERS.CUSTOMER_NAME]: customer.name,
-            [DB_SCHEMA.ORDERS.CUSTOMER_EMAIL]: customer.email,
-            [DB_SCHEMA.ORDERS.CUSTOMER_PHONE]: customer.phone,
-            [DB_SCHEMA.ORDERS.CUSTOMER_CITY]: 'Retrait Boutique (POS)',
-            [DB_SCHEMA.ORDERS.DELIVERY_MODE]: 'pickup',
-            [DB_SCHEMA.ORDERS.TOTAL]: total,
-            [DB_SCHEMA.ORDERS.STATUS]: 'delivered',
-            [DB_SCHEMA.ORDERS.PAYMENT_METHOD]: paymentMethod,
-            [DB_SCHEMA.ORDERS.ITEMS]: cart,
-            [DB_SCHEMA.ORDERS.DATE]: new Date().toISOString()
-        };
+        const orderDate = new Date().toISOString();
+        const { data: rpcData, error: rpcError } = await supabase.rpc('complete_pos_sale_atomic', {
+            p_order_id: newOrderId,
+            p_customer_name: customer.name,
+            p_customer_email: customer.email || null,
+            p_customer_phone: customer.phone || null,
+            p_customer_city: 'Retrait Boutique (POS)',
+            p_delivery_mode: 'pickup',
+            p_payment_method: paymentMethod,
+            p_total: total,
+            p_items: cart,
+            p_date: orderDate,
+            p_status: 'delivered',
+        });
 
-        const { error } = await supabase.from(DB_TABLES.ORDERS).insert([orderPayload]);
-
-        if (error) {
-            console.error("POS Order Error:", error);
-            throw error;
+        if (rpcError) {
+            console.error('POS Order Error:', rpcError);
+            throw new Error(rpcError.message || 'Erreur lors de la vente POS.');
         }
+        assertRpcSuccess(rpcData, 'Stock insuffisant ou article invalide.');
 
-        // Stock Update
-        for (const item of cart) {
-            const product = products.find(p => p.id === item.id);
-            if (product) {
-                const newStock = Math.max(0, product.stock - item.quantity);
-                await supabase.from(DB_TABLES.PRODUCTS).update({ [DB_SCHEMA.PRODUCTS.STOCK]: newStock }).eq('id', item.id);
-                // Optimistic
-                const updatedList = products.map(p => p.id === item.id ? { ...p, stock: newStock } : p);
-                onUpdateProducts(updatedList);
-            }
-        }
+        const updatedList = products.map((product) => {
+            const item = cart.find((entry) => entry.id === product.id);
+            if (!item) return product;
+            return { ...product, stock: product.stock - item.quantity };
+        });
+        onUpdateProducts(updatedList);
 
         const saleDate = new Date().toLocaleDateString('fr-FR');
         const completedOrder: Order = {

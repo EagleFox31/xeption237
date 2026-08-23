@@ -15,6 +15,7 @@
     "db:status": "node scripts/apply-migration.mjs --status",
     "db:baseline": "node scripts/apply-migration.mjs --baseline",
     "db:verify": "node scripts/db-verify-migrations.mjs",
+    "db:verify:step2": "node scripts/verify-erp-step2.mjs",
     "db:inventory": "node scripts/db-inventory.mjs",
     "db:policies-export": "node scripts/export-policies-registry.mjs && node scripts/generate-policies-registry-md.mjs",
     "db:apply:order-fix": "node scripts/apply-migration.mjs supabase/migrations/20260611_002_fix_create_order_atomic_date.sql",

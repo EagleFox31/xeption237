@@ -12,7 +12,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { Staff } from '../../../types';
+import { Staff, Store } from '../../../types';
 import {
   STAFF_ROLES,
   StaffRoleDefinition,
@@ -24,6 +24,7 @@ import { STAFF_DEFAULT_PASSWORD } from '../../../services/staffAuthProvisioning'
 
 interface StaffEditorModalProps {
   staff: Staff;
+  stores: Store[];
   onClose: () => void;
   onSave: (e: React.FormEvent) => Promise<void>;
   onChange: (updates: Partial<Staff>) => void;
@@ -185,6 +186,7 @@ const ProfilePreview: React.FC<{ name: string; email: string; role: StaffRoleDef
 
 const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
   staff,
+  stores,
   onClose,
   onSave,
   onChange,
@@ -281,6 +283,28 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
               Utilisé pour la connexion — le compte Auth sera créé automatiquement à l’enregistrement.
             </p>
           )}
+        </div>
+        <div>
+          <label htmlFor="staff-store" className={`${adminUi.label} block mb-1.5`}>
+            Boutique
+          </label>
+          <select
+            id="staff-store"
+            className={adminUi.input}
+            value={staff.store_id ?? ''}
+            onChange={(e) => onChange({ store_id: e.target.value || null })}
+          >
+            <option value="">— Non assigné —</option>
+            {stores.filter((s) => s.active).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+                {s.city ? ` (${s.city})` : ''}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-xs text-white/55">
+            La caisse et les ventes seront rattachées à cette boutique (étape 5).
+          </p>
         </div>
       </div>
       <ProfilePreview name={name} email={email} role={selectedDefinition} />

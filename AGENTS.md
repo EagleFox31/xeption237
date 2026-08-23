@@ -84,6 +84,57 @@ FK `products.category` et `product_ranges.category` → `categories.slug`.
 
 - Migrations : `supabase/migrations/` — appliquer avec `npm run db:apply -- supabase/migrations/xxx.sql`
 - Ne pas committer `.env` ni secrets.
+- **Outils d'inspection (READ-ONLY)** — connexion partagée `scripts/lib/supabaseDbUrl.mjs` :
+  - `npm run db:introspect -- <table> [col1,col2]` → colonnes+types, index, contraintes/FK (à lancer AVANT une migration).
+  - `npm run db:troc:latest -- [N]` → derniers dossiers `trade_in_requests` avec la liaison Smart Troc (client + départ + voucher + cible + échéance).
+  - `npm run db:status` → migrations appliquées / en attente / fichier modifié après application.
+  - `npm run db:verify` → diff **fichiers → base** : les objets déclarés par les migrations existent-ils réellement ? (les migrations purement DML sont signalées « non vérifiables »).
+  - `npm run db:inventory [-- --full]` → diff **base → fichiers** : inventaire réel (tables, vues, fonctions, triggers, policies, extensions, enums, jobs cron), tables **sans RLS**, et objets **absents des migrations** (créés à la main).
+
+⚠️ **Tout script `.mjs` ad hoc qui parle à la base DOIT charger `.env`** :
+`dotenv.config({ path: resolve(root, '.env') })`. Sans ça `DATABASE_URL` est vide,
+`resolveDatabaseUrl` fabrique une URL bancale et l'erreur renvoyée est trompeuse
+(« The server does not support SSL connections » / `ETIMEDOUT`) — on croit à un souci
+réseau alors que c'est le fichier `.env` qui n'a pas été lu. Voir `db-introspect.mjs` pour le
+motif correct.
+
+### RÈGLE — vérifier la base RÉELLE avant d'écrire une migration
+
+✅ **Depuis le 21/08/2026, `scripts/apply-migration.mjs` tient un suivi** (table
+`public.schema_migrations` : version = nom du fichier, + checksum SHA-256). Une migration déjà
+enregistrée est **sautée** ; si son fichier a changé depuis, le script **refuse** (le disque et
+la prod ont divergé → écrire une NOUVELLE migration, pas éditer l'ancienne). Options :
+`--force`, `--no-track`, `--baseline`, `--status`.
+
+⚠️ **Mais le suivi ne rend pas le dossier fiable pour autant.** Les 49 fichiers existants ont
+été **baselinés** (marqués appliqués sans être exécutés) sur la foi de l'état observé, et des
+migrations ont historiquement été passées **à la main dans le SQL editor Supabase**. `db:inventory`
+montre d'ailleurs 4 tables (`customers`, `repair_tickets`, `packs`, `order_payments`) et
+2 fonctions qui n'ont **aucun fichier de migration**.
+
+**Donc la règle ne change pas : toujours introspecter la base prod (lecture seule) avant d'écrire
+une migration** — jamais deviner le schéma depuis les fichiers de migration ou les types TS.
+
+**1. Introspecter (READ-ONLY)** — via `DATABASE_URL` (dans `.env`) + module `pg` (installé). N'exécuter que des `SELECT`, jamais d'écriture. Requêtes clés (remplacer `<table>`) :
+- Table existe : `select to_regclass('public.<table>')`
+- Colonnes + **types réels** : `select column_name, data_type, udt_name, is_nullable, column_default from information_schema.columns where table_schema='public' and table_name='<table>'`
+- Index existants (noms) : `select indexname from pg_indexes where schemaname='public' and tablename='<table>'`
+- Contraintes/FK : `select conname, pg_get_constraintdef(oid) from pg_constraint where conrelid='public.<table>'::regclass`
+
+**2. Vérifier les TYPES de colonnes** — ne pas supposer. Précédents réels de ce projet : `products.id` est **`text`** (valeurs de forme UUID), alors que `trade_in_requests.trade_in_model_id` est **`uuid`**. Le type d'une colonne de **liaison** doit **matcher exactement** la colonne référencée, sinon l'insert est rejeté à l'exécution. En doute `text` vs `uuid` : prendre le type réel de la cible (`text` accepte tout ; `uuid` rejette un non-uuid → casse les inserts).
+
+**3. Garantir l'IDEMPOTENCE** — la migration doit être **rejouable** sans erreur (pas de suivi + edits manuels possibles) :
+- `ADD COLUMN IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS`, `DROP ... IF EXISTS`.
+- Envelopper dans `BEGIN; … COMMIT;` (rollback total si une instruction échoue).
+- `IF NOT EXISTS` teste par **nom seulement**, pas le type : si une colonne existe déjà avec un **type différent** (créée à la main), l'ADD devient un no-op silencieux — d'où l'étape 1 obligatoire.
+
+**4. Vérifier la LIAISON des tables** — si FK : confirmer que table + colonne cible existent, que les types matchent, et choisir `ON DELETE` **consciemment** (`SET NULL` / `CASCADE` / `RESTRICT`). Si le type de la cible est incertain ou qu'aucune FK stricte n'est voulue : colonne simple (sans FK) + intégrité applicative + **snapshot dénormalisé** du libellé (ex. `target_product_name`) pour la lisibilité et la survie au renommage/suppression.
+
+**5. Rester ADDITIF par défaut** — pas de `DROP COLUMN` / `ALTER … TYPE` / `UPDATE` / `DELETE` sur des données existantes sans intention explicite (et sauvegarde). Une colonne ajoutée est **nullable** ou a un `DEFAULT`.
+
+**6. ORDRE de déploiement** — appliquer la migration **AVANT** tout code (edge function / app) qui écrit dans les nouvelles colonnes. Sinon les inserts échouent (colonne inexistante).
+
+**7. Re-vérifier après** — ré-introspecter pour confirmer que colonnes/index/FK sont bien créés comme prévu.
 
 ## Déploiement Edge Functions — RÈGLE
 
@@ -142,7 +193,43 @@ npx supabase functions deploy <nom> --project-ref tawnusmfyvugqczaydat --no-veri
 - Année de sortie : `phone_releases` (seed + `scripts/import-phone-releases.mjs`). `release_year` null → pas de blocage d'âge.
 - Aligner **client** (`trocPricing.ts`) ET **serveur** (`supabase/functions/save-trade-in/index.ts`, copie de `computeOfferV2`) sur les mêmes constantes.
 
+## Troc — ce qui est RÉELLEMENT branché (anti-confusion, ne plus se tromper)
+
+- **Version active = formulaire** : `components/troc/TrocQuickForm.tsx` (via `pages/TrocPage.tsx`).
+  Le **chat** `components/troc/chat/TrocChatFlow.tsx` **existe mais n'est PAS branché** sur la page —
+  ne pas s'y référer pour décrire le flow réel.
+- **Stepper affiché** (`STEP_LABELS_QUICK`, `TrocPage.tsx`) : **Appareil → Photos → Paiement → Résultat → Bon**.
+  ⚠️ **« Paiement » vient AVANT « Résultat »** = c'est le **frais de service** de l'évaluation
+  (symbolique), **pas** le paiement d'un appareil. C'est le seul paiement en ligne du parcours.
+- ⛔ **La possession n'est PLUS gérée dans le nouveau troc.** Les champs `ownership_rank`,
+  `device_age_months`, `purchase_date`, `ownership_adjustment_factor` (types `TradeInRequest` /
+  `TrocDeviceForm`) sont **legacy** — présents dans les types mais **non utilisés** par le flow
+  actuel. **Ne rien construire dessus.**
+- **Âge / récence = `release_year`**, jamais la possession :
+  - appareil **repris** → `phone_releases.release_year` (via `getReleaseYear` dans `trocEvaluationService.ts`) ;
+  - produit **catalogue cible** → `products.releaseYear` (colonne `release_year`, récemment ajoutée).
+- **Voucher / rachat boutique** : réutiliser l'existant — `TradeInRequest.voucher_reference` (code) +
+  `status` (`'validated' | 'completed'`) + `admin_notes`. Ne pas réinventer un système de voucher.
+- **Appareil cible (Smart Troc) = MÊME dossier `trade_in_requests`**, pas de table séparée :
+  colonnes `target_product_id`, `target_product_name` (snapshot), `voucher_expires_at`. Validité du
+  bon = `utils/trocVoucher.ts` (barème 7/10/14 j selon `release_year` du repris). Chaîne d'acceptation :
+  `TrocUpgradeChoice.onSelect` → `EvaluationResult.onAcceptOffer(target)` → `useTradeIn.acceptOffer/persist(target)`
+  → `saveTradeInRequest(..., target)` → body `save-trade-in`.
+  ⚠️ **Ordre de déploiement** : migration `20260721_002_...` **avant** redéploiement de `save-trade-in`
+  (sinon l'insert échoue sur colonne inexistante). Tranche 3 (rachat boutique staff) = à faire.
+- Plan + état d'implémentation : `docs/smart-troc/plans/plan-troc-choix-appareil-cible.md`.
+
 ## Règles Cursor complémentaires
 
 - `.cursor/rules/ui-layout-spacing.mdc` — layout sticky / spacing Tailwind
 - `.cursor/rules/admin-ux-and-db.mdc` — admin ERP, slugs, textes staff
+
+## Règles d'architecture IMEI & Cadrage (leçons d'ingénierie)
+
+1. **Introspection préalable de la codebase ET de la DB réelles** : Toujours vérifier si les tables, colonnes, types, helpers (`TrocQuickForm.tsx`, `check-imei`, etc.) existent déjà **avant** de concevoir un plan ou une migration.
+2. **Realpolitik Web / Captcha (Turnstile)** : Ne jamais planifier un scraping serveur automatisé contre un site externe protégé par Captcha/Turnstile sans jeton d'API officiel. Les requêtes serveur échouent à 100%.
+3. **Sécurité financière (Sources Opposables)** : Seule une source certifiée (`staff_verified`, `csv_batch`, `official_api`) peut engager un pricing ferme ou un déblocage de fonds. Une saisie client en ligne (`user_declarative`) est purement **indicative**.
+4. **Frontières d'exécution étanches (Vite vs Deno)** : Pas d'import `utils/` depuis `supabase/functions/`. Factoriser en 2 helpers distincts : `utils/imei.ts` pour le Front React, `supabase/functions/_shared/imei.ts` pour Deno.
+5. **Orthogonalité des données** : Le statut douanier (`customsStatus`) est un bloc parallèle d'enrichissement. Il ne fait **pas** partie de la cascade de fallback d'identité TAC (pour ne pas casser l'autocomplétion des modèles).
+6. **Migrations SQL additives & RLS** : Ne pas altérer les contraintes `CHECK` existantes (ex: `trade_in_requests_status_check`). Porter les sous-statuts spécifiques sur des colonnes dédiées (`camcis_status`). Activer `ENABLE ROW LEVEL SECURITY` sur toute table cache contenant des IMEI (`camcis_imei_cache`).
+

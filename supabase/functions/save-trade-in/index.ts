@@ -123,28 +123,36 @@ const computeConditionScore = (body: any): number => {
   return Math.round(Math.max(0, Math.min(100, s)));
 };
 
+const compactModelName = (model: string): string =>
+  (model || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+
 const resolveDesirabilityTier = (brand: string, model: string): DesirabilityTier => {
   const b = (brand || '').toLowerCase();
   const m = (model || '').toLowerCase();
+  const compact = compactModelName(model);
   const isApple   = b.includes('iphone') || b.includes('apple');
   const isSamsung = b.includes('samsung');
   const isXiaomi  = b.includes('xiaomi') || b.includes('redmi') || b.includes('poco');
 
   if (isApple) {
-    if (/\b(1[4-9]|[2-9]\d)\b/.test(m) || m.includes('pro') || m.includes('max') || m.includes('plus')) return 'premium';
-    if (/\b1[23]\b/.test(m)) return 'high';
-    if (/\b1[01]\b/.test(m) || m.includes('xs') || / x\b/.test(m)) return 'mid';
+    if (/(?:1[4-9]|[2-9]\d)/.test(compact) || m.includes('pro') || m.includes('max') || m.includes('plus')) return 'premium';
+    if (/1[23]/.test(compact)) return 'high';
+    if (/1[01]/.test(compact) || m.includes('xs') || compact.includes('x')) return 'mid';
     return 'standard';
   }
   if (isSamsung) {
-    if (/s2[3-9]|s[3-9]\d/.test(m) || m.includes('fold') || m.includes('flip')) return 'premium';
-    if (/s2[012]/.test(m) || m.includes('a54') || m.includes('a55') || m.includes('a73')) return 'high';
-    if (/a[35][2-9]|a3[45]|a5[23]/.test(m)) return 'mid';
+    if (/s2[3-9]|s[3-9]\d/.test(compact) || compact.includes('fold') || compact.includes('flip')) return 'premium';
+    if (/s2[012]/.test(compact) || compact.includes('a54') || compact.includes('a55') || compact.includes('a73')) return 'high';
+    if (/a[35][2-9]|a3[45]|a5[23]/.test(compact)) return 'mid';
     return 'standard';
   }
   if (isXiaomi) {
-    if (/\b1[4-9]\b/.test(m) || m.includes('ultra')) return 'high';
-    if (/\b1[23]\b/.test(m) || m.includes('note 13') || m.includes('note 12')) return 'mid';
+    if (/1[4-9]/.test(compact) || m.includes('ultra')) return 'high';
+    if (/1[23]/.test(compact) || m.includes('note 13') || m.includes('note 12')) return 'mid';
     return 'standard';
   }
   if (b.includes('oppo'))    return m.includes('find') ? 'high' : m.includes('reno') ? 'mid' : 'standard';
@@ -477,6 +485,10 @@ Deno.serve(async (req: Request) => {
       evaluation_mode:  evaluationMode || 'local_heuristic',
       pricing_rule_version: pricingRuleVersion || 'v2',
       trade_in_model_id: tradeInModelId,
+      // Smart Troc — appareil cible + validité du bon, sur le MÊME dossier (client + départ + cible + voucher liés).
+      target_product_id:   (typeof body?.targetProductId === 'string' && body.targetProductId) ? body.targetProductId : null,
+      target_product_name: (typeof body?.targetProductName === 'string' && body.targetProductName) ? body.targetProductName : null,
+      voucher_expires_at:  (typeof body?.voucherExpiresAt === 'string' && body.voucherExpiresAt) ? body.voucherExpiresAt : null,
       status: 'pending',
       updated_at: new Date().toISOString(),
     };

@@ -1,7 +1,7 @@
 import type { TradeInRequest } from '../types';
 import { CREDIT_BONUS_PERCENT } from './trocPricing';
 
-export const XEPTION_STORE_WHATSAPP = '237697686684';
+export const XEPTION_STORE_WHATSAPP = '237641891031';
 
 export const buildWhatsAppUrl = (message: string): string =>
   `https://wa.me/${XEPTION_STORE_WHATSAPP}?text=${encodeURIComponent(message)}`;

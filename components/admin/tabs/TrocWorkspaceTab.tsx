@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeftRight, RefreshCw } from 'lucide-react';
 import type { TradeInRequest, TrocSession, TrocPayment } from '../../../types';
+import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
 import { adminUi } from '../shared/adminUi';
 import TrocTab from './TrocTab';
 import ArgusTab from './ArgusTab';
@@ -13,7 +14,11 @@ interface TrocWorkspaceTabProps {
   payments: TrocPayment[];
   isLoadingPayments?: boolean;
   onRefresh?: () => void;
-  onUpdateStatus: (id: string, status: TradeInRequest['status']) => void;
+  onTransition: (
+    id: string,
+    to: TradeInRequest['status'],
+    opts?: { reason?: string },
+  ) => Promise<TransitionResult>;
 }
 
 const SECTIONS: Array<{
@@ -31,7 +36,7 @@ const TrocWorkspaceTab: React.FC<TrocWorkspaceTabProps> = ({
   payments,
   isLoadingPayments,
   onRefresh,
-  onUpdateStatus,
+  onTransition,
 }) => {
   const [activeSection, setActiveSection] = useState<TrocWorkspaceSection>('dossiers');
 
@@ -66,7 +71,7 @@ const TrocWorkspaceTab: React.FC<TrocWorkspaceTabProps> = ({
             payments={payments}
             isLoadingPayments={isLoadingPayments}
             onRefresh={onRefresh}
-            onUpdateStatus={onUpdateStatus}
+            onTransition={onTransition}
           />
         )}
         {activeSection === 'argus' && <ArgusTab />}

@@ -3,7 +3,9 @@ import { computeOfferV2, PRICING_RULE_VERSION, MAX_DEVICE_AGE_YEARS, type TrocTi
 import { TROC_MESSAGES } from '../utils/trocMessages';
 import { isTrocPhotosCredibilityVerified } from '../utils/trocPhotoCredibilitySession';
 import { normalizeModelKey } from '../utils/modelKey';
-import type { TrocDeviceForm, TrocEvaluationMode, TrocEvaluationResult, TradeInRequest, TrocPayment, MarketTrend } from '../types';
+import { getProductDisplayName } from '../utils/productDisplay';
+import { computeVoucherExpiry } from '../utils/trocVoucher';
+import type { Product, TrocDeviceForm, TrocEvaluationMode, TrocEvaluationResult, TradeInRequest, TrocPayment, MarketTrend } from '../types';
 
 const TROC_SESSION_TRACKING_PREFIX = 'troc_session_initialized:';
 
@@ -738,10 +740,18 @@ export const saveTradeInRequest = async (
   photoUrls: string[],
   evaluation: TrocEvaluationResult,
   sessionKey?: string,
+  /** Appareil cible du troc (Smart Troc). Lié au MÊME dossier — voucher + précommande boutique. */
+  targetProduct?: Product | null,
 ): Promise<{ id: string; voucherReference: string }> => {
   // Le score IA est transmis mais l'offre monétaire est RECALCULÉE server-side.
   // imei_status est aussi revalidé par la edge function (Luhn + check-imei).
   // sessionKey permet à save-trade-in de retrouver le tier payé dans troc_payments.
+
+  // Échéance du bon = barème de validité indexé sur l'année de sortie du modèle repris
+  // (pas la possession, legacy). release_year récupéré ici même (idempotent, un seul dossier accepté).
+  const releaseYear = await getReleaseYear(form.deviceBrand, form.deviceModel);
+  const { expiresAt: voucherExpiresAt } = computeVoucherExpiry(releaseYear);
+
   const { data, error } = await supabase.functions.invoke('save-trade-in', {
     body: {
       sessionKey:      sessionKey || null,
@@ -777,12 +787,98 @@ export const saveTradeInRequest = async (
       pricingRuleVersion: evaluation.pricingRuleVersion,
       // Id catalogue → le serveur lit le base_price par id (exact), pas par matching de nom.
       tradeInModelId:  form.tradeInModelId || null,
+      // Smart Troc — appareil cible + validité du bon, sur le MÊME dossier (rien d'éparpillé).
+      targetProductId:   targetProduct?.id ?? null,
+      targetProductName: targetProduct ? getProductDisplayName(targetProduct) : null,
+      voucherExpiresAt,
     },
   });
 
   if (error || !data) throw new Error((error as any)?.message ?? 'save-trade-in failed');
 
   return { id: data.id, voucherReference: data.voucherReference };
+};
+
+// ─── Ré-évaluation d'un bon périmé (tranche 3.2b) ────────────────────────────
+
+/** Reconstruit un TrocDeviceForm depuis un dossier persisté (recalcul d'offre — état déjà déclaré). */
+const formFromDossier = (r: TradeInRequest): TrocDeviceForm =>
+  ({
+    customerName: r.customer_name,
+    customerPhone: r.customer_phone,
+    customerEmail: r.customer_email,
+    deviceBrand: r.device_brand,
+    deviceModel: r.device_model,
+    deviceStorage: r.device_storage,
+    deviceRam: r.device_ram,
+    acquisitionCondition: r.acquisition_condition,
+    batteryHealth: r.battery_health,
+    screenCondition: r.screen_condition,
+    bodyCondition: r.body_condition,
+    cameraCondition: r.camera_condition,
+    previousRepairs: r.previous_repairs,
+    powersOn: r.powers_on,
+    chargesNormally: r.charges_normally,
+    biometricsWork: r.biometrics_work,
+    accountUnlocked: r.account_unlocked,
+    hasWaterDamage: r.has_water_damage,
+    hasOriginalBox: r.has_original_box,
+    hasInvoice: r.has_invoice,
+    accessories: r.accessories ?? [],
+    tradeInModelId: r.trade_in_model_id,
+  }) as TrocDeviceForm;
+
+export interface ReevaluationResult {
+  oldCredit: number;
+  newCredit: number;
+  tradeInGrade: TradeInRequest['trade_in_grade'];
+  expiresAt: string;
+}
+
+/**
+ * Ré-évalue un bon périmé (cas `stale`, > grâce) aux conditions du JOUR et persiste le nouveau
+ * crédit + une nouvelle échéance sur le MÊME dossier. Réutilise la formule d'origine
+ * (`computeOfferV2`) avec l'état déjà déclaré + le `base_price` du jour → aucune divergence de pricing.
+ */
+export const reevaluateAndPersist = async (request: TradeInRequest): Promise<ReevaluationResult> => {
+  const form = formFromDossier(request);
+  const isCatalogModel = !!request.trade_in_model_id;
+
+  // Catalogue → base_price courant du modèle ; hors-catalogue → market-price-intel (forceRefresh).
+  let catalogBasePrice = 0;
+  if (isCatalogModel && request.trade_in_model_id) {
+    const { data } = await supabase
+      .from('trade_in_models')
+      .select('base_price')
+      .eq('id', request.trade_in_model_id)
+      .maybeSingle();
+    catalogBasePrice = Number((data as { base_price?: number } | null)?.base_price ?? 0);
+  }
+
+  const [basePrice, releaseYear] = await Promise.all([
+    resolveBasePrice(form, catalogBasePrice),
+    getReleaseYear(request.device_brand, request.device_model),
+  ]);
+
+  const offer = computeOfferV2(form, basePrice, releaseYear, isCatalogModel);
+  const newCredit = offer.tradeInValueCredit;
+  const oldCredit = Number(request.trade_in_value ?? 0);
+  const { expiresAt } = computeVoucherExpiry(releaseYear);
+
+  const { error } = await supabase
+    .from('trade_in_requests')
+    .update({
+      trade_in_value: newCredit,
+      trade_in_value_cash: offer.tradeInValueCash,
+      trade_in_grade: offer.tradeInGrade,
+      voucher_expires_at: expiresAt,
+      redemption_reason: `Ré-évaluation (bon périmé) : ${oldCredit.toLocaleString('fr-FR')} → ${newCredit.toLocaleString('fr-FR')} FCFA`,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', request.id);
+  if (error) throw error;
+
+  return { oldCredit, newCredit, tradeInGrade: offer.tradeInGrade, expiresAt };
 };
 
 // ─── Paiement Smart Troc ─────────────────────────────────────────────────────
@@ -900,6 +996,72 @@ export interface CertificateVerifyResult {
   verified_count:       number;
 }
 
+// ─── Certificats IMEI « Certifié Xeption » ───────────────────────────────────
+
+export interface ImeiCertificate {
+  reference: string;
+  qrToken:   string;
+  pdfUrl:    string;
+  reused:    boolean;
+}
+
+export interface ImeiCertificateVerifyResult {
+  reference:         string;
+  device_brand:      string | null;
+  device_model:      string | null;
+  imei_last4:        string | null;
+  imei_status:       string;
+  blacklist_status:  string;
+  created_at:        string;
+  verified_count:    number;
+}
+
+export type PublicCertificate =
+  | { kind: 'trade_in'; data: CertificateVerifyResult }
+  | { kind: 'imei'; data: ImeiCertificateVerifyResult };
+
+export const generateImeiCertificate = async (payload: {
+  sessionKey: string;
+  paymentReference: string;
+  customerName: string;
+  imei: string;
+  deviceBrand?: string;
+  deviceModel?: string;
+  imeiStatus: 'valid' | 'invalid' | 'check_failed';
+  blacklistStatus: 'unknown' | 'clear' | 'blacklisted';
+}): Promise<ImeiCertificate> => {
+  const { data, error } = await supabase.functions.invoke('generate-imei-certificate', {
+    body: payload,
+  });
+
+  if (error) {
+    throw new Error((error as any)?.message ?? 'generate-imei-certificate failed');
+  }
+
+  if (!data?.pdfUrl) {
+    throw new Error('Réponse invalide du générateur de certificat IMEI');
+  }
+
+  return {
+    reference: data.reference,
+    qrToken:   data.qrToken,
+    pdfUrl:    data.pdfUrl,
+    reused:    !!data.reused,
+  };
+};
+
+export const getImeiCertificateByToken = async (
+  token: string,
+): Promise<ImeiCertificateVerifyResult | null> => {
+  const { data, error } = await supabase.rpc('get_imei_certificate_by_token', { token });
+  if (error) {
+    console.warn('[getImeiCertificateByToken] rpc_failed', error.message);
+    return null;
+  }
+  if (!Array.isArray(data) || data.length === 0) return null;
+  return data[0] as ImeiCertificateVerifyResult;
+};
+
 /**
  * Lit un certificat depuis son qr_token (page publique /verify/:token).
  * Incrémente le compteur de scans côté DB.
@@ -915,4 +1077,19 @@ export const getCertificateByToken = async (
   }
   if (!Array.isArray(data) || data.length === 0) return null;
   return data[0] as CertificateVerifyResult;
+};
+
+/**
+ * Page publique /verify/:token — certificat IMEI ou Smart Troc.
+ */
+export const getPublicCertificateByToken = async (
+  token: string,
+): Promise<PublicCertificate | null> => {
+  const imei = await getImeiCertificateByToken(token);
+  if (imei) return { kind: 'imei', data: imei };
+
+  const troc = await getCertificateByToken(token);
+  if (troc) return { kind: 'trade_in', data: troc };
+
+  return null;
 };

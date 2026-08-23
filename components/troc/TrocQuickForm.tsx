@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
 import type { TrocDeviceForm } from '../../types';
 import type { ImeiDeviceInfo } from '../../services/trocEvaluationService';
+import { ChameleoMascot } from './ChameleoMascot';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ const isValidName  = (v: string) => v.trim().length >= 2 && !/\d/.test(v);
 const isValidPhone = (v: string) => /^[62]\d{8}$/.test(v);
 const isValidImei  = (v: string) => /^\d{15}$/.test(v);
 
-const inputCls = 'w-full bg-black/40 border border-white/10 text-white px-4 py-3.5 text-sm font-sans placeholder-gray-600 focus:border-xeption-gold/60 outline-none transition-all';
+const inputCls = 'w-full bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-xl text-white px-4 py-3.5 text-sm font-sans placeholder-gray-500 focus:border-xeption-gold/60 focus:bg-white/[0.06] focus:shadow-[0_0_15px_rgba(255,215,0,0.15)] outline-none transition-all duration-300';
 const labelCls = 'block text-[10px] font-tech uppercase tracking-widest text-gray-400 mb-1.5';
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -97,12 +98,32 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
     onNext();
   };
 
+  const quickInspectorMsg = isCheckingImei
+    ? "Vérification IMEI & modèle en cours... 🧐🔍"
+    : imeiOk
+      ? `Modèle identifié : ${effectiveModel || 'Appareil validé'} ! ✨`
+      : blacklisted
+        ? "Appareil signalé sur liste noire."
+        : "Entre ton IMEI pour lancer le diagnostic automatique ! 🔍";
+
   return (
     <div className="p-6 sm:p-8 flex flex-col gap-6">
 
-      <div>
-        <h2 className="text-lg font-tech font-bold uppercase text-white tracking-wider">Ton appareil</h2>
-        <p className="text-xs text-gray-500 mt-1 font-sans">3 infos et on s'occupe du reste.</p>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/10 pb-4">
+        <div>
+          <h2 className="text-xl font-tech font-bold uppercase text-white tracking-wider">Ton appareil</h2>
+          <p className="text-xs text-gray-300 mt-1 font-sans">3 infos et l'IA Xeption s'occupe de l'estimation instantanée.</p>
+        </div>
+
+        {/* Mascotte Xepti Inspecteur Loupe */}
+        <div className="shrink-0 -my-2">
+          <ChameleoMascot 
+            size="sm"
+            pose="inspector"
+            state={isCheckingImei ? 'scanning' : imeiOk ? 'happy' : 'idle'}
+            message={quickInspectorMsg}
+          />
+        </div>
       </div>
 
       {/* ── Champs principaux ─────────────────────────────────────────────── */}
@@ -136,8 +157,8 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
         {/* IMEI */}
         <div>
           <label className={labelCls}>IMEI</label>
-          <div className="mb-3 px-4 py-3 bg-xeption-gold/10 border border-xeption-gold/30 text-sm font-sans text-gray-200 leading-relaxed">
-            Sur l'appareil à troquer, ouvre le clavier d'appel et compose <span className="text-xeption-gold font-mono font-bold text-base">*#06#</span>. Plusieurs numéros peuvent s'afficher — prends le premier (<strong className="text-white">IMEI 1</strong>).
+          <div className="mb-3 px-4 py-3 bg-xeption-gold/10 backdrop-blur-md border border-xeption-gold/30 rounded-xl shadow-[0_0_20px_rgba(255,215,0,0.1)] text-sm font-sans text-gray-200 leading-relaxed">
+            Sur l'appareil à troquer, ouvre le clavier d'appel et compose <span className="text-xeption-gold font-mono font-bold text-base drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]">*#06#</span>. Plusieurs numéros peuvent s'afficher — prends le premier (<strong className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">IMEI 1</strong>).
           </div>
           <div className="flex gap-2">
             <input type="text" placeholder="15 chiffres"
@@ -153,7 +174,7 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
             <button type="button"
               disabled={!isValidImei(imeiInput) || isCheckingImei}
               onClick={handleVerify}
-              className="shrink-0 px-5 bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-xs transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2">
+              className="shrink-0 px-5 bg-xeption-gold hover:bg-white hover:shadow-[0_0_20px_rgba(255,215,0,0.4)] rounded-xl text-black font-tech font-bold uppercase tracking-widest text-xs transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-2">
               {isCheckingImei
                 ? <Loader2 className="w-4 h-4 animate-spin" />
                 : 'Vérifier'}
@@ -208,14 +229,14 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
           <p className="text-sm font-sans text-gray-200">L'appareil s'allume normalement ?</p>
           <div className="flex gap-3">
             <button type="button" onClick={() => setPowersOn(true)}
-              className={`flex-1 py-3 text-xs font-tech font-bold uppercase tracking-wider border transition-all ${
-                powersOn ? 'bg-xeption-gold border-xeption-gold text-black' : 'border-white/15 text-gray-300 hover:border-xeption-gold/30'
+              className={`flex-1 py-3 text-xs font-tech font-bold uppercase tracking-wider border rounded-xl transition-all duration-300 ${
+                powersOn ? 'bg-xeption-gold border-xeption-gold text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]' : 'bg-white/[0.02] border-white/10 text-gray-300 hover:border-xeption-gold/30 hover:bg-white/[0.05]'
               }`}>
               Oui
             </button>
             <button type="button" onClick={() => setPowersOn(false)}
-              className={`flex-1 py-3 text-xs font-tech font-bold uppercase tracking-wider border transition-all ${
-                !powersOn ? 'bg-red-900/50 border-red-700/60 text-red-300' : 'border-white/15 text-gray-300 hover:border-white/30'
+              className={`flex-1 py-3 text-xs font-tech font-bold uppercase tracking-wider border rounded-xl transition-all duration-300 ${
+                !powersOn ? 'bg-red-900/50 border-red-700/60 text-red-300 shadow-[0_0_20px_rgba(220,38,38,0.2)]' : 'bg-white/[0.02] border-white/10 text-gray-300 hover:border-white/30 hover:bg-white/[0.05]'
               }`}>
               Non
             </button>
@@ -235,7 +256,7 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
         )}
         <button type="button" disabled={!canProceed}
           onClick={handleNext}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-xs shadow-[0_0_20px_rgba(255,215,0,0.2)] transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+          className="inline-flex items-center gap-2 px-6 py-3 bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(255,215,0,0.3)] transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none hover:shadow-[0_0_30px_rgba(255,215,0,0.5)]">
           Passer aux photos <ArrowRight className="w-4 h-4" />
         </button>
       </div>

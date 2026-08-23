@@ -17,7 +17,7 @@ import {
 import { uploadFiles } from '../services/uploadService';
 import { preflightDevicePhotos } from '../services/trocPhotoPreflight';
 import { validateTrocForm } from '../utils/trocFormValidation';
-import type { TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
+import type { Product, TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
 import { TROC_TUNNEL_TIER, type TrocTier } from '../utils/trocPricing';
 import { supabase } from '../services/supabaseClient';
 
@@ -515,7 +515,8 @@ export const useTradeIn = () => {
     }
   };
 
-  const persist = async () => {
+  // targetProduct : appareil cible du troc (Smart Troc). Optionnel → sans cible = bon générique.
+  const persist = async (targetProduct?: Product | null) => {
     if (!result) return;
     setIsSubmitting(true);
     setError(null);
@@ -525,7 +526,7 @@ export const useTradeIn = () => {
         supabase.auth.signInWithOtp({ email: form.customerEmail.trim() }).catch(console.error);
       }
 
-      const saved = await saveTradeInRequest(form, photoUrls, result, sessionKey);
+      const saved = await saveTradeInRequest(form, photoUrls, result, sessionKey, targetProduct);
       setSavedRequest({
         id: saved.id,
         voucher_reference: saved.voucherReference,
@@ -539,7 +540,7 @@ export const useTradeIn = () => {
     }
   };
 
-  const acceptOffer = () => persist();
+  const acceptOffer = (targetProduct?: Product | null) => persist(targetProduct);
 
   const refuse = () => {
     setResult(null);

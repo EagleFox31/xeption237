@@ -1,10 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
 import type { TradeInRequest, TrocSession, TrocPayment } from '../../../types';
+import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
 import TableShell from '../shared/TableShell';
 import { TrocDetailsModal } from '../modals/TrocDetailsModal';
 import { PaymentChannelBadge, PaymentStatusBadge, TierBadge } from '../shared/trocTableBadges';
+import { VoucherExpiryBadge } from '../shared/VoucherExpiryBadge';
 import { buildTrocDossierRows, phonesMatch } from '../../../utils/trocDossierJoin';
+import { notifyError, notifySuccess } from '../../../utils/notify';
 
 interface TrocTabProps {
   requests: TradeInRequest[];
@@ -12,7 +15,11 @@ interface TrocTabProps {
   payments: TrocPayment[];
   isLoadingPayments?: boolean;
   onRefresh?: () => void;
-  onUpdateStatus: (id: string, status: TradeInRequest['status']) => void;
+  onTransition: (
+    id: string,
+    to: TradeInRequest['status'],
+    opts?: { reason?: string },
+  ) => Promise<TransitionResult>;
 }
 
 type FilterValue = TradeInRequest['status'] | 'all';
@@ -125,7 +132,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
   payments,
   isLoadingPayments = false,
   onRefresh,
-  onUpdateStatus,
+  onTransition,
 }) => {
   const [filter, setFilter] = useState<FilterValue>('all');
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilterValue>('all');
@@ -133,6 +140,19 @@ export const TrocTab: React.FC<TrocTabProps> = ({
   const [search, setSearch] = useState('');
   const [showFunnel, setShowFunnel] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TradeInRequest | null>(null);
+
+  // Transition gardée + retour utilisateur (les cas bloqués — bon expiré, motif requis —
+  // renvoient vers la modale « Détails » où le motif/la ré-évaluation sont gérés).
+  const runTransition = async (
+    id: string,
+    to: TradeInRequest['status'],
+    opts?: { reason?: string },
+  ) => {
+    const res = await onTransition(id, to, opts);
+    if (!res.ok) notifyError('Action impossible', res.error);
+    else notifySuccess('Dossier mis à jour');
+    return res;
+  };
 
   const allRows = useMemo(
     () => buildTrocDossierRows(requests, sessions, payments),
@@ -382,6 +402,9 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                               {[req.device_storage, req.device_ram].filter(Boolean).join(' / ')}
                             </p>
                           )}
+                          {req.target_product_name && (
+                            <p className="text-[10px] text-xeption-gold/80 mt-0.5">→ vers {req.target_product_name}</p>
+                          )}
                         </>
                       ) : session?.device_brand && session?.device_model ? (
                         <p>{session.device_brand} {session.device_model}</p>
@@ -467,6 +490,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                     </td>
                     <td className="px-4 py-3">
                       {req ? (
+                        <>
                         <span
                           className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
                           req.status === 'in_progress'
@@ -484,6 +508,10 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                         >
                           {STATUS_LABELS[req.status] ?? req.status}
                         </span>
+                        {(req.status === 'pending' || req.status === 'accepted' || req.status === 'validated') && (
+                          <VoucherExpiryBadge request={req} className="ml-1 align-middle" />
+                        )}
+                        </>
                       ) : (
                         <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300">
                           Bon non émis
@@ -499,9 +527,9 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                           >
                             Détails
                           </button>
-                          {req.status === 'pending' && (
+                          {(req.status === 'pending' || req.status === 'accepted') && (
                             <button
-                              onClick={() => onUpdateStatus(req.id, 'validated')}
+                              onClick={() => runTransition(req.id, 'validated')}
                               className="px-2 py-1 bg-green-600/20 text-green-400 border border-green-600/30 rounded text-xs hover:bg-green-600/40 transition-all"
                             >
                               Valider
@@ -509,7 +537,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                           )}
                           {req.status === 'validated' && (
                             <button
-                              onClick={() => onUpdateStatus(req.id, 'completed')}
+                              onClick={() => setSelectedRequest(req)}
                               className="px-2 py-1 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded text-xs hover:bg-blue-600/40 transition-all"
                             >
                               Terminer
@@ -517,7 +545,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                           )}
                           {(req.status === 'pending' || req.status === 'accepted') && (
                             <button
-                              onClick={() => onUpdateStatus(req.id, 'refused')}
+                              onClick={() => runTransition(req.id, 'refused')}
                               className="px-2 py-1 bg-red-600/20 text-red-400 border border-red-600/30 rounded text-xs hover:bg-red-600/40 transition-all"
                             >
                               Refuser
@@ -537,7 +565,11 @@ export const TrocTab: React.FC<TrocTabProps> = ({
       </div>
 
       {selectedRequest && (
-        <TrocDetailsModal request={selectedRequest} onClose={() => setSelectedRequest(null)} />
+        <TrocDetailsModal
+          request={selectedRequest}
+          onTransition={onTransition}
+          onClose={() => setSelectedRequest(null)}
+        />
       )}
     </div>
   );

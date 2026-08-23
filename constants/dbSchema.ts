@@ -52,7 +52,8 @@ export const DB_SCHEMA = {
         IS_FEATURED: 'is_featured',
         BRAND: 'brand',
         PRODUCT_RANGE: 'product_range',
-        CONDITION: 'condition'
+        CONDITION: 'condition',
+        RELEASE_YEAR: 'release_year',
     },
     BRANDS: {
         ID: 'id',

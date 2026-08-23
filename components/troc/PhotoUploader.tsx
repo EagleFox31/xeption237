@@ -43,7 +43,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       </div>
 
       {visionLoading && (
-        <p className="text-xs text-gray-400 font-sans">Vérification du canal IA vision…</p>
+        <p className="text-xs text-gray-400 font-sans">Préparation du contrôle photo…</p>
       )}
 
       {!visionLoading && !visionReady && visionSetupHint && (
@@ -54,10 +54,6 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
             <p>{visionSetupHint}</p>
           </div>
         </div>
-      )}
-
-      {!visionLoading && visionReady && visionSetupHint && (
-        <p className="text-xs text-emerald-400/90 font-sans">{visionSetupHint}</p>
       )}
 
       {hasIssues && (

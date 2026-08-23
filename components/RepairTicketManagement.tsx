@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { RepairTicket } from '../types';
 import { Check } from 'lucide-react';
+import { useDueFeedbackInvites } from '../hooks/useDueFeedbackInvites';
+import OrderFeedbackInviteButton from './admin/OrderFeedbackInviteButton';
 
 const REPAIR_STATUS_LABELS: Record<RepairTicket['status'], string> = {
     open: 'Nouveau',
@@ -16,6 +18,7 @@ const RepairTicketManagement: React.FC = () => {
     const [tickets, setTickets] = useState<RepairTicket[]>([]);
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState<'all' | 'open' | 'active'>('all');
+    const { invites: dueInvites, refresh: refreshInvites, markSent } = useDueFeedbackInvites();
 
     useEffect(() => {
         fetchTickets();
@@ -55,6 +58,11 @@ const RepairTicketManagement: React.FC = () => {
         
         if (!error) {
             setTickets(tickets.map(t => t.id === id ? { ...t, status: newStatus } : t));
+            if (newStatus === 'completed') {
+                window.setTimeout(() => {
+                    void refreshInvites();
+                }, 400);
+            }
         }
     };
 
@@ -142,6 +150,16 @@ const RepairTicketManagement: React.FC = () => {
                                         Rejeter
                                     </button>
                                 )}
+                                {ticket.status === 'completed' &&
+                                    dueInvites
+                                        .filter((invite) => invite.repair_ticket_id === ticket.id && invite.kind === 'sav')
+                                        .map((invite) => (
+                                            <OrderFeedbackInviteButton
+                                                key={invite.token}
+                                                invite={invite}
+                                                onSent={markSent}
+                                            />
+                                        ))}
                             </div>
 
                         </div>

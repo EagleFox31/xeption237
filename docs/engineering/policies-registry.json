@@ -1,0 +1,1327 @@
+{
+  "generated_at": "2026-08-23T09:41:04.272Z",
+  "policy_count": 62,
+  "tables_without_rls": [
+    "products"
+  ],
+  "duplicate_groups": [
+    {
+      "signature": "orders|INSERT|{public}|",
+      "policies": [
+        "Enable insert access for all users",
+        "Public Insert Orders"
+      ]
+    },
+    {
+      "signature": "orders|SELECT|{public}|true",
+      "policies": [
+        "Enable read access for all users",
+        "Public Read Orders"
+      ]
+    },
+    {
+      "signature": "orders|INSERT|{anon,authenticated}|",
+      "policies": [
+        "Public Create Orders",
+        "Public insert orders"
+      ]
+    },
+    {
+      "signature": "orders|SELECT|{anon,authenticated}|true",
+      "policies": [
+        "Public View Own Orders",
+        "Public read orders"
+      ]
+    },
+    {
+      "signature": "orders|ALL|{authenticated}|true",
+      "policies": [
+        "Staff Full Access Orders",
+        "Staff full access orders"
+      ]
+    },
+    {
+      "signature": "products|ALL|{authenticated}|true",
+      "policies": [
+        "Staff Full Access Products",
+        "Staff Write Products",
+        "Staff update products"
+      ]
+    },
+    {
+      "signature": "repair_tickets|INSERT|{anon,authenticated}|",
+      "policies": [
+        "Public Create Ticket",
+        "Public insert tickets"
+      ]
+    },
+    {
+      "signature": "repair_tickets|ALL|{authenticated}|true",
+      "policies": [
+        "Staff Manage Tickets",
+        "Staff full access tickets"
+      ]
+    },
+    {
+      "signature": "trade_in_models|ALL|{authenticated}|true",
+      "policies": [
+        "Staff Manage Argus",
+        "Staff Write Trade Models"
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "table": "argus",
+      "policy": "argus_read_service",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'service_role'::text)",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": []
+    },
+    {
+      "table": "brands",
+      "policy": "Public read brands",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "brands",
+      "policy": "Staff manage brands",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "categories",
+      "policy": "Public View Categories",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "components\\shop\\ShopHero.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useCategoriesManager.ts"
+      ]
+    },
+    {
+      "table": "categories",
+      "policy": "Staff Full Access Categories",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "components\\shop\\ShopHero.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useCategoriesManager.ts"
+      ]
+    },
+    {
+      "table": "customers",
+      "policy": "Public insert",
+      "cmd": "INSERT",
+      "roles": "{public}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ]
+    },
+    {
+      "table": "customers",
+      "policy": "Public read",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_004_troc_certificates.sql"
+      ],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ]
+    },
+    {
+      "table": "customers",
+      "policy": "Public update",
+      "cmd": "UPDATE",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ]
+    },
+    {
+      "table": "customers",
+      "policy": "Staff Full Access Customers",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ]
+    },
+    {
+      "table": "delivery_zones",
+      "policy": "Enable read access for all users",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\admin\\tabs\\DeliveryTab.tsx",
+        "components\\delivery\\deliveryZoneUi.tsx"
+      ]
+    },
+    {
+      "table": "delivery_zones",
+      "policy": "Enable write access for authenticated users",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'authenticated'::text)",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\admin\\tabs\\DeliveryTab.tsx",
+        "components\\delivery\\deliveryZoneUi.tsx"
+      ]
+    },
+    {
+      "table": "imei_certif_records",
+      "policy": "imei_certif_records_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260720_001_imei_certif_records.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\generate-imei-certificate\\index.ts"
+      ]
+    },
+    {
+      "table": "imei_premium_calls",
+      "policy": "imei_premium_calls_admin_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_001_troc_tier_columns.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ]
+    },
+    {
+      "table": "market_demand_signals",
+      "policy": "market_demand_signals_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_005_market_trend_tables.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts"
+      ]
+    },
+    {
+      "table": "market_price_cache",
+      "policy": "market_price_cache_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": null,
+      "migration_sources": [
+        "20260823_002_market_price_cache_fix.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\market-price-intel\\index.ts"
+      ]
+    },
+    {
+      "table": "market_price_snapshots",
+      "policy": "market_price_snapshots_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_005_market_trend_tables.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ]
+    },
+    {
+      "table": "market_trend_cache",
+      "policy": "market_trend_cache_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_005_market_trend_tables.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Enable insert access for all users",
+      "cmd": "INSERT",
+      "roles": "{public}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Enable read access for all users",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Enable update access for all users",
+      "cmd": "UPDATE",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Public Create Orders",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Public Insert Orders",
+      "cmd": "INSERT",
+      "roles": "{public}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Public Read Orders",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Public View Own Orders",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Public insert orders",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Public read orders",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Staff Full Access Orders",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy": "Staff full access orders",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "packs",
+      "policy": "Packs sont publics",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "hooks\\admin\\usePacksManager.ts"
+      ]
+    },
+    {
+      "table": "packs",
+      "policy": "Staff peut tout gérer",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'authenticated'::text)",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "hooks\\admin\\usePacksManager.ts"
+      ]
+    },
+    {
+      "table": "phone_releases",
+      "policy": "phone_releases_public_read",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260615_003_phone_releases.sql"
+      ],
+      "code_callers": [
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\import-phone-releases.mjs",
+        "services\\trocEvaluationService.ts"
+      ]
+    },
+    {
+      "table": "product_ranges",
+      "policy": "Public read ranges",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "product_ranges",
+      "policy": "Staff manage ranges",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "products",
+      "policy": "Public Read Products",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "products",
+      "policy": "Public View Products",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "products",
+      "policy": "Staff Full Access Products",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "products",
+      "policy": "Staff Write Products",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "products",
+      "policy": "Staff update products",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "products",
+      "policy": "TEMP: authenticated can insert products",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Public Create Ticket",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ]
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Public can create tickets",
+      "cmd": "INSERT",
+      "roles": "{public}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ]
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Public insert tickets",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ]
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Staff Manage Tickets",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ]
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Staff can manage tickets",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'authenticated'::text)",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ]
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Staff full access tickets",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ]
+    },
+    {
+      "table": "staff",
+      "policy": "Public Read Staff",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\StaffLogin.tsx",
+        "hooks\\admin\\useCurrentStaffSession.ts",
+        "hooks\\admin\\useStaffManager.ts",
+        "supabase\\functions\\create-staff-auth\\index.ts",
+        "utils\\superAdmin.ts"
+      ]
+    },
+    {
+      "table": "staff",
+      "policy": "Staff Self Edit",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\StaffLogin.tsx",
+        "hooks\\admin\\useCurrentStaffSession.ts",
+        "hooks\\admin\\useStaffManager.ts",
+        "supabase\\functions\\create-staff-auth\\index.ts",
+        "utils\\superAdmin.ts"
+      ]
+    },
+    {
+      "table": "tac_cache",
+      "policy": "tac_cache_read_all",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260401_003_tac_cache.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ]
+    },
+    {
+      "table": "tac_cache",
+      "policy": "tac_cache_write_service",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'service_role'::text)",
+      "with_check": "(auth.role() = 'service_role'::text)",
+      "migration_sources": [
+        "20260401_003_tac_cache.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ]
+    },
+    {
+      "table": "trade_in_models",
+      "policy": "Public Read Trade Models",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ]
+    },
+    {
+      "table": "trade_in_models",
+      "policy": "Public View Argus",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ]
+    },
+    {
+      "table": "trade_in_models",
+      "policy": "Staff Manage Argus",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ]
+    },
+    {
+      "table": "trade_in_models",
+      "policy": "Staff Write Trade Models",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ]
+    },
+    {
+      "table": "trade_in_requests",
+      "policy": "staff_delete_trade_in_requests",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\OrderTracking.tsx",
+        "hooks\\admin\\useTrocManager.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\check-imei\\index.ts",
+        "supabase\\functions\\generate-certificate\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ]
+    },
+    {
+      "table": "trade_in_requests",
+      "policy": "staff_select_trade_in_requests",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\OrderTracking.tsx",
+        "hooks\\admin\\useTrocManager.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\check-imei\\index.ts",
+        "supabase\\functions\\generate-certificate\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ]
+    },
+    {
+      "table": "trade_in_requests",
+      "policy": "staff_update_trade_in_requests",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\OrderTracking.tsx",
+        "hooks\\admin\\useTrocManager.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\check-imei\\index.ts",
+        "supabase\\functions\\generate-certificate\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ]
+    },
+    {
+      "table": "troc_certificates",
+      "policy": "troc_certificates_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_004_troc_certificates.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\generate-certificate\\index.ts"
+      ]
+    },
+    {
+      "table": "troc_payments",
+      "policy": "troc_payments_insert_anon",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [
+        "20260404_007_troc_payments.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useTrocManager.ts",
+        "supabase\\functions\\create-payment\\index.ts",
+        "supabase\\functions\\generate-imei-certificate\\index.ts",
+        "supabase\\functions\\get-payment-status\\index.ts",
+        "supabase\\functions\\payment-webhook\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts"
+      ]
+    },
+    {
+      "table": "troc_payments",
+      "policy": "troc_payments_select_anon",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260404_007_troc_payments.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useTrocManager.ts",
+        "supabase\\functions\\create-payment\\index.ts",
+        "supabase\\functions\\generate-imei-certificate\\index.ts",
+        "supabase\\functions\\get-payment-status\\index.ts",
+        "supabase\\functions\\payment-webhook\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts"
+      ]
+    },
+    {
+      "table": "troc_sessions",
+      "policy": "troc_sessions_insert_public",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [
+        "20260403_006_troc_rls_and_audit_columns.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ]
+    },
+    {
+      "table": "troc_sessions",
+      "policy": "troc_sessions_select_staff",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": null,
+      "migration_sources": [
+        "20260403_006_troc_rls_and_audit_columns.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ]
+    },
+    {
+      "table": "troc_sessions",
+      "policy": "troc_sessions_update_public",
+      "cmd": "UPDATE",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [
+        "20260403_006_troc_rls_and_audit_columns.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ]
+    }
+  ],
+  "table_index": [
+    {
+      "table": "argus",
+      "policy_count": 1,
+      "code_callers": []
+    },
+    {
+      "table": "brands",
+      "policy_count": 2,
+      "code_callers": [
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "categories",
+      "policy_count": 2,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "components\\shop\\ShopHero.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useCategoriesManager.ts"
+      ]
+    },
+    {
+      "table": "customers",
+      "policy_count": 4,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ]
+    },
+    {
+      "table": "delivery_zones",
+      "policy_count": 2,
+      "code_callers": [
+        "components\\admin\\tabs\\DeliveryTab.tsx",
+        "components\\delivery\\deliveryZoneUi.tsx"
+      ]
+    },
+    {
+      "table": "imei_certif_records",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\generate-imei-certificate\\index.ts"
+      ]
+    },
+    {
+      "table": "imei_premium_calls",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ]
+    },
+    {
+      "table": "market_demand_signals",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts"
+      ]
+    },
+    {
+      "table": "market_price_cache",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\market-price-intel\\index.ts"
+      ]
+    },
+    {
+      "table": "market_price_snapshots",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ]
+    },
+    {
+      "table": "market_trend_cache",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts"
+      ]
+    },
+    {
+      "table": "orders",
+      "policy_count": 11,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs"
+      ]
+    },
+    {
+      "table": "packs",
+      "policy_count": 2,
+      "code_callers": [
+        "hooks\\admin\\usePacksManager.ts"
+      ]
+    },
+    {
+      "table": "phone_releases",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\import-phone-releases.mjs",
+        "services\\trocEvaluationService.ts"
+      ]
+    },
+    {
+      "table": "product_ranges",
+      "policy_count": 2,
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "products",
+      "policy_count": 6,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ]
+    },
+    {
+      "table": "repair_tickets",
+      "policy_count": 6,
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ]
+    },
+    {
+      "table": "staff",
+      "policy_count": 2,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\StaffLogin.tsx",
+        "hooks\\admin\\useCurrentStaffSession.ts",
+        "hooks\\admin\\useStaffManager.ts",
+        "supabase\\functions\\create-staff-auth\\index.ts",
+        "utils\\superAdmin.ts"
+      ]
+    },
+    {
+      "table": "tac_cache",
+      "policy_count": 2,
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ]
+    },
+    {
+      "table": "trade_in_models",
+      "policy_count": 4,
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ]
+    },
+    {
+      "table": "trade_in_requests",
+      "policy_count": 3,
+      "code_callers": [
+        "components\\OrderTracking.tsx",
+        "hooks\\admin\\useTrocManager.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\check-imei\\index.ts",
+        "supabase\\functions\\generate-certificate\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ]
+    },
+    {
+      "table": "troc_certificates",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\generate-certificate\\index.ts"
+      ]
+    },
+    {
+      "table": "troc_payments",
+      "policy_count": 2,
+      "code_callers": [
+        "hooks\\admin\\useTrocManager.ts",
+        "supabase\\functions\\create-payment\\index.ts",
+        "supabase\\functions\\generate-imei-certificate\\index.ts",
+        "supabase\\functions\\get-payment-status\\index.ts",
+        "supabase\\functions\\payment-webhook\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts"
+      ]
+    },
+    {
+      "table": "troc_sessions",
+      "policy_count": 3,
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ]
+    }
+  ]
+}

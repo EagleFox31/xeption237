@@ -174,7 +174,7 @@ const PolitiqueConfidentialitePage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <InfoBadge icon={<FileText className="w-3.5 h-3.5" />} text="ETS XEPTION — Entrepreneur Individuel" highlight />
                 <InfoBadge icon={<MapPin className="w-3.5 h-3.5" />} text="Mfoundi Mall, Boutique 2063, Yaoundé, Cameroun" />
-                <InfoBadge icon={<Phone className="w-3.5 h-3.5" />} text="+237 697 686 684" />
+                <InfoBadge icon={<Phone className="w-3.5 h-3.5" />} text="+237 641 891 031" />
                 <InfoBadge icon={<Mail className="w-3.5 h-3.5" />} text="support@xeptionetwork.shop" />
               </div>
             </Section>
@@ -441,10 +441,10 @@ const PolitiqueConfidentialitePage: React.FC = () => {
                   <Mail className="w-4 h-4 text-xeption-gold" />
                   <span className="text-xeption-gold text-sm font-mono group-hover:underline">support@xeptionetwork.shop</span>
                 </a>
-                <a href="https://wa.me/237697686684" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/237641891031" target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-lg px-4 py-3 hover:border-xeption-gold/30 transition-all">
                   <Phone className="w-4 h-4 text-white/80" />
-                  <span className="text-white text-sm">+237 697 686 684</span>
+                  <span className="text-white text-sm">+237 641 891 031</span>
                 </a>
               </div>
               <p className="text-white text-xs italic mt-3">

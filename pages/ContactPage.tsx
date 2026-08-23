@@ -155,14 +155,14 @@ const ContactPage: React.FC = () => {
                   icon={<MessageCircle className="w-5 h-5" />}
                   title="WhatsApp"
                   text="Canal rapide pour les questions produit, confirmations et échanges pratiques."
-                  href="https://wa.me/237697686684"
+                  href="https://wa.me/237641891031"
                   cta="Écrire sur WhatsApp"
                 />
                 <ContactCard
                   icon={<Phone className="w-5 h-5" />}
                   title="Téléphone"
                   text="Pour parler directement avec la boutique ou confirmer une information urgente."
-                  href="tel:+237697686684"
+                  href="tel:+237641891031"
                   cta="Appeler"
                 />
                 <ContactCard
@@ -183,7 +183,7 @@ const ContactPage: React.FC = () => {
               <div className="space-y-3">
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Entreprise</span><span className="text-white font-medium">ETS XEPTION</span></p>
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Adresse</span><span className="text-white">Mfoundi Mall, Boutique 2063, Avenue Mgr Vogt, Marché Mfoundi, Centre-ville, Yaoundé, Cameroun</span></p>
-                <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Téléphone</span><a href="tel:+237697686684" className="text-xeption-gold hover:underline">+237 697 686 684</a></p>
+                <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Téléphone</span><a href="tel:+237641891031" className="text-xeption-gold hover:underline">+237 641 891 031</a></p>
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Email</span><a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline">support@xeptionetwork.shop</a></p>
               </div>
             </Section>

@@ -170,11 +170,25 @@ export function classifyPolicies(policies, tablesWithoutRls, tableRefs) {
       }
     }
 
+    // Information SECONDAIRE, indépendante de `impact`.
+    //
+    // Une classification prioritaire (`inactive_rls_off` sur products, par exemple)
+    // écrasait le fait qu'une policy soit aussi un doublon strict — précisément sur
+    // la table où l'on prévoit d'activer la RLS.
+    //
+    // ⚠️ Ce n'est PAS une invitation à supprimer : des policies permissives identiques
+    // sont OR-ées par Postgres, donc sans effet fonctionnel ni risque. L'enjeu est
+    // ailleurs : le jour où l'on RESTREINT une policy, son doublon resté permissif
+    // annule la restriction en silence. Il faut alors les traiter ensemble.
+    const isDuplicate = duplicateMembers.has(row.policy) || duplicateCanonical.has(row.policy);
+
     return {
       ...row,
       impact,
       impact_label: IMPACT_LABELS[impact] ?? impact,
       impact_note,
+      also_duplicate: isDuplicate,
+      duplicate_canonical: isDuplicate ? duplicateCanonical.get(row.policy) ?? null : null,
     };
   });
 

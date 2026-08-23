@@ -76,6 +76,22 @@ const CANONICAL = {
   ],
 };
 
+const IMPACT_EMOJI = {
+  active: '🟢',
+  inactive_rls_off: '⚫',
+  bypass_service_role: '🔵',
+  redundant_duplicate: '🟡',
+  redundant_shadowed: '🟠',
+  legacy_no_caller: '⚪',
+  bypass_rpc: '🔵',
+  active_rare: '🟣',
+};
+
+function impactCell(impact) {
+  const emoji = IMPACT_EMOJI[impact] ?? '❓';
+  return `${emoji} \`${impact}\``;
+}
+
 function mdList(items) {
   if (!items?.length) return '_Aucun_\n';
   return items.map((i) => `- \`${i}\``).join('\n') + '\n';
@@ -104,6 +120,31 @@ let md = `# Registre des policies RLS — Xeption Supabase
 | Tables sans RLS | **${data.tables_without_rls.join(', ') || 'aucune'}** |
 | Groupes de doublons | **${data.duplicate_groups.length}** |
 
+## Impact réel (synthèse)
+
+| Impact | Nb | Signification |
+|---|---|---|
+${Object.entries(data.impact_summary ?? {})
+  .sort((a, b) => b[1] - a[1])
+  .map(([k, n]) => {
+    const label = (data.impact_labels?.[k] ?? k).replace(/\|/g, '\\|');
+    return `| ${impactCell(k)} | **${n}** | ${label} |`;
+  })
+  .join('\n')}
+
+Légende : 🟢 active · ⚫ RLS off · 🔵 bypass (edge/RPC) · 🟡 doublon strict · 🟠 shadowed par \`{public}\` · 🟣 flux legacy · ⚪ orpheline
+
+## Inventaire complet (${data.policy_count} policies)
+
+| Table | Policy | CMD | Rôles | Impact | Note |
+|---|---|---|---|---|---|
+${data.policies
+  .map((p) => {
+    const note = (p.impact_note ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ').slice(0, 80);
+    return `| \`${p.table}\` | \`${p.policy}\` | ${p.cmd} | ${p.roles} | ${impactCell(p.impact)} | ${note} |`;
+  })
+  .join('\n')}
+
 ## Doublons à fusionner (ne pas recréer)
 
 `;
@@ -112,7 +153,7 @@ for (const g of data.duplicate_groups) {
   md += `### ${g.policies[0].split(' ')[0]}… (${g.policies.length} policies identiques)\n\n`;
   md += `Signature : \`${g.signature}\`\n\n`;
   md += `Policies actuelles :\n${g.policies.map((p) => `- \`${p}\``).join('\n')}\n\n`;
-  md += `**Canonique recommandée** : garder **une seule** policy avec le nom normalisé ; supprimer les autres après vérif.\n\n`;
+  md += `**Canonique à garder** : \`${g.canonical ?? g.policies[0]}\`\n\n`;
 }
 
 md += `## Policies canoniques cibles (post-remédiation RLS)
@@ -164,10 +205,10 @@ for (const row of data.table_index) {
     md += `**RPC**\n\n${mdList(RPC_BY_TABLE[row.table])}`;
   }
   md += `**Policies live**\n\n`;
-  md += `| Policy | CMD | Rôles | Qual |\n|---|---|---|---|\n`;
+  md += `| Policy | CMD | Rôles | Impact | Note |\n|---|---|---|---|---|\n`;
   for (const p of tablePolicies) {
-    const qual = (p.qual || p.with_check || '—').replace(/\|/g, '\\|').slice(0, 40);
-    md += `| \`${p.policy}\` | ${p.cmd} | ${p.roles} | ${qual} |\n`;
+    const note = (p.impact_note ?? '').replace(/\|/g, '\\|').slice(0, 60);
+    md += `| \`${p.policy}\` | ${p.cmd} | ${p.roles} | ${impactCell(p.impact)} | ${note} |\n`;
   }
   md += `\n`;
 }
@@ -190,6 +231,7 @@ pg_cron (lundi 3h)
 |---|---|
 | ${data.generated_at.slice(0, 10)} | Inventaire initial 61 policies + registre |
 | ${data.generated_at.slice(0, 10)} | Migration \`20260823_002_market_price_cache_fix.sql\` |
+| ${data.generated_at.slice(0, 10)} | Colonne **impact réel** par policy (classif. automatique) |
 
 `;
 

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-23T11:00:27.596Z",
-  "policy_count": 62,
+  "generated_at": "2026-08-23T12:40:13.046Z",
+  "policy_count": 66,
   "tables_without_rls": [
     "products"
   ],
@@ -81,7 +81,7 @@
   ],
   "impact_summary": {
     "legacy_no_caller": 1,
-    "active": 33,
+    "active": 37,
     "bypass_service_role": 9,
     "active_rare": 1,
     "redundant_shadowed": 4,
@@ -110,7 +110,9 @@
       "code_callers": [],
       "impact": "legacy_no_caller",
       "impact_label": "Orpheline — aucun appelant dans le code",
-      "impact_note": "Table `argus` sans référence code — policy probablement morte."
+      "impact_note": "Table `argus` sans référence code — policy probablement morte.",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "brands",
@@ -135,7 +137,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "brands",
@@ -160,7 +164,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "categories",
@@ -180,7 +186,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "categories",
@@ -200,7 +208,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "customers",
@@ -216,7 +226,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "customers",
@@ -234,7 +246,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "customers",
@@ -250,7 +264,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "customers",
@@ -266,7 +282,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "delivery_zones",
@@ -282,7 +300,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable read access for all users"
     },
     {
       "table": "delivery_zones",
@@ -298,7 +318,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "imei_certif_records",
@@ -315,7 +337,9 @@
       ],
       "impact": "bypass_service_role",
       "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
-      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "imei_premium_calls",
@@ -332,7 +356,9 @@
       ],
       "impact": "bypass_service_role",
       "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
-      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "market_demand_signals",
@@ -349,7 +375,9 @@
       ],
       "impact": "bypass_service_role",
       "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
-      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "market_price_cache",
@@ -366,7 +394,9 @@
       ],
       "impact": "bypass_service_role",
       "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
-      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "market_price_snapshots",
@@ -384,7 +414,9 @@
       ],
       "impact": "bypass_service_role",
       "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
-      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "market_trend_cache",
@@ -401,7 +433,28 @@
       ],
       "impact": "bypass_service_role",
       "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
-      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "order_items",
+      "policy": "order_items_staff_all",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [
+        "20260823_010_erp_step2_data_foundation.sql"
+      ],
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "orders",
@@ -416,11 +469,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "active_rare",
       "impact_label": "Active rare — insert/update direct legacy (hors RPC principal)",
-      "impact_note": "Checkout via RPC (create_order_atomic) ; insert direct encore dans legacy AdminPanel."
+      "impact_note": "Checkout via RPC (create_order_atomic) ; insert direct encore dans legacy AdminPanel.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable insert access for all users"
     },
     {
       "table": "orders",
@@ -435,11 +491,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable read access for all users"
     },
     {
       "table": "orders",
@@ -454,11 +513,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "orders",
@@ -473,11 +535,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "redundant_shadowed",
       "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
-      "impact_note": "Couvert par `Enable insert access for all users` ({public} inclut anon + authenticated)."
+      "impact_note": "Couvert par `Enable insert access for all users` ({public} inclut anon + authenticated).",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public Create Orders"
     },
     {
       "table": "orders",
@@ -492,11 +557,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "redundant_duplicate",
       "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
-      "impact_note": "Doublon strict — garder `Enable insert access for all users`."
+      "impact_note": "Doublon strict — garder `Enable insert access for all users`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable insert access for all users"
     },
     {
       "table": "orders",
@@ -511,11 +579,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "redundant_duplicate",
       "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
-      "impact_note": "Doublon strict — garder `Enable read access for all users`."
+      "impact_note": "Doublon strict — garder `Enable read access for all users`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable read access for all users"
     },
     {
       "table": "orders",
@@ -530,11 +601,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "redundant_duplicate",
       "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
-      "impact_note": "Doublon strict — garder `Public read orders`."
+      "impact_note": "Doublon strict — garder `Public read orders`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public read orders"
     },
     {
       "table": "orders",
@@ -549,11 +623,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "redundant_duplicate",
       "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
-      "impact_note": "Doublon strict — garder `Public Create Orders`."
+      "impact_note": "Doublon strict — garder `Public Create Orders`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public Create Orders"
     },
     {
       "table": "orders",
@@ -568,11 +645,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "redundant_shadowed",
       "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
-      "impact_note": "Couvert par `Enable read access for all users` ({public} inclut anon + authenticated)."
+      "impact_note": "Couvert par `Enable read access for all users` ({public} inclut anon + authenticated).",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public read orders"
     },
     {
       "table": "orders",
@@ -587,11 +667,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "redundant_duplicate",
       "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
-      "impact_note": "Doublon strict — garder `Staff full access orders`."
+      "impact_note": "Doublon strict — garder `Staff full access orders`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff full access orders"
     },
     {
       "table": "orders",
@@ -606,11 +689,14 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff full access orders"
     },
     {
       "table": "packs",
@@ -625,7 +711,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "packs",
@@ -640,7 +728,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "phone_releases",
@@ -659,7 +749,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "product_ranges",
@@ -678,7 +770,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "product_ranges",
@@ -697,7 +791,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "products",
@@ -725,11 +821,14 @@
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
-        "scripts\\product-ingestion-funnel.mjs"
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "inactive_rls_off",
       "impact_label": "Inactive — RLS désactivée sur la table",
-      "impact_note": "RLS désactivée : policy ignorée par Postgres."
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "products",
@@ -757,11 +856,14 @@
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
-        "scripts\\product-ingestion-funnel.mjs"
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "inactive_rls_off",
       "impact_label": "Inactive — RLS désactivée sur la table",
-      "impact_note": "RLS désactivée : policy ignorée par Postgres."
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "products",
@@ -789,11 +891,14 @@
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
-        "scripts\\product-ingestion-funnel.mjs"
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "inactive_rls_off",
       "impact_label": "Inactive — RLS désactivée sur la table",
-      "impact_note": "RLS désactivée : policy ignorée par Postgres."
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Full Access Products"
     },
     {
       "table": "products",
@@ -821,11 +926,14 @@
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
-        "scripts\\product-ingestion-funnel.mjs"
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "inactive_rls_off",
       "impact_label": "Inactive — RLS désactivée sur la table",
-      "impact_note": "RLS désactivée : policy ignorée par Postgres."
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Full Access Products"
     },
     {
       "table": "products",
@@ -853,11 +961,14 @@
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
-        "scripts\\product-ingestion-funnel.mjs"
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "inactive_rls_off",
       "impact_label": "Inactive — RLS désactivée sur la table",
-      "impact_note": "RLS désactivée : policy ignorée par Postgres."
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Full Access Products"
     },
     {
       "table": "products",
@@ -885,11 +996,14 @@
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
-        "scripts\\product-ingestion-funnel.mjs"
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact": "inactive_rls_off",
       "impact_label": "Inactive — RLS désactivée sur la table",
-      "impact_note": "RLS désactivée : policy ignorée par Postgres."
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "repair_tickets",
@@ -904,7 +1018,9 @@
       ],
       "impact": "redundant_shadowed",
       "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
-      "impact_note": "Couvert par `Public can create tickets` ({public} inclut anon + authenticated)."
+      "impact_note": "Couvert par `Public can create tickets` ({public} inclut anon + authenticated).",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public Create Ticket"
     },
     {
       "table": "repair_tickets",
@@ -919,7 +1035,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "repair_tickets",
@@ -934,7 +1052,9 @@
       ],
       "impact": "redundant_duplicate",
       "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
-      "impact_note": "Doublon strict — garder `Public Create Ticket`."
+      "impact_note": "Doublon strict — garder `Public Create Ticket`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public Create Ticket"
     },
     {
       "table": "repair_tickets",
@@ -949,7 +1069,9 @@
       ],
       "impact": "redundant_duplicate",
       "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
-      "impact_note": "Doublon strict — garder `Staff full access tickets`."
+      "impact_note": "Doublon strict — garder `Staff full access tickets`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff full access tickets"
     },
     {
       "table": "repair_tickets",
@@ -964,7 +1086,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "repair_tickets",
@@ -979,7 +1103,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff full access tickets"
     },
     {
       "table": "staff",
@@ -999,7 +1125,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "staff",
@@ -1019,7 +1147,66 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "stock_movements",
+      "policy": "stock_movements_staff_all",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [
+        "20260823_010_erp_step2_data_foundation.sql"
+      ],
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "store_stock",
+      "policy": "store_stock_staff_all",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [
+        "20260823_010_erp_step2_data_foundation.sql"
+      ],
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "stores",
+      "policy": "stores_staff_all",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [
+        "20260823_010_erp_step2_data_foundation.sql"
+      ],
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "tac_cache",
@@ -1036,7 +1223,9 @@
       ],
       "impact": "bypass_service_role",
       "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
-      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "tac_cache",
@@ -1053,7 +1242,9 @@
       ],
       "impact": "bypass_service_role",
       "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
-      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "trade_in_models",
@@ -1070,7 +1261,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "trade_in_models",
@@ -1087,7 +1280,9 @@
       ],
       "impact": "redundant_shadowed",
       "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
-      "impact_note": "Couvert par `Public Read Trade Models` ({public} inclut anon + authenticated)."
+      "impact_note": "Couvert par `Public Read Trade Models` ({public} inclut anon + authenticated).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "trade_in_models",
@@ -1104,7 +1299,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Manage Argus"
     },
     {
       "table": "trade_in_models",
@@ -1121,7 +1318,9 @@
       ],
       "impact": "redundant_duplicate",
       "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
-      "impact_note": "Doublon strict — garder `Staff Manage Argus`."
+      "impact_note": "Doublon strict — garder `Staff Manage Argus`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Manage Argus"
     },
     {
       "table": "trade_in_requests",
@@ -1142,7 +1341,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "trade_in_requests",
@@ -1163,7 +1364,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "trade_in_requests",
@@ -1184,7 +1387,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "troc_certificates",
@@ -1201,7 +1406,9 @@
       ],
       "impact": "bypass_service_role",
       "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
-      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS)."
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "troc_payments",
@@ -1223,7 +1430,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "troc_payments",
@@ -1245,7 +1454,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "troc_sessions",
@@ -1264,7 +1475,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "troc_sessions",
@@ -1283,7 +1496,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     },
     {
       "table": "troc_sessions",
@@ -1302,7 +1517,9 @@
       ],
       "impact": "active",
       "impact_label": "Active — contrôle un flux client réel",
-      "impact_note": "Active — contrôle un flux client réel"
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
     }
   ],
   "table_index": [
@@ -1490,6 +1707,19 @@
       ]
     },
     {
+      "table": "order_items",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "order_items_staff_all",
+          "impact": "active"
+        }
+      ]
+    },
+    {
       "table": "orders",
       "policy_count": 11,
       "code_callers": [
@@ -1497,7 +1727,8 @@
         "components\\OrderTracking.tsx",
         "components\\SocialProof.tsx",
         "hooks\\admin\\useAdminData.ts",
-        "scripts\\apply-migration.mjs"
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact_by_policy": [
         {
@@ -1620,7 +1851,8 @@
         "scripts\\import-pc-catalog-july-2026.mjs",
         "scripts\\merge-mfoundi-duplicates.mjs",
         "scripts\\prerender.mjs",
-        "scripts\\product-ingestion-funnel.mjs"
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
       ],
       "impact_by_policy": [
         {
@@ -1700,6 +1932,45 @@
         },
         {
           "policy": "Staff Self Edit",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "stock_movements",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "stock_movements_staff_all",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "store_stock",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "store_stock_staff_all",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "stores",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "stores_staff_all",
           "impact": "active"
         }
       ]

@@ -7,6 +7,7 @@ import { resolve, dirname, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { resolveDatabaseUrl } from './lib/supabaseDbUrl.mjs';
+import { classifyPolicies } from './lib/policyImpact.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 dotenv.config({ path: resolve(root, '.env') });
@@ -109,25 +110,27 @@ const registry = policies.map((p) => {
   };
 });
 
-const duplicates = Object.entries(
-  registry.reduce((acc, row) => {
-    const key = `${row.table}|${row.cmd}|${row.roles}|${row.qual ?? ''}`;
-    acc[key] = acc[key] || [];
-    acc[key].push(row.policy);
-    return acc;
-  }, {}),
-).filter(([, names]) => names.length > 1);
+const classified = classifyPolicies(
+  registry,
+  noRls.map((r) => r.tablename),
+  tableRefs,
+);
 
 const out = {
   generated_at: new Date().toISOString(),
   policy_count: policies.length,
   tables_without_rls: noRls.map((r) => r.tablename),
-  duplicate_groups: duplicates.map(([key, names]) => ({ signature: key, policies: names })),
-  policies: registry,
+  duplicate_groups: classified.duplicate_groups,
+  impact_summary: classified.impact_summary,
+  impact_labels: classified.impact_labels,
+  policies: classified.policies,
   table_index: tables.map((t) => ({
     table: t,
     policy_count: policies.filter((p) => p.tablename === t).length,
     code_callers: tableRefs[t] ?? [],
+    impact_by_policy: classified.policies
+      .filter((p) => p.table === t)
+      .map((p) => ({ policy: p.policy, impact: p.impact })),
   })),
 };
 

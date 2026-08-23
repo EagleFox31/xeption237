@@ -1,6 +1,7 @@
 
 import { Order } from '../types';
 import { SHOP_PHONE_DISPLAY } from '../constants/contact';
+import { getPaymentMethodLabel } from './paymentMethods';
 
 export type InvoiceDocumentType = 'facture';
 
@@ -8,7 +9,7 @@ export const generateInvoiceHTML = (
   order: Order,
   _options?: { documentType?: InvoiceDocumentType }
 ): string => {
-  const { id, customerName, customerEmail, customerPhone, customerCity, items, total, date, deliveryMode, paymentMethod, status } = order;
+  const { id, customerName, customerEmail, customerPhone, customerCity, items, total, date, deliveryMode, paymentMethod, status, discountAmount } = order;
   const documentTitle = 'Facture';
   const statusNote =
     status === 'delivered'
@@ -136,8 +137,12 @@ export const generateInvoiceHTML = (
             </tr>
             <tr>
               <td style="padding: 5px 0; color: ${colors.textMuted}; font-size: 12px;" align="right">Paiement :</td>
-              <td style="padding: 5px 0 5px 15px; font-weight: bold; font-size: 12px;" align="right">${paymentMethod}</td>
+              <td style="padding: 5px 0 5px 15px; font-weight: bold; font-size: 12px;" align="right">${getPaymentMethodLabel(paymentMethod)}</td>
             </tr>
+            ${(discountAmount ?? 0) > 0 ? `<tr>
+              <td style="padding: 5px 0; color: ${colors.textMuted}; font-size: 12px;" align="right">Remise :</td>
+              <td style="padding: 5px 0 5px 15px; font-weight: bold; font-size: 12px; color: #B45309;" align="right">−${Number(discountAmount).toLocaleString('fr-FR')} FCFA</td>
+            </tr>` : ''}
             <tr>
               <td style="padding: 8px 0 5px; color: ${colors.textMuted}; font-size: 12px;" align="right">Sous-total :</td>
               <td style="padding: 8px 0 5px 15px; font-weight: bold; font-size: 12px;" align="right">${subtotal.toLocaleString('fr-FR')} FCFA</td>

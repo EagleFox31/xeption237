@@ -1,9 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
-import { Box, User, Phone, Mail, ShoppingCart, Grid, CheckCircle, Printer, ArrowRight, Search, SlidersHorizontal, Filter, X } from 'lucide-react';
-import { Product, CartItem, Order, Category, Brand } from '../../../types';
+import { Box, User, Phone, Mail, ShoppingCart, Grid, CheckCircle, Printer, ArrowRight, Search, SlidersHorizontal, Filter, X, Building2, AlertTriangle } from 'lucide-react';
+import { Product, CartItem, Order, Category, Brand, TradeInRequest } from '../../../types';
 import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
 import { optimizeImage } from '../../../utils/mediaOptimization';
+import { POS_PAYMENT_OPTIONS, type PosPaymentMethod } from '../../../utils/paymentMethods';
+import PosTrocPanel from '../pos/PosTrocPanel';
 import {
   getBrandDisplayName,
   resolveProductBrandId,
@@ -24,6 +26,16 @@ interface PosTabProps {
   onPosSubmit: () => void;
   lastOrder: Order | null;
   onDismissSuccess: () => void;
+  storeName: string | null;
+  hasStore: boolean;
+  paymentMethod: PosPaymentMethod;
+  setPaymentMethod: (method: PosPaymentMethod) => void;
+  discountAmount: number;
+  setDiscountAmount: (amount: number) => void;
+  subtotal: number;
+  totalAmount: number;
+  trocRequests: TradeInRequest[];
+  onTrocSuccess: (orderId: string) => void;
 }
 
 const PosTab: React.FC<PosTabProps> = ({
@@ -40,12 +52,22 @@ const PosTab: React.FC<PosTabProps> = ({
     onPosSubmit,
     lastOrder,
     onDismissSuccess,
+    storeName,
+    hasStore,
+    paymentMethod,
+    setPaymentMethod,
+    discountAmount,
+    setDiscountAmount,
+    subtotal,
+    totalAmount,
+    trocRequests,
+    onTrocSuccess,
 }) => {
   const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'price-asc' | 'price-desc'>('name');
+  const isTrocMode = paymentMethod === 'TROC';
 
-  const totalAmount = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalItems = posCart.reduce((sum, item) => sum + item.quantity, 0);
 
   // --- FILTRAGE ET TRI ---
@@ -109,6 +131,19 @@ const PosTab: React.FC<PosTabProps> = ({
 
   return (
     <div className="animate-in fade-in h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] flex flex-col lg:grid lg:grid-cols-3 gap-6 relative">
+        {!hasStore && (
+          <div className="lg:col-span-3 bg-amber-500/10 border border-amber-500/30 rounded-sm p-3 flex items-start gap-2 text-amber-200 text-sm shrink-0">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>Aucune boutique rattachée à ton compte — la vente sera refusée tant que la direction ne t&apos;a pas assigné.</span>
+          </div>
+        )}
+
+        {storeName && (
+          <div className="lg:col-span-3 flex items-center gap-2 text-xs text-white/75 shrink-0">
+            <Building2 className="h-3.5 w-3.5 text-xeption-gold" />
+            <span>Caisse : <strong className="text-white">{storeName}</strong></span>
+          </div>
+        )}
         
         {/* MOBILE TOGGLE SWITCHER */}
         <div className="lg:hidden flex bg-black/40 p-1 rounded-sm mb-2 border border-white/10 shrink-0">
@@ -298,6 +333,57 @@ const PosTab: React.FC<PosTabProps> = ({
 
                 <div className="h-px bg-white/10 my-2"></div>
 
+                <div className="text-[10px] uppercase font-bold tracking-wider text-white mb-1">Paiement</div>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {POS_PAYMENT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(opt.id)}
+                      className={`text-[10px] font-bold uppercase px-2 py-1.5 rounded border transition-colors ${
+                        paymentMethod === opt.id
+                          ? 'bg-xeption-gold text-black border-xeption-gold'
+                          : 'border-white/20 text-white/75 hover:border-white/40'
+                      }`}
+                    >
+                      {opt.shortLabel}
+                    </button>
+                  ))}
+                </div>
+
+                {isTrocMode ? (
+                  <PosTrocPanel
+                    requests={trocRequests}
+                    onSuccess={onTrocSuccess}
+                    onCancel={() => setPaymentMethod('CASH')}
+                  />
+                ) : (
+                  <>
+                <div className="flex gap-2 items-center mb-2">
+                  <label className="text-[10px] uppercase font-bold text-white/70 shrink-0">Remise</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={subtotal}
+                    value={discountAmount || ''}
+                    onChange={(e) => setDiscountAmount(Math.max(0, Number(e.target.value) || 0))}
+                    placeholder="0"
+                    className="flex-1 bg-black/50 border border-white/25 px-3 py-2 text-xs text-white rounded-sm focus:border-xeption-gold outline-none font-mono"
+                  />
+                  <span className="text-[10px] text-white/50">FCFA</span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs text-white/65 mb-1">
+                  <span>Sous-total</span>
+                  <span className="font-mono">{subtotal.toLocaleString('fr-FR')} F</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between items-center text-xs text-amber-300 mb-1">
+                    <span>Remise</span>
+                    <span className="font-mono">−{Math.min(discountAmount, subtotal).toLocaleString('fr-FR')} F</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-end">
                     <span className="text-white text-xs font-bold uppercase tracking-wide">Total à payer</span>
                     <span className="text-2xl font-bold font-mono text-white tracking-tighter">
@@ -305,9 +391,11 @@ const PosTab: React.FC<PosTabProps> = ({
                     </span>
                 </div>
                 
-                <button onClick={onPosSubmit} className="w-full bg-green-600 hover:bg-green-500 text-white font-bold uppercase py-3 rounded-sm shadow-lg hover:shadow-green-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                <button onClick={onPosSubmit} disabled={!hasStore} className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white font-bold uppercase py-3 rounded-sm shadow-lg hover:shadow-green-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4" /> Valider
                 </button>
+                  </>
+                )}
             </div>
         </div>
     </div>

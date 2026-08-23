@@ -18,6 +18,7 @@ Index de la documentation projet. (Les instructions agent et le README applicati
 - [PLAN_TROC_QUICK_FORM](./smart-troc/plans/PLAN_TROC_QUICK_FORM.md) — formulaire rapide
 - [PLAN_TROC_WIZARD](./smart-troc/plans/PLAN_TROC_WIZARD.md) — wizard
 - [PLAN_CRON_PRICE_SNAPSHOTS](./smart-troc/plans/PLAN_CRON_PRICE_SNAPSHOTS.md) — cron hebdo d'historique de prix (possède ta data marché)
+- [PLAN_INTEGRATION_CAMCIS_IMEI](./smart-troc/plans/PLAN_INTEGRATION_CAMCIS_IMEI.md) — vérification IMEI & conformité Douanes Camerounaises
 - [STRATEGIE_PRIX_REPRISE_CEO](./smart-troc/plans/STRATEGIE_PRIX_REPRISE_CEO.md) — règles de prix reprise (âge/état/remise) en vue CEO (marge + acquisition + rétention)
 
 **Roadmap** — [`smart-troc/roadmap/`](./smart-troc/roadmap/)
@@ -36,6 +37,10 @@ Index de la documentation projet. (Les instructions agent et le README applicati
 
 - [CHANTIERS](./gestion-projet/CHANTIERS.md) — **tableau de bord** : tous les chantiers, statuts, priorités
 - [HISTORIQUE_ERP_STAFF](./gestion-projet/HISTORIQUE_ERP_STAFF.md) — journal refactor ERP / équipe (juin 2026)
+
+## 🚀 Next Step & Cadrage Commercial — [`next-step/`](./next-step/)
+
+- [CADRAGE_SUIVI_VENTES_XEPTION](./next-step/CADRAGE_SUIVI_VENTES_XEPTION.md) — cadrage fonctionnel & devis module Suivi des Ventes (120 000 FCFA)
 
 ## 🛠️ Engineering — [`engineering/`](./engineering/)
 

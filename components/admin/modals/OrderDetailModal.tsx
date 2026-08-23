@@ -2,7 +2,9 @@
 import React from 'react';
 import { Order } from '../../../types';
 import { X, User, MapPin, CreditCard, Calendar, Package, Truck, Phone, Mail } from 'lucide-react';
-import { optimizeImage } from '../../../utils/mediaOptimization';
+import { useDueFeedbackInvites } from '../../../hooks/useDueFeedbackInvites';
+import OrderFeedbackInviteButton from '../OrderFeedbackInviteButton';
+import { getOrderStatusLabel } from '../../../utils/orderWorkflow';
 
 interface OrderDetailModalProps {
   order: Order;
@@ -10,6 +12,9 @@ interface OrderDetailModalProps {
 }
 
 const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) => {
+  const { invites, markSent } = useDueFeedbackInvites();
+  const orderInvites = invites.filter((invite) => invite.order_id === order.id);
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-[#09090b] border border-white/10 w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-lg shadow-2xl relative">
@@ -25,9 +30,11 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
                 <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${
                     order.status === 'delivered' ? 'border-green-500/30 text-green-500 bg-green-500/10' : 
                     order.status === 'cancelled' ? 'border-red-500/30 text-red-500 bg-red-500/10' :
+                    order.status === 'refused' ? 'border-orange-500/30 text-orange-400 bg-orange-500/10' :
+                    order.status === 'returned' ? 'border-slate-500/30 text-slate-300 bg-slate-500/10' :
                     'border-xeption-gold/30 text-xeption-gold bg-xeption-gold/10'
                 }`}>
-                    {order.status}
+                    {getOrderStatusLabel(order.status)}
                 </span>
             </div>
           </div>
@@ -37,6 +44,17 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
         </div>
 
         <div className="p-6 space-y-8">
+            {order.status === 'delivered' && orderInvites.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {orderInvites.map((invite) => (
+                  <OrderFeedbackInviteButton
+                    key={invite.token}
+                    invite={invite}
+                    onSent={markSent}
+                  />
+                ))}
+              </div>
+            ) : null}
             
             {/* Infos Client & Livraison */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

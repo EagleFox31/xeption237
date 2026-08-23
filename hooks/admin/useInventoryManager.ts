@@ -7,6 +7,7 @@ import {
     findBestDuplicateMatch,
     validateProductForSave,
 } from '../../utils/productDuplicate';
+import { assertRpcSuccess } from '../../utils/rpcResult';
 
 interface UseInventoryManagerProps {
     products: Product[];
@@ -61,17 +62,21 @@ export const useInventoryManager = ({
         });
     };
 
+    const syncCatalogStock = async (productId: string, quantity: number) => {
+        const { data, error } = await supabase.rpc('set_product_catalog_stock', {
+            p_product_id: productId,
+            p_quantity: Math.max(0, quantity),
+        });
+        if (error) throw error;
+        assertRpcSuccess(data, 'Impossible de mettre à jour le stock boutique.');
+    };
+
     const addStockToExisting = async (existingId: string, quantityToAdd: number) => {
         const existing = products.find((p) => p.id === existingId);
         if (!existing) throw new Error('Produit introuvable');
 
         const newStock = Math.max(0, (existing.stock || 0) + quantityToAdd);
-        const { error } = await supabase
-            .from(DB_TABLES.PRODUCTS)
-            .update({ [DB_SCHEMA.PRODUCTS.STOCK]: newStock })
-            .eq(DB_SCHEMA.PRODUCTS.ID, existingId);
-
-        if (error) throw error;
+        await syncCatalogStock(existingId, newStock);
 
         onUpdateProducts(
             products.map((p) => (p.id === existingId ? { ...p, stock: newStock } : p))
@@ -165,7 +170,6 @@ export const useInventoryManager = ({
             [DB_SCHEMA.PRODUCTS.PRICE]: productData.price,
             [DB_SCHEMA.PRODUCTS.CATEGORY]: productData.category,
             [DB_SCHEMA.PRODUCTS.IMAGE]: productData.image,
-            [DB_SCHEMA.PRODUCTS.STOCK]: productData.stock,
             [DB_SCHEMA.PRODUCTS.CONDITION]: productData.condition || 'refurbished',
             [DB_SCHEMA.PRODUCTS.RATING]: productData.rating || 5,
             [DB_SCHEMA.PRODUCTS.OLD_PRICE]: productData.oldPrice || null,
@@ -192,6 +196,8 @@ export const useInventoryManager = ({
             }
             throw error;
         }
+
+        await syncCatalogStock(productData.id, productData.stock ?? 0);
 
         const newProductList = isNew
             ? [...products, productData]

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Product, AdminNotification, Order, Staff } from '../../types';
 import { supabase } from '../../services/supabaseClient'; // Import supabase
@@ -28,6 +28,7 @@ import PacksTab from './tabs/PacksTab';
 import DeliveryTab from './tabs/DeliveryTab'; // NEW
 import SavTab from './tabs/SavTab';
 import ClientsTab from './tabs/ClientsTab';
+import StoresTab from './tabs/StoresTab';
 import StaffTab from './tabs/StaffTab';
 import TrocWorkspaceTab from './tabs/TrocWorkspaceTab';
 import {
@@ -50,15 +51,20 @@ import { useInventoryManager } from '../../hooks/admin/useInventoryManager';
 import { usePacksManager } from '../../hooks/admin/usePacksManager'; 
 import { useConfirmModal } from '../../hooks/admin/useConfirmModal';
 import { useOrdersManager } from '../../hooks/admin/useOrdersManager';
+import { useStoresManager } from '../../hooks/admin/useStoresManager';
+import { useStoreStockManager } from '../../hooks/admin/useStoreStockManager';
 import { useStaffManager } from '../../hooks/admin/useStaffManager';
 import { useCategoriesManager } from '../../hooks/admin/useCategoriesManager';
 import { useBrandsManager } from '../../hooks/admin/useBrandsManager'; 
 import { useTrocManager } from '../../hooks/admin/useTrocManager';
 import { useCurrentStaffSession } from '../../hooks/admin/useCurrentStaffSession';
+import { useMySales } from '../../hooks/admin/useMySales';
+import { useOrderPayment } from '../../hooks/admin/useOrderPayment';
 
 // Editor Modals
 import ProductEditorOverlay from './modals/ProductEditorOverlay';
 import PackEditorOverlay from './modals/PackEditorOverlay'; 
+import StoreEditorModal from './modals/StoreEditorModal';
 import StaffEditorModal from './modals/StaffEditorModal';
 import { LogOut, Plus, UserPlus } from 'lucide-react';
 
@@ -77,7 +83,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const data = useAdminData(notifs.addNotification);
 
   // 3. Domain Logic Managers
-  const pos = usePosSystem({ products, onUpdateProducts, refreshData: data.refreshAll });
+  const currentStaffSession = useCurrentStaffSession(data.staffMembers);
+  const mySales = useMySales(currentStaffSession.staff?.id);
+  const pos = usePosSystem({
+    products,
+    refreshData: data.refreshAll,
+    staff: currentStaffSession.staff,
+  });
   const inventory = useInventoryManager({
     products,
     onUpdateProducts,
@@ -87,7 +99,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       confirm.ask(title, message, { confirmLabel }),
   });
   const packsMgr = usePacksManager(products); 
-  const ordersMgr = useOrdersManager({ products, onUpdateProducts, orders: data.orders, setOrders: data.setOrders });
+  const ordersMgr = useOrdersManager({
+    orders: data.orders,
+    setOrders: data.setOrders,
+    refreshData: data.refreshAll,
+  });
+  const [collectingOrder, setCollectingOrder] = useState<Order | null>(null);
+  const orderPayment = useOrderPayment(data.refreshAll);
   const staffMgr = useStaffManager({
     staffMembers: data.staffMembers,
     setStaffMembers: data.setStaffMembers,
@@ -106,8 +124,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   const catsMgr = useCategoriesManager({ categories: data.categories, setCategories: data.setCategories });
   const brandMgr = useBrandsManager({ brands: data.brands, setBrands: data.setBrands, ranges: data.ranges, setRanges: data.setRanges }); 
   const trocMgr = useTrocManager();
-  const currentStaffSession = useCurrentStaffSession(data.staffMembers);
+  const storesMgr = useStoresManager();
+  const storeStockMgr = useStoreStockManager();
   const staffRole = currentStaffSession.staff?.role ?? currentStaffSession.roleId;
+
+  const staffStoreName = useMemo(() => {
+    const storeId = currentStaffSession.staff?.store_id;
+    if (!storeId) return null;
+    return storesMgr.stores.find((s) => s.id === storeId)?.name ?? null;
+  }, [currentStaffSession.staff?.store_id, storesMgr.stores]);
 
   const pendingOrderCount = useMemo(
     () => data.orders.filter((order) => order.status === 'pending').length,
@@ -135,6 +160,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     const landingTab = resolveAdminLandingTab(pendingOrderCount, staffRole);
     goToTab(landingTab, { replace: true });
   }, [location.pathname, pendingOrderCount, staffRole]);
+
+  useEffect(() => {
+    if (canAccessAdminTab(staffRole, 'stores') || canAccessAdminTab(staffRole, 'staff')) {
+      void storesMgr.fetchStores();
+    }
+  }, [staffRole, storesMgr.fetchStores]);
 
   useEffect(() => {
     const tab = parseAdminTabFromPath(location.pathname);
@@ -170,18 +201,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   // POS
   const onPosSubmit = () => {
       try {
+          if (pos.paymentMethod === 'TROC') throw new Error('Utilise le panneau Smart Troc.');
           if (pos.cart.length === 0) throw new Error("Panier vide");
-          confirm.success("Valider Vente", `Total: ${pos.cart.reduce((a,b)=>a+(b.price*b.quantity),0).toLocaleString()} FCFA`, async () => {
+          confirm.success("Valider Vente", `Total: ${pos.total.toLocaleString()} FCFA`, async () => {
               try { await pos.submitSale(); } catch(e:any) { alert(e.message); }
           });
       } catch(e:any) { alert(e.message); }
   };
 
+  const refreshMySales = useCallback(() => {
+    void mySales.fetchSales();
+  }, [mySales.fetchSales]);
+
   // Orders
   const onCancelOrder = (order: Order) =>
     confirm.danger(
       'Annuler la commande',
-      `Confirmer l’annulation de #${order.id} ? Le stock des articles sera remis si la commande contient des produits.`,
+      `Confirmer l’annulation de #${order.id} ? Les réservations stock seront libérées si la commande est encore en attente.`,
       () => ordersMgr.cancelOrder(order),
     );
 
@@ -216,6 +252,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         className={adminUi.btnOnGold}
       >
         <Plus className="w-4 h-4" /> Nouveau produit
+      </button>
+    ) : showTabChrome && activeTab === 'stores' ? (
+      <button type="button" onClick={() => storesMgr.openEditor()} className={adminUi.btnOnGold}>
+        <Plus className="w-4 h-4" /> Nouvelle boutique
       </button>
     ) : showTabChrome && activeTab === 'staff' ? (
       <button type="button" onClick={() => staffMgr.openEditor()} className={adminUi.btnOnGold}>
@@ -310,9 +350,87 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                 />
             ) : canAccessAdminTab(staffRole, activeTab) ? (
                 <>
-                    {activeTab === 'dashboard' && <DashboardTab orders={data.orders} staffMembers={data.staffMembers} customers={data.customers} products={products} />}
-                    {activeTab === 'pos' && <PosTab products={products} categories={data.categories} brands={data.brands} posCart={pos.cart} posSearch={pos.search} setPosSearch={pos.setSearch} posCustomer={pos.customer} setPosCustomer={pos.setCustomer} addToPosCart={pos.addToCart} removeFromPosCart={pos.removeFromCart} onPosSubmit={onPosSubmit} lastOrder={pos.lastOrder} onDismissSuccess={() => pos.setLastOrder(null)} />}
-                    {activeTab === 'orders' && <OrdersTab orders={data.orders} onUpdateStatus={ordersMgr.updateStatus} onCancelOrder={onCancelOrder} />}
+                    {activeTab === 'dashboard' && (
+                      <DashboardTab
+                        staffMembers={data.staffMembers}
+                        products={products}
+                        stores={storesMgr.stores}
+                        currentStaff={currentStaffSession.staff}
+                      />
+                    )}
+                    {activeTab === 'pos' && (
+                      <PosTab
+                        products={products}
+                        categories={data.categories}
+                        brands={data.brands}
+                        posCart={pos.cart}
+                        posSearch={pos.search}
+                        setPosSearch={pos.setSearch}
+                        posCustomer={pos.customer}
+                        setPosCustomer={pos.setCustomer}
+                        addToPosCart={pos.addToCart}
+                        removeFromPosCart={pos.removeFromCart}
+                        onPosSubmit={onPosSubmit}
+                        lastOrder={pos.lastOrder}
+                        onDismissSuccess={() => pos.setLastOrder(null)}
+                        storeName={staffStoreName}
+                        hasStore={!!currentStaffSession.staff?.store_id}
+                        paymentMethod={pos.paymentMethod}
+                        setPaymentMethod={pos.setPaymentMethod}
+                        discountAmount={pos.discountAmount}
+                        setDiscountAmount={pos.setDiscountAmount}
+                        subtotal={pos.subtotal}
+                        totalAmount={pos.total}
+                        trocRequests={trocMgr.requests}
+                        onTrocSuccess={pos.registerTrocSuccess}
+                      />
+                    )}
+                    {activeTab === 'mySales' && (
+                      <MySalesTab
+                        staffName={currentStaffSession.staff?.name ?? 'Vendeur'}
+                        storeName={staffStoreName}
+                        summary={mySales.summary}
+                        sales={mySales.sales}
+                        selectedDate={mySales.selectedDate}
+                        onDateChange={mySales.setSelectedDate}
+                        loading={mySales.loading}
+                        onRefresh={refreshMySales}
+                      />
+                    )}
+                    {activeTab === 'orders' && (
+                      <OrdersTab
+                        orders={data.orders}
+                        onUpdateStatus={ordersMgr.updateStatus}
+                        onCancelOrder={onCancelOrder}
+                        onCollectPayment={(order) => {
+                          orderPayment.resetPaymentUi();
+                          setCollectingOrder(order);
+                        }}
+                        paymentUiState={orderPayment.uiState}
+                        paymentError={orderPayment.error}
+                        collectingOrder={collectingOrder}
+                        onCloseCollectPayment={() => {
+                          orderPayment.resetPaymentUi();
+                          setCollectingOrder(null);
+                        }}
+                        onInitiateCampay={async (phone) => {
+                          if (!collectingOrder) return;
+                          try {
+                            await orderPayment.initiateCampayPayment(collectingOrder, phone);
+                          } catch (e: unknown) {
+                            alert(e instanceof Error ? e.message : 'Erreur paiement');
+                          }
+                        }}
+                        onMarkCashPaid={async () => {
+                          if (!collectingOrder) return;
+                          try {
+                            await orderPayment.markCashPaid(collectingOrder.id);
+                          } catch (e: unknown) {
+                            alert(e instanceof Error ? e.message : 'Erreur paiement');
+                          }
+                        }}
+                      />
+                    )}
                     {activeTab === 'inventory' && (
                       <InventoryTab
                         products={products}
@@ -326,6 +444,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     )}
                     {activeTab === 'packs' && <PacksTab packs={packsMgr.packs} products={products} onEditPack={packsMgr.setEditingPack} onDeletePack={onDeletePack} getHydratedItems={packsMgr.getHydratedItems} />}
                     {activeTab === 'delivery' && <DeliveryTab />}
+                    {activeTab === 'stores' && (
+                      <StoresTab
+                        stores={storesMgr.stores}
+                        staffMembers={data.staffMembers}
+                        products={products}
+                        loading={storesMgr.loading}
+                        mismatches={storeStockMgr.mismatches}
+                        mismatchesLoading={storeStockMgr.loading}
+                        onEditStore={storesMgr.openEditor}
+                        onRefresh={storesMgr.fetchStores}
+                        onRefreshMismatches={storeStockMgr.fetchMismatches}
+                        onRefreshReservations={storeStockMgr.fetchReservationsOverview}
+                        reservations={storeStockMgr.reservations}
+                        pendingWithReservations={storeStockMgr.pendingWithReservations}
+                        shipmentAlerts={storeStockMgr.shipmentAlerts}
+                        reservationsLoading={storeStockMgr.reservationsLoading}
+                        loadAllocations={storeStockMgr.fetchAllocations}
+                        onSaveAllocations={storeStockMgr.saveAllocations}
+                      />
+                    )}
                     {activeTab === 'productImages' && (
                       <ProductImagesBulkTab
                         products={products}
@@ -350,6 +488,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     {activeTab === 'staff' && (
                       <StaffTab
                         staffMembers={data.staffMembers}
+                        stores={storesMgr.stores}
                         authByEmail={staffMgr.authByEmail}
                         provisioningId={staffMgr.provisioningId}
                         isBulkProvisioning={staffMgr.isBulkProvisioning}
@@ -391,10 +530,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
         {staffMgr.editingStaff && (
             <StaffEditorModal
               staff={staffMgr.editingStaff as Staff}
+              stores={storesMgr.stores}
               onClose={staffMgr.closeEditor}
               onSave={staffMgr.saveStaff}
               onChange={(u) => staffMgr.setEditingStaff((p) => (p ? { ...p, ...u } : null))}
               isSaving={staffMgr.isSaving}
+            />
+        )}
+        {storesMgr.editingStore && (
+            <StoreEditorModal
+              store={storesMgr.editingStore}
+              onClose={storesMgr.closeEditor}
+              onSave={async (e) => {
+                try {
+                  await storesMgr.saveStore(e);
+                } catch (err: unknown) {
+                  alert(err instanceof Error ? err.message : 'Enregistrement impossible');
+                }
+              }}
+              onChange={(u) => storesMgr.setEditingStore((p) => (p ? { ...p, ...u } : null))}
+              isSaving={storesMgr.isSaving}
             />
         )}
     </div>

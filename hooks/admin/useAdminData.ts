@@ -24,7 +24,11 @@ export const useAdminData = (addNotification?: (n: AdminNotification) => void) =
                 items: Array.isArray(o[DB_SCHEMA.ORDERS.ITEMS]) ? o[DB_SCHEMA.ORDERS.ITEMS] : [],
                 total: o[DB_SCHEMA.ORDERS.TOTAL],
                 status: o[DB_SCHEMA.ORDERS.STATUS],
-                paymentMethod: o[DB_SCHEMA.ORDERS.PAYMENT_METHOD], 
+                paymentMethod: o[DB_SCHEMA.ORDERS.PAYMENT_METHOD],
+                paymentStatus: o[DB_SCHEMA.ORDERS.PAYMENT_STATUS] ?? 'pending',
+                discountAmount: Number(o[DB_SCHEMA.ORDERS.DISCOUNT_AMOUNT] ?? 0),
+                staffId: o[DB_SCHEMA.ORDERS.STAFF_ID] ?? undefined,
+                storeId: o[DB_SCHEMA.ORDERS.STORE_ID] ?? undefined,
                 customerName: o[DB_SCHEMA.ORDERS.CUSTOMER_NAME],
                 customerEmail: o[DB_SCHEMA.ORDERS.CUSTOMER_EMAIL],
                 customerPhone: o[DB_SCHEMA.ORDERS.CUSTOMER_PHONE],
@@ -40,7 +44,7 @@ export const useAdminData = (addNotification?: (n: AdminNotification) => void) =
     const fetchStaff = useCallback(async () => {
         const { data } = await supabase
             .from(DB_TABLES.STAFF)
-            .select('id,name,email,role,phone,avatar,created_at')
+            .select('id,name,email,role,phone,avatar,store_id,created_at')
             .order(DB_SCHEMA.STAFF.CREATED_AT, { ascending: false });
         if (data) {
             setStaffMembers(

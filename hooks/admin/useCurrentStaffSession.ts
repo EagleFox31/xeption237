@@ -46,7 +46,7 @@ export function useCurrentStaffSession(staffMembers: Staff[]) {
     let cancelled = false;
     void supabase
       .from('staff')
-      .select('id,name,email,role')
+      .select('id,name,email,role,store_id')
       .eq('email', sessionEmail)
       .maybeSingle()
       .then(({ data }) => {

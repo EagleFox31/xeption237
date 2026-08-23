@@ -14,8 +14,8 @@ interface ChameleoMascotProps {
   trackPointer?: boolean;
   /** Activer le mode danse rythmé gauche-droite. */
   isDancing?: boolean;
-  /** Pose du personnage : waving (salut), pointing (pointe du doigt), shopping (sac boutique), inspector (loupe diagnostic) ou delivery (livreur colis). */
-  pose?: 'waving' | 'pointing' | 'shopping' | 'inspector' | 'delivery';
+  /** Pose du personnage : waving, pointing, shopping, inspector, delivery ou engineer (tournevis & puce SAV). */
+  pose?: 'waving' | 'pointing' | 'shopping' | 'inspector' | 'delivery' | 'engineer';
   onClick?: () => void;
 }
 
@@ -28,8 +28,8 @@ interface Sparkle {
 }
 
 /**
- * Composant Mascotte Officielle Xepti (La lettre 'X' 237) pour Xeption Smart Troc, Shop & Tracking.
- * - Poses multiples 3D : Salutation (waving), Pointage (pointing), Shopping (shopping), Inspecteur (inspector), Livreur (delivery)
+ * Composant Mascotte Officielle Xepti (La lettre 'X' 237) pour Xeption Smart Troc, Shop, Tracking & SAV.
+ * - Poses multiples 3D : Salutation, Pointage, Shopping, Inspecteur, Livreur, Ingénieur SAV
  * - Double Sprite 3D : Bouche fermée & Bouche ouverte en haute définition (Lip-sync)
  * - Suivi du regard et 3D Tilt vers la souris en temps réel
  * - Danse et flottement avec rebond physique
@@ -53,15 +53,17 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
 
   // Messages par défaut par état
   const defaultMessages: Record<ChameleoState, string> = {
-    idle: pose === 'delivery'
-      ? 'Ton colis est préparé et tracé en direct ! 📦🚀'
-      : pose === 'shopping' 
-        ? 'Trouve les meilleures pépites tech du 237 ! 🛍️✨' 
-        : pose === 'pointing' 
-          ? 'Sélectionne ton appareil juste en bas ! 👇' 
-          : pose === 'inspector'
-            ? 'Analyse IA & diagnostic en direct... 🧐🔍'
-            : 'Salut ! Je suis Xepti. Ton ancien phone vaut de l’or !',
+    idle: pose === 'engineer'
+      ? 'Nos techniciens certifiés réparent ton matos au top ! 🛠️⚡'
+      : pose === 'delivery'
+        ? 'Ton colis est préparé et tracé en direct ! 📦🚀'
+        : pose === 'shopping' 
+          ? 'Trouve les meilleures pépites tech du 237 ! 🛍️✨' 
+          : pose === 'pointing' 
+            ? 'Sélectionne ton appareil juste en bas ! 👇' 
+            : pose === 'inspector'
+              ? 'Analyse IA & diagnostic en direct... 🧐🔍'
+              : 'Salut ! Je suis Xepti. Ton ancien phone vaut de l’or !',
     thinking: 'Je regarde ce que tu m’as donné... 🧐',
     scanning: 'Scan IA & vérification en cours... ✨',
     happy: 'Waoooh ! Offre calculée au top ! 🎉⚡',
@@ -158,7 +160,9 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
 
   // Image courante selon la pose et l'état de parole
   let currentImage = '/mascot/xepti_transparent.png';
-  if (pose === 'delivery') {
+  if (pose === 'engineer') {
+    currentImage = '/mascot/xepti_engineer_transparent.png';
+  } else if (pose === 'delivery') {
     currentImage = '/mascot/xepti_delivery_transparent.png';
   } else if (pose === 'inspector') {
     currentImage = '/mascot/xepti_inspector_transparent.png';
@@ -172,17 +176,19 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
 
   // Animation selon la pose
   const danceSpeed = state === 'happy' ? '1.4s' : '2.4s';
-  const animationStyle = pose === 'delivery'
-    ? 'deliveryFly 2.2s ease-in-out infinite'
-    : pose === 'inspector'
-      ? 'inspectorScan 2.6s ease-in-out infinite'
-      : pose === 'shopping'
-        ? 'shoppingFloat 3.2s ease-in-out infinite'
-        : pose === 'pointing'
-          ? 'pointDown 3s ease-in-out infinite'
-          : isDancing && !isJumping
-            ? `dance ${danceSpeed} ease-in-out infinite`
-            : undefined;
+  const animationStyle = pose === 'engineer'
+    ? 'engineerWrench 2.4s ease-in-out infinite'
+    : pose === 'delivery'
+      ? 'deliveryFly 2.2s ease-in-out infinite'
+      : pose === 'inspector'
+        ? 'inspectorScan 2.6s ease-in-out infinite'
+        : pose === 'shopping'
+          ? 'shoppingFloat 3.2s ease-in-out infinite'
+          : pose === 'pointing'
+            ? 'pointDown 3s ease-in-out infinite'
+            : isDancing && !isJumping
+              ? `dance ${danceSpeed} ease-in-out infinite`
+              : undefined;
 
   return (
     <div 
@@ -262,6 +268,17 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
           }
           100% {
             transform: translateX(0px) translateY(0px) rotate(0deg) scale(1);
+          }
+        }
+        @keyframes engineerWrench {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg) scale(1);
+          }
+          30% {
+            transform: translateY(-5px) rotate(-4deg) scale(1.02);
+          }
+          60% {
+            transform: translateY(-2px) rotate(3deg) scale(1.01);
           }
         }
         @keyframes deliveryFly {

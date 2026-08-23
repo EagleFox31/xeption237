@@ -121,17 +121,17 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.xeptionetwork.shop/product/redmi-15c-26cbf2d3-c0e8-42b3-979b-30f313f60a8d</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://www.xeptionetwork.shop/product/redmi-a3-pro-75a559ad-2a4b-4127-b19c-6b3846960248</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.xeptionetwork.shop/product/redmi-a5-43f615fb-4e78-4a55-a6b1-9c02f84c7e59</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.xeptionetwork.shop/product/redmi-15c-26cbf2d3-c0e8-42b3-979b-30f313f60a8d</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

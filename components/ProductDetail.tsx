@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
-import { ArrowLeft, ShoppingCart, Check, X, Cpu, Play, Share2, Link as LinkIcon, CheckCircle2, ShieldCheck, Star, MapPin, ChevronDown, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Check, X, Cpu, Play, Share2, Link as LinkIcon, CheckCircle2, ShieldCheck, Star, MapPin, ChevronDown, HelpCircle, MessageCircle } from 'lucide-react';
 import { buildProductFaq } from '../utils/productFaq';
 import { optimizeImage } from '../utils/mediaOptimization';
 import { getProductSlug } from '../utils/slug';
@@ -189,14 +189,25 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                 </div>
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={() => onAddToCart(product)}
-                                className="hidden md:flex shrink-0 bg-black text-white px-8 py-4 font-tech font-bold uppercase text-base tracking-wider hover:bg-xeption-gold hover:text-black transition-colors shadow-xl items-center gap-2 self-start md:self-auto"
-                            >
-                                <ShoppingCart className="h-5 w-5" />
-                                Ajouter au panier
-                            </button>
+                            <div className="hidden md:flex flex-col sm:flex-row gap-3 self-start md:self-auto">
+                                <a
+                                    href={`https://wa.me/237641891031?text=${encodeURIComponent(`Bonjour, je suis intéressé par le produit ${displayName} à ${product.price.toLocaleString('fr-FR')} FCFA. Est-il disponible ?`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="shrink-0 bg-[#25D366] text-white px-6 py-4 font-tech font-bold uppercase text-sm tracking-wider hover:bg-[#128C7E] transition-colors shadow-xl flex items-center justify-center gap-2"
+                                >
+                                    <MessageCircle className="h-5 w-5" />
+                                    WhatsApp
+                                </a>
+                                <button
+                                    type="button"
+                                    onClick={() => onAddToCart(product)}
+                                    className="shrink-0 bg-black text-white px-6 py-4 font-tech font-bold uppercase text-sm tracking-wider hover:bg-xeption-gold hover:text-black transition-colors shadow-xl flex items-center justify-center gap-2"
+                                >
+                                    <ShoppingCart className="h-5 w-5" />
+                                    Panier
+                                </button>
+                            </div>
                         </div>
 
                         {warrantyMonths > 0 && (
@@ -568,12 +579,22 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                         )}
                         <span className="text-xl font-bold text-black">{product.price.toLocaleString('fr-FR')} <span className="text-xs text-xeption-goldDim">FCFA</span></span>
                     </div>
-                    <button
-                        onClick={() => onAddToCart(product)}
-                        className="flex-1 bg-black text-white py-3 font-bold font-tech uppercase tracking-wider rounded-sm shadow-lg active:scale-95 transition-transform"
-                    >
-                        Ajouter
-                    </button>
+                    <div className="flex-1 flex gap-2">
+                        <a
+                            href={`https://wa.me/237641891031?text=${encodeURIComponent(`Bonjour, je suis intéressé par le produit ${displayName} à ${product.price.toLocaleString('fr-FR')} FCFA. Est-il disponible ?`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-[#25D366] text-white px-4 py-3 flex items-center justify-center rounded-sm shadow-lg active:scale-95 transition-transform"
+                        >
+                            <MessageCircle className="h-5 w-5" />
+                        </a>
+                        <button
+                            onClick={() => onAddToCart(product)}
+                            className="flex-1 bg-black text-white py-3 font-bold font-tech uppercase tracking-wider rounded-sm shadow-lg active:scale-95 transition-transform"
+                        >
+                            Ajouter
+                        </button>
+                    </div>
                 </div>
             </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ShoppingCart, Menu, X, Search, Lock, ArrowRight, Tag, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Menu, X, Search, Lock, ArrowRight, Tag, ChevronDown, Zap, Smartphone, Laptop, Tablet, Headphones, RotateCcw } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 import { Product, Category } from '../types';
@@ -18,12 +18,94 @@ interface HeaderProps {
   onProductSelect?: (product: Product) => void;
 }
 
+type BrandRow = { id: string; name: string; slug: string };
+
+/** Icône par catégorie (slug DB → icône lucide). Fallback: Tag. */
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  phones: Smartphone,
+  computer: Laptop,
+  tablettes: Tablet,
+  accessories: Headphones,
+};
+
+/** Ordre de priorité d'affichage des catégories (le reste suit, alphabétique). */
+const CATEGORY_ORDER = ['phones', 'computer', 'tablettes', 'accessories'];
+const categoryRank = (slug: string) => {
+  const i = CATEGORY_ORDER.indexOf(slug);
+  return i < 0 ? 99 : i;
+};
+
+/** Libellés courts téléphone uniquement — Ordinateurs trop large à ~360 px. */
+const CATEGORY_MOBILE_LABEL: Record<string, string> = {
+  computer: 'PC',
+};
+
+/**
+ * Marques mises en avant (ordre = priorité). `logo` = chemin réel dans /public.
+ * `h` / `maxW` (px) : réglage par marque — certains logos sont des mots larges
+ * (Samsung) et d'autres de petites icônes (Apple), on harmonise le poids visuel.
+ * `hideClass` : masquage responsive — sur les petits écrans (~15" et moins) on retire
+ * les marques secondaires pour que « Reconditionnés » reste visible sans scroller.
+ */
+const BRAND_QUICKBAR: {
+  slug: string;
+  label: string;
+  logo: string;
+  h?: number;
+  maxW?: number;
+  hideClass?: string;
+}[] = [
+  { slug: 'apple', label: 'iPhone', logo: '/logos/apple.svg', h: 22, maxW: 28 },
+  { slug: 'samsung', label: 'Samsung', logo: '/logos/samsung.svg', h: 42, maxW: 240 },
+  { slug: 'xiaomi', label: 'Xiaomi', logo: '/logos/xiaomi.svg', h: 24, maxW: 36 },
+  { slug: 'huawei', label: 'Huawei', logo: '/logos/huawei.svg', h: 18, maxW: 120 },
+  { slug: 'tecno', label: 'Tecno', logo: '/logo_marques_africaines/tecno.png', h: 16, maxW: 86 },
+  { slug: 'google-pixel', label: 'Pixel', logo: '/logos/google.svg', h: 22, maxW: 28 },
+  { slug: 'sony', label: 'Sony', logo: '/logos/sony.svg', h: 18, maxW: 80 },
+  { slug: 'microsoft', label: 'Microsoft', logo: '/logos/microsoft.svg', h: 20, maxW: 80 },
+  { slug: 'hp', label: 'HP', logo: '/logos/hp.svg', h: 20, maxW: 80 },
+  { slug: 'dell', label: 'Dell', logo: '/logos/dell.svg', h: 20, maxW: 80 },
+  { slug: 'lenovo', label: 'Lenovo', logo: '/logos/lenovo.svg', h: 16, maxW: 80 },
+];
+
+/**
+ * Logo de marque rendu en blanc monochrome (filtre) pour un rang cohérent sur le
+ * fond sombre — sinon les logos noirs (Apple) seraient invisibles. Fallback texte
+ * si le fichier échoue.
+ */
+const BrandChipLogo: React.FC<{ logo: string; label: string; h?: number; maxW?: number }> = ({
+  logo,
+  label,
+  h = 18,
+  maxW = 80,
+}) => {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span className="text-[12px] font-tech font-extrabold uppercase tracking-wide text-white/70 group-hover:text-white transition-colors">
+        {label}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={logo}
+      alt={label}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity"
+      style={{ filter: 'brightness(0) invert(1)', height: `${h}px`, maxWidth: `${maxW}px` }}
+    />
+  );
+};
+
 const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], onProductSelect }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [isMobileShopOpen, setIsMobileShopOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<BrandRow[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<{
     products: Product[];
@@ -33,6 +115,8 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
   const searchRef = useRef<HTMLDivElement>(null);
   const shopDropdownRef = useRef<HTMLDivElement>(null);
   const shopSearchDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const catBarRef = useRef<HTMLElement>(null);
+  const [catBarCanScrollMore, setCatBarCanScrollMore] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isShopPage = location.pathname === '/shop';
@@ -69,6 +153,34 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
       if (data) setCategories(data as Category[]);
     };
     void fetchCats();
+  }, []);
+
+  // Fade à droite seulement s'il reste du contenu à glisser (barre masquée).
+  useEffect(() => {
+    const el = catBarRef.current;
+    if (!el) return;
+    const update = () => {
+      const remaining = el.scrollWidth - el.clientWidth - el.scrollLeft;
+      setCatBarCanScrollMore(remaining > 8);
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [categories]);
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      const { data } = await supabase.from('brands').select('id,name,slug');
+      if (data) setBrands(data as BrandRow[]);
+    };
+    void fetchBrands();
   }, []);
 
   const categoryCounts = useMemo(() => {
@@ -131,6 +243,14 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
     setIsMobileShopOpen(false);
   };
 
+  /** Navigue vers la boutique avec une query brute (promo, brand, condition…). */
+  const goShop = (qs?: string) => {
+    navigate(qs ? `/shop?${qs}` : '/shop');
+    setIsMenuOpen(false);
+    setIsShopDropdownOpen(false);
+    setIsMobileShopOpen(false);
+  };
+
   const pushShopSearchToUrl = (query: string) => {
     const params = new URLSearchParams(location.search);
     const trimmed = query.trim();
@@ -187,7 +307,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-black/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300 supports-[backdrop-filter]:bg-black/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10">
         <div className="flex justify-between items-center h-20 gap-4">
 
           {/* Logo */}
@@ -404,6 +524,84 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
               </button>
             </div>
           </div>
+        </div>
+
+        {/* ── Barre de raccourcis : catégories + marques ── */}
+        <div className="relative -mx-4 sm:-mx-6 lg:-mx-8 xl:-mx-10 border-t border-white/5">
+          <nav
+            ref={catBarRef}
+            aria-label="Catégories et marques"
+            className="flex items-center gap-0.5 md:gap-1 h-14 pl-1.5 pr-6 md:pl-2 md:pr-6 lg:pr-8 xl:pr-10 overflow-x-auto snap-x snap-mandatory md:snap-none scroll-px-1 md:scroll-px-2 border-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {/* Promos */}
+            <button
+              onClick={() => goShop('promo=1')}
+              className="group shrink-0 snap-start inline-flex items-center gap-0.5 md:gap-1.5 px-1.5 md:px-3 py-2 rounded-md text-[10px] md:text-sm font-tech font-bold uppercase tracking-normal md:tracking-wide text-xeption-gold hover:bg-white/5 transition-colors whitespace-nowrap"
+            >
+              <Zap className="w-3 h-3 md:w-4 md:h-4 fill-current" /> Promos
+            </button>
+
+            <span className="shrink-0 w-px h-4 bg-white/10 mx-0.5 md:mx-1.5" />
+
+            {/* Catégories */}
+            {[...categories].sort((a, b) => categoryRank(a.slug) - categoryRank(b.slug)).map((cat) => {
+              const Icon = CATEGORY_ICONS[cat.slug] || Tag;
+              const mobileLabel = CATEGORY_MOBILE_LABEL[cat.slug] ?? cat.name;
+              return (
+                <button
+                  key={cat.slug}
+                  onClick={() => navigateToShop(cat.slug)}
+                  aria-label={cat.name}
+                  className="group shrink-0 snap-start inline-flex items-center gap-0.5 md:gap-1.5 px-1.5 md:px-3 py-2 rounded-md text-[10px] md:text-sm font-tech font-bold uppercase tracking-normal md:tracking-wide text-white/70 hover:text-white hover:bg-white/5 transition-colors whitespace-nowrap"
+                >
+                  <Icon className="w-3 h-3 md:w-4 md:h-4 shrink-0" />
+                  <span className="md:hidden">{mobileLabel}</span>
+                  <span className="hidden md:inline">{cat.name}</span>
+                </button>
+              );
+            })}
+
+            <span className="hidden md:block shrink-0 w-px h-5 bg-white/10 mx-1.5" />
+            <span className="hidden md:inline shrink-0 text-[11px] font-tech font-bold uppercase tracking-[0.18em] text-xeption-gold pl-1 pr-1.5">
+              Marques
+            </span>
+
+            {/* Marques : desktop seulement (trop long sur téléphone) */}
+            {BRAND_QUICKBAR.map((b) => {
+              const ref = brands.find((x) => x.slug === b.slug);
+              return (
+                <button
+                  key={b.slug}
+                  onClick={() => goShop(ref ? `brand=${b.slug}` : `q=${b.label}`)}
+                  aria-label={b.label}
+                  className={`group shrink-0 hidden md:inline-flex items-center px-2 py-2 rounded-md hover:bg-white/5 transition-colors whitespace-nowrap ${b.hideClass ?? ''}`}
+                >
+                  <BrandChipLogo logo={b.logo} label={b.label} h={b.h} maxW={b.maxW} />
+                </button>
+              );
+            })}
+
+            <span className="md:hidden shrink-0 w-px h-4 bg-white/10 mx-0.5" />
+            {/* Pousse "Reconditionnés" à droite sur desktop */}
+            <span className="hidden md:block shrink-0 w-px h-5 bg-white/10 mx-1.5 ml-auto" />
+
+            {/* Reconditionnés */}
+            <button
+              onClick={() => goShop('condition=refurbished')}
+              aria-label="Reconditionnés"
+              className="group shrink-0 snap-start inline-flex items-center gap-0.5 md:gap-1.5 px-1.5 md:px-3 py-2 md:mr-32 rounded-md text-[10px] md:text-sm font-tech font-bold uppercase tracking-normal md:tracking-wide text-emerald-300/80 hover:text-emerald-200 hover:bg-white/5 transition-colors whitespace-nowrap"
+            >
+              <RotateCcw className="w-3 h-3 md:w-4 md:h-4 shrink-0" />
+              <span className="md:hidden">Reco</span>
+              <span className="hidden md:inline">Reconditionnés</span>
+            </button>
+          </nav>
+          {catBarCanScrollMore && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 right-0 w-8 md:hidden bg-gradient-to-l from-black to-transparent"
+            />
+          )}
         </div>
       </div>
 

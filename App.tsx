@@ -151,6 +151,7 @@ const App: React.FC = () => {
             oldPrice: p.old_price || p.oldPrice || null,
             isPromo: p.is_promo || p.isPromo || false,
             warrantyMonths: p.warranty_months || p.warrantyMonths || 0,
+            releaseYear: p.release_year ?? p.releaseYear ?? undefined,
             isFeatured: p.is_featured || p.isFeatured || false,
             brand: p.brand || null,
             productRange: p.product_range || p.productRange || null
@@ -294,7 +295,7 @@ const App: React.FC = () => {
     : SITE_BACKGROUND_IMAGES;
 
   return (
-    <div className="min-h-screen text-white font-sans selection:bg-xeption-gold selection:text-black relative overflow-x-hidden">
+    <div className="min-h-screen flex flex-col text-white font-sans selection:bg-xeption-gold selection:text-black relative overflow-x-clip">
 
       <SiteBackground
         videoRef={videoRef}
@@ -315,10 +316,10 @@ const App: React.FC = () => {
 
       <ErrorBoundary>
       <main
-        className={`relative z-10 w-full min-w-0 max-w-full overflow-x-hidden box-border ${
+        className={`relative z-10 flex-1 flex flex-col w-full min-w-0 max-w-full overflow-x-clip box-border ${
           isStaffPortal
             ? 'pt-0 pb-0'
-            : `pt-20 ${isProductPage ? 'pb-24 md:pb-6' : 'pb-20'}`
+            : `pt-[132px] ${isProductPage ? 'pb-24 md:pb-6' : 'pb-20'}`
         }`}
       >
         <Routes>
@@ -378,8 +379,8 @@ const App: React.FC = () => {
       </main>
       </ErrorBoundary>
 
-      {!isProductPage && !isStaffPortal && (
-        <footer className="bg-black/80 backdrop-blur-xl border-t border-gray-800 py-12 relative z-10">
+      {!isProductPage && !isStaffPortal && !isTrocPage && (
+        <footer className="mt-auto bg-black/80 backdrop-blur-xl border-t border-gray-800 py-12 relative z-10 shrink-0">
           <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-8">
             <div className="mb-6 md:mb-0">
               <h3 className="text-xl font-bold text-white mb-2 font-tech uppercase">Xeption</h3>
@@ -409,7 +410,7 @@ const App: React.FC = () => {
                 <a href="https://web.facebook.com/xeptioon/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Facebook</a>
                 <a href="https://www.instagram.com/xeption_corp/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Instagram</a>
                 <a href="https://www.tiktok.com/@xeption237?_r=1&_t=ZM-939Ae3o3r2J" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">TikTok</a>
-                <a href="https://wa.me/237697686684" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
+                <a href="https://wa.me/237641891031" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
               </div>
               <div className="flex gap-4 text-[11px] text-gray-600">
                 <button onClick={() => navigate('/about')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">À propos</button>

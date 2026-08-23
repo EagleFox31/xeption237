@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface AirportFlipCounterProps {
   value: number;
   label?: string;
   minDigits?: number;
 }
+
+const FLIP_MS = 90;
 
 const FlipDigit: React.FC<{ char: string }> = ({ char }) => {
   const [display, setDisplay] = useState(char);
@@ -18,6 +20,8 @@ const FlipDigit: React.FC<{ char: string }> = ({ char }) => {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) {
       setDisplay(char);
+      setIncoming(null);
+      setRolling(false);
       return;
     }
     setIncoming(char);
@@ -26,7 +30,7 @@ const FlipDigit: React.FC<{ char: string }> = ({ char }) => {
       setDisplay(char);
       setIncoming(null);
       setRolling(false);
-    }, 380);
+    }, FLIP_MS);
     return () => window.clearTimeout(t);
   }, [char, display]);
 
@@ -36,9 +40,10 @@ const FlipDigit: React.FC<{ char: string }> = ({ char }) => {
       aria-hidden
     >
       <div
-        className={`flex flex-col will-change-transform transition-transform duration-[380ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        className={`flex flex-col will-change-transform transition-transform ease-[cubic-bezier(0.4,0,0.2,1)] ${
           rolling ? '-translate-y-full' : 'translate-y-0'
         }`}
+        style={{ transitionDuration: `${FLIP_MS}ms` }}
       >
         <span className="h-10 sm:h-11 md:h-12 flex items-center justify-center font-mono text-xl sm:text-2xl font-bold text-xeption-gold tabular-nums leading-none">
           {display}
@@ -61,7 +66,46 @@ const AirportFlipCounter: React.FC<AirportFlipCounterProps> = ({
   minDigits = 3,
 }) => {
   const safe = Math.max(0, Math.floor(value));
-  const digits = String(safe).padStart(minDigits, '0').split('');
+  const [shown, setShown] = useState(0);
+  const shownRef = useRef(0);
+
+  useEffect(() => {
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      shownRef.current = safe;
+      setShown(safe);
+      return;
+    }
+
+    const from = shownRef.current;
+    const to = safe;
+    if (from === to) return;
+
+    const distance = Math.abs(to - from);
+    const steps = Math.min(24, Math.max(8, distance));
+    const duration = Math.min(1100, Math.max(550, steps * 45));
+    let raf = 0;
+    let start: number | null = null;
+
+    const tick = (now: number) => {
+      if (start == null) start = now;
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - (1 - t) ** 3;
+      const next = Math.round(from + (to - from) * eased);
+      if (next !== shownRef.current) {
+        shownRef.current = next;
+        setShown(next);
+      }
+      if (t < 1) raf = window.requestAnimationFrame(tick);
+    };
+
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+  }, [safe]);
+
+  const digits = String(shown).padStart(minDigits, '0').split('');
 
   return (
     <div

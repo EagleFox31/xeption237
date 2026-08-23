@@ -83,6 +83,7 @@ FK `products.category` et `product_ranges.category` → `categories.slug`.
 ## Base de données
 
 - Migrations : `supabase/migrations/` — appliquer avec `npm run db:apply -- supabase/migrations/xxx.sql`
+- **Toute nouvelle RPC `SECURITY DEFINER`** : Postgres accorde `EXECUTE` à `PUBLIC` par défaut (`anon` en hérite). En fin de migration : `REVOKE ALL ON FUNCTION … FROM PUBLIC, anon` puis `GRANT` explicite. Vérifier avec `npm run db:inventory` (section « RPC exécutable par anon sans garde staff »).
 - Ne pas committer `.env` ni secrets.
 - **Outils d'inspection (READ-ONLY)** — connexion partagée `scripts/lib/supabaseDbUrl.mjs` :
   - `npm run db:introspect -- <table> [col1,col2]` → colonnes+types, index, contraintes/FK (à lancer AVANT une migration).

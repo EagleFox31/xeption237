@@ -85,7 +85,8 @@ const OrderTracking: React.FC = () => {
   };
 
   const getOrderStepStatus = (stepIndex: number, currentStatus: Order['status']) => {
-    if (currentStatus === 'cancelled') return 'inactive';
+    if (currentStatus === 'cancelled' || currentStatus === 'returned') return 'inactive';
+    if (currentStatus === 'refused') return stepIndex <= 1 ? 'completed' : 'inactive';
 
     let activeIndex = 0;
     if (currentStatus === 'confirmed') activeIndex = 0; 
@@ -117,11 +118,15 @@ const OrderTracking: React.FC = () => {
       : order
         ? order.status === 'delivered'
           ? "Colis livré avec succès ! Merci de ta confiance 🎉✨"
-          : order.status === 'shipped' || order.status === 'ready'
-            ? "Colis en route avec notre coursier express ! 🚀📦"
-            : order.status === 'confirmed'
-              ? "Commande confirmée ! Préparation du colis en cours 📦✨"
-              : "Suivi de commande actif !"
+          : order.status === 'refused'
+            ? "Livraison refusée — le colis revient en boutique 📦↩️"
+            : order.status === 'returned'
+              ? "Retour reçu en boutique — stock remis en rayon ✅"
+              : order.status === 'shipped' || order.status === 'ready'
+                ? "Colis en route avec notre coursier express ! 🚀📦"
+                : order.status === 'confirmed'
+                  ? "Commande confirmée ! Préparation du colis en cours 📦✨"
+                  : "Suivi de commande actif !"
         : troc
           ? troc.status === 'accepted' || troc.status === 'completed'
             ? "Dossier Troc validé ! Switch prêt 🎉✨"

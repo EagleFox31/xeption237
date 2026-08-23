@@ -4,16 +4,21 @@ import { Order } from '../../../types';
 import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
 import {
   canIssueInvoice,
+  canCancelOrder,
   getInvoiceGateLabel,
   getInvoiceHint,
   getOrderActionHint,
   getOrderStatusLabel,
   SALES_PAGE_HINT,
 } from '../../../utils/orderWorkflow';
-import { Eye, Printer, Download } from 'lucide-react';
+import { Eye, Printer, Download, CreditCard } from 'lucide-react';
 import OrderDetailModal from '../modals/OrderDetailModal';
+import OrderCollectPaymentModal from '../modals/OrderCollectPaymentModal';
 import TableShell from '../shared/TableShell';
 import { adminUi } from '../shared/adminUi';
+import type { OrderPaymentUiState } from '../../../hooks/admin/useOrderPayment';
+import { useDueFeedbackInvites } from '../../../hooks/useDueFeedbackInvites';
+import OrderFeedbackInviteButton from '../OrderFeedbackInviteButton';
 
 type OrderFilter = 'all' | 'active' | 'cancelled';
 type OrderSort = 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc' | 'customer' | 'status';
@@ -22,6 +27,13 @@ interface OrdersTabProps {
   orders: Order[];
   onUpdateStatus: (id: string, status: Order['status']) => void;
   onCancelOrder: (order: Order) => void;
+  onCollectPayment: (order: Order) => void;
+  paymentUiState: OrderPaymentUiState;
+  paymentError: string | null;
+  collectingOrder: Order | null;
+  onCloseCollectPayment: () => void;
+  onInitiateCampay: (phone: string) => Promise<void>;
+  onMarkCashPaid: () => Promise<void>;
 }
 
 const statusStyles: Record<Order['status'], string> = {
@@ -31,6 +43,8 @@ const statusStyles: Record<Order['status'], string> = {
   ready: 'border-cyan-500/30 text-cyan-400 bg-cyan-500/10',
   delivered: 'border-green-500/30 text-green-500 bg-green-500/10',
   cancelled: 'border-red-500/30 text-red-400 bg-red-500/10',
+  refused: 'border-orange-500/30 text-orange-400 bg-orange-500/10',
+  returned: 'border-slate-500/30 text-slate-300 bg-slate-500/10',
 };
 
 const FILTER_OPTIONS: { id: OrderFilter; label: string }[] = [
@@ -53,8 +67,10 @@ const STATUS_SORT_ORDER: Record<Order['status'], number> = {
   confirmed: 1,
   shipped: 2,
   ready: 3,
-  delivered: 4,
-  cancelled: 5,
+  refused: 4,
+  delivered: 5,
+  returned: 6,
+  cancelled: 7,
 };
 
 const orderTimestamp = (order: Order) => {
@@ -90,8 +106,20 @@ const matchesOrderSearch = (order: Order, query: string) => {
   return haystack.includes(q);
 };
 
-const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onUpdateStatus, onCancelOrder }) => {
+const OrdersTab: React.FC<OrdersTabProps> = ({
+  orders,
+  onUpdateStatus,
+  onCancelOrder,
+  onCollectPayment,
+  paymentUiState,
+  paymentError,
+  collectingOrder,
+  onCloseCollectPayment,
+  onInitiateCampay,
+  onMarkCashPaid,
+}) => {
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  const { invites: dueInvites, refresh: refreshInvites, markSent } = useDueFeedbackInvites();
   const [filter, setFilter] = useState<OrderFilter>('all');
   const [sort, setSort] = useState<OrderSort>('date-desc');
   const [search, setSearch] = useState('');
@@ -99,7 +127,12 @@ const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onUpdateStatus, onCancelO
   const displayedOrders = useMemo(() => {
     let list = orders;
     if (filter === 'active') {
-      list = list.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled');
+      list = list.filter(
+        (o) =>
+          o.status !== 'delivered' &&
+          o.status !== 'cancelled' &&
+          o.status !== 'returned'
+      );
     } else if (filter === 'cancelled') {
       list = list.filter((o) => o.status === 'cancelled');
     }
@@ -133,6 +166,26 @@ const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onUpdateStatus, onCancelO
     }
     return sorted;
   }, [orders, filter, sort, search]);
+
+  const needsPayment = (o: Order) =>
+    o.paymentStatus !== 'paid' &&
+    o.status !== 'pending' &&
+    o.status !== 'cancelled' &&
+    o.status !== 'delivered' &&
+    ['confirmed', 'shipped', 'ready'].includes(o.status);
+
+  const canComplete = (o: Order) => o.paymentStatus === 'paid';
+
+  const handleComplete = (o: Order) => {
+    if (!canComplete(o) && needsPayment(o)) {
+      onCollectPayment(o);
+      return;
+    }
+    onUpdateStatus(o.id, 'delivered');
+    window.setTimeout(() => {
+      void refreshInvites();
+    }, 400);
+  };
 
   const handlePrint = (order: Order) => {
     const html = generateInvoiceHTML(order);
@@ -257,7 +310,12 @@ const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onUpdateStatus, onCancelO
                       >
                         {getOrderStatusLabel(o.status)}
                       </span>
-                      {o.status !== 'delivered' && o.status !== 'cancelled' && (
+                      {o.paymentStatus === 'paid' && o.status !== 'cancelled' && (
+                        <span className="block text-[9px] text-green-400/90 mt-1 uppercase tracking-wider">
+                          Payé
+                        </span>
+                      )}
+                      {o.status !== 'delivered' && o.status !== 'cancelled' && o.status !== 'returned' && (
                         <p className="text-[10px] text-white/70 mt-1.5 max-w-[140px] leading-tight">
                           {getOrderActionHint(o)}
                         </p>
@@ -293,16 +351,65 @@ const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onUpdateStatus, onCancelO
                             Expédier
                           </button>
                         )}
-                        {(o.status === 'shipped' || o.status === 'ready') && (
+                        {o.status === 'shipped' && (
+                          <>
+                            {needsPayment(o) && (
+                              <button
+                                type="button"
+                                onClick={() => onCollectPayment(o)}
+                                className="text-[10px] bg-xeption-gold hover:bg-white text-black px-2.5 py-1.5 rounded uppercase font-bold flex items-center gap-1"
+                              >
+                                <CreditCard className="w-3 h-3" />
+                                Encaisser
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleComplete(o)}
+                              className="text-[10px] bg-green-600 hover:bg-green-500 text-white px-2.5 py-1.5 rounded uppercase font-bold"
+                            >
+                              Terminer
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onUpdateStatus(o.id, 'refused')}
+                              className="text-[10px] border border-orange-500 text-orange-400 hover:bg-orange-500 hover:text-black px-2.5 py-1.5 rounded uppercase font-bold"
+                            >
+                              Refus livraison
+                            </button>
+                          </>
+                        )}
+                        {o.status === 'ready' && (
+                          <>
+                            {needsPayment(o) && (
+                              <button
+                                type="button"
+                                onClick={() => onCollectPayment(o)}
+                                className="text-[10px] bg-xeption-gold hover:bg-white text-black px-2.5 py-1.5 rounded uppercase font-bold flex items-center gap-1"
+                              >
+                                <CreditCard className="w-3 h-3" />
+                                Encaisser
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleComplete(o)}
+                              className="text-[10px] bg-green-600 hover:bg-green-500 text-white px-2.5 py-1.5 rounded uppercase font-bold"
+                            >
+                              Terminer
+                            </button>
+                          </>
+                        )}
+                        {o.status === 'refused' && (
                           <button
                             type="button"
-                            onClick={() => onUpdateStatus(o.id, 'delivered')}
-                            className="text-[10px] bg-green-600 hover:bg-green-500 text-white px-2.5 py-1.5 rounded uppercase font-bold"
+                            onClick={() => onUpdateStatus(o.id, 'returned')}
+                            className="text-[10px] bg-slate-600 hover:bg-slate-500 text-white px-2.5 py-1.5 rounded uppercase font-bold"
                           >
-                            Terminer
+                            Retour reçu
                           </button>
                         )}
-                        {o.status !== 'delivered' && o.status !== 'cancelled' && (
+                        {canCancelOrder(o) && (
                           <button
                             type="button"
                             onClick={() => onCancelOrder(o)}
@@ -311,6 +418,26 @@ const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onUpdateStatus, onCancelO
                             Annuler
                           </button>
                         )}
+                        {o.status === 'delivered' &&
+                          dueInvites
+                            .filter((invite) => invite.order_id === o.id && invite.kind === 'service')
+                            .map((invite) => (
+                              <OrderFeedbackInviteButton
+                                key={invite.token}
+                                invite={invite}
+                                onSent={markSent}
+                              />
+                            ))}
+                        {o.status === 'delivered' &&
+                          dueInvites
+                            .filter((invite) => invite.order_id === o.id && invite.kind === 'product')
+                            .map((invite) => (
+                              <OrderFeedbackInviteButton
+                                key={invite.token}
+                                invite={invite}
+                                onSent={markSent}
+                              />
+                            ))}
                       </div>
                     </td>
                     <td className="px-4 py-4">
@@ -354,6 +481,17 @@ const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onUpdateStatus, onCancelO
 
       {viewingOrder && (
         <OrderDetailModal order={viewingOrder} onClose={() => setViewingOrder(null)} />
+      )}
+
+      {collectingOrder && (
+        <OrderCollectPaymentModal
+          order={collectingOrder}
+          uiState={paymentUiState}
+          error={paymentError}
+          onClose={onCloseCollectPayment}
+          onInitiateCampay={onInitiateCampay}
+          onMarkCashPaid={onMarkCashPaid}
+        />
       )}
     </div>
   );

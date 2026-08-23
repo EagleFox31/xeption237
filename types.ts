@@ -95,19 +95,26 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+export type OrderPaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+
 export interface Order {
   id: string;
   items: CartItem[];
   total: number;
-  status: 'pending' | 'confirmed' | 'shipped' | 'ready' | 'delivered' | 'cancelled';
-  paymentMethod: 'OM' | 'MOMO' | 'CASH';
+  subtotal?: number;
+  discountAmount?: number;
+  status: 'pending' | 'confirmed' | 'shipped' | 'ready' | 'delivered' | 'cancelled' | 'refused' | 'returned';
+  paymentMethod: 'OM' | 'MOMO' | 'CASH' | 'CARD' | 'TROC';
+  paymentStatus?: OrderPaymentStatus;
   customerName: string;
   customerEmail?: string;
   customerPhone: string;
   customerCity?: string;
   deliveryMode: 'delivery' | 'pickup';
   date: string;
-  createdAt?: string; 
+  createdAt?: string;
+  staffId?: string;
+  storeId?: string;
 }
 
 export interface Customer {
@@ -131,7 +138,61 @@ export interface Staff {
   role: StaffRoleValue;
   phone?: string;
   avatar?: string;
+  store_id?: string | null;
   created_at?: string;
+}
+
+export interface Store {
+  id: string;
+  code: string;
+  name: string;
+  city?: string | null;
+  address?: string | null;
+  active: boolean;
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StoreStockRow {
+  store_id: string;
+  product_id: string;
+  quantity: number;
+  reserved: number;
+}
+
+export interface ProductStockMismatch {
+  product_id: string;
+  product_name: string;
+  catalog_stock: number;
+  distributed_stock: number;
+}
+
+export interface StockReservationOverview {
+  product_id: string;
+  product_name: string;
+  reserved_qty: number;
+  oldest_since: string;
+  order_count: number;
+}
+
+export interface PendingOrderReservation {
+  order_id: string;
+  customer_name: string;
+  customer_phone: string | null;
+  order_total: number;
+  reserved_since: string;
+  expires_at: string;
+}
+
+export interface ShipmentReservationAlert {
+  order_id: string;
+  order_status: string;
+  customer_name: string;
+  customer_phone: string | null;
+  reserved_since: string;
+  days_out: number;
+  alert_level: 'warning' | 'loss_pending' | 'ok';
 }
 
 export interface ChatMessage {
@@ -215,6 +276,8 @@ export interface TradeInRequest {
   /** Palier de service payé : 'express' | 'premium' | 'safety'. Premium+ déverrouille le certificat PDF. */
   tier?: 'express' | 'premium' | 'safety' | null;
   status: 'in_progress' | 'pending' | 'accepted' | 'refused' | 'validated' | 'completed' | 'cancelled';
+  /** Commande POS générée à la clôture troc (si applicable). */
+  linked_order_id?: string | null;
   admin_notes?: string;
   /** Horodatage du passage en `validated` (vérification physique en boutique). */
   validated_at?: string | null;

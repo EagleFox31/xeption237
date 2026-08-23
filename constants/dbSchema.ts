@@ -20,6 +20,7 @@ export const DB_TABLES = {
     DELIVERY_ZONES: 'delivery_zones',
     ORDERS: 'orders',
     ORDER_ITEMS: 'order_items',
+    ORDER_PAYMENTS: 'order_payments',
     PACKS: 'packs',
     PRODUCT_RANGES: 'product_ranges',
     REPAIR_TICKETS: 'repair_tickets',
@@ -27,8 +28,11 @@ export const DB_TABLES = {
     STORES: 'stores',
     STORE_STOCK: 'store_stock',
     STOCK_MOVEMENTS: 'stock_movements',
+    STOCK_RESERVATIONS: 'stock_reservations',
     TRADE_IN_MODELS: 'trade_in_models',
-    CUSTOMERS: 'customers' 
+    CUSTOMERS: 'customers',
+    ORDER_FEEDBACK_INVITES: 'order_feedback_invites',
+    ORDER_FEEDBACK: 'order_feedback',
 };
 
 export const DB_SCHEMA = {
@@ -95,6 +99,23 @@ export const DB_SCHEMA = {
         PAYMENT_METHOD: 'payment_method',
         STORE_ID: 'store_id',
         STAFF_ID: 'staff_id',
+        PAYMENT_STATUS: 'payment_status',
+        PAID_AT: 'paid_at',
+        DISCOUNT_AMOUNT: 'discount_amount',
+    },
+    ORDER_PAYMENTS: {
+        ID: 'id',
+        ORDER_ID: 'order_id',
+        REFERENCE: 'reference',
+        AMOUNT: 'amount',
+        STATUS: 'status',
+        CHANNEL: 'channel',
+        PHONE: 'phone',
+        CAMPAY_REFERENCE: 'campay_reference',
+        STAFF_ID: 'staff_id',
+        PAID_AT: 'paid_at',
+        CREATED_AT: 'created_at',
+        UPDATED_AT: 'updated_at',
     },
     ORDER_ITEMS: {
         ID: 'id',
@@ -201,5 +222,26 @@ export const DB_SCHEMA = {
         TOTAL_SPENT: 'total_spent',
         CREATED_AT: 'created_at',
         UPDATED_AT: 'updated_at'
-    }
+    },
+    ORDER_FEEDBACK_INVITES: {
+        ID: 'id',
+        ORDER_ID: 'order_id',
+        REPAIR_TICKET_ID: 'repair_ticket_id',
+        KIND: 'kind',
+        CUSTOMER_NAME: 'customer_name',
+        CUSTOMER_PHONE: 'customer_phone',
+        HEADLINE: 'headline',
+        INVITE_AT: 'invite_at',
+        SENT_AT: 'sent_at',
+        COMPLETED_AT: 'completed_at',
+        CREATED_AT: 'created_at',
+    },
+    ORDER_FEEDBACK: {
+        ID: 'id',
+        INVITE_ID: 'invite_id',
+        RATING: 'rating',
+        COMMENT: 'comment',
+        PRODUCT_RATINGS: 'product_ratings',
+        CREATED_AT: 'created_at',
+    },
 };

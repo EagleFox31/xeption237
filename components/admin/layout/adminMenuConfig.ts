@@ -14,6 +14,8 @@ import {
 
   Truck,
 
+  Building2,
+
   Layers,
 
   ImagePlus,
@@ -26,6 +28,8 @@ import {
 
   Key,
 
+  Receipt,
+
 } from 'lucide-react';
 
 
@@ -36,6 +40,8 @@ export const ADMIN_TAB_IDS = [
 
   'pos',
 
+  'mySales',
+
   'orders',
 
   'inventory',
@@ -43,6 +49,8 @@ export const ADMIN_TAB_IDS = [
   'packs',
 
   'delivery',
+
+  'stores',
 
   'catalogStructure',
 
@@ -139,6 +147,20 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         description: 'Encaisser une vente sur place : panier, client et validation.',
 
         icon: CreditCard,
+
+      },
+
+      {
+
+        id: 'mySales',
+
+        label: 'Mes ventes',
+
+        shortLabel: 'Mes ventes',
+
+        description: 'Tes ventes du jour : nombre, montant et détail ligne à ligne.',
+
+        icon: Receipt,
 
       },
 
@@ -252,6 +274,20 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
 
       {
 
+        id: 'stores',
+
+        label: 'Boutiques',
+
+        shortLabel: 'Shops',
+
+        description: 'Points de vente, stock par boutique et rattachement équipe.',
+
+        icon: Building2,
+
+      },
+
+      {
+
         id: 'troc',
 
         label: 'Dossiers Troc',
@@ -328,7 +364,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
 
 /** Accès rapide mobile — commandes web prioritaires. */
 
-export const MOBILE_QUICK_TABS: AdminTabId[] = ['orders', 'pos', 'inventory', 'troc'];
+export const MOBILE_QUICK_TABS: AdminTabId[] = ['pos', 'mySales', 'orders', 'inventory', 'troc'];
 
 
 

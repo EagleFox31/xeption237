@@ -15,7 +15,7 @@
 |---|---|:---:|:---:|---|
 | 0 | Suivi des migrations | non | — | ✅ **fait** |
 | 1 | Fermer les failles | non | faible | rien — mais évite d'aggraver |
-| 2 | Poser le socle données | non | faible | tout le reste |
+| 2 | Poser le socle données | non | faible | ✅ **fait** — débloque tout le reste |
 | 3 | Rattachements & répartition du stock | non | faible | étape 4 |
 | 4 | **Bascule de la vérité du stock** | oui | **élevé** | multi-boutiques |
 | 5 | Le vendeur existe | oui | moyen | P1, primes, classements |
@@ -64,6 +64,8 @@ nettement plus probables. Les corriger après, c'est corriger en production avec
 
 ## Étape 2 — Poser le socle données
 
+> **Spec détaillée :** [`ETAPE_2_SOCLE_DONNEES.md`](./ETAPE_2_SOCLE_DONNEES.md)
+
 **100 % additif. Aucune lecture ne change, aucune écriture ne bascule.**
 
 - `stores` — une boutique par défaut pour commencer.
@@ -75,6 +77,8 @@ nettement plus probables. Les corriger après, c'est corriger en production avec
   prix au moment de la vente et survit à la suppression d'un produit).
 
 À ce stade, `products.stock` reste la vérité. `store_stock` est un double qui se remplit.
+
+> ✅ **Appliqué** — migration `20260823_010_erp_step2_data_foundation.sql` · vérif `npm run db:verify:step2`
 
 ---
 
@@ -139,6 +143,15 @@ n'appartient à personne.
 - Classement des vendeurs *(dépend de l'étape 5)*.
 - Performance par point de vente *(dépend de l'étape 4)*.
 - Top produits en CA et volume *(dépend d'`order_items`)*.
+
+> ⚠️ **Trou de couverture connu sur l'historique.** `order_items` ne couvre que
+> **16 des 26 commandes** : 10 commandes antérieures ont `orders.items = NULL`, donc
+> le backfill de l'étape 2 n'a rien pu en tirer. Elles représentent **2 905 000 FCFA**
+> qui comptent dans le CA total mais seront **absentes du détail par produit et par
+> catégorie**. Le total et la somme des détails ne se recouperont donc pas sur
+> l'historique ancien — c'est attendu, pas un bug. `npm run db:verify:step2` affiche
+> l'écart à chaque exécution. À afficher explicitement dans les rapports plutôt qu'à
+> laisser deviner.
 - Filtres : jour / semaine / mois / période libre × boutique × vendeur.
 - **Export Excel** — zéro occurrence dans l'admin aujourd'hui.
 - **Rapport de fin de journée automatique** — la promesse centrale du cadrage, « la

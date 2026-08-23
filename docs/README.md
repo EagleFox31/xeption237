@@ -41,6 +41,10 @@ Index de la documentation projet. (Les instructions agent et le README applicati
 ## 🚀 Next Step & Cadrage Commercial — [`next-step/`](./next-step/)
 
 - [CADRAGE_SUIVI_VENTES_XEPTION](./next-step/CADRAGE_SUIVI_VENTES_XEPTION.md) — cadrage fonctionnel & devis module Suivi des Ventes (120 000 FCFA)
+- [ROADMAP_ERP](./next-step/ROADMAP_ERP.md) — mise sur pied ERP (étapes 0–10)
+- [ETAPE_2_SOCLE_DONNEES](./next-step/ETAPE_2_SOCLE_DONNEES.md) — **spec étape 2** : stores, store_stock, order_items, stock_movements
+- [ECART_ERP_VS_CADRAGE](./next-step/ECART_ERP_VS_CADRAGE.md) — écart existant vs cadrage
+- [MODELE_STOCK_MULTI_BOUTIQUES](./next-step/MODELE_STOCK_MULTI_BOUTIQUES.md) — règles stock multi-boutiques (étapes 4+)
 
 ## 🛠️ Engineering — [`engineering/`](./engineering/)
 

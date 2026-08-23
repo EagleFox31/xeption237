@@ -16,10 +16,10 @@
 | 0 | Suivi des migrations | non | — | ✅ **fait** |
 | 1 | Fermer les failles | non | faible | rien — mais évite d'aggraver |
 | 2 | Poser le socle données | non | faible | ✅ **fait** — débloque tout le reste |
-| 3 | Rattachements & répartition du stock | non | faible | étape 4 |
+| 3 | Rattachements & répartition du stock | oui | faible | étape 4 | ✅ **UI livrée** |
 | 4 | **Bascule de la vérité du stock** | oui | **élevé** | multi-boutiques |
-| 5 | Le vendeur existe | oui | moyen | P1, primes, classements |
-| 6 | Pilotage & export | oui | faible | P2, P3, rapport du soir |
+| 5 | Le vendeur existe | oui | moyen | P1, primes, classements | ✅ |
+| 6 | Pilotage & export | oui | faible | P2, P3, rapport du soir | ✅ |
 | 7 | Objectifs & primes | oui | faible | UC-V-03, UC-D-04 |
 | 8 | Mouvements de stock avancés | oui | moyen | transferts, inventaires, retours |
 | 9 | Mode hors connexion | oui | élevé | saisie terrain |
@@ -84,17 +84,20 @@ nettement plus probables. Les corriger après, c'est corriger en production avec
 
 ## Étape 3 — Rattachements & répartition
 
-- Créer les boutiques réelles.
-- Rattacher chaque membre du staff à une boutique (`StaffTab`).
-- Répartir le stock existant entre les boutiques — **un inventaire physique de départ**.
-  C'est du travail terrain, pas du développement, et c'est le vrai coût de cette étape.
-- Vérifier que la somme par boutique retombe sur `products.stock`.
+> **UI admin** : onglet **Boutiques** (`/admin/stores`) + colonne boutique dans **Équipe**.
 
-> Sans cette réconciliation, l'étape 4 bascule sur des chiffres faux.
+- Créer les boutiques réelles. ✅
+- Rattacher chaque membre du staff à une boutique (`StaffTab`). ✅
+- Répartir le stock existant entre les boutiques — **inventaire physique de départ**. ✅ (modal « Répartir »)
+- Vérifier que la somme par boutique retombe sur `products.stock`. ✅ (RPC `redistribute_product_stock`)
+
+> Sans cette réconciliation terrain, l'étape 4 bascule sur des chiffres faux.
 
 ---
 
-## Étape 4 — Bascule de la vérité du stock ⚠️ *étape critique*
+## Étape 4 — Bascule de la vérité du stock ✅ *appliquée 2026-08-23*
+
+**Migration** : `20260823_012_erp_step4_store_stock_truth.sql` · vérif `npm run db:verify:step4`
 
 **La contrainte qui structure tout** : dès que le trigger qui maintient
 `products.stock = SUM(quantity - reserved)` est posé, **tout chemin qui écrit encore
@@ -105,44 +108,59 @@ Contenu du déploiement coordonné :
 
 1. Réécriture de `create_order_atomic` : choix de la boutique qui sert (ville de livraison
    d'abord, sinon plus grand disponible), **réservation** au lieu du décrément, `store_id`
-   renseigné.
-2. POS → RPC : décrément atomique sur la boutique du vendeur, `store_id` + `staff_id`.
-3. Clôture troc → même RPC de décrément, sur la boutique du rachat.
-4. Trigger de maintien de `products.stock`.
-5. Table `stock_reservations` + job `pg_cron` d'expiration (extension déjà installée, v1.6.4).
+   renseigné. ✅
+2. POS → RPC : décrément atomique sur la boutique du vendeur, `store_id` + `staff_id`. ✅
+3. Clôture troc → même RPC de décrément, sur la boutique du rachat. ✅
+4. Trigger de maintien de `products.stock`. ✅
+5. Table `stock_reservations` + job `pg_cron` d'expiration (extension déjà installée, v1.6.4). ✅
+
+**Hooks mis à jour** : `usePosSystem`, `useInventoryManager` (`set_product_catalog_stock`),
+`useOrdersManager` (`sync_order_stock_on_status` à l'annulation). Consommation stock au **paiement**
+(`confirm_order_payment_and_consume_stock`) — webhook Campay + encaissement staff (`create-order-payment`).
+
+**Paiement commande** : Campay à la livraison/retrait (pas au checkout). Migration `20260823_014`.
+
+**TTL réservations** (`20260823_015`) : 48 h en `pending`. **Cycle physique** (`20260823_017`) :
+TTL supprimé après validation ; `refused` / `returned` ; annulation interdite depuis `shipped` ;
+alerte colis dehors ≥ 5 j ; perte auto à 30 j (`reason = loss`). Vue admin « Stock réservé » dans Boutiques.
 
 **Ce qui change pour les utilisateurs** : rien de visible côté boutique publique — c'est tout
 l'intérêt d'avoir gardé `products.stock` en miroir. Côté staff, la caisse devient rattachée à
-une boutique.
+une boutique (boutique du vendeur, sinon siège).
 
 **Repli** : garder la version précédente des trois fonctions prête à redéployer, et le trigger
 supprimable en une commande.
 
 ---
 
-## Étape 5 — Le vendeur existe
+## Étape 5 — Le vendeur existe ✅ *appliquée 2026-08-23*
+
+**Migration** : `20260823_018_erp_step5_vendor_sales.sql`
 
 Le parcours P1 s'arrête aujourd'hui à « valider une vente » : la vente part en base et
 n'appartient à personne.
 
-- Caisse rattachée à la boutique du vendeur, pré-remplie.
-- `staff_id` renseigné à chaque vente.
-- **UC-V-02** — « mes ventes du jour » : nombre, montant, détail, historique.
-- Remise à la vente (absente aujourd'hui).
+- Caisse rattachée à la boutique du vendeur, pré-remplie. ✅
+- `staff_id` renseigné à chaque vente. ✅ *(déjà RPC étape 4 ; UI boutique + mes ventes)*
+- **UC-V-02** — « mes ventes du jour » : nombre, montant, détail, historique. ✅
+- Remise à la vente (absente aujourd'hui). ✅
 - Moyens de paiement manquants : **Carte**, et le **Troc** intégré au sélecteur du POS plutôt
-  que par un chemin séparé.
+  que par un chemin séparé. ✅
 
 ---
 
-## Étape 6 — Pilotage & export
+## Étape 6 — Pilotage & export ✅ *appliquée 2026-08-24*
 
-`DashboardTab` fait 79 lignes et affiche un CA calculé **uniquement sur les commandes
-`delivered`** — donc sous-évalué.
+**Migration** : `20260823_024_dashboard_analytics.sql` · RPC `get_dashboard_analytics`
 
-- KPIs complets : CA réel, nombre de transactions, volume d'articles, panier moyen.
-- Classement des vendeurs *(dépend de l'étape 5)*.
-- Performance par point de vente *(dépend de l'étape 4)*.
-- Top produits en CA et volume *(dépend d'`order_items`)*.
+`DashboardTab` refondu : KPIs CA encaissé, transactions, articles, panier moyen · filtres
+jour / 7 j / mois / personnalisé × boutique × vendeur · classement vendeurs et boutiques ·
+top produits · export CSV Excel · rapport de fin de journée (impression).
+
+- KPIs complets : CA réel, nombre de transactions, volume d'articles, panier moyen. ✅
+- Classement des vendeurs *(dépend de l'étape 5)*. ✅
+- Performance par point de vente *(dépend de l'étape 4)*. ✅
+- Top produits en CA et volume *(dépend d'`order_items`)*. ✅
 
 > ⚠️ **Trou de couverture connu sur l'historique.** `order_items` ne couvre que
 > **16 des 26 commandes** : 10 commandes antérieures ont `orders.items = NULL`, donc
@@ -170,8 +188,7 @@ visible par le vendeur · seuils de prime paramétrables par la direction · ale
 
 ## Étape 8 — Mouvements de stock avancés
 
-- **Annulation** → réintégration du stock *(aujourd'hui la commande passe en `cancelled` mais
-  le stock ne revient pas)*.
+- **Annulation** → libération des réservations / réintégration du stock *(étape 4 : `sync_order_stock_on_status`)*.
 - **Retour client** → réintégration si revendable, sinon circuit SAV, avec ajustement du CA.
 - **Inventaire** → session de comptage, écarts affichés, ajustement motivé.
 - **Transferts inter-boutiques en deux temps** : décrément à l'envoi, stock en transit,

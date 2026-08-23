@@ -295,9 +295,9 @@ Réception  → incrément boutique cible, statut received, mouvement transfer_i
 4. ✅ **POS atomique** avec `store_id` + `staff_id` — `20260823_001`. *(survente corrigée)*
 5. ✅ **Clôture troc atomique** — même migration.
 6. ✅ **Réservations** + `create_order_atomic` + job `pg_cron` — `20260823_012` à `015`.
-7. 🔜 **Cycle physique du colis** — `refused` / `returned`, libération conditionnée à la
+7. ✅ **Cycle physique du colis** — `refused` / `returned`, libération conditionnée à la
    sortie, suppression du TTL après validation, seuils de signalement (5 j) et de perte (30 j).
-   *C'est le sujet du §5 ci-dessus.*
+   Migration `20260823_017`.
 8. **Transferts** en deux temps.
 9. **Inventaires** et retours SAV.
 
@@ -305,5 +305,6 @@ Les étapes 1 à 3 étaient **additives et sans effet visible** : elles ont pos�
 que tout continuait de tourner. Le premier changement de comportement est arrivé à l'étape 4,
 et c'était une correction de bug.
 
-L'étape 7 corrige le dernier écart entre l'état comptable et la réalité physique : aujourd'hui,
-annuler une commande déjà expédiée rend le stock vendable alors que l'appareil roule encore.
+L'étape 7 corrige l'écart entre l'état comptable et la réalité physique : une commande
+expédiée ne se libère plus à l'annulation ; le refus garde le stock bloqué jusqu'au retour
+en rayon, avec alerte à 5 j et perte automatique à 30 j.

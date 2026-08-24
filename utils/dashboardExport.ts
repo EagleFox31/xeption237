@@ -64,7 +64,20 @@ export const exportDashboardCsv = (data: DashboardAnalytics, label: string) => {
   downloadBlob(`xeption-pilotage-${label}.csv`, `\uFEFF${csv}`, 'text/csv;charset=utf-8');
 };
 
-export const printEndOfDayReport = (data: DashboardAnalytics) => {
+/**
+ * Rapport de fin de journée — TÉLÉCHARGÉ en fichier autonome.
+ *
+ * Le fichier `.html` embarque tout son style : il s'ouvre à l'identique sur
+ * n'importe quel navigateur, téléphone comme ordinateur, même hors connexion,
+ * et reste imprimable en PDF depuis là.
+ *
+ * ⚠️ Ce n'est pas un `.pdf`. En produire un vrai demanderait une bibliothèque
+ * (jsPDF ou pdfmake) : les navigateurs n'exposent aucune API d'écriture PDF.
+ * L'ancienne version ouvrait un onglet et déclenchait `window.print()` en
+ * s'appuyant sur « Enregistrer au format PDF » — efficace mais déroutant, on
+ * cliquait « rapport » et une boîte d'impression s'ouvrait.
+ */
+export const downloadEndOfDayReport = (data: DashboardAnalytics) => {
   const period = formatPeriodLabel(new Date(data.period.from), new Date(data.period.to));
   const printedAt = new Date().toLocaleString('fr-FR', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -165,11 +178,8 @@ ${topProductsCoverageNote(data) ? `<p class="note">${topProductsCoverageNote(dat
   <span>Généré automatiquement, sans ressaisie</span>
 </div>
 
-<script>window.onload=()=>{window.print();}</script>
 </body></html>`;
 
-  const w = window.open('', '_blank');
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
+  const stamp = new Date().toISOString().slice(0, 10);
+  downloadBlob(`xeption-rapport-${stamp}.html`, html, 'text/html;charset=utf-8');
 };

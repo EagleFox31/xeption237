@@ -128,7 +128,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
 
         shortLabel: 'Accueil',
 
-        description: 'Vue synthétique ventes, stock et équipe.',
+        description: 'Ventes, ruptures de stock et fiches produit à corriger.',
 
         icon: LayoutDashboard,
 

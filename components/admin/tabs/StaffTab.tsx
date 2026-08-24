@@ -161,7 +161,7 @@ const StaffTab: React.FC<StaffTabProps> = ({
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); onEditStaff(s); }}
-                                        className="text-white/60 hover:text-xeption-gold hover:bg-white/10 p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="text-white/60 hover:text-xeption-gold hover:bg-white/10 p-2 rounded"
                                         aria-label={`Modifier ${s.name}`}
                                       >
                                         <Pencil className="w-4 h-4" />

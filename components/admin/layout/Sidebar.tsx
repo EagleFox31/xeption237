@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Logo from '../../Logo';
 import { Bell, LogOut } from 'lucide-react';
 import { ADMIN_MENU_GROUPS, type AdminMenuGroup } from './adminMenuConfig';
@@ -36,13 +36,24 @@ const Sidebar: React.FC<SidebarProps> = ({
   currentUser,
   menuGroups = ADMIN_MENU_GROUPS,
 }) => {
+  // Date + heure affichées sous le mot « XEPTION ». Précision à la minute :
+  // un tic de 30 s garantit un décalage d'au plus une demi-minute sans faire
+  // tourner un minuteur à la seconde pour rien.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const stamp = `${now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} · ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+
   const userName = currentUser?.displayName ?? 'Équipe';
   const userRole = currentUser?.roleLabel ?? 'Staff';
   const userInitials = currentUser?.initials ?? 'X';
   return (
     <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 z-50 border-r border-white/10 bg-black/45 backdrop-blur-xl">
       <div className="p-5 border-b border-white/10 flex items-center justify-between gap-2">
-        <Logo className="scale-[0.85] origin-left" />
+        <Logo className="scale-[0.85] origin-left" subtitle={stamp} />
         <button
           type="button"
           onClick={onToggleNotifications}

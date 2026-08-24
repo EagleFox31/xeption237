@@ -1,5 +1,11 @@
 import type { DashboardAnalytics } from './dashboardAnalytics';
-import { formatFcfa, formatPeriodLabel } from './dashboardAnalytics';
+import {
+  formatFcfa,
+  formatPeriodLabel,
+  productDetailRevenue,
+  REVENUE_DEFINITION,
+  topProductsCoverageNote,
+} from './dashboardAnalytics';
 
 const escapeCell = (v: string | number) =>
   `"${String(v).replace(/"/g, '""')}"`;
@@ -19,6 +25,7 @@ export const exportDashboardCsv = (data: DashboardAnalytics, label: string) => {
   const rows: string[][] = [
     ['Xeption — Pilotage ventes'],
     ['Période', formatPeriodLabel(new Date(data.period.from), new Date(data.period.to))],
+    ['Définition CA encaissé', REVENUE_DEFINITION],
     [],
     ['Indicateurs', 'Valeur'],
     ['CA encaissé', formatFcfa(data.kpis.revenue)],
@@ -46,8 +53,10 @@ export const exportDashboardCsv = (data: DashboardAnalytics, label: string) => {
   if (data.coverage_gap.orders_without_line_items > 0) {
     rows.push(
       [],
-      ['Note historique', `${data.coverage_gap.orders_without_line_items} commande(s) sans détail produit`],
-      ['CA sans détail', String(data.coverage_gap.revenue_without_detail)],
+      ['Ventilation produits', formatFcfa(productDetailRevenue(data))],
+      ['Hors ventilation', formatFcfa(data.coverage_gap.revenue_without_detail)],
+      ['Commandes sans détail', String(data.coverage_gap.orders_without_line_items)],
+      ['Note', topProductsCoverageNote(data) ?? ''],
     );
   }
 
@@ -57,42 +66,105 @@ export const exportDashboardCsv = (data: DashboardAnalytics, label: string) => {
 
 export const printEndOfDayReport = (data: DashboardAnalytics) => {
   const period = formatPeriodLabel(new Date(data.period.from), new Date(data.period.to));
+  const printedAt = new Date().toLocaleString('fr-FR', {
+    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+
+  // Une section vide affiche une phrase, jamais un tableau à en-têtes seules :
+  // un tableau vide se lit comme un bug, une phrase se lit comme une information.
+  const section = (title: string, headers: string[], rows: string[], empty: string) => `
+    <section>
+      <h2>${title}</h2>
+      ${rows.length
+        ? `<table><thead><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr></thead>
+           <tbody>${rows.join('')}</tbody></table>`
+        : `<p class="empty">${empty}</p>`}
+    </section>`;
+
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/>
 <title>Rapport Xeption — ${period}</title>
 <style>
-  body{font-family:system-ui,sans-serif;padding:32px;color:#111;max-width:720px;margin:0 auto}
-  h1{font-size:18px;margin:0 0 4px} .sub{color:#555;font-size:13px;margin-bottom:24px}
-  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:28px}
-  .kpi{border:1px solid #ddd;border-radius:8px;padding:12px}
-  .kpi label{font-size:10px;text-transform:uppercase;color:#666;display:block}
-  .kpi strong{font-size:20px}
-  table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px}
-  th,td{border-bottom:1px solid #eee;padding:8px 4px;text-align:left}
-  th{font-size:10px;text-transform:uppercase;color:#666}
-  .note{background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:10px;font-size:11px;color:#92400e}
-  @media print{body{padding:16px}}
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,sans-serif;margin:0;padding:28px 32px;color:#14140f;
+       max-width:820px;margin:0 auto;background:#fff}
+
+  .head{display:flex;align-items:center;justify-content:space-between;gap:16px;
+        border-bottom:3px solid #FFD700;padding-bottom:14px;margin-bottom:22px}
+  .brand{font-size:22px;font-weight:800;letter-spacing:-.5px}
+  .brand span{color:#c9a200}
+  .head .meta{text-align:right;font-size:11px;color:#666;line-height:1.5}
+  h1{font-size:15px;margin:0;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#444}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 10px}
+  .kpi{border:1px solid #e6e6e6;border-radius:8px;padding:12px 14px;background:#fcfcfa}
+  .kpi.hero{background:#FFF9DB;border-color:#FFD700}
+  .kpi label{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#7a7a70;display:block;margin-bottom:6px}
+  .kpi strong{font-size:19px;font-weight:800;display:block;line-height:1.15}
+  .kpi.hero strong{color:#8a6d00}
+
+  .def{font-size:10px;color:#7a7a70;margin:0 0 24px;font-style:italic}
+
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#14140f;
+     margin:22px 0 8px;padding-bottom:5px;border-bottom:1px solid #FFD700}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#7a7a70;
+     text-align:left;padding:6px 8px;background:#faf8f0}
+  td{padding:7px 8px;border-bottom:1px solid #f0f0ec}
+  tbody tr:nth-child(even) td{background:#fcfcfa}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .empty{font-size:12px;color:#8a8a80;padding:12px 8px;background:#fafaf7;
+         border:1px dashed #ddd;border-radius:6px;margin:0}
+
+  .note{background:#FFF9DB;border-left:3px solid #FFD700;padding:10px 12px;
+        font-size:11px;color:#6b5500;margin-top:18px;border-radius:0 4px 4px 0}
+  .foot{margin-top:26px;padding-top:10px;border-top:1px solid #eee;
+        font-size:10px;color:#9a9a90;display:flex;justify-content:space-between}
+
+  @media print{
+    body{padding:0}
+    section{break-inside:avoid}
+    .kpi.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
 </style></head><body>
-<h1>Rapport de fin de journée — Xeption</h1>
-<p class="sub">${period}</p>
+
+<div class="head">
+  <div>
+    <div class="brand">XEPTION<span>.</span></div>
+    <h1>Rapport de fin de journée</h1>
+  </div>
+  <div class="meta">
+    <strong>${period}</strong><br/>
+    Édité le ${printedAt}
+  </div>
+</div>
+
 <div class="kpis">
-  <div class="kpi"><label>CA encaissé</label><strong>${formatFcfa(data.kpis.revenue)}</strong></div>
+  <div class="kpi hero"><label>CA encaissé</label><strong>${formatFcfa(data.kpis.revenue)}</strong></div>
   <div class="kpi"><label>Transactions</label><strong>${data.kpis.transaction_count}</strong></div>
-  <div class="kpi"><label>Articles</label><strong>${data.kpis.items_sold}</strong></div>
+  <div class="kpi"><label>Articles vendus</label><strong>${data.kpis.items_sold}</strong></div>
   <div class="kpi"><label>Panier moyen</label><strong>${formatFcfa(data.kpis.average_basket)}</strong></div>
 </div>
-<h2>Vendeurs</h2>
-<table><thead><tr><th>Nom</th><th>Boutique</th><th>CA</th><th>Ventes</th></tr></thead><tbody>
-${data.by_staff.map((s) => `<tr><td>${s.staff_name}</td><td>${s.store_name ?? '—'}</td><td>${formatFcfa(s.revenue)}</td><td>${s.transaction_count}</td></tr>`).join('')}
-</tbody></table>
-<h2>Boutiques</h2>
-<table><thead><tr><th>Boutique</th><th>CA</th><th>Ventes</th></tr></thead><tbody>
-${data.by_store.map((s) => `<tr><td>${s.store_name}</td><td>${formatFcfa(s.revenue)}</td><td>${s.transaction_count}</td></tr>`).join('')}
-</tbody></table>
-<h2>Top produits</h2>
-<table><thead><tr><th>Produit</th><th>Qté</th><th>CA</th></tr></thead><tbody>
-${data.top_products.map((p) => `<tr><td>${p.product_name}</td><td>${p.quantity}</td><td>${formatFcfa(p.revenue)}</td></tr>`).join('')}
-</tbody></table>
-${data.coverage_gap.orders_without_line_items > 0 ? `<p class="note">${data.coverage_gap.orders_without_line_items} vente(s) historique(s) sans détail produit (${formatFcfa(data.coverage_gap.revenue_without_detail)}). Les totaux par produit peuvent être incomplets.</p>` : ''}
+<p class="def">CA encaissé : ${REVENUE_DEFINITION}</p>
+
+${section('Vendeurs', ['Nom', 'Boutique', 'CA', 'Ventes'],
+  data.by_staff.map((s) => `<tr><td>${s.staff_name}</td><td>${s.store_name ?? '—'}</td><td class="num">${formatFcfa(s.revenue)}</td><td class="num">${s.transaction_count}</td></tr>`),
+  'Aucune vente attribuée à un vendeur sur cette période.')}
+
+${section('Boutiques', ['Boutique', 'CA', 'Ventes'],
+  data.by_store.map((s) => `<tr><td>${s.store_name}</td><td class="num">${formatFcfa(s.revenue)}</td><td class="num">${s.transaction_count}</td></tr>`),
+  'Aucune vente rattachée à une boutique sur cette période.')}
+
+${section('Top produits', ['Produit', 'Qté', 'CA'],
+  data.top_products.map((p) => `<tr><td>${p.product_name}</td><td class="num">${p.quantity}</td><td class="num">${formatFcfa(p.revenue)}</td></tr>`),
+  'Aucun article vendu sur cette période.')}
+
+${topProductsCoverageNote(data) ? `<p class="note">${topProductsCoverageNote(data)}</p>` : ''}
+
+<div class="foot">
+  <span>Xeption Network 237 — document interne</span>
+  <span>Généré automatiquement, sans ressaisie</span>
+</div>
+
 <script>window.onload=()=>{window.print();}</script>
 </body></html>`;
 

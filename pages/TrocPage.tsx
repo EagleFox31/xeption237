@@ -372,6 +372,16 @@ const TrocPage: React.FC = () => {
         }
       : null;
 
+  // La barre latérale ne voit que 4 des 5 conditions : « l'appareil s'allume »
+  // reste local au formulaire. On passe ce qu'on voit, la fonction s'adapte.
+  const sidebarChecks = [
+    { label: 'ton prénom',  done: troc.form.customerName.trim().length >= 2 },
+    { label: 'ton numéro',  done: /^[62]\d{8}$/.test(troc.form.customerPhone.trim()) },
+    { label: "l'IMEI",      done: troc.imeiStatus === 'valid' },
+    { label: 'le modèle',   done: (troc.form.deviceModel ?? '').trim().length >= 2 },
+  ];
+  const sidebarDone = sidebarChecks.filter((c) => c.done).length;
+
   const coachView = resolveTrocCoach({
     step: troc.step,
     imeiStatus: troc.imeiStatus,
@@ -380,6 +390,11 @@ const TrocPage: React.FC = () => {
     photoCount: troc.photos.length,
     paymentState: troc.paymentState,
     hasError: Boolean(troc.error),
+    formDone: sidebarDone,
+    formTotal: sidebarChecks.length,
+    formNext: sidebarChecks.find((c) => !c.done)?.label,
+    firstName: troc.form.customerName,
+    deviceLabel: [troc.form.deviceBrand, troc.form.deviceModel].filter(Boolean).join(' ') || undefined,
   });
 
   const printVoucher = () => {
@@ -663,18 +678,6 @@ const TrocPage: React.FC = () => {
 
         {intent === 'troc' && selectedDeviceType === 'phone' && (
           <div className="max-w-7xl mx-auto w-full">
-        {troc.step === 'form' && (
-          <div className="mb-4 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setSelectedDeviceType(null)}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-[#1c1c16]/90 border border-white/20 hover:border-xeption-gold/30 text-white/80 hover:text-white transition-all text-[10px] font-tech uppercase tracking-widest"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Changer d'appareil
-            </button>
-          </div>
-        )}
 
         <div className={`${troc.step === 'voucher' ? '' : 'lg:grid lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px] lg:gap-6 lg:items-start'}`}>
         <div className="min-w-0">
@@ -706,14 +709,28 @@ const TrocPage: React.FC = () => {
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-xeption-gold/30 to-transparent"></div>
 
           {/* En-tête intégré */}
-          <div className="px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-white/5 flex items-center gap-3">
-            <div className="w-10 h-10 border border-xeption-gold/30 bg-xeption-gold/10 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(255,215,0,0.15)]">
-              <RefreshCw className="w-5 h-5 text-xeption-gold" />
+          <div className="px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-white/5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 border border-xeption-gold/30 bg-xeption-gold/10 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(255,215,0,0.15)] shrink-0">
+                <RefreshCw className="w-5 h-5 text-xeption-gold" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-xl font-tech font-bold uppercase text-white tracking-wider leading-tight">Smart Troc</h1>
+                <p className="text-[10px] font-tech uppercase tracking-widest text-white/70">Reprise cadrée, estimation propre</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-tech font-bold uppercase text-white tracking-wider leading-tight">Smart Troc</h1>
-              <p className="text-[10px] font-tech uppercase tracking-widest text-white/70">Reprise cadrée, estimation propre</p>
-            </div>
+
+            {troc.step !== 'voucher' && (
+              <button
+                type="button"
+                onClick={() => setSelectedDeviceType(null)}
+                className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-xeption-gold/60 bg-xeption-gold/15 px-3 py-2 text-[10px] font-tech font-bold uppercase tracking-widest text-xeption-gold shadow-[0_0_15px_rgba(255,215,0,0.15)] transition-all hover:border-xeption-gold hover:bg-xeption-gold hover:text-black hover:shadow-[0_0_25px_rgba(255,215,0,0.35)]"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Changer d'appareil</span>
+                <span className="sm:hidden">Appareil</span>
+              </button>
+            )}
           </div>
 
           {/* Conteneur animé pour les étapes */}

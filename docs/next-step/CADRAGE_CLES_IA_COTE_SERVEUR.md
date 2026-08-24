@@ -51,10 +51,11 @@ Le bon moment pour refermer, c'est avant ce basculement.
 | 1 | `services/openRouterVisionClient.ts` | Secours préflight photo | OpenRouter | fonctionne |
 | 2 | `services/trocVisionProvider.ts` → `geminiClient` | Secours vision navigateur | Gemini | **HS** — modèle retiré |
 | 3 | `services/geminiService.ts` → `AiConsultant.tsx` | Chatbot conseil d'achat, **site public** | Gemini | **HS** — modèle retiré |
-| 4 | `services/geminiService.ts` → `ProductEditorOverlay.tsx` | Génération de description produit, admin | Gemini | **HS** — modèle retiré |
-| 5 | `services/geminiService.ts` → `productIngestionFunnel.ts` | Entonnoir d'import catalogue, admin | Gemini | **HS** — modèle retiré |
+| 4 | `services/geminiService.ts` → `ProductEditorOverlay.tsx` | Génération de description produit, admin | **DeepSeek** | fonctionne |
+| 5 | `services/geminiService.ts` → `productIngestionFunnel.ts` | Entonnoir d'import catalogue, admin | **DeepSeek** | fonctionne |
+| 6 | `services/deepseekClient.ts` | Clé DeepSeek, lue côté navigateur | DeepSeek | à traiter comme les autres |
 
-### 2.1 Trois fonctionnalités sont à terre en ce moment
+### 2.1 Deux fonctionnalités sont à terre en ce moment
 
 `services/geminiClient.ts` code en dur les **mêmes modèles retirés** que ceux qui
 ont fait tomber le pipeline vision :
@@ -74,10 +75,21 @@ gemini-3.5-flash        répond
 gemini-flash-lite-latest répond
 ```
 
-Conséquence : le **chatbot du site public** et la **génération de descriptions
-produit** échouent à chaque appel. Ce n'est pas une régression d'aujourd'hui —
-c'est la même cause, découverte par le même chemin, sur des fichiers que la
-correction du pipeline vision n'a pas touchés.
+Conséquence : le **chatbot du site public** et le **secours vision navigateur**
+échouent à chaque appel. Ce n'est pas une régression d'aujourd'hui — c'est la
+même cause, sur des fichiers que la correction du pipeline vision n'a pas touchés.
+
+> **Correction du 2026-08-24.** Une première version de ce document annonçait
+> *trois* fonctionnalités HS, en y ajoutant la génération de descriptions produit.
+> C'était faux : `generateProductDetails` appelle `deepseekChatJson`, pas Gemini.
+> J'avais déduit le fournisseur du fait que ces composants importent
+> `geminiService`, sans vérifier quelle fonction utilise quel fournisseur — alors
+> que le commentaire au-dessus de la fonction le dit explicitement.
+>
+> À retenir : **le nom d'un module ne dit pas ce que chacune de ses fonctions
+> appelle.** Et `VITE_DEEPSEEK_API_KEY` s'ajoute à la liste des clés à sortir du
+> navigateur — elle n'est pas dans le `.env` local, donc cette fonctionnalité est
+> inutilisable ici, mais le problème d'exposition est le même en production.
 
 > C'est probablement l'explication de « seul le chatbot Gemini a raté » noté dans
 > l'audit de découvrabilité.
@@ -109,10 +121,18 @@ faille avec une étape de plus : au lieu de voler la clé, on appelle le proxy e
 boucle. Le chatbot est sur le **site public, sans authentification** — c'est la
 surface la plus exposée.
 
-**Aucun des 15 Edge Functions actuelles n'implémente de limitation de débit.**
-`check-imei` transporte un `sessionKey`, mais pour de la traçabilité, pas pour
-brider. Le garde-fou est donc à créer, et il fait partie du chantier — pas
-d'un « plus tard ».
+~~Aucune des 15 Edge Functions n'implémente de limitation de débit.~~
+**Périmé au 2026-08-24, 17h47** : le lot 1 a été engagé en parallèle.
+`supabase/functions/_shared/rateLimit.ts` existe, avec une fenêtre par buckets
+sur `sessionKey` + IP, et il est câblé dans `check-imei`, `evaluate-device` et
+`market-price-intel`.
+
+⚠️ **La migration `20260824_030_ai_usage_quota.sql` est encore EN ATTENTE.** Le
+module échoue *ouvert* (`consumeBucket` renvoie `null` si la RPC manque, et il
+faut `count != null` pour bloquer) : déployer avant la migration ne verrouille
+donc personne. Mais tant qu'elle n'est pas appliquée, **le quota ne s'applique
+pas et rien ne le signale** — même profil que le `healthCheck` qui répondait
+« ready » pendant la panne. À appliquer avant de considérer le lot 1 comme fait.
 
 Trois niveaux possibles, du plus simple au plus solide :
 

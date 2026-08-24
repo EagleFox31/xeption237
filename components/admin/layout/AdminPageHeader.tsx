@@ -91,7 +91,7 @@ const AdminPageHeader: React.FC<AdminPageHeaderProps> = ({
 
   return (
     <header
-      className={`mb-4 md:mb-6 ${adminUi.pageHeaderCard} group animate-in fade-in slide-in-from-top-2 duration-500 fill-mode-both`}
+      className={`mb-3 md:mb-4 ${adminUi.pageHeaderCard} group animate-in fade-in slide-in-from-top-2 duration-500 fill-mode-both`}
     >
       <div
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.35)_50%,transparent_65%)] -translate-x-full motion-safe:group-hover:translate-x-full transition-transform duration-[1400ms] ease-out"

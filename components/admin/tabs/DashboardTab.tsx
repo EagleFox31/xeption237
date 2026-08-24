@@ -19,14 +19,19 @@ import StatCard from '../shared/StatCard';
 import DashboardRankingBars from '../dashboard/DashboardRankingBars';
 import { adminUi } from '../shared/adminUi';
 import { useDashboardAnalytics } from '../../../hooks/admin/useDashboardAnalytics';
+import { useCatalogHealth } from '../../../hooks/admin/useCatalogHealth';
+import CatalogHealthCard from '../dashboard/CatalogHealthCard';
 import {
   type DashboardPeriodPreset,
   formatFcfa,
   formatPeriodLabel,
   periodFromPreset,
+  REVENUE_DEFINITION_SHORT,
+  topProductsCoverageNote,
 } from '../../../utils/dashboardAnalytics';
 import { exportDashboardCsv, printEndOfDayReport } from '../../../utils/dashboardExport';
 import { getOrderStatusLabel } from '../../../utils/orderWorkflow';
+import { notifyInfo } from '../../../utils/notify';
 import type { Order } from '../../../types';
 
 interface DashboardTabProps {
@@ -34,6 +39,7 @@ interface DashboardTabProps {
   products: Product[];
   stores: StoreType[];
   currentStaff: Staff | null;
+  onEditProduct?: (product: Product) => void;
 }
 
 const PRESETS: { id: DashboardPeriodPreset; label: string }[] = [
@@ -48,6 +54,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   products,
   stores,
   currentStaff,
+  onEditProduct,
 }) => {
   const role = normalizeStaffRole(currentStaff?.role);
   const canFilterAll = role === 'direction' || role === 'super_admin';
@@ -64,6 +71,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   );
 
   const { data, loading, error, fetchAnalytics } = useDashboardAnalytics();
+  const catalogHealth = useCatalogHealth();
 
   const period = useMemo(() => {
     const custom =
@@ -86,6 +94,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    void catalogHealth.refresh();
+  }, [catalogHealth.refresh]);
 
   const lowStock = useMemo(
     () => products.filter((p) => (p.stock ?? 0) > 0 && (p.stock ?? 0) < 5).slice(0, 6),
@@ -117,23 +129,87 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     [data?.by_store],
   );
 
+  const coverageNote = useMemo(
+    () => (data ? topProductsCoverageNote(data) : null),
+    [data],
+  );
+
+  const [currentTime, setCurrentTime] = useState(() =>
+    new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Toolbar filtres + actions */}
-      <div className={`${adminUi.card} flex flex-col gap-4`}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-white/80">
-            <CalendarRange className="h-4 w-4 text-xeption-gold shrink-0" />
-            <span className="text-sm font-medium">
-              {data ? formatPeriodLabel(new Date(data.period.from), new Date(data.period.to)) : '…'}
-            </span>
+      <div className={`${adminUi.card} flex flex-col gap-4 p-4 sm:p-5`}>
+        
+        {/* LIGNE 1 : Date & Heure (Grand format) + Filtres Boutique & Vendeurs + Boutons d'action */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          
+          {/* Gauche : Date & Heure + Filtres */}
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            
+            {/* Bloc Date & Heure agrandi */}
+            <div className="flex items-center gap-2.5 bg-black/40 border border-white/10 px-3.5 py-1.5 rounded-md shadow-inner">
+              <CalendarRange className="h-4 sm:h-5 w-4 sm:w-5 text-xeption-gold shrink-0" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm sm:text-base font-tech font-bold uppercase tracking-wider text-white">
+                  {data ? formatPeriodLabel(new Date(data.period.from), new Date(data.period.to)) : '…'}
+                </span>
+                <span className="text-xs font-mono font-bold text-xeption-gold bg-xeption-gold/15 px-2 py-0.5 rounded border border-xeption-gold/30">
+                  {currentTime}
+                </span>
+              </div>
+            </div>
+
+            {/* Filtres Boutique & Vendeurs alignés sur la ligne de la date */}
+            <div className="flex flex-wrap items-center gap-2">
+              {canFilterStore && (
+                <select
+                  value={storeId ?? ''}
+                  onChange={(e) => setStoreId(e.target.value || null)}
+                  className={`${adminUi.input} w-auto min-w-[160px] text-xs py-2 bg-black/60 border-white/15 focus:border-xeption-gold`}
+                >
+                  <option value="">Toutes les boutiques</option>
+                  {stores.filter((s) => s.active).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {(canFilterAll || canFilterStore) && (
+                <select
+                  value={staffId ?? ''}
+                  onChange={(e) => setStaffId(e.target.value || null)}
+                  className={`${adminUi.input} w-auto min-w-[160px] text-xs py-2 bg-black/60 border-white/15 focus:border-xeption-gold`}
+                >
+                  <option value="">Tous les vendeurs</option>
+                  {staffMembers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          {/* Droite : Boutons Exports & Rapports */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               disabled={!data || loading}
               onClick={() => data && exportDashboardCsv(data, exportLabel)}
-              className={`${adminUi.btnGhost} text-xs py-2`}
+              className={`${adminUi.btnGhost} text-xs py-2 px-3.5 flex items-center gap-1.5`}
             >
               <Download className="h-3.5 w-3.5" />
               Export Excel
@@ -142,7 +218,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
               type="button"
               disabled={!data || loading}
               onClick={() => data && printEndOfDayReport(data)}
-              className={`${adminUi.btnPrimary} text-xs py-2`}
+              className={`${adminUi.btnPrimary} text-xs py-2 px-3.5 flex items-center gap-1.5`}
             >
               <FileText className="h-3.5 w-3.5" />
               Rapport du soir
@@ -150,73 +226,66 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
         </div>
 
-        <div className={adminUi.segmentGroup}>
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setPreset(p.id)}
-              className={adminUi.segmentBtn(preset === p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        {preset === 'custom' && (
-          <div className="flex flex-wrap gap-3 items-end">
-            <label className="text-xs text-white/70">
-              Du
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className={`${adminUi.input} mt-1 block`}
-              />
-            </label>
-            <label className="text-xs text-white/70">
-              Au
-              <input
-                type="date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className={`${adminUi.input} mt-1 block`}
-              />
-            </label>
+        {/* LIGNE 2 : Périodes pré-définies (Aujourd'hui, 7 jours, Ce mois, Personnalisé) */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className={adminUi.segmentGroup}>
+            {PRESETS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPreset(p.id)}
+                className={adminUi.segmentBtn(preset === p.id)}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
-        )}
 
-        <div className="flex flex-wrap gap-3">
-          {canFilterStore && (
-            <select
-              value={storeId ?? ''}
-              onChange={(e) => setStoreId(e.target.value || null)}
-              className={`${adminUi.input} w-auto min-w-[160px] text-xs`}
-            >
-              <option value="">Toutes les boutiques</option>
-              {stores.filter((s) => s.active).map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          )}
-          {(canFilterAll || canFilterStore) && (
-            <select
-              value={staffId ?? ''}
-              onChange={(e) => setStaffId(e.target.value || null)}
-              className={`${adminUi.input} w-auto min-w-[160px] text-xs`}
-            >
-              <option value="">Tous les vendeurs</option>
-              {staffMembers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+          {preset === 'custom' && (
+            <div className="flex flex-wrap gap-3 items-center">
+              <label className="text-xs text-white/70 flex items-center gap-1.5">
+                Du
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className={`${adminUi.input} py-1 text-xs`}
+                />
+              </label>
+              <label className="text-xs text-white/70 flex items-center gap-1.5">
+                Au
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className={`${adminUi.input} py-1 text-xs`}
+                />
+              </label>
+            </div>
           )}
         </div>
       </div>
+
+      <CatalogHealthCard
+        summary={catalogHealth.summary}
+        loading={catalogHealth.loading}
+        scanning={catalogHealth.scanning}
+        error={catalogHealth.error}
+        onRescan={() => void catalogHealth.rescan()}
+        onSnooze={(id) => void catalogHealth.snooze(id)}
+        onOpenProduct={
+          onEditProduct
+            ? (productId) => {
+                const product = products.find((p) => p.id === productId);
+                if (product) {
+                  onEditProduct(product);
+                  return;
+                }
+                notifyInfo('Fiche introuvable dans l’inventaire chargé', 'Recharge la page puis réessaie.');
+              }
+            : undefined
+        }
+      />
 
       {error && (
         <div className={`${adminUi.hintCard} border-red-500/40 text-red-300 text-sm`}>{error}</div>
@@ -232,16 +301,16 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <StatCard
               label="CA encaissé"
               value={Math.round(data.kpis.revenue).toLocaleString('fr-FR')}
-              sub="FCFA · payé ou livré"
+              sub={REVENUE_DEFINITION_SHORT}
               icon={TrendingUp}
-              tone="green"
+              tone="gold"
             />
             <StatCard
               label="Transactions"
               value={String(data.kpis.transaction_count)}
               sub="Ventes sur la période"
               icon={ShoppingBag}
-              tone="gold"
+              tone="white"
             />
             <StatCard
               label="Articles vendus"
@@ -259,20 +328,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                   : 'FCFA'
               }
               icon={Receipt}
-              tone="neutral"
+              tone="white"
             />
           </div>
-
-          {data.coverage_gap.orders_without_line_items > 0 && (
-            <div className={`${adminUi.hintCard} border-amber-500/35 flex gap-2 items-start`}>
-              <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-white/80 leading-snug">
-                {data.coverage_gap.orders_without_line_items} vente(s) historique(s) sans détail produit (
-                {formatFcfa(data.coverage_gap.revenue_without_detail)}). Le top produits peut être incomplet
-                sur l&apos;ancien historique — les totaux CA restent exacts.
-              </p>
-            </div>
-          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <DashboardRankingBars
@@ -324,6 +382,11 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     </tbody>
                   </table>
                 </div>
+              )}
+              {coverageNote && (
+                <p className="mt-3 text-xs text-white/60 leading-relaxed border-t border-white/10 pt-3">
+                  {coverageNote}
+                </p>
               )}
             </section>
 

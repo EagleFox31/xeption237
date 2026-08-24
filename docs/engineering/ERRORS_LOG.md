@@ -96,6 +96,16 @@
 
 ---
 
+## 2026-08-24 — Diagnostiquer une Edge Function sur sa source au lieu de son déploiement
+
+- **Symptôme** : `000000000000000` passait la vérification IMEI et renvoyait « Apple iPhone 15 ». J'ai lu la source de `check-imei`, trouvé le garde-fou `isTrivialTestImei` en place, et conclu que le front laissait passer — diagnostic faux.
+- **Cause racine** : le garde-fou existait **sur disque mais pas en production**. `utils/imeiValidation.ts` et `supabase/functions/_shared/imeiValidation.ts` étaient **non suivis par git** (`??`) : écrits, jamais commités, jamais déployés. La fonction en ligne datait d'avant. Deuxième cause empilée : Luhn n'est qu'une somme de contrôle, quinze zéros donnent une somme de 0 donc divisible par 10 — Luhn valide. Le fournisseur externe a alors répondu avec 0.92 de confiance sur un TAC inexistant, et le résultat est parti en `tac_cache`.
+- **Résolution** : appeler la fonction **déployée** avec les cas de test (`fetch` sur `/functions/v1/check-imei`) au lieu de raisonner sur la source. Puis renforcer `isTrivialTestImei`, poser le filtre de cache dans `dbTacWrite`, purger la ligne empoisonnée, **et redéployer** — sans quoi la purge se serait annulée au premier faux IMEI.
+- **Comment ne plus la refaire** : pour tout code exécuté ailleurs (Edge Function, cron, RPC), **la source n'est pas la vérité — le runtime l'est**. Deux réflexes : `git status` sur le dossier concerné (un `??` ou un ` M` signifie « pas ce qui tourne »), et un appel réel à l'endpoint avant de formuler un diagnostic. Corollaire : une correction en base et son garde-fou applicatif se déploient **ensemble**, sinon la correction est éphémère.
+- **Piège annexe** : n'inférer une règle métier ni d'une intuition ni d'un seul exemple. J'ai écrit « un vrai TAC ne commence jamais par 00 » ; la table contenait `00499901` = CHUWI CW-Vi7 (source osmocom). La règle aurait empêché la mise en cache d'appareils réels. Les données du projet réfutent l'intuition — les interroger d'abord.
+
+---
+
 ## Modèle d'entrée (copier-coller)
 
 ```

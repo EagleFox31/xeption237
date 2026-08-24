@@ -89,11 +89,11 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
   // verite : impossible que la barre annonce 5/5 alors que le bouton reste
   // desactive.
   const checklist = [
-    { key: 'name',  label: 'Prénom',   done: isValidName(form.customerName) },
-    { key: 'phone', label: 'Téléphone', done: isValidPhone(form.customerPhone) },
-    { key: 'power', label: 'Allume',   done: powersOn === true },
-    { key: 'imei',  label: 'IMEI',     done: Boolean(imeiOk) },
-    { key: 'model', label: 'Modèle',   done: effectiveModel.length >= 2 },
+    { key: 'name',  label: 'ton prénom',                 done: isValidName(form.customerName) },
+    { key: 'phone', label: 'ton numéro',                 done: isValidPhone(form.customerPhone) },
+    { key: 'power', label: "de savoir s'il s'allume",    done: powersOn === true },
+    { key: 'imei',  label: "l'IMEI",                     done: Boolean(imeiOk) },
+    { key: 'model', label: 'le modèle',                  done: effectiveModel.length >= 2 },
   ];
   const doneCount = checklist.filter((c) => c.done).length;
   const progressPct = Math.round((doneCount / checklist.length) * 100);
@@ -131,41 +131,30 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
   return (
     <div className="grid grid-cols-1 gap-6 p-6 sm:p-8 lg:grid-cols-2 lg:gap-x-8 lg:gap-y-5 lg:items-start">
 
-      {/* Progression — remplir un formulaire devient avancer vers son offre */}
-      <div className="lg:col-span-2 rounded-xl border border-xeption-gold/25 bg-gradient-to-r from-xeption-gold/[0.12] to-transparent px-4 py-3">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <span className="text-[11px] font-tech font-bold uppercase tracking-widest text-white/85">
-            {doneCount === checklist.length
-              ? 'Tout y est — on peut estimer'
-              : `${doneCount} sur ${checklist.length} — ton estimation se prépare`}
-          </span>
-          <span className={`font-tech text-lg font-black tabular-nums ${doneCount === checklist.length ? 'text-emerald-300' : 'text-xeption-gold'}`}>
-            {progressPct}%
-          </span>
-        </div>
-
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+      {/* Progression — volontairement SANS numerotation ni pastilles : le stepper
+          du haut est deja une barre horizontale a 5 elements. En reprendre la
+          forme creait deux « 1 sur 5 » de sens different cote a cote. Ici, une
+          ligne fine et une phrase : ce qui reste a faire, rien de plus. */}
+      <div className="lg:col-span-2 flex items-center gap-3">
+        <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
           <div
-            className={`h-full rounded-full transition-all duration-500 ease-out ${doneCount === checklist.length ? 'bg-emerald-400' : 'bg-gradient-to-r from-amber-400 to-xeption-gold'}`}
+            className={`h-full rounded-full transition-all duration-500 ease-out ${
+              doneCount === checklist.length
+                ? 'bg-emerald-400'
+                : 'bg-gradient-to-r from-amber-400 to-xeption-gold'
+            }`}
             style={{ width: `${progressPct}%` }}
           />
         </div>
-
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {checklist.map((c) => (
-            <span
-              key={c.key}
-              className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-tech uppercase tracking-wide transition-colors duration-300 ${
-                c.done
-                  ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
-                  : 'border-white/15 bg-white/[0.04] text-white/50'
-              }`}
-            >
-              {c.done && <CheckCircle className="h-3 w-3 shrink-0" />}
-              {c.label}
-            </span>
-          ))}
-        </div>
+        <span
+          className={`shrink-0 text-[11px] font-sans ${
+            doneCount === checklist.length ? 'text-emerald-300' : 'text-white/70'
+          }`}
+        >
+          {doneCount === checklist.length
+            ? 'Tout y est — on peut estimer'
+            : `Il manque ${checklist.find((c) => !c.done)?.label}`}
+        </span>
       </div>
 
       {/* Ligne 1 — en-têtes calés sur la même hauteur (laptop) */}

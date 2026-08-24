@@ -1,6 +1,9 @@
 // @ts-ignore
 const Deno = globalThis.Deno;
 
+import { assertAiRateLimit, rateLimitJsonResponse } from '../_shared/rateLimit.ts';
+import { parseModelChain, DEFAULT_TEXT_MODELS, shouldTryNextModel } from '../_shared/geminiModels.ts';
+
 export {};
 
 const corsHeaders = {
@@ -13,7 +16,9 @@ const GEMINI_TIMEOUT_MS = 12000;
 const CACHE_TTL_HOURS = 12;
 const MIN_PRICE_XAF = 20000;
 const MAX_PRICE_XAF = 3000000;
-const GEMINI_MODEL = 'gemini-2.0-flash';
+// Chaine de modeles : gemini-2.0-flash a ete retire par Google le 2026-08-24 et
+// ce filtre tournait donc dans le vide (cf. plus bas, `if (!res.ok) return offers`).
+const GEMINI_MODELS = parseModelChain(Deno.env.get('GEMINI_MODELS'), DEFAULT_TEXT_MODELS);
 const SNIPPET_RADIUS = 220;
 const MAX_OFFERS_PER_SOURCE = 40;
 const DDG_MAX_LINKS = 6;
@@ -635,32 +640,48 @@ const filterOffersWithGemini = async (
     JSON.stringify(compact),
   ].join('\n');
 
-  const res = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'OBJECT',
-            properties: {
-              keep: {
-                type: 'ARRAY',
-                items: { type: 'INTEGER' },
+  // Ce filtre echoue OUVERT : sans lui, les offres non pertinentes (accessoires,
+  // chargeurs, autres modeles) entrent dans le prix de reference, qui ancre les
+  // offres de reprise. Un modele mort ici ne se voyait donc pas.
+  let res: Response | null = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const attempt = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: 'OBJECT',
+                properties: {
+                  keep: {
+                    type: 'ARRAY',
+                    items: { type: 'INTEGER' },
+                  },
+                },
+                required: ['keep'],
               },
             },
-            required: ['keep'],
-          },
+          }),
         },
-      }),
-    },
-    GEMINI_TIMEOUT_MS,
-  );
+        GEMINI_TIMEOUT_MS,
+      );
 
-  if (!res.ok) return offers;
+      if (attempt.ok) { res = attempt; break; }
+
+      console.warn('[market-price-intel] filtre indisponible', model, attempt.status);
+      if (!shouldTryNextModel(attempt.status)) break;
+    } catch (error: any) {
+      console.warn('[market-price-intel] filtre en echec', model, error?.message ?? error);
+    }
+  }
+
+  if (!res) return offers;
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) return offers;
@@ -754,6 +775,13 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: 'deviceBrand et deviceModel requis' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 },
       );
+    }
+
+    const sessionKey =
+      typeof body?.sessionKey === 'string' ? body.sessionKey.trim() : null;
+    const rateLimit = await assertAiRateLimit(req, 'market-price-intel', sessionKey);
+    if (!rateLimit.allowed) {
+      return rateLimitJsonResponse(rateLimit, corsHeaders);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';

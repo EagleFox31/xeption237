@@ -116,6 +116,16 @@
 
 ---
 
+## 2026-08-24 — Attribuer un fournisseur d'après le nom du module
+
+- **Symptôme** : le cadrage `CADRAGE_CLES_IA_COTE_SERVEUR.md` annonçait **trois** fonctionnalités hors service par modèle Gemini retiré. Il n'y en avait que deux.
+- **Cause racine** : j'ai déduit le fournisseur du fait que `ProductEditorOverlay.tsx` et `productIngestionFunnel.ts` importent depuis `services/geminiService.ts`. Or `generateProductDetails`, dans ce même fichier, appelle `deepseekChatJson` — et le commentaire juste au-dessus le dit noir sur blanc : « Génère un ou plusieurs champs produit via **DeepSeek** ». Je l'avais sous les yeux dans un résultat de recherche antérieur et je ne l'ai pas lu.
+- **Résolution** : vérifier, dans le corps de chaque fonction, quel client est réellement appelé, puis corriger le tableau du cadrage (points 4 et 5 = DeepSeek, qui fonctionne) et ajouter `services/deepseekClient.ts` comme sixième point d'appel — sa clé est exposée au même titre que les autres.
+- **Comment ne plus la refaire** : **le nom d'un module ne dit pas ce que chacune de ses fonctions appelle.** Un fichier historique accumule des fournisseurs au fil du temps. Pour établir un périmètre, remonter jusqu'à l'appel réseau de chaque fonction — pas jusqu'à la ligne d'import du composant qui l'utilise.
+- **Effet secondaire** : le périmètre a paru plus alarmant qu'il n'était. Sur un document destiné à arbitrer un chantier, surestimer coûte autant que sous-estimer.
+
+---
+
 ## Modèle d'entrée (copier-coller)
 
 ```

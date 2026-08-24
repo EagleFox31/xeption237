@@ -3,6 +3,8 @@ const Deno = globalThis.Deno;
 
 export {};
 
+import { isTrivialTestImei, sanitizeImei } from '../_shared/imeiValidation.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -135,7 +137,6 @@ const normalizeBrand = (raw: string): string => {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 };
 
-const sanitizeImei = (value?: string): string => (value || '').replace(/\D/g, '').trim();
 const is15Digits = (value: string): boolean => /^\d{15}$/.test(value);
 
 // Same algorithm as front-end: compute check digit from first 14 digits.
@@ -236,6 +237,15 @@ const dbTacRead = async (
 };
 
 // Écrit dans tac_cache après un lookup réussi (non-bloquant).
+// Un fournisseur externe peut repondre avec assurance sur un TAC inexistant :
+// « Apple iPhone 15 » a ete renvoye pour 00000000 avec 92 % de confiance, puis
+// mis en cache. On refuse d'ecrire ce qu'on sait impossible.
+// Attention : le prefixe « 00 » ne disqualifie PAS un TAC. 00499901 est un vrai
+// CHUWI CW-Vi7, present dans la base osmocom. On ne refuse que l'impossible :
+// huit fois le meme chiffre.
+const isCacheableTac = (tac: string): boolean =>
+  /^[0-9]{8}$/.test(tac) && new Set(tac).size > 1;
+
 const dbTacWrite = (
   tac: string,
   deviceInfo: DeviceInfo,
@@ -244,6 +254,12 @@ const dbTacWrite = (
   supabaseUrl: string,
   serviceKey: string,
 ): void => {
+  // Filtre place ICI et non aux trois points d'appel : aucun ne peut l'oublier.
+  if (!isCacheableTac(tac)) {
+    console.warn('[check-imei] cache refuse pour un TAC impossible', { tac, source });
+    return;
+  }
+
   fetchWithTimeout(
     `${supabaseUrl}/rest/v1/tac_cache`,
     {
@@ -472,6 +488,24 @@ const checkBasic = async (
   serviceKey: string,
   imeiInfoKey: string | null,
 ): Promise<BasicResult> => {
+  // Avant Luhn, car Luhn accepte le tout-zero : somme 0, donc divisible par 10.
+  // Sans ce filtre la cascade interroge le fournisseur, qui repond « Apple
+  // iPhone 15 » avec 92 % de confiance sur un TAC inexistant, et on met en cache.
+  if (isTrivialTestImei(imei)) {
+    return {
+      status: 'check_failed',
+      reason: 'trivial_test_imei',
+      provider: 'structure',
+      imeiValidity: 'invalid',
+      blacklistStatus: 'unknown',
+      assuranceLevel: 'basic',
+      deviceInfo: null,
+      deviceInfoSource: null,
+      deviceInfoConfidence: null,
+      deviceInfoEvidenceCount: 0,
+    };
+  }
+
   if (!luhnCheck(imei)) {
     return {
       status: 'check_failed',
@@ -701,6 +735,23 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           status: 'check_failed',
           reason: 'invalid_imei_checksum',
+          provider: 'luhn',
+          imeiValidity: 'invalid',
+          blacklistStatus: 'unknown',
+          deviceInfo: null,
+          deviceInfoSource: null,
+          deviceInfoConfidence: null,
+          deviceInfoEvidenceCount: 0,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    }
+
+    if (isTrivialTestImei(normalizedImei)) {
+      return new Response(
+        JSON.stringify({
+          status: 'check_failed',
+          reason: 'trivial_test_imei',
           provider: 'luhn',
           imeiValidity: 'invalid',
           blacklistStatus: 'unknown',

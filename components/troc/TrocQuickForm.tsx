@@ -22,7 +22,7 @@ interface TrocQuickFormProps {
 
 const isValidName  = (v: string) => v.trim().length >= 2 && !/\d/.test(v);
 const isValidPhone = (v: string) => /^[62]\d{8}$/.test(v);
-const isValidImei  = (v: string) => /^\d{15}$/.test(v);
+import { isValidImei, describeImeiInputError } from '../../utils/imeiValidation';
 
 const inputCls = 'w-full bg-white/[0.09] backdrop-blur-md border border-white/20 rounded-xl text-white px-4 py-3.5 text-sm font-sans placeholder-gray-500 focus:border-xeption-gold/60 focus:bg-white/[0.09] focus:shadow-[0_0_15px_rgba(255,215,0,0.15)] outline-none transition-all duration-300';
 const labelCls = 'block text-[10px] font-tech uppercase tracking-widest text-white/70 mb-1.5';
@@ -40,6 +40,7 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
   const [imeiInput, setImeiInput]       = useState(form.imei || '');
   const [manualModel, setManualModel]   = useState('');
   const [powersOn, setPowersOn]         = useState(true);
+  const [powerAnswered, setPowerAnswered] = useState(false);
   const [checked, setChecked]           = useState(false);
   const [pendingCheck, setPendingCheck] = useState(false);
 
@@ -83,7 +84,8 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
     isValidPhone(form.customerPhone) &&
     imeiOk &&
     effectiveModel.length >= 2 &&
-    powersOn;
+    powersOn &&
+    powerAnswered;
 
   // Les MEMES conditions que canProceed, nommees pour l'affichage. Une seule
   // verite : impossible que la barre annonce 5/5 alors que le bouton reste
@@ -91,7 +93,7 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
   const checklist = [
     { key: 'name',  label: 'ton prénom',                 done: isValidName(form.customerName) },
     { key: 'phone', label: 'ton numéro',                 done: isValidPhone(form.customerPhone) },
-    { key: 'power', label: "de savoir s'il s'allume",    done: powersOn === true },
+    { key: 'power', label: "de savoir s'il s'allume",    done: imeiOk ? powerAnswered && powersOn : false },
     { key: 'imei',  label: "l'IMEI",                     done: Boolean(imeiOk) },
     { key: 'model', label: 'le modèle',                  done: effectiveModel.length >= 2 },
   ];
@@ -103,6 +105,7 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
     : !isValidPhone(form.customerPhone)          ? 'Ce numéro ne ressemble pas à un numéro camerounais'
     : !imeiOk                                    ? 'Vérifie ton IMEI, on en a besoin'
     : effectiveModel.length < 2                  ? 'Il nous manque le modèle'
+    : !powerAnswered && imeiOk                    ? 'Dis-nous si ton appareil s\'allume encore'
     : !powersOn                                  ? 'Un appareil qui ne s’allume pas, on le regarde en boutique'
     : null
     : null;
@@ -127,6 +130,8 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
     firstName: form.customerName,
     deviceLabel: deviceLabel || undefined,
   });
+
+  const imeiInputError = imeiInput.length === 15 ? describeImeiInputError(imeiInput) : null;
 
   return (
     <div className="grid grid-cols-1 gap-6 p-6 sm:p-8 lg:grid-cols-2 lg:gap-x-8 lg:gap-y-5 lg:items-start">
@@ -225,13 +230,13 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
           <div className="flex flex-col gap-3 border-t border-white/5 pt-5">
             <p className="text-sm font-sans text-white/90">Il s'allume encore, ton appareil ?</p>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setPowersOn(true)}
+              <button type="button" onClick={() => { setPowerAnswered(true); setPowersOn(true); }}
                 className={`flex-1 rounded-xl border py-3 text-xs font-tech font-bold uppercase tracking-wider transition-all duration-300 ${
                   powersOn ? 'border-xeption-gold bg-xeption-gold text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]' : 'border-white/20 bg-white/[0.08] text-white/80 hover:border-xeption-gold/30 hover:bg-white/[0.08]'
                 }`}>
                 Oui
               </button>
-              <button type="button" onClick={() => setPowersOn(false)}
+              <button type="button" onClick={() => { setPowerAnswered(true); setPowersOn(false); }}
                 className={`flex-1 rounded-xl border py-3 text-xs font-tech font-bold uppercase tracking-wider transition-all duration-300 ${
                   !powersOn ? 'border-red-700/60 bg-red-900/50 text-red-300 shadow-[0_0_20px_rgba(220,38,38,0.2)]' : 'border-white/20 bg-white/[0.08] text-white/80 hover:border-white/30 hover:bg-white/[0.08]'
                 }`}>
@@ -265,12 +270,13 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
                 const v = e.target.value.replace(/\D/g, '').slice(0, 15);
                 setImeiInput(v);
                 setChecked(false);
+                setPowerAnswered(false);
               }}
               maxLength={15}
               className={`${inputCls} flex-1 font-mono tracking-widest`}
             />
             <button type="button"
-              disabled={!isValidImei(imeiInput) || isCheckingImei}
+              disabled={!isValidImei(imeiInput) || isCheckingImei || Boolean(imeiInputError)}
               onClick={handleVerify}
               className="flex shrink-0 items-center gap-2 rounded-xl bg-xeption-gold px-5 text-xs font-tech font-bold uppercase tracking-widest text-black transition-all duration-300 hover:bg-white hover:shadow-[0_0_20px_rgba(255,215,0,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none">
               {isCheckingImei
@@ -278,6 +284,10 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
                 : 'Vérifier'}
             </button>
           </div>
+
+          {imeiInputError && (
+            <p className="mt-2 text-xs font-sans text-amber-300">{imeiInputError}</p>
+          )}
 
           {isCheckingImei && (
             <p className="mt-2 text-xs font-sans text-white/60">On lit ton IMEI…</p>

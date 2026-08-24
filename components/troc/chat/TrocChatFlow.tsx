@@ -4,6 +4,7 @@ import type { TrocDeviceForm } from '../../../types';
 import { KNOWN_BRANDS } from '../../../constants/trocCatalog';
 import { fetchArgusModels, fetchArgusBrands, type TradeInModel } from '../../../services/trocEvaluationService';
 import { BotBubble, UserBubble, TypingIndicator } from './ChatBubble';
+import { isValidImei } from '../../../utils/imeiValidation';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -464,7 +465,7 @@ export const TrocChatFlow: React.FC<TrocChatFlowProps> = ({
 
       // ── 9. IMEI ───────────────────────────────────────────────────────────
       case 'imei': {
-        const imeiOk = /^\d{15}$/.test(imeiInput.trim());
+        const imeiOk = isValidImei(imeiInput);
 
         if (imeiPhase === 'checking') {
           return (

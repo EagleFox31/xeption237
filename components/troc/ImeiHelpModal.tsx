@@ -42,7 +42,7 @@ export const ImeiHelpModal: React.FC<ImeiHelpModalProps> = ({ isOpen, onClose })
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-3 right-3 p-1 text-gray-500 hover:text-white transition-colors"
+          className="absolute top-3 right-3 p-1 text-white/60 hover:text-white transition-colors"
           aria-label="Fermer"
         >
           <X className="w-5 h-5" />
@@ -54,7 +54,7 @@ export const ImeiHelpModal: React.FC<ImeiHelpModalProps> = ({ isOpen, onClose })
         >
           Comment trouver mon IMEI ?
         </h2>
-        <p className="text-xs text-gray-500 font-sans mb-5">15 chiffres — indispensable pour la vérification anti-vol.</p>
+        <p className="text-xs text-white/60 font-sans mb-5">15 chiffres — indispensable pour la vérification anti-vol.</p>
 
         <ul className="space-y-4">
           {STEPS.map(({ icon: Icon, title, body }, i) => (
@@ -67,7 +67,7 @@ export const ImeiHelpModal: React.FC<ImeiHelpModalProps> = ({ isOpen, onClose })
                   <Icon className="w-3.5 h-3.5 text-xeption-gold" />
                   {title}
                 </p>
-                <p className="text-xs text-gray-400 font-sans mt-1 leading-relaxed">
+                <p className="text-xs text-white/70 font-sans mt-1 leading-relaxed">
                   {i === 0 ? (
                     <>
                       Sur le clavier, composez{' '}

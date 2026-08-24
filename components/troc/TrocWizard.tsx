@@ -34,8 +34,8 @@ const STEPS = [
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
-const inputCls = 'w-full bg-black/40 border border-white/10 text-white px-4 py-3 text-sm font-sans placeholder-gray-600 focus:border-xeption-gold/60 outline-none transition-all';
-const labelCls = 'block text-[10px] font-tech uppercase tracking-widest text-gray-400 mb-1.5';
+const inputCls = 'w-full bg-[#1c1c16]/90 border border-white/20 text-white px-4 py-3 text-sm font-sans placeholder-gray-600 focus:border-xeption-gold/60 outline-none transition-all';
+const labelCls = 'block text-[10px] font-tech uppercase tracking-widest text-white/70 mb-1.5';
 
 // ─── Condition card ───────────────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ const ConditionCard: React.FC<{
     className={`text-left p-3 border transition-all ${
       selected
         ? 'border-xeption-gold bg-xeption-gold/10 text-white'
-        : 'border-white/10 bg-black/30 text-gray-300 hover:border-xeption-gold/30 hover:text-white'
+        : 'border-white/20 bg-[#1c1c16]/80 text-white/80 hover:border-xeption-gold/30 hover:text-white'
     }`}
   >
     <p className={`text-sm font-tech font-bold uppercase tracking-wider mb-0.5 ${selected ? 'text-xeption-gold' : ''}`}>
@@ -164,7 +164,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
           <div className="h-full bg-xeption-gold transition-all duration-300"
             style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }} />
         </div>
-        <span className="text-[10px] font-tech text-gray-500 shrink-0">
+        <span className="text-[10px] font-tech text-white/60 shrink-0">
           {step} / {STEPS.length} — {STEPS[step - 1].label}
         </span>
       </div>
@@ -181,7 +181,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
         <div className="flex flex-col gap-5">
           <div>
             <h2 className="text-lg font-tech font-bold uppercase text-white tracking-wider">Parlons de toi</h2>
-            <p className="text-xs text-gray-500 mt-1 font-sans">On en a besoin pour te recontacter avec ton offre.</p>
+            <p className="text-xs text-white/60 mt-1 font-sans">On en a besoin pour te recontacter avec ton offre.</p>
           </div>
           <div className="flex flex-col gap-4">
             <div>
@@ -198,11 +198,11 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
                 onChange={e => patch({ customerPhone: e.target.value })}
                 className={inputCls} />
               {form.customerPhone.length > 0 && !isValidPhone(form.customerPhone) && (
-                <p className="text-xs text-gray-500 mt-1 font-sans">Format attendu : 677123456 ou 699123456</p>
+                <p className="text-xs text-white/60 mt-1 font-sans">Format attendu : 677123456 ou 699123456</p>
               )}
             </div>
             <div>
-              <label className={labelCls}>Email <span className="text-gray-600 normal-case tracking-normal">— optionnel</span></label>
+              <label className={labelCls}>Email <span className="text-white/50 normal-case tracking-normal">— optionnel</span></label>
               <input type="email" placeholder="Pour recevoir ton estimation"
                 value={form.customerEmail || ''}
                 onChange={e => patch({ customerEmail: e.target.value })}
@@ -217,7 +217,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
         <div className="flex flex-col gap-5">
           <div>
             <h2 className="text-lg font-tech font-bold uppercase text-white tracking-wider">L'appareil</h2>
-            <p className="text-xs text-gray-500 mt-1 font-sans">Marque et modèle exact — ça compte pour l'estimation.</p>
+            <p className="text-xs text-white/60 mt-1 font-sans">Marque et modèle exact — ça compte pour l'estimation.</p>
           </div>
 
           {/* Marque */}
@@ -230,7 +230,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
                   className={`px-3 py-1.5 text-xs font-tech font-bold uppercase tracking-wider border transition-all ${
                     form.deviceBrand === b
                       ? 'border-xeption-gold bg-xeption-gold text-black'
-                      : 'border-white/15 text-gray-300 hover:border-xeption-gold/40 hover:text-white'
+                      : 'border-white/15 text-white/80 hover:border-xeption-gold/40 hover:text-white'
                   }`}>
                   {b}
                 </button>
@@ -248,7 +248,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
                   {filteredBrands.map(b => (
                     <li key={b}
                       onMouseDown={e => { e.preventDefault(); patch({ deviceBrand: b, deviceModel: '' }); setBrandInput(''); setModelInput(''); setShowBrandDrop(false); }}
-                      className="px-4 py-2 text-sm text-gray-200 hover:bg-xeption-gold/20 hover:text-xeption-gold cursor-pointer border-b border-white/5 last:border-0">{b}</li>
+                      className="px-4 py-2 text-sm text-white/90 hover:bg-xeption-gold/20 hover:text-xeption-gold cursor-pointer border-b border-white/5 last:border-0">{b}</li>
                   ))}
                 </ul>
               )}
@@ -277,7 +277,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
                         if (setBasePrice) setBasePrice(m.base_price);
                         setShowModelDrop(false);
                       }}
-                      className="px-4 py-2.5 text-sm text-gray-200 hover:bg-xeption-gold/20 hover:text-xeption-gold cursor-pointer border-b border-white/5 last:border-0">{m.model_name}</li>
+                      className="px-4 py-2.5 text-sm text-white/90 hover:bg-xeption-gold/20 hover:text-xeption-gold cursor-pointer border-b border-white/5 last:border-0">{m.model_name}</li>
                   ))}
                 </ul>
               )}
@@ -292,7 +292,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
         <div className="flex flex-col gap-6">
           <div>
             <h2 className="text-lg font-tech font-bold uppercase text-white tracking-wider">L'état de l'appareil</h2>
-            <p className="text-xs text-gray-500 mt-1 font-sans">Sois honnête — notre technicien vérifiera en boutique de toute façon.</p>
+            <p className="text-xs text-white/60 mt-1 font-sans">Sois honnête — notre technicien vérifiera en boutique de toute façon.</p>
           </div>
 
           {/* Écran */}
@@ -341,7 +341,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
               value={form.batteryHealth}
               onChange={e => patch({ batteryHealth: Number(e.target.value) })}
               className="w-full accent-xeption-gold cursor-pointer" />
-            <div className="flex justify-between text-[9px] text-gray-600 font-tech mt-1">
+            <div className="flex justify-between text-[9px] text-white/50 font-tech mt-1">
               <span>0 %</span><span>50 %</span><span>100 %</span>
             </div>
           </div>
@@ -353,7 +353,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
         <div className="flex flex-col gap-5">
           <div>
             <h2 className="text-lg font-tech font-bold uppercase text-white tracking-wider">Ça marche ?</h2>
-            <p className="text-xs text-gray-500 mt-1 font-sans">Les points qui affectent directement la valeur de reprise.</p>
+            <p className="text-xs text-white/60 mt-1 font-sans">Les points qui affectent directement la valeur de reprise.</p>
           </div>
 
           {isBlocked && (
@@ -374,7 +374,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
               const val = form[field] as boolean;
               return (
                 <div key={field} className="flex items-center justify-between gap-4 py-3 border-b border-white/5 last:border-0">
-                  <span className="text-sm text-gray-200 font-sans">{label}</span>
+                  <span className="text-sm text-white/90 font-sans">{label}</span>
                   <div className="flex gap-2 shrink-0">
                     {[
                       { l: 'Oui', v: true },
@@ -390,7 +390,7 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
                               ? isWarning
                                 ? 'bg-red-900/60 border-red-700/80 text-red-300'
                                 : 'bg-xeption-gold border-xeption-gold text-black'
-                              : 'border-white/15 text-gray-400 hover:border-white/30 hover:text-white'
+                              : 'border-white/15 text-white/70 hover:border-white/30 hover:text-white'
                           }`}>
                           {opt.l}
                         </button>
@@ -405,10 +405,10 @@ export const TrocWizard: React.FC<TrocWizardProps> = ({ form, onChange, onNext, 
       )}
 
       {/* ── Navigation ───────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between pt-2 border-t border-white/5">
+      <div className="flex items-center justify-between pt-2 border-t border-white/15">
         {step > 1
           ? <button type="button" onClick={goBack}
-              className="inline-flex items-center gap-2 px-4 py-2.5 border border-white/15 text-gray-300 hover:text-white hover:border-white/30 text-xs font-tech uppercase tracking-widest transition-all">
+              className="inline-flex items-center gap-2 px-4 py-2.5 border border-white/15 text-white/80 hover:text-white hover:border-white/30 text-xs font-tech uppercase tracking-widest transition-all">
               <ArrowLeft className="w-3.5 h-3.5" /> Retour
             </button>
           : <div />

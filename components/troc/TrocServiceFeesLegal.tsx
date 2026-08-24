@@ -38,12 +38,12 @@ export const TrocServiceFeesLegal: React.FC = () => (
       {SERVICES.map(({ key, title, tier, includes }) => (
         <li
           key={key}
-          className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-gray-300"
+          className="bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white/80"
         >
           <p className="text-white font-semibold text-sm mb-1">
             {title} — {formatTrocFee(TROC_TIER_PRICES[tier])}
           </p>
-          <p className="text-gray-400 text-xs leading-relaxed">
+          <p className="text-white/70 text-xs leading-relaxed">
             Inclut : {includes}.
           </p>
         </li>
@@ -64,7 +64,7 @@ export const TrocServiceFeesLegal: React.FC = () => (
       appareil » est <strong className="text-white">déduit de la valeur du bon d&apos;achat</strong>{' '}
       accordé au Client.
     </p>
-    <p className="text-gray-500 text-xs italic">
+    <p className="text-white/60 text-xs italic">
       Le paiement s’effectue par Mobile Money (Orange Money ou MTN MoMo) via le prestataire intégré au
       site.
     </p>

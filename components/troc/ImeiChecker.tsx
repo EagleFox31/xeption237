@@ -53,12 +53,12 @@ export const ImeiChecker: React.FC<ImeiCheckerProps> = ({
     <div className="flex flex-col gap-5 p-6">
       <div>
         <h2 className="text-xl font-tech font-bold uppercase text-white tracking-wider">Vérification IMEI</h2>
-        <p className="text-xs text-gray-500 mt-1 font-sans">Optionnel — garantit que l'appareil n'est pas signalé volé</p>
+        <p className="text-xs text-white/60 mt-1 font-sans">Optionnel — garantit que l'appareil n'est pas signalé volé</p>
       </div>
 
       <div>
         <div className="flex items-center justify-between gap-2 mb-1.5">
-          <label className="block text-[10px] font-tech font-bold uppercase tracking-widest text-gray-500">
+          <label className="block text-[10px] font-tech font-bold uppercase tracking-widest text-white/60">
             Code IMEI (15 chiffres)
           </label>
           <button
@@ -76,7 +76,7 @@ export const ImeiChecker: React.FC<ImeiCheckerProps> = ({
           value={imei}
           onChange={(e) => onChange(e.target.value)}
           maxLength={15}
-          className="w-full bg-black/40 border border-white/10 text-white px-4 py-3 text-sm font-mono placeholder-gray-600 focus:border-xeption-gold/60 focus:bg-black/60 outline-none transition-all rounded-sm tracking-widest"
+          className="w-full bg-[#1c1c16]/90 border border-white/20 text-white px-4 py-3 text-sm font-mono placeholder-gray-600 focus:border-xeption-gold/60 focus:bg-black/60 outline-none transition-all rounded-sm tracking-widest"
         />
         <p className="text-xs text-white mt-2 font-sans">
           Composez <span className="text-xeption-gold font-tech font-bold tracking-widest">*#06#</span> sur l'appareil pour l'obtenir —{' '}
@@ -91,16 +91,16 @@ export const ImeiChecker: React.FC<ImeiCheckerProps> = ({
             <p className="text-sm font-tech font-bold text-green-400">
               {blacklistStatus === 'clear' ? 'IMEI vérifié — appareil sain' : 'Format IMEI valide — Appareil identifié.'}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5 font-sans">
+            <p className="text-xs text-white/60 mt-0.5 font-sans">
               {blacklistStatus === 'clear' ? 'Aucune alerte détectée sur cet appareil.' : 'La vérification anti-vol sera confirmée en boutique.'}
             </p>
             {hasExpected && (
-              <p className="text-xs text-gray-300 mt-2 font-sans">
+              <p className="text-xs text-white/80 mt-2 font-sans">
                 Appareil déclaré : <span className="text-white font-semibold">{expectedBrand || '—'} {expectedModel || '—'}</span>
               </p>
             )}
             {hasDetected && (
-              <p className="text-xs text-gray-300 mt-1 font-sans">
+              <p className="text-xs text-white/80 mt-1 font-sans">
                 Identifié via IMEI : <span className="text-white font-semibold">{imeiDeviceInfo?.brand || '—'} {imeiDeviceInfo?.model || '—'}</span>
               </p>
             )}
@@ -137,7 +137,7 @@ export const ImeiChecker: React.FC<ImeiCheckerProps> = ({
             <p className="text-sm font-tech font-bold text-xeption-red">
               {imeiStatus === 'invalid' ? 'IMEI Invalide' : 'Appareil signalé volé — troc impossible'}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5 font-sans">
+            <p className="text-xs text-white/60 mt-0.5 font-sans">
               {imeiStatus === 'invalid' ? 'Le code IMEI saisi n\'est pas valide.' : 'Cet appareil est signalé comme volé ou perdu.'}
             </p>
           </div>
@@ -149,7 +149,7 @@ export const ImeiChecker: React.FC<ImeiCheckerProps> = ({
           <ShieldAlert className="w-5 h-5 text-yellow-400 shrink-0" />
           <div>
             <p className="text-sm font-tech font-bold text-yellow-400">Vérification indisponible</p>
-            <p className="text-xs text-gray-500 mt-0.5 font-sans">La confirmation se fera lors de la remise en boutique.</p>
+            <p className="text-xs text-white/60 mt-0.5 font-sans">La confirmation se fera lors de la remise en boutique.</p>
           </div>
         </div>
       )}
@@ -173,7 +173,7 @@ export const ImeiChecker: React.FC<ImeiCheckerProps> = ({
 
         <button
           onClick={onSkip}
-          className="px-5 bg-white/5 border border-white/10 hover:border-white/30 hover:bg-white/10 text-gray-400 hover:text-white font-tech font-bold uppercase tracking-widest text-sm transition-all rounded-sm"
+          className="px-5 bg-white/5 border border-white/20 hover:border-white/30 hover:bg-white/10 text-white/70 hover:text-white font-tech font-bold uppercase tracking-widest text-sm transition-all rounded-sm"
         >
           Passer
         </button>

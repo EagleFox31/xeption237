@@ -10,7 +10,7 @@ export const MobileMoneyLogos: React.FC<{ className?: string }> = ({ className =
       MoMo
     </span>
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded-sm text-[9px] font-tech font-bold uppercase tracking-wider bg-[#FF6600] text-white border border-white/10"
+      className="inline-flex items-center px-2 py-0.5 rounded-sm text-[9px] font-tech font-bold uppercase tracking-wider bg-[#FF6600] text-white border border-white/20"
       title="Orange Money"
     >
       OM

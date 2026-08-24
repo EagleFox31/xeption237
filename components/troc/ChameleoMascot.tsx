@@ -198,7 +198,7 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
       {/* Bulle de Dialogue Réactive */}
       {showSpeechBubble && activeMessage && (
         <div className="mb-3 max-w-xs px-4 py-2 bg-black/90 border border-xeption-gold/50 text-white rounded-2xl shadow-[0_0_20px_rgba(255,215,0,0.25)] text-xs font-tech tracking-wide text-center relative animate-fade-in backdrop-blur-xl z-20 transition-transform duration-300">
-          <span className="text-gray-100">{activeMessage}</span>
+          <span className="text-white/95">{activeMessage}</span>
           {/* Flèche bulle */}
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-black/90" />
         </div>

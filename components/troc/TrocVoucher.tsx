@@ -65,7 +65,7 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNe
 
   return (
     <div className="flex flex-col gap-5 p-6">
-      <div className="text-center border-b border-white/10 pb-5">
+      <div className="text-center border-b border-white/20 pb-5">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold text-[10px] font-tech font-bold uppercase tracking-widest mb-4">
           <RefreshCw className="w-3 h-3" /> Smart Troc - Bon de reprise
         </div>
@@ -74,13 +74,13 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNe
       </div>
 
       <div className="flex flex-col gap-3">
-        <div className="bg-black/40 border border-white/10 px-4 py-3 rounded-sm">
-          <p className="text-[10px] font-tech uppercase tracking-widest text-gray-300 mb-0.5">Client</p>
+        <div className="bg-[#1c1c16]/90 border border-white/20 px-4 py-3 rounded-sm">
+          <p className="text-[10px] font-tech uppercase tracking-widest text-white/80 mb-0.5">Client</p>
           <p className="font-tech font-bold text-white">{customer_name}</p>
         </div>
 
-        <div className="bg-black/40 border border-white/10 px-4 py-3 rounded-sm">
-          <p className="text-[10px] font-tech uppercase tracking-widest text-gray-300 mb-0.5">Appareil</p>
+        <div className="bg-[#1c1c16]/90 border border-white/20 px-4 py-3 rounded-sm">
+          <p className="text-[10px] font-tech uppercase tracking-widest text-white/80 mb-0.5">Appareil</p>
           <p className="font-tech font-bold text-white">{device_brand} {device_model}</p>
         </div>
 
@@ -92,7 +92,7 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNe
           </p>
         </div>
 
-        <div className="bg-black/40 border border-white/10 px-4 py-3 rounded-sm text-center">
+        <div className="bg-[#1c1c16]/90 border border-white/20 px-4 py-3 rounded-sm text-center">
           <p className="text-[10px] font-tech uppercase tracking-widest text-white">
             Valable jusqu'au {formatDate(resolveVoucherExpiryIso(voucher_expires_at, created_at))}
           </p>
@@ -114,7 +114,7 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNe
           </div>
 
           {isGenCert && (
-            <p className="text-xs text-gray-300 flex items-center gap-2">
+            <p className="text-xs text-white/80 flex items-center gap-2">
               <Loader2 className="w-3 h-3 animate-spin" /> Génération du certificat PDF…
             </p>
           )}
@@ -128,9 +128,9 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNe
 
           {cert && !isGenCert && (
             <div className="flex flex-col gap-2">
-              <p className="text-[10px] font-tech text-gray-300">
+              <p className="text-[10px] font-tech text-white/80">
                 Réf : <span className="text-xeption-gold">{cert.reference}</span>
-                {cert.reused && <span className="text-gray-400"> (déjà émis)</span>}
+                {cert.reused && <span className="text-white/70"> (déjà émis)</span>}
               </p>
               <a
                 href={cert.pdfUrl}
@@ -176,21 +176,21 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNe
         href={buildWhatsAppUrl(buildTradeInAppointmentMessage(request))}
         target="_blank"
         rel="noopener noreferrer"
-        className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:border-xeption-gold/30 text-gray-300 hover:text-white font-tech font-bold uppercase tracking-widest py-3 text-sm transition-all"
+        className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/20 hover:border-xeption-gold/30 text-white/80 hover:text-white font-tech font-bold uppercase tracking-widest py-3 text-sm transition-all"
       >
         <Calendar className="w-4 h-4" /> Prendre rendez-vous en boutique
       </a>
 
       <button
         onClick={onPrint}
-        className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:border-white/30 text-gray-400 hover:text-white font-tech font-bold uppercase tracking-widest py-3 text-sm transition-all"
+        className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/20 hover:border-white/30 text-white/70 hover:text-white font-tech font-bold uppercase tracking-widest py-3 text-sm transition-all"
       >
         <Printer className="w-4 h-4" /> Imprimer
       </button>
 
       <button
         onClick={onNewEvaluation}
-        className="w-full text-gray-400 hover:text-white font-tech font-bold uppercase tracking-widest py-3 text-xs transition-all"
+        className="w-full text-white/70 hover:text-white font-tech font-bold uppercase tracking-widest py-3 text-xs transition-all"
       >
         Nouvelle évaluation
       </button>

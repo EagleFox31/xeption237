@@ -31,7 +31,7 @@ const VISUALS: Record<
   stable: {
     Icon: Minus,
     container: 'border-white/15 bg-white/5',
-    icon: 'text-gray-400',
+    icon: 'text-white/70',
     title: 'Cote du marché — stable',
   },
   falling: {
@@ -58,13 +58,13 @@ export const MarketTrendBadge: React.FC<MarketTrendBadgeProps> = ({ trend, class
       aria-label={title}
     >
       <div
-        className={`shrink-0 w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center ${icon}`}
+        className={`shrink-0 w-9 h-9 rounded-lg border border-white/20 flex items-center justify-center ${icon}`}
       >
         <Icon className="w-4 h-4" aria-hidden />
       </div>
       <div className="min-w-0 flex flex-col gap-1">
-        <p className="text-[10px] font-tech uppercase tracking-widest text-gray-500">{title}</p>
-        <p className="text-xs text-gray-200 font-sans leading-relaxed">{trend.message_fr}</p>
+        <p className="text-[10px] font-tech uppercase tracking-widest text-white/60">{title}</p>
+        <p className="text-xs text-white/90 font-sans leading-relaxed">{trend.message_fr}</p>
       </div>
     </aside>
   );

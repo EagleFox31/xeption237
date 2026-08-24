@@ -126,7 +126,7 @@ export function resolveTrocCoach(input: TrocCoachInput): TrocCoachView {
       if (input.imeiStatus === 'valid' && input.deviceLabel) {
         return {
           state: 'happy', missionIndex: 0, completedCount: 0, title: 'Appareil',
-          message: `${input.deviceLabel} — je le connais bien celui-là${who} !${input.formNext ? ` Il me manque ${input.formNext.toLowerCase()}.` : ''}`,
+          message: `${input.deviceLabel} — je le connais bien celui-là${who} !${input.formNext ? ` Il me manque ${input.formNext}.` : ''}`,
         };
       }
 

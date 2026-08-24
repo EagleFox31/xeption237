@@ -1,8 +1,155 @@
--- Étape 6 ERP : pilotage & analytics dashboard
--- Spec : ROADMAP_ERP.md §6
--- CA encaissé : payment_status = paid OR status = delivered,
---               hors cancelled/returned, borné par orders.date sur la période.
+-- Vue unique « CA reportable » + refactor reporting (dashboard, objectifs, mes ventes).
+-- Exclut les commandes TEST- (mode essai caisse) et centralise le prédicat d'éligibilité.
+-- Spec : utils/testMode.ts · ROADMAP §6 · migration 20260824_026
+
 BEGIN;
+
+CREATE OR REPLACE VIEW public.orders_reportable
+WITH (security_invoker = true) AS
+SELECT o.*
+FROM public.orders o
+WHERE o.status NOT IN ('cancelled', 'returned')
+  AND (o.payment_status = 'paid' OR o.status = 'delivered')
+  AND o.id NOT LIKE 'TEST-%';
+
+COMMENT ON VIEW public.orders_reportable IS
+  'Commandes entrant dans le CA encaissé, les objectifs/primes et le pilotage. '
+  'Payées ou livrées, hors annulées/retournées, hors essais caisse (id TEST-%).';
+
+GRANT SELECT ON public.orders_reportable TO authenticated, service_role;
+
+-- ── Helper objectifs (étape 7) ─────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public._sum_eligible_revenue(
+  p_from timestamptz,
+  p_to timestamptz,
+  p_staff_id uuid DEFAULT NULL,
+  p_store_id uuid DEFAULT NULL
+)
+RETURNS numeric
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(SUM(o.total), 0)
+  FROM public.orders_reportable o
+  WHERE o.date >= p_from
+    AND o.date < p_to
+    AND (p_staff_id IS NULL OR o.staff_id = p_staff_id)
+    AND (p_store_id IS NULL OR o.store_id = p_store_id);
+$$;
+
+REVOKE ALL ON FUNCTION public._sum_eligible_revenue(timestamptz, timestamptz, uuid, uuid)
+  FROM PUBLIC, anon, authenticated;
+
+-- ── Mes ventes (aligné CA reportable, hors TEST-) ────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_staff_sales_summary(
+  p_staff_id uuid,
+  p_from timestamp with time zone DEFAULT NULL::timestamp with time zone,
+  p_to   timestamp with time zone DEFAULT NULL::timestamp with time zone
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO public
+AS $function$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staff s
+    WHERE lower(s.email) = lower(auth.jwt() ->> 'email')
+  ) THEN
+    RAISE EXCEPTION 'Accès réservé à l''équipe';
+  END IF;
+
+  RETURN (
+    SELECT jsonb_build_object(
+      'sale_count', COUNT(*)::integer,
+      'total_amount', COALESCE(SUM(o.total), 0),
+      'discount_total', COALESCE(SUM(o.discount_amount), 0),
+      'subtotal_amount', COALESCE(SUM(o.total + o.discount_amount), 0)
+    )
+    FROM public.orders_reportable o
+    WHERE o.staff_id = p_staff_id
+      AND o.date >= COALESCE(
+        p_from,
+        date_trunc('day', now() AT TIME ZONE 'Africa/Douala') AT TIME ZONE 'Africa/Douala'
+      )
+      AND o.date < COALESCE(
+        p_to,
+        date_trunc('day', now() AT TIME ZONE 'Africa/Douala') AT TIME ZONE 'Africa/Douala'
+          + interval '1 day'
+      )
+  );
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.list_staff_sales(
+  p_staff_id uuid,
+  p_from timestamp with time zone DEFAULT NULL::timestamp with time zone,
+  p_to   timestamp with time zone DEFAULT NULL::timestamp with time zone
+)
+RETURNS TABLE(
+  order_id text,
+  customer_name text,
+  customer_phone text,
+  payment_method text,
+  total numeric,
+  discount_amount numeric,
+  status text,
+  sale_date timestamp with time zone,
+  store_id uuid,
+  items jsonb,
+  item_count bigint
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO public
+AS $function$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staff s
+    WHERE lower(s.email) = lower(auth.jwt() ->> 'email')
+  ) THEN
+    RAISE EXCEPTION 'Accès réservé à l''équipe';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    o.id AS order_id,
+    o.customer_name,
+    o.customer_phone,
+    o.payment_method,
+    o.total,
+    o.discount_amount,
+    o.status,
+    o.date AS sale_date,
+    o.store_id,
+    o.items,
+    COALESCE(
+      (SELECT SUM(GREATEST(COALESCE((elem->>'quantity')::integer, 1), 1))::bigint
+       FROM jsonb_array_elements(COALESCE(o.items, '[]'::jsonb)) AS elem),
+      0
+    ) AS item_count
+  FROM public.orders_reportable o
+  WHERE o.staff_id = p_staff_id
+    AND o.date >= COALESCE(
+      p_from,
+      date_trunc('day', now() AT TIME ZONE 'Africa/Douala') AT TIME ZONE 'Africa/Douala'
+    )
+    AND o.date < COALESCE(
+      p_to,
+      date_trunc('day', now() AT TIME ZONE 'Africa/Douala') AT TIME ZONE 'Africa/Douala'
+        + interval '1 day'
+    )
+  ORDER BY o.date DESC;
+END;
+$function$;
+
+-- ── Dashboard (étape 6) ────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION public.get_dashboard_analytics(
   p_from timestamptz DEFAULT NULL,
@@ -44,10 +191,8 @@ BEGIN
 
   WITH eligible AS (
     SELECT o.*
-    FROM public.orders o
+    FROM public.orders_reportable o
     WHERE o.date >= v_from AND o.date < v_to
-      AND o.status NOT IN ('cancelled', 'returned')
-      AND (o.payment_status = 'paid' OR o.status = 'delivered')
       AND (p_store_id IS NULL OR o.store_id = p_store_id)
       AND (p_staff_id IS NULL OR o.staff_id = p_staff_id)
   ),
@@ -90,10 +235,8 @@ BEGIN
   INTO v_gap
   FROM (
     SELECT o.id, o.total
-    FROM public.orders o
+    FROM public.orders_reportable o
     WHERE o.date >= v_from AND o.date < v_to
-      AND o.status NOT IN ('cancelled', 'returned')
-      AND (o.payment_status = 'paid' OR o.status = 'delivered')
       AND (p_store_id IS NULL OR o.store_id = p_store_id)
       AND (p_staff_id IS NULL OR o.staff_id = p_staff_id)
       AND NOT EXISTS (SELECT 1 FROM public.order_items oi WHERE oi.order_id = o.id)
@@ -112,12 +255,10 @@ BEGIN
         (SELECT SUM(oi.quantity) FROM public.order_items oi WHERE oi.order_id = o.id)
       ), 0)::integer
     ) AS row
-    FROM public.orders o
+    FROM public.orders_reportable o
     JOIN public.staff s ON s.id = o.staff_id
     LEFT JOIN public.stores st ON st.id = o.store_id
     WHERE o.date >= v_from AND o.date < v_to
-      AND o.status NOT IN ('cancelled', 'returned')
-      AND (o.payment_status = 'paid' OR o.status = 'delivered')
       AND o.staff_id IS NOT NULL
       AND (p_store_id IS NULL OR o.store_id = p_store_id)
       AND (p_staff_id IS NULL OR o.staff_id = p_staff_id)
@@ -133,11 +274,9 @@ BEGIN
       'revenue', COALESCE(SUM(o.total), 0),
       'transaction_count', COUNT(*)::integer
     ) AS row
-    FROM public.orders o
+    FROM public.orders_reportable o
     JOIN public.stores st ON st.id = o.store_id
     WHERE o.date >= v_from AND o.date < v_to
-      AND o.status NOT IN ('cancelled', 'returned')
-      AND (o.payment_status = 'paid' OR o.status = 'delivered')
       AND o.store_id IS NOT NULL
       AND (p_store_id IS NULL OR o.store_id = p_store_id)
       AND (p_staff_id IS NULL OR o.staff_id = p_staff_id)
@@ -153,11 +292,9 @@ BEGIN
       'quantity', SUM(oi.quantity)::integer,
       'revenue', SUM(oi.line_total)
     ) AS row
-    FROM public.orders o
+    FROM public.orders_reportable o
     JOIN public.order_items oi ON oi.order_id = o.id
     WHERE o.date >= v_from AND o.date < v_to
-      AND o.status NOT IN ('cancelled', 'returned')
-      AND (o.payment_status = 'paid' OR o.status = 'delivered')
       AND (p_store_id IS NULL OR o.store_id = p_store_id)
       AND (p_staff_id IS NULL OR o.staff_id = p_staff_id)
     GROUP BY oi.product_id
@@ -176,12 +313,10 @@ BEGIN
       'staff_name', s.name,
       'store_name', st.name
     ) AS row
-    FROM public.orders o
+    FROM public.orders_reportable o
     LEFT JOIN public.staff s ON s.id = o.staff_id
     LEFT JOIN public.stores st ON st.id = o.store_id
     WHERE o.date >= v_from AND o.date < v_to
-      AND o.status NOT IN ('cancelled', 'returned')
-      AND (o.payment_status = 'paid' OR o.status = 'delivered')
       AND (p_store_id IS NULL OR o.store_id = p_store_id)
       AND (p_staff_id IS NULL OR o.staff_id = p_staff_id)
     ORDER BY o.date DESC
@@ -199,9 +334,5 @@ BEGIN
   );
 END;
 $$;
-
-REVOKE ALL ON FUNCTION public.get_dashboard_analytics(timestamptz, timestamptz, uuid, uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.get_dashboard_analytics(timestamptz, timestamptz, uuid, uuid)
-  TO authenticated, service_role;
 
 COMMIT;

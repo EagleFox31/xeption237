@@ -11,8 +11,8 @@
  * la détection, mais à rendre l'oubli inoffensif :
  *   1. un interrupteur explicite, collant sur la session, avec bandeau visible ;
  *   2. le préfixe appliqué automatiquement tant qu'il est allumé ;
- *   3. (à venir) l'exclusion `TEST-%` côté RPC, pour qu'une commande d'essai
- *      oubliée n'entre JAMAIS dans le CA plutôt que d'attendre un nettoyage.
+ *   3. exclusion `TEST-%` via la vue `orders_reportable` (migration 20260824_026) :
+ *      une commande d'essai oubliée n'entre jamais dans le CA ni les primes.
  *
  * Stockage en `sessionStorage` volontairement : le mode s'éteint à la fermeture
  * de l'onglet. Un `localStorage` survivrait des jours et une vraie vente

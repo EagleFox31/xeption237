@@ -97,9 +97,36 @@ export const periodFromPreset = (preset: DashboardPeriodPreset, customFrom?: Dat
 export const formatFcfa = (n: number) =>
   `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
 
+/**
+ * Définition unique du CA encaissé — vue `orders_reportable` (migration 20260824_026).
+ * Référence pour dashboard, export, objectifs et rapports.
+ */
+export const REVENUE_DEFINITION =
+  'Commandes payées ou livrées, hors annulées, retournées, remboursées et essais caisse (TEST-), sur la période filtrée.';
+
+/** Sous-titre compact pour la carte KPI. */
+export const REVENUE_DEFINITION_SHORT =
+  'Payées/livrées · hors annulées/retours/remboursés/TEST-';
+
 export const formatPeriodLabel = (from: Date, to: Date) => {
   const opts: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' };
   const f = from.toLocaleDateString('fr-FR', opts);
   const t = new Date(to.getTime() - 1).toLocaleDateString('fr-FR', opts);
   return f === t ? f : `${f} → ${t}`;
+};
+
+/** CA de la période rattachable à order_items (hors commandes sans détail). */
+export const productDetailRevenue = (data: DashboardAnalytics) =>
+  Math.max(0, data.kpis.revenue - data.coverage_gap.revenue_without_detail);
+
+/** Note sous le top produits — même logique que db:verify:step2. */
+export const topProductsCoverageNote = (data: DashboardAnalytics): string | null => {
+  const { orders_without_line_items, revenue_without_detail } = data.coverage_gap;
+  if (orders_without_line_items <= 0) return null;
+  const cmd =
+    orders_without_line_items > 1 ? 'commandes anciennes' : 'commande ancienne';
+  return [
+    `Ventilation sur ${formatFcfa(productDetailRevenue(data))} — ${orders_without_line_items} ${cmd} sans détail article.`,
+    `La somme des lignes ci-dessus ne recouvre pas tout le CA encaissé — ${formatFcfa(revenue_without_detail)} viennent de l'historique sans order_items.`,
+  ].join(' ');
 };

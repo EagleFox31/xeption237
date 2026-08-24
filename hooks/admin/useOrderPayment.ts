@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import { supabase } from '../services/supabaseClient';
-import { Order } from '../types';
-import { assertRpcSuccess } from '../utils/rpcResult';
+import { supabase } from '../../services/supabaseClient';
+import { Order } from '../../types';
+import { assertRpcSuccess } from '../../utils/rpcResult';
 
 export type OrderPaymentUiState = 'idle' | 'initiating' | 'polling' | 'paid' | 'failed';
 

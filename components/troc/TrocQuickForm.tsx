@@ -99,11 +99,11 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
   const progressPct = Math.round((doneCount / checklist.length) * 100);
 
   const blockingReason = !canProceed
-    ? !isValidName(form.customerName)            ? (form.customerName.trim().length < 2 ? 'Prénom requis' : 'Prénom invalide — chiffres non acceptés')
-    : !isValidPhone(form.customerPhone)          ? 'Numéro de téléphone invalide'
-    : !imeiOk                                    ? 'Vérification IMEI requise'
-    : effectiveModel.length < 2                  ? 'Modèle requis'
-    : !powersOn                                  ? 'Appareil hors service — évaluation en boutique'
+    ? !isValidName(form.customerName)            ? (form.customerName.trim().length < 2 ? 'Dis-nous ton prénom pour commencer' : 'Un prénom, pas des chiffres')
+    : !isValidPhone(form.customerPhone)          ? 'Ce numéro ne ressemble pas à un numéro camerounais'
+    : !imeiOk                                    ? 'Vérifie ton IMEI, on en a besoin'
+    : effectiveModel.length < 2                  ? 'Il nous manque le modèle'
+    : !powersOn                                  ? 'Un appareil qui ne s’allume pas, on le regarde en boutique'
     : null
     : null;
 
@@ -136,8 +136,8 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
         <div className="flex items-center justify-between gap-3 mb-2">
           <span className="text-[11px] font-tech font-bold uppercase tracking-widest text-white/85">
             {doneCount === checklist.length
-              ? 'Tout est prêt — lance ton estimation'
-              : `Ton estimation se prépare — ${doneCount} sur ${checklist.length}`}
+              ? 'Tout y est — on peut estimer'
+              : `${doneCount} sur ${checklist.length} — ton estimation se prépare`}
           </span>
           <span className={`font-tech text-lg font-black tabular-nums ${doneCount === checklist.length ? 'text-emerald-300' : 'text-xeption-gold'}`}>
             {progressPct}%
@@ -170,12 +170,12 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
 
       {/* Ligne 1 — en-têtes calés sur la même hauteur (laptop) */}
       <div className={sectionHeaderCls}>
-        <h2 className={sectionTitleCls}>Ton appareil</h2>
-        <p className={sectionDescCls}>3 infos et l'IA Xeption s'occupe de l'estimation instantanée.</p>
+        <h2 className={sectionTitleCls}>On fait connaissance</h2>
+        <p className={sectionDescCls}>Trois infos, et on te dit ce que vaut ton appareil. Tout de suite.</p>
       </div>
 
       <div className={sectionHeaderCls}>
-        <h2 className={sectionTitleCls}>Vérification IMEI</h2>
+        <h2 className={sectionTitleCls}>L'appareil, c'est lequel ?</h2>
         <p className={sectionDescCls}>
           Compose <span className="font-mono font-semibold text-xeption-gold">*#06#</span> sur l'appareil
           {' '}— prends le premier numéro affiché (<strong className="text-white">IMEI 1</strong>).
@@ -194,20 +194,20 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
       {/* Ligne 2 — champs alignés */}
       <div className="flex flex-col gap-3">
         <div>
-          <label className={labelCls}>Prénom *</label>
-          <input type="text" placeholder="Ton prénom"
+          <label className={labelCls}>On t'appelle comment ? *</label>
+          <input type="text" placeholder="Ton prénom, tout simplement"
             value={form.customerName}
             onChange={e => patch({ customerName: e.target.value })}
             className={`${inputCls} ${form.customerName.length > 0 && !isValidName(form.customerName) ? 'border-red-500/70' : ''}`} />
           {form.customerName.length > 0 && !isValidName(form.customerName) && (
             <p className="mt-1 text-[11px] font-sans text-red-400">
-              {/\d/.test(form.customerName) ? 'Les chiffres ne sont pas acceptés dans un prénom' : 'Prénom trop court'}
+              {/\d/.test(form.customerName) ? 'Un prénom, pas des chiffres' : 'Encore une lettre ou deux'}
             </p>
           )}
         </div>
 
         <div>
-          <label className={labelCls}>Téléphone *</label>
+          <label className={labelCls}>On te joint où ? *</label>
           <input type="tel" placeholder="677 123 456"
             value={form.customerPhone}
             onChange={e => patch({ customerPhone: e.target.value })}
@@ -219,7 +219,7 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
 
         {(imeiOk || checkFailed) && !blacklisted && (
           <div className="flex flex-col gap-3 border-t border-white/5 pt-5">
-            <p className="text-sm font-sans text-white/90">L'appareil s'allume normalement ?</p>
+            <p className="text-sm font-sans text-white/90">Il s'allume encore, ton appareil ?</p>
             <div className="flex gap-3">
               <button type="button" onClick={() => setPowersOn(true)}
                 className={`flex-1 rounded-xl border py-3 text-xs font-tech font-bold uppercase tracking-wider transition-all duration-300 ${
@@ -253,9 +253,9 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
         </div>
 
         <div>
-          <label className={labelCls}>Numéro IMEI</label>
+          <label className={labelCls}>Les 15 chiffres de l'IMEI</label>
           <div className="flex gap-2">
-            <input type="text" placeholder="15 chiffres"
+            <input type="text" placeholder="Tape les 15 chiffres"
               value={imeiInput}
               onChange={e => {
                 const v = e.target.value.replace(/\D/g, '').slice(0, 15);
@@ -276,12 +276,12 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
           </div>
 
           {isCheckingImei && (
-            <p className="mt-2 text-xs font-sans text-white/60">Vérification en cours…</p>
+            <p className="mt-2 text-xs font-sans text-white/60">On lit ton IMEI…</p>
           )}
 
           {blacklisted && (
             <div className="mt-3 border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm font-sans text-red-300">
-              Cet IMEI est signalé comme volé ou bloqué. Évaluation impossible en ligne — passe en boutique.
+              Cet appareil est signalé volé ou bloqué. On ne peut pas l’estimer en ligne — passe nous voir en boutique, on regarde ensemble.
             </div>
           )}
 
@@ -293,7 +293,7 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
                 </span>
                 <div className="min-w-0">
                   <p className="text-[10px] font-tech uppercase tracking-widest text-emerald-300/90">
-                    Appareil reconnu
+                    On a reconnu ton appareil
                   </p>
                   <p className="truncate font-tech text-lg font-bold text-white">{deviceLabel}</p>
                 </div>

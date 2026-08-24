@@ -30,7 +30,11 @@ import SavTab from './tabs/SavTab';
 import ClientsTab from './tabs/ClientsTab';
 import StoresTab from './tabs/StoresTab';
 import StaffTab from './tabs/StaffTab';
+import QaRecetteTab from './tabs/QaRecetteTab';
 import TrocWorkspaceTab from './tabs/TrocWorkspaceTab';
+import MySalesTab from './tabs/MySalesTab';
+import SalesTargetsTab from './tabs/SalesTargetsTab';
+import StockMovementsTab from './tabs/StockMovementsTab';
 import {
   adminTabPath,
   buildAdminMenuBadges,
@@ -47,6 +51,7 @@ import {
 import { useAdminNotifications } from '../../hooks/admin/useAdminNotifications';
 import { useAdminData } from '../../hooks/admin/useAdminData';
 import { usePosSystem } from '../../hooks/admin/usePosSystem';
+import { useOfflinePos } from '../../hooks/admin/useOfflinePos';
 import { useInventoryManager } from '../../hooks/admin/useInventoryManager';
 import { usePacksManager } from '../../hooks/admin/usePacksManager'; 
 import { useConfirmModal } from '../../hooks/admin/useConfirmModal';
@@ -59,6 +64,8 @@ import { useBrandsManager } from '../../hooks/admin/useBrandsManager';
 import { useTrocManager } from '../../hooks/admin/useTrocManager';
 import { useCurrentStaffSession } from '../../hooks/admin/useCurrentStaffSession';
 import { useMySales } from '../../hooks/admin/useMySales';
+import { useSalesTargets } from '../../hooks/admin/useSalesTargets';
+import { useStockOperations } from '../../hooks/admin/useStockOperations';
 import { useOrderPayment } from '../../hooks/admin/useOrderPayment';
 
 // Editor Modals
@@ -85,10 +92,58 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   // 3. Domain Logic Managers
   const currentStaffSession = useCurrentStaffSession(data.staffMembers);
   const mySales = useMySales(currentStaffSession.staff?.id);
+  const salesTargets = useSalesTargets();
+  const stockOps = useStockOperations();
+  const offlinePos = useOfflinePos({
+    onSyncComplete: (result) => {
+      if (result.synced > 0) {
+        data.refreshAll();
+        notifs.addNotification({
+          id: crypto.randomUUID(),
+          type: 'success',
+          title: 'Ventes synchronisées',
+          message: `${result.synced} vente(s) hors ligne envoyée(s) au serveur.`,
+          timestamp: new Date(),
+          read: false,
+          linkToTab: 'pos',
+        });
+      }
+      if (result.failed > 0) {
+        notifs.addNotification({
+          id: crypto.randomUUID(),
+          type: 'alert',
+          title: 'Synchronisation incomplète',
+          message: `${result.failed} vente(s) n'ont pas pu être envoyées — vérifie la file dans la caisse.`,
+          timestamp: new Date(),
+          read: false,
+          linkToTab: 'pos',
+        });
+      }
+    },
+    onStockConflict: (record) => {
+      notifs.addNotification({
+        id: crypto.randomUUID(),
+        type: 'alert',
+        title: 'Stock insuffisant',
+        message: `La vente ${record.payload.orderId} n'a pas pu être synchronisée — stock épuisé entre-temps. Traite-la manuellement dans la caisse.`,
+        timestamp: new Date(),
+        read: false,
+        linkToTab: 'pos',
+      });
+    },
+  });
+  const posProducts = useMemo(() => {
+    if (products.length > 0) return products;
+    if (!offlinePos.isOnline && offlinePos.catalogSnapshot?.products.length) {
+      return offlinePos.catalogSnapshot.products;
+    }
+    return products;
+  }, [products, offlinePos.isOnline, offlinePos.catalogSnapshot]);
   const pos = usePosSystem({
-    products,
+    products: posProducts,
     refreshData: data.refreshAll,
     staff: currentStaffSession.staff,
+    onSaleQueued: () => void offlinePos.refreshQueue(),
   });
   const inventory = useInventoryManager({
     products,
@@ -173,6 +228,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     goToTab(getFirstAccessibleAdminTab(staffRole, pendingOrderCount), { replace: true });
   }, [location.pathname, staffRole, pendingOrderCount]);
 
+  useEffect(() => {
+    if (!offlinePos.isOnline || products.length === 0) return;
+    void offlinePos.cacheCatalog({
+      products,
+      categories: data.categories,
+      brands: data.brands,
+    });
+  }, [products, data.categories, data.brands, offlinePos.isOnline, offlinePos.cacheCatalog]);
+
   // 4. Wiring Handlers (View -> Logic -> Feedback)
   const handleNotifyClick = (n: AdminNotification) =>
     notifs.handleInteraction(n, (tab) => {
@@ -203,15 +267,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       try {
           if (pos.paymentMethod === 'TROC') throw new Error('Utilise le panneau Smart Troc.');
           if (pos.cart.length === 0) throw new Error("Panier vide");
-          confirm.success("Valider Vente", `Total: ${pos.total.toLocaleString()} FCFA`, async () => {
+          const offlineHint = offlinePos.isOnline
+            ? ''
+            : '\n\nHors connexion : la vente sera enregistrée localement et synchronisée à la reconnexion.';
+          confirm.success(
+            offlinePos.isOnline ? 'Valider Vente' : 'Valider Vente (hors ligne)',
+            `Total: ${pos.total.toLocaleString()} FCFA${offlineHint}`,
+            async () => {
               try { await pos.submitSale(); } catch(e:any) { alert(e.message); }
-          });
+            },
+          );
       } catch(e:any) { alert(e.message); }
   };
 
   const refreshMySales = useCallback(() => {
     void mySales.fetchSales();
   }, [mySales.fetchSales]);
+
+  const myTargetProgress = useMemo(() => {
+    const staffId = currentStaffSession.staff?.id;
+    if (!staffId || !salesTargets.data) return null;
+    return salesTargets.data.staff.find((s) => s.staff_id === staffId) ?? null;
+  }, [currentStaffSession.staff?.id, salesTargets.data]);
+
+  useEffect(() => {
+    if (!currentStaffSession.staff?.id) return;
+    if (activeTab !== 'mySales' && activeTab !== 'targets') return;
+    void salesTargets.fetchProgress(
+      activeTab === 'mySales' ? currentStaffSession.staff.id : null,
+    );
+  }, [activeTab, currentStaffSession.staff?.id, salesTargets.fetchProgress]);
 
   // Orders
   const onCancelOrder = (order: Order) =>
@@ -360,7 +445,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     )}
                     {activeTab === 'pos' && (
                       <PosTab
-                        products={products}
+                        products={posProducts}
                         categories={data.categories}
                         brands={data.brands}
                         posCart={pos.cart}
@@ -383,6 +468,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         totalAmount={pos.total}
                         trocRequests={trocMgr.requests}
                         onTrocSuccess={pos.registerTrocSuccess}
+                        isOnline={offlinePos.isOnline}
+                        offlineQueue={offlinePos.queue}
+                        offlineSyncing={offlinePos.syncing}
+                        offlinePendingCount={offlinePos.pendingCount}
+                        offlineConflictCount={offlinePos.conflictCount}
+                        catalogFromCache={!offlinePos.isOnline && products.length === 0 && !!offlinePos.catalogSnapshot}
+                        onOfflineSync={() => void offlinePos.syncQueue()}
+                        onOfflineRetry={(localId) => void offlinePos.retrySale(localId)}
+                        onOfflineDismiss={(localId) => void offlinePos.dismissSale(localId)}
                       />
                     )}
                     {activeTab === 'mySales' && (
@@ -395,6 +489,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         onDateChange={mySales.setSelectedDate}
                         loading={mySales.loading}
                         onRefresh={refreshMySales}
+                        targetProgress={myTargetProgress}
+                        targetsLoading={salesTargets.loading}
+                      />
+                    )}
+                    {activeTab === 'targets' && (
+                      <SalesTargetsTab
+                        staffMembers={data.staffMembers}
+                        stores={storesMgr.stores}
+                        currentStaff={currentStaffSession.staff}
+                        targetsMgr={salesTargets}
                       />
                     )}
                     {activeTab === 'orders' && (
@@ -464,6 +568,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         onSaveAllocations={storeStockMgr.saveAllocations}
                       />
                     )}
+                    {activeTab === 'stockMovements' && (
+                      <StockMovementsTab
+                        stores={storesMgr.stores}
+                        products={products}
+                        currentStaff={currentStaffSession.staff}
+                        stockOps={stockOps}
+                      />
+                    )}
                     {activeTab === 'productImages' && (
                       <ProductImagesBulkTab
                         products={products}
@@ -499,6 +611,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         onProvisionAllMissing={() => void staffMgr.provisionAllStaffAuth()}
                       />
                     )}
+                    {activeTab === 'qaRecette' && <QaRecetteTab />}
                     {activeTab === 'sav' && <SavTab />}
                     {activeTab === 'clients' && <ClientsTab customers={data.customers} />}
                     {activeTab === 'troc' && (

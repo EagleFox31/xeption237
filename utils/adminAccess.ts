@@ -18,6 +18,7 @@ const TAB_MIN_ROLE: Record<AdminTabId, StaffRoleId> = {
   dashboard: 'vendeur',
   pos: 'vendeur',
   mySales: 'vendeur',
+  targets: 'responsable',
   orders: 'vendeur',
   inventory: 'vendeur',
   productImages: 'vendeur',
@@ -25,10 +26,12 @@ const TAB_MIN_ROLE: Record<AdminTabId, StaffRoleId> = {
   packs: 'responsable',
   delivery: 'responsable',
   stores: 'direction',
+  stockMovements: 'responsable',
   troc: 'responsable',
   sav: 'responsable',
   catalogStructure: 'direction',
   staff: 'direction',
+  qaRecette: 'direction',
 };
 
 export function canAccessAdminTab(role: string | null | undefined, tab: AdminTabId): boolean {

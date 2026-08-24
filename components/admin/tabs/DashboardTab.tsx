@@ -14,7 +14,7 @@ import {
   CalendarRange,
 } from 'lucide-react';
 import { Product, Staff, Store as StoreType } from '../../../types';
-import { normalizeStaffRole } from '../../../constants/staffRoles';
+import { normalizeStaffRole, isSuperAdminStaffRole } from '../../../constants/staffRoles';
 import StatCard from '../shared/StatCard';
 import DashboardRankingBars from '../dashboard/DashboardRankingBars';
 import { adminUi } from '../shared/adminUi';
@@ -29,7 +29,7 @@ import {
   REVENUE_DEFINITION_SHORT,
   topProductsCoverageNote,
 } from '../../../utils/dashboardAnalytics';
-import { exportDashboardCsv, downloadEndOfDayReport } from '../../../utils/dashboardExport';
+import { exportDashboardExcel, downloadEndOfDayReport } from '../../../utils/dashboardExport';
 import { getOrderStatusLabel } from '../../../utils/orderWorkflow';
 import { notifyInfo } from '../../../utils/notify';
 import type { Order } from '../../../types';
@@ -57,12 +57,15 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   onEditProduct,
 }) => {
   const role = normalizeStaffRole(currentStaff?.role);
+  const isSuperAdmin = isSuperAdminStaffRole(currentStaff?.role);
   const canFilterAll = role === 'direction' || role === 'super_admin';
   const canFilterStore = canFilterAll || role === 'responsable';
 
   const [preset, setPreset] = useState<DashboardPeriodPreset>('today');
   const [customFrom, setCustomFrom] = useState(() => new Date().toISOString().slice(0, 10));
   const [customTo, setCustomTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [reportDownloading, setReportDownloading] = useState(false);
+  const [excelExporting, setExcelExporting] = useState(false);
   const [storeId, setStoreId] = useState<string | null>(
     canFilterAll ? null : currentStaff?.store_id ?? null,
   );
@@ -96,8 +99,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   }, [load]);
 
   useEffect(() => {
+    if (!isSuperAdmin) return;
     void catalogHealth.refresh();
-  }, [catalogHealth.refresh]);
+  }, [catalogHealth.refresh, isSuperAdmin]);
 
   const lowStock = useMemo(
     () => products.filter((p) => (p.stock ?? 0) > 0 && (p.stock ?? 0) < 5).slice(0, 6),
@@ -105,6 +109,30 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   );
 
   const exportLabel = preset === 'today' ? 'aujourdhui' : preset;
+
+  const handleExcelExport = async () => {
+    if (!data || excelExporting) return;
+    setExcelExporting(true);
+    try {
+      await exportDashboardExcel(data, exportLabel);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Export Excel impossible.');
+    } finally {
+      setExcelExporting(false);
+    }
+  };
+
+  const handleEndOfDayReport = async () => {
+    if (!data || reportDownloading) return;
+    setReportDownloading(true);
+    try {
+      await downloadEndOfDayReport(data);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Impossible de générer le PDF du rapport.');
+    } finally {
+      setReportDownloading(false);
+    }
+  };
 
   const staffRows = useMemo(
     () =>
@@ -207,22 +235,30 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              disabled={!data || loading}
-              onClick={() => data && exportDashboardCsv(data, exportLabel)}
+              disabled={!data || loading || excelExporting}
+              onClick={() => void handleExcelExport()}
               className={`${adminUi.btnGhost} text-xs py-2 px-3.5 flex items-center gap-1.5`}
             >
-              <Download className="h-3.5 w-3.5" />
-              Export Excel
+              {excelExporting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              {excelExporting ? 'Export…' : 'Export Excel'}
             </button>
             <button
               type="button"
-              disabled={!data || loading}
-              onClick={() => data && downloadEndOfDayReport(data)}
-              title="Télécharge le rapport en fichier autonome, ouvrable et imprimable partout"
+              disabled={!data || loading || reportDownloading}
+              onClick={() => void handleEndOfDayReport()}
+              title="Télécharge le rapport du soir en PDF"
               className={`${adminUi.btnPrimary} text-xs py-2 px-3.5 flex items-center gap-1.5`}
             >
-              <FileText className="h-3.5 w-3.5" />
-              Rapport du soir
+              {reportDownloading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileText className="h-3.5 w-3.5" />
+              )}
+              {reportDownloading ? 'PDF en cours…' : 'Rapport du soir'}
             </button>
           </div>
         </div>
@@ -267,26 +303,28 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
         </div>
       </div>
 
-      <CatalogHealthCard
-        summary={catalogHealth.summary}
-        loading={catalogHealth.loading}
-        scanning={catalogHealth.scanning}
-        error={catalogHealth.error}
-        onRescan={() => void catalogHealth.rescan()}
-        onSnooze={(id) => void catalogHealth.snooze(id)}
-        onOpenProduct={
-          onEditProduct
-            ? (productId) => {
-                const product = products.find((p) => p.id === productId);
-                if (product) {
-                  onEditProduct(product);
-                  return;
+      {isSuperAdmin && (
+        <CatalogHealthCard
+          summary={catalogHealth.summary}
+          loading={catalogHealth.loading}
+          scanning={catalogHealth.scanning}
+          error={catalogHealth.error}
+          onRescan={() => void catalogHealth.rescan()}
+          onSnooze={(id) => void catalogHealth.snooze(id)}
+          onOpenProduct={
+            onEditProduct
+              ? (productId) => {
+                  const product = products.find((p) => p.id === productId);
+                  if (product) {
+                    onEditProduct(product);
+                    return;
+                  }
+                  notifyInfo('Fiche introuvable dans l’inventaire chargé', 'Recharge la page puis réessaie.');
                 }
-                notifyInfo('Fiche introuvable dans l’inventaire chargé', 'Recharge la page puis réessaie.');
-              }
-            : undefined
-        }
-      />
+              : undefined
+          }
+        />
+      )}
 
       {error && (
         <div className={`${adminUi.hintCard} border-red-500/40 text-red-300 text-sm`}>{error}</div>

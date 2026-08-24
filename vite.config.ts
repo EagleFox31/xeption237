@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react()
     ],
+    resolve: {
+      dedupe: ['react', 'react-dom'],
+    },
     define: {
       // Polyfill spécifique pour API_KEY
       'process.env.API_KEY': JSON.stringify(

@@ -158,10 +158,10 @@ const InventoryTab: React.FC<InventoryTabProps> = ({
             <thead className={adminUi.tableHead}>
               <tr>
                 <th className="px-6 py-4">Produit</th>
-                <th className="px-6 py-4">Prix</th>
-                <th className="px-6 py-4">Stock</th>
-                <th className="px-6 py-4 text-center">À la Une</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4 w-px whitespace-nowrap">Prix</th>
+                <th className="px-6 py-4 w-px whitespace-nowrap">Stock</th>
+                <th className="px-6 py-4 text-center w-px whitespace-nowrap">À la Une</th>
+                <th className="px-6 py-4 text-right w-px whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className={adminUi.tableBody}>
@@ -244,19 +244,26 @@ const InventoryTab: React.FC<InventoryTabProps> = ({
                           />
                         </button>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => onEditProduct(product)}
-                          className="p-2 text-xeption-gold hover:bg-white/10 rounded mr-2"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteProduct(product.id)}
-                          className="p-2 text-red-500 hover:bg-white/10 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <td className="px-6 py-4 w-px whitespace-nowrap">
+                        {/* flex : deux boutons sur UNE ligne. En inline, ils
+                            retournaient à la ligne dès que la colonne Produit
+                            réclamait la largeur (table-layout auto). */}
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => onEditProduct(product)}
+                            aria-label="Modifier le produit"
+                            className="p-2 text-xeption-gold hover:bg-white/10 rounded"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onDeleteProduct(product.id)}
+                            aria-label="Supprimer le produit"
+                            className="p-2 text-red-500 hover:bg-white/10 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

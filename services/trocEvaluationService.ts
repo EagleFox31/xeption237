@@ -5,6 +5,11 @@ import { isTrocPhotosCredibilityVerified } from '../utils/trocPhotoCredibilitySe
 import { normalizeModelKey } from '../utils/modelKey';
 import { getProductDisplayName } from '../utils/productDisplay';
 import { computeVoucherExpiry } from '../utils/trocVoucher';
+import {
+  sanitizeImei,
+  isValidImei as isValidImeiStrict,
+  isTrivialTestImei,
+} from '../utils/imeiValidation';
 import type { Product, TrocDeviceForm, TrocEvaluationMode, TrocEvaluationResult, TradeInRequest, TrocPayment, MarketTrend } from '../types';
 
 const TROC_SESSION_TRACKING_PREFIX = 'troc_session_initialized:';
@@ -49,23 +54,8 @@ export type TradeInModel = {
 };
 
 const normalize = (value?: string) => (value || '').trim().toLowerCase();
-const sanitizeImei = (value?: string): string => (value || '').replace(/\D/g, '').trim();
 
 const ALLOWED_IMEI_CHECK_STATUSES = new Set(['valid', 'invalid', 'check_failed']);
-
-const isValidImei = (imei: string): boolean => {
-  if (!/^\d{15}$/.test(imei)) return false;
-  let sum = 0;
-  for (let i = 0; i < 14; i++) {
-    let digit = parseInt(imei[i], 10);
-    if (i % 2 === 1) {
-      digit *= 2;
-      if (digit > 9) digit -= 9;
-    }
-    sum += digit;
-  }
-  return (10 - (sum % 10)) % 10 === parseInt(imei[14], 10);
-};
 
 // La heuristique locale génère uniquement la justification textuelle.
 // Le score d'état est maintenant produit par computeOfferV2 (arbre de décision).
@@ -241,7 +231,10 @@ export const checkImei = async (
 ): Promise<CheckImeiResponse> => {
   const normalizedImei = sanitizeImei(imei);
 
-  if (!isValidImei(normalizedImei)) {
+  if (!isValidImeiStrict(normalizedImei)) {
+    if (isTrivialTestImei(normalizedImei)) {
+      return { status: 'check_failed', blacklistStatus: 'unknown', assuranceLevel: 'basic', reason: 'trivial_test_imei' };
+    }
     throw new Error(TROC_MESSAGES.imei_invalid_luhn);
   }
 

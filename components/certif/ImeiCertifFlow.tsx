@@ -4,6 +4,9 @@ import {
 } from 'lucide-react';
 import { TrocPayment } from '../troc/TrocPayment';
 import { ChameleoMascot } from '../troc/ChameleoMascot';
+// Validation partagee : 15 chiffres NE SUFFIT PAS. Luhn accepte le tout-zero,
+// et un IMEI de test envoye a check-imei fait cascader un lookup fournisseur.
+import { isValidImei } from '../../utils/imeiValidation';
 import {
   checkImei,
   createPayment,
@@ -28,7 +31,7 @@ interface ImeiResult {
 
 const isValidName  = (v: string) => v.trim().length >= 2 && !/\d/.test(v);
 const isValidPhone = (v: string) => /^[62]\d{8}$/.test(v);
-const isValidImei  = (v: string) => /^\d{15}$/.test(v);
+
 const makeCertifKey = () => `certif_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 const inputCls = 'w-full bg-black/40 border border-white/10 text-white px-4 py-3.5 text-sm font-sans placeholder-gray-600 focus:border-xeption-gold/60 outline-none transition-all';

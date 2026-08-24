@@ -84,6 +84,19 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
     effectiveModel.length >= 2 &&
     powersOn;
 
+  // Les MEMES conditions que canProceed, nommees pour l'affichage. Une seule
+  // verite : impossible que la barre annonce 5/5 alors que le bouton reste
+  // desactive.
+  const checklist = [
+    { key: 'name',  label: 'Prénom',   done: isValidName(form.customerName) },
+    { key: 'phone', label: 'Téléphone', done: isValidPhone(form.customerPhone) },
+    { key: 'power', label: 'Allume',   done: powersOn === true },
+    { key: 'imei',  label: 'IMEI',     done: Boolean(imeiOk) },
+    { key: 'model', label: 'Modèle',   done: effectiveModel.length >= 2 },
+  ];
+  const doneCount = checklist.filter((c) => c.done).length;
+  const progressPct = Math.round((doneCount / checklist.length) * 100);
+
   const blockingReason = !canProceed
     ? !isValidName(form.customerName)            ? (form.customerName.trim().length < 2 ? 'Prénom requis' : 'Prénom invalide — chiffres non acceptés')
     : !isValidPhone(form.customerPhone)          ? 'Numéro de téléphone invalide'
@@ -108,6 +121,43 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
 
   return (
     <div className="grid grid-cols-1 gap-6 p-6 sm:p-8 lg:grid-cols-2 lg:gap-x-8 lg:gap-y-5 lg:items-start">
+
+      {/* Progression — remplir un formulaire devient avancer vers son offre */}
+      <div className="lg:col-span-2 rounded-xl border border-xeption-gold/25 bg-gradient-to-r from-xeption-gold/[0.12] to-transparent px-4 py-3">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <span className="text-[11px] font-tech font-bold uppercase tracking-widest text-white/85">
+            {doneCount === checklist.length
+              ? 'Tout est prêt — lance ton estimation'
+              : `Ton estimation se prépare — ${doneCount} sur ${checklist.length}`}
+          </span>
+          <span className={`font-tech text-lg font-black tabular-nums ${doneCount === checklist.length ? 'text-emerald-300' : 'text-xeption-gold'}`}>
+            {progressPct}%
+          </span>
+        </div>
+
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ease-out ${doneCount === checklist.length ? 'bg-emerald-400' : 'bg-gradient-to-r from-amber-400 to-xeption-gold'}`}
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {checklist.map((c) => (
+            <span
+              key={c.key}
+              className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-tech uppercase tracking-wide transition-colors duration-300 ${
+                c.done
+                  ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
+                  : 'border-white/15 bg-white/[0.04] text-white/50'
+              }`}
+            >
+              {c.done && <CheckCircle className="h-3 w-3 shrink-0" />}
+              {c.label}
+            </span>
+          ))}
+        </div>
+      </div>
 
       {/* Ligne 1 — en-têtes calés sur la même hauteur (laptop) */}
       <div className={sectionHeaderCls}>
@@ -227,9 +277,18 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
           )}
 
           {imeiOk && deviceLabel && (
-            <div className="mt-3 flex items-center gap-2 text-sm font-sans text-green-300">
-              <CheckCircle className="h-4 w-4 shrink-0" />
-              Appareil identifié : <span className="font-bold text-white">{deviceLabel}</span>
+            <div className="mt-3 animate-in fade-in zoom-in-95 duration-500 rounded-xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-transparent px-4 py-3 shadow-[0_0_24px_rgba(16,185,129,0.15)]">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-400/50 bg-emerald-500/20">
+                  <CheckCircle className="h-4 w-4 text-emerald-300" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-tech uppercase tracking-widest text-emerald-300/90">
+                    Appareil reconnu
+                  </p>
+                  <p className="truncate font-tech text-lg font-bold text-white">{deviceLabel}</p>
+                </div>
+              </div>
             </div>
           )}
 

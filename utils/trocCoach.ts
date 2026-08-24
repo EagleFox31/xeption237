@@ -104,21 +104,21 @@ export function resolveTrocCoach(input: TrocCoachInput): TrocCoachView {
       if (input.isCheckingImei) {
         return {
           state: 'scanning', missionIndex: 0, completedCount: 0, title: 'Appareil',
-          message: 'Je lis ton IMEI… quelques secondes.',
+          message: 'Je lis ton IMEI… deux secondes.',
         };
       }
 
       if (input.imeiBlacklistStatus === 'blacklisted') {
         return {
           state: 'warning', missionIndex: 0, completedCount: 0, title: 'Appareil',
-          message: 'Cet appareil est signalé. Passe en boutique, on regarde ensemble.',
+          message: 'Celui-là est signalé. Passe en boutique, on trouve une solution.',
         };
       }
 
       if (allDone) {
         return {
           state: 'happy', missionIndex: 0, completedCount: 0, title: 'Appareil',
-          message: `Tout y est${who} — lance l’estimation, je m’occupe du reste.`,
+          message: `C’est bon${who} ! Lance l’estimation, le reste c’est mon travail.`,
         };
       }
 
@@ -126,7 +126,7 @@ export function resolveTrocCoach(input: TrocCoachInput): TrocCoachView {
       if (input.imeiStatus === 'valid' && input.deviceLabel) {
         return {
           state: 'happy', missionIndex: 0, completedCount: 0, title: 'Appareil',
-          message: `${input.deviceLabel} — bien vu${who} !${input.formNext ? ` Il reste ${input.formNext.toLowerCase()}.` : ''}`,
+          message: `${input.deviceLabel} — je le connais bien celui-là${who} !${input.formNext ? ` Il me manque ${input.formNext.toLowerCase()}.` : ''}`,
         };
       }
 
@@ -136,8 +136,10 @@ export function resolveTrocCoach(input: TrocCoachInput): TrocCoachView {
         completedCount: 0,
         title: 'Appareil',
         message: input.formNext
-          ? `${done}/${total} — ${input.formNext}`
-          : 'Compose *#06# sur le téléphone à reprendre, puis tape l’IMEI 1.',
+          ? (done === 0
+              ? `On commence par ${input.formNext}.`
+              : `${done} sur ${total}, ça avance. Maintenant ${input.formNext}.`)
+          : 'Compose *#06# sur le téléphone à reprendre, prends le premier numéro.',
       };
     }
     case 'photos':

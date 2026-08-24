@@ -2,6 +2,8 @@ import type { LucideIcon } from 'lucide-react';
 
 import {
 
+  ClipboardCheck,
+
   LayoutDashboard,
 
   CreditCard,
@@ -30,6 +32,8 @@ import {
 
   Receipt,
 
+  Target,
+
 } from 'lucide-react';
 
 
@@ -42,6 +46,8 @@ export const ADMIN_TAB_IDS = [
 
   'mySales',
 
+  'targets',
+
   'orders',
 
   'inventory',
@@ -51,6 +57,8 @@ export const ADMIN_TAB_IDS = [
   'delivery',
 
   'stores',
+
+  'stockMovements',
 
   'catalogStructure',
 
@@ -63,6 +71,8 @@ export const ADMIN_TAB_IDS = [
   'clients',
 
   'staff',
+
+  'qaRecette',
 
 ] as const;
 
@@ -161,6 +171,20 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         description: 'Tes ventes du jour : nombre, montant et détail ligne à ligne.',
 
         icon: Receipt,
+
+      },
+
+      {
+
+        id: 'targets',
+
+        label: 'Objectifs & primes',
+
+        shortLabel: 'Objectifs',
+
+        description: 'Quotas vendeurs et boutiques, seuils de prime et taux d\'atteinte.',
+
+        icon: Target,
 
       },
 
@@ -288,6 +312,20 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
 
       {
 
+        id: 'stockMovements',
+
+        label: 'Mouvements stock',
+
+        shortLabel: 'Stock+',
+
+        description: 'Transferts inter-boutiques, inventaire, retours SAV et journal.',
+
+        icon: ArrowLeftRight,
+
+      },
+
+      {
+
         id: 'troc',
 
         label: 'Dossiers Troc',
@@ -337,6 +375,20 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         description: 'Fiches clients et historique.',
 
         icon: Users,
+
+      },
+
+      {
+
+        id: 'qaRecette',
+
+        label: 'Recette',
+
+        shortLabel: 'Recette',
+
+        description: 'Tests fonctionnels à valider avant mise en ligne.',
+
+        icon: ClipboardCheck,
 
       },
 

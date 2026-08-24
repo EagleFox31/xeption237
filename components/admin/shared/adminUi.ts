@@ -6,13 +6,13 @@
 export const adminUi = {
   page: 'min-h-screen text-white selection:bg-xeption-gold selection:text-black',
   main: 'md:ml-64 min-h-screen relative z-10',
-  content: 'max-w-[1600px] mx-auto px-4 md:px-8 pb-28 md:pb-10 pt-4 md:pt-6',
+  content: 'max-w-[1600px] mx-auto px-4 md:px-8 pb-28 md:pb-10 pt-2 md:pt-3',
   surface:
     'bg-black/25 backdrop-blur-md border border-white/10 rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.15)]',
   surfaceHover: 'hover:border-white/20 transition-colors duration-200',
   card: 'bg-black/25 backdrop-blur-md border border-white/10 rounded-lg p-5 md:p-6',
   pageHeaderCard:
-    'relative overflow-hidden bg-xeption-gold border border-black/15 rounded-lg px-4 py-3 md:px-5 md:py-4 shadow-[0_4px_28px_rgba(255,215,0,0.28)]',
+    'relative overflow-hidden bg-xeption-gold border border-black/15 rounded-lg px-4 py-2 md:px-5 md:py-2.5 shadow-[0_4px_28px_rgba(255,215,0,0.28)]',
   pageHeaderTitle: 'text-black font-tech font-bold uppercase tracking-tight',
   pageHeaderDesc: 'text-sm text-black/75',
   btnOnGold:

@@ -194,6 +194,48 @@
       background: #FFD700;
     }
 
+    /* Barre de progression Smart Troc — elle avance par bonds de 20 %,
+       la transition de largeur EST le moment. Trois couches :
+       le remplissage (ressort leger), un balayage lumineux qui montre que
+       ca vit, et une tete brillante qui marque ou on en est. */
+    @keyframes trocProgressSweep {
+      0%   { transform: translateX(-120%); }
+      55%  { transform: translateX(220%); }
+      100% { transform: translateX(220%); }
+    }
+
+    @keyframes trocProgressHead {
+      0%, 100% { opacity: .55; transform: scale(1); }
+      50%      { opacity: 1;   transform: scale(1.35); }
+    }
+
+    .troc-progress-fill {
+      /* Ressort discret : depasse de tres peu puis se pose. */
+      transition: width 620ms cubic-bezier(.34, 1.32, .64, 1);
+    }
+
+    .troc-progress-sweep {
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.45) 50%,
+        transparent 100%
+      );
+      animation: trocProgressSweep 2.4s ease-in-out infinite;
+    }
+
+    .troc-progress-head {
+      animation: trocProgressHead 1.6s ease-in-out infinite;
+    }
+
+    /* Respect de « reduire les animations » : le remplissage reste, le
+       clignotement disparait. */
+    @media (prefers-reduced-motion: reduce) {
+      .troc-progress-sweep,
+      .troc-progress-head { animation: none; }
+      .troc-progress-fill { transition: width 200ms linear; }
+    }
+
     /* Shimmer cards produit (chargement image) */
     @keyframes productImageShimmer {
       0% {

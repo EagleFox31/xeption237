@@ -136,15 +136,30 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
           forme creait deux « 1 sur 5 » de sens different cote a cote. Ici, une
           ligne fine et une phrase : ce qui reste a faire, rien de plus. */}
       <div className="lg:col-span-2 flex items-center gap-3">
-        <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
+        <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
           <div
-            className={`h-full rounded-full transition-all duration-500 ease-out ${
+            className={`troc-progress-fill relative h-full rounded-full ${
               doneCount === checklist.length
-                ? 'bg-emerald-400'
-                : 'bg-gradient-to-r from-amber-400 to-xeption-gold'
+                ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]'
+                : 'bg-gradient-to-r from-amber-400 to-xeption-gold shadow-[0_0_12px_rgba(255,215,0,0.45)]'
             }`}
             style={{ width: `${progressPct}%` }}
-          />
+          >
+            {/* Balayage lumineux — seulement tant qu'il reste à faire :
+                une barre terminée n'a plus rien à annoncer. */}
+            {doneCount < checklist.length && progressPct > 0 && (
+              <span className="troc-progress-sweep pointer-events-none absolute inset-y-0 left-0 w-1/2" aria-hidden />
+            )}
+          </div>
+
+          {/* Tête brillante posée au bout du remplissage. */}
+          {progressPct > 0 && doneCount < checklist.length && (
+            <span
+              className="troc-progress-head pointer-events-none absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,215,0,0.9)]"
+              style={{ left: `${progressPct}%`, transition: 'left 620ms cubic-bezier(.34,1.32,.64,1)' }}
+              aria-hidden
+            />
+          )}
         </div>
         <span
           className={`shrink-0 text-[11px] font-sans ${

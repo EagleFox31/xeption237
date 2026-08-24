@@ -1,10 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
-import { Box, User, Phone, Mail, ShoppingCart, Grid, CheckCircle, Printer, ArrowRight, Search, SlidersHorizontal, Filter, X, Building2, AlertTriangle } from 'lucide-react';
+import { Box, User, Phone, Mail, ShoppingCart, Grid, CheckCircle, Printer, ArrowRight, Search, SlidersHorizontal, Filter, X, Building2, AlertTriangle, FlaskConical } from 'lucide-react';
 import { Product, CartItem, Order, Category, Brand, TradeInRequest } from '../../../types';
 import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
 import { optimizeImage } from '../../../utils/mediaOptimization';
 import { POS_PAYMENT_OPTIONS, type PosPaymentMethod } from '../../../utils/paymentMethods';
+import { isTestModeEnabled, setTestModeEnabled } from '../../../utils/testMode';
 import PosTrocPanel from '../pos/PosTrocPanel';
 import {
   getBrandDisplayName,
@@ -64,6 +65,9 @@ const PosTab: React.FC<PosTabProps> = ({
     onTrocSuccess,
 }) => {
   const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
+  // Lu depuis sessionStorage : le mode survit à la navigation entre onglets de
+  // l'admin, mais s'éteint à la fermeture du navigateur.
+  const [testMode, setTestMode] = useState<boolean>(() => isTestModeEnabled());
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'price-asc' | 'price-desc'>('name');
   const isTrocMode = paymentMethod === 'TROC';
@@ -139,9 +143,37 @@ const PosTab: React.FC<PosTabProps> = ({
         )}
 
         {storeName && (
-          <div className="lg:col-span-3 flex items-center gap-2 text-xs text-white/75 shrink-0">
-            <Building2 className="h-3.5 w-3.5 text-xeption-gold" />
-            <span>Caisse : <strong className="text-white">{storeName}</strong></span>
+          <div className="lg:col-span-3 flex flex-wrap items-center justify-between gap-2 text-xs text-white/75 shrink-0">
+            <span className="flex items-center gap-2">
+              <Building2 className="h-3.5 w-3.5 text-xeption-gold" />
+              Caisse : <strong className="text-white">{storeName}</strong>
+            </span>
+
+            {/* Mode test : s'éteint à la fermeture de l'onglet (sessionStorage). */}
+            <button
+              type="button"
+              onClick={() => { setTestModeEnabled(!testMode); setTestMode(!testMode); }}
+              aria-pressed={testMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm border transition-colors ${
+                testMode
+                  ? 'bg-amber-500/20 border-amber-400/60 text-amber-100'
+                  : 'bg-black/40 border-white/15 text-white/70 hover:border-white/30'
+              }`}
+            >
+              <FlaskConical className="h-3.5 w-3.5" />
+              {testMode ? 'Mode test actif' : 'Mode test'}
+            </button>
+          </div>
+        )}
+
+        {testMode && (
+          <div className="lg:col-span-3 bg-amber-500/15 border border-amber-400/40 rounded-sm p-3 flex items-start gap-2 text-amber-100 text-sm shrink-0">
+            <FlaskConical className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>
+              <strong>Mode test</strong> — les ventes enregistrées seront préfixées{' '}
+              <code className="text-amber-200">TEST-</code> et repérables comme essais.
+              Pense à le couper avant une vraie vente : elle serait marquée de la même façon.
+            </span>
           </div>
         )}
         

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { applyTestOrderPrefix } from '../utils/testMode';
 import type { TradeInRequest, Product } from '../types';
 import { DB_TABLES, DB_SCHEMA } from '../constants/dbSchema';
 import { assertRpcSuccess } from '../utils/rpcResult';
@@ -46,7 +47,7 @@ export const completeTrocWithSale = async (
     throw new Error('Aucun appareil cible sur ce dossier (bon générique).');
   }
 
-  const orderId = `TRC-POS-${Date.now().toString().slice(-6)}`;
+  const orderId = applyTestOrderPrefix(`TRC-POS-${Date.now().toString().slice(-6)}`);
   const nowIso = new Date().toISOString();
 
   const { data: rpcData, error: rpcError } = await supabase.rpc('complete_troc_with_sale_atomic', {

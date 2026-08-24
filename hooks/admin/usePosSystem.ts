@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Product, CartItem, Order, Staff } from '../../types';
 import { supabase } from '../../services/supabaseClient';
+import { applyTestOrderPrefix } from '../../utils/testMode';
 import { generateInvoiceHTML } from '../../utils/invoiceGenerator';
 import { assertRpcSuccess } from '../../utils/rpcResult';
 import type { PosPaymentMethod } from '../../utils/paymentMethods';
@@ -44,7 +45,7 @@ export const usePosSystem = ({ products, refreshData, staff }: UsePosSystemProps
         if (!customer.name) throw new Error("Nom du client requis");
         if (!staff?.store_id) throw new Error("Aucune boutique rattachée à ton compte — demande à la direction.");
 
-        const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
+        const newOrderId = applyTestOrderPrefix(`POS-${Date.now().toString().slice(-6)}`);
         const orderDate = new Date().toISOString();
         const rpcPayment = paymentMethod === 'CARD' ? 'CARD' : paymentMethod;
 

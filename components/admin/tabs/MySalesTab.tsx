@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
-import { Calendar, Loader2, Receipt, TrendingUp } from 'lucide-react';
+import { Calendar, Loader2, PartyPopper, Receipt, TrendingUp, AlertTriangle } from 'lucide-react';
 import { adminUi } from '../shared/adminUi';
+import TargetProgressCard from '../targets/TargetProgressCard';
 import { getPaymentMethodLabel } from '../../../utils/paymentMethods';
 import { getOrderStatusLabel } from '../../../utils/orderWorkflow';
 import type { StaffSalesSummary, StaffSaleRow } from '../../../hooks/admin/useMySales';
+import type { StaffTargetProgress } from '../../../utils/salesTargets';
 import type { Order } from '../../../types';
 
 interface MySalesTabProps {
@@ -15,6 +17,8 @@ interface MySalesTabProps {
   onDateChange: (date: Date) => void;
   loading: boolean;
   onRefresh: () => void;
+  targetProgress?: StaffTargetProgress | null;
+  targetsLoading?: boolean;
 }
 
 const formatDayInput = (date: Date) => {
@@ -36,19 +40,24 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
   onDateChange,
   loading,
   onRefresh,
+  targetProgress,
+  targetsLoading,
 }) => {
   useEffect(() => {
     void onRefresh();
   }, [onRefresh, selectedDate]);
 
+  const dailyAchieved = targetProgress?.daily?.achieved;
+  const monthlyAchieved = targetProgress?.monthly?.achieved;
+
   return (
     <div className="animate-in fade-in space-y-4 h-[calc(100vh-140px)] flex flex-col">
-      <div className={adminUi.hintCard}>
-        <p className={`${adminUi.body} leading-snug`}>
-          Tes ventes enregistrées avec ton compte — boutique
-          {storeName ? ` ${storeName}` : ' non renseignée'}.
-        </p>
-      </div>
+      {!storeName && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-sm p-3 flex items-start gap-2 text-amber-200 text-sm shrink-0">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>Aucune boutique rattachée à ton compte — tes ventes s&apos;affichent quand même, mais la direction doit te rattacher pour le suivi par magasin.</span>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 shrink-0">
         <label className="flex items-center gap-2 text-sm text-white/80">
@@ -71,8 +80,38 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
         >
           Aujourd&apos;hui
         </button>
-        <span className="text-xs text-white/50 ml-auto">{staffName}</span>
+        <span className="text-xs text-white/50 ml-auto">
+          {staffName}
+          {storeName ? ` · ${storeName}` : ''}
+        </span>
       </div>
+
+      {(targetsLoading || targetProgress) && (
+        <div className="space-y-3 shrink-0">
+          {(dailyAchieved || monthlyAchieved) && (
+            <div className={`${adminUi.hintCard} border-emerald-500/40 flex items-start gap-2`}>
+              <PartyPopper className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-white/85 leading-snug">
+                {dailyAchieved && monthlyAchieved
+                  ? 'Objectifs du jour et du mois atteints — bravo !'
+                  : dailyAchieved
+                    ? 'Objectif du jour atteint — bravo !'
+                    : 'Objectif du mois atteint — bravo !'}
+              </p>
+            </div>
+          )}
+          {targetsLoading && !targetProgress ? (
+            <div className="flex justify-center py-6 text-white/40">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : targetProgress ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <TargetProgressCard title="Objectif du jour" slice={targetProgress.daily} />
+              <TargetProgressCard title="Objectif du mois" slice={targetProgress.monthly} />
+            </div>
+          ) : null}
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3 shrink-0">
         <div className={`${adminUi.surface} p-4`}>

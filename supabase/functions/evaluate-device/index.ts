@@ -22,9 +22,55 @@ const PHOTO_FETCH_TIMEOUT_MS = 10_000;
 const GEMINI_TIMEOUT_MS = 30_000;
 const MAX_PHOTOS = 8;
 const CREDIBILITY_MAX_PHOTOS = 4;
-const GEMINI_MODEL = 'gemini-2.0-flash';
-const GEMINI_CREDIBILITY_MODEL =
-  Deno.env.get('GEMINI_CREDIBILITY_MODEL')?.trim() || 'gemini-2.0-flash-lite';
+// Chaine de modeles, pas un slug unique.
+//
+// Le 2026-08-24 le pipeline vision est tombe entierement : gemini-2.0-flash et
+// gemini-2.0-flash-lite, codes en dur ici, avaient ete retires par Google. Le
+// repli existant est au niveau des CLES (primaire -> secours) et ne se declenche
+// que sur 429/503/5xx : un 404 « modele retire » n'est pas rattrapable en
+// changeant de cle, donc la panne n'avait aucun chemin de secours.
+//
+// Les alias (-latest) ne peuvent pas etre retires silencieusement : ils viennent
+// en premier. Un modele epingle les suit, au cas ou l'alias basculerait vers un
+// modele au comportement different.
+const parseModelChain = (raw: string | undefined, fallback: string[]): string[] => {
+  const parsed = (raw ?? '').split(',').map((m) => m.trim()).filter(Boolean);
+  return parsed.length > 0 ? parsed : fallback;
+};
+
+// Ordre voulu : des modeles EPROUVES d'abord, l'alias en dernier comme survivant.
+//
+// Chaine sondee le 2026-08-24 avec la cle reellement utilisee par cette fonction
+// (`healthCheck` + `probeModels`), car les droits varient d'une cle a l'autre :
+//   gemini-3.5-flash        ok        gemini-2.5-flash       404 (retire)
+//   gemini-3.6-flash        ok        gemini-2.5-flash-lite  404 (retire)
+//   gemini-flash-latest     timeout (congestion) -> garde en dernier recours
+//
+// L'alias protege du retrait silencieux mais il est congestionne : en tete de
+// chaine il consommait tout le budget avant que le modele suivant soit essaye.
+const GEMINI_MODELS = parseModelChain(
+  Deno.env.get('GEMINI_MODELS'),
+  ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'],
+);
+
+const GEMINI_CREDIBILITY_MODELS = parseModelChain(
+  Deno.env.get('GEMINI_CREDIBILITY_MODELS') ?? Deno.env.get('GEMINI_CREDIBILITY_MODEL'),
+  ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite'],
+);
+// Mesure du 2026-08-24 : le preflight repond en 1,7 s sur gemini-flash-lite-latest.
+
+// Faut-il essayer le MODELE suivant apres qu'un modele a echoue sur les deux cles ?
+//
+// Oui dans presque tous les cas : un 404 signifie que le modele a ete retire, un
+// 503 « forte demande » vise ce modele precis (un autre a d'autres capacites),
+// un 400 est un refus propre a ce modele. Non sur 401/403 : c'est la cle qui est
+// en cause, et aucun autre modele n'y changera quoi que ce soit.
+const shouldTryNextModel = (status: number): boolean => status !== 401 && status !== 403;
+
+// Budget global. Sans lui, une chaine de 2 modeles x 2 cles x 30 s ferait
+// patienter le client jusqu'a deux minutes devant un ecran fige. Mesure sur la
+// panne du 2026-08-24 : 59 s pour un seul modele.
+const TOTAL_GEMINI_BUDGET_MS = 45_000;
 
 const fetchWithTimeout = async (
   input: RequestInfo | URL,
@@ -144,7 +190,7 @@ const callGemini = async (
   promptText: string,
   keyUsed: 'primary' | 'fallback',
   responseSchema: Record<string, unknown>,
-  model = GEMINI_MODEL,
+  model: string,
 ): Promise<GeminiCallResult> => {
   const geminiRes = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -183,11 +229,63 @@ Deno.serve(async (req: Request) => {
       const primaryKey = Deno.env.get('GEMINI_API_KEY')?.trim() || '';
       const fallbackKey = Deno.env.get('GEMINI_API_KEY_FALLBACK')?.trim() || '';
       const ready = primaryKey.length > 0 || fallbackKey.length > 0;
+
+      // Une cle presente ne suffit pas : le 2026-08-24 les cles etaient valides
+      // mais les modeles codes en dur avaient ete retires, et ce healthCheck
+      // repondait « ready » pendant que tout le pipeline tombait.
+      //
+      // On sonde par un VRAI generateContent, pas par models.list : cette liste
+      // ment. Elle annonce gemini-2.5-flash comme servi alors que l'appel repond
+      // « This model is no longer available to new users ». Les droits varient
+      // d'une cle a l'autre, donc seule la cle reellement utilisee fait foi.
+      const candidates: string[] = Array.isArray(body.probeModels) && body.probeModels.length > 0
+        ? body.probeModels.filter((m: unknown) => typeof m === 'string').slice(0, 12)
+        : [...new Set([...GEMINI_MODELS, ...GEMINI_CREDIBILITY_MODELS])];
+
+      let modelsReachable: Record<string, string> | null = null;
+      const probeKey = primaryKey || fallbackKey;
+
+      if (probeKey) {
+        const probe = async (model: string): Promise<[string, string]> => {
+          try {
+            const res = await fetchWithTimeout(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${probeKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: 'ping' }] }],
+                  generationConfig: { maxOutputTokens: 1, temperature: 0 },
+                }),
+              },
+              8_000,
+            );
+            return [model, res.ok ? 'ok' : `http_${res.status}`];
+          } catch (error: any) {
+            return [model, error?.name === 'AbortError' ? 'timeout' : 'failed'];
+          }
+        };
+
+        const results = await Promise.all(candidates.map(probe));
+        modelsReachable = Object.fromEntries(results);
+      }
+
+      const anyModelReachable = modelsReachable
+        ? Object.values(modelsReachable).some((v) => v === 'ok')
+        : null;
+
       return new Response(
         JSON.stringify({
-          ready,
+          ready: ready && anyModelReachable !== false,
           provider: 'edge-gemini',
-          code: ready ? 'ready' : 'missing_api_key',
+          code: !ready
+            ? 'missing_api_key'
+            : anyModelReachable === false
+              ? 'no_model_available'
+              : 'ready',
+          keys: { primary: primaryKey.length > 0, fallback: fallbackKey.length > 0 },
+          chains: { evaluation: GEMINI_MODELS, preflight: GEMINI_CREDIBILITY_MODELS },
+          modelsReachable,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
@@ -231,7 +329,7 @@ Deno.serve(async (req: Request) => {
 
     const responseSchema = isPreflight ? CREDIBILITY_SCHEMA : FULL_VISION_SCHEMA;
     const photoLimit = isPreflight ? CREDIBILITY_MAX_PHOTOS : MAX_PHOTOS;
-    const geminiModel = isPreflight ? GEMINI_CREDIBILITY_MODEL : GEMINI_MODEL;
+    const modelChain = isPreflight ? GEMINI_CREDIBILITY_MODELS : GEMINI_MODELS;
 
     // Fetch photos depuis Cloudinary et conversion base64.
     // On utilise allSettled pour ne pas bloquer sur une photo manquante —
@@ -269,59 +367,87 @@ Deno.serve(async (req: Request) => {
         })
       : buildTrocVisionAnalystPrompt({ ...analystInput, photoCount: imageParts.length });
 
-    let geminiResult: GeminiCallResult | null = null;
+    // Une tentative complete pour UN modele : cle primaire, puis cle de secours
+    // si le quota ou le serveur a laché. Inchange par rapport a l'existant.
+    const startedAt = Date.now();
+    const budgetLeft = () => TOTAL_GEMINI_BUDGET_MS - (Date.now() - startedAt);
 
-    if (primaryKey) {
-      try {
-        geminiResult = await callGemini(
-          primaryKey,
-          imageParts,
-          finalPrompt,
-          'primary',
-          responseSchema,
-          geminiModel,
-        );
-      } catch (error: any) {
-        console.error('[evaluate-device] gemini_primary_fatal', error?.message ?? error);
-      }
-    }
+    const attemptWithKeys = async (model: string): Promise<GeminiCallResult | null> => {
+      let result: GeminiCallResult | null = null;
 
-    // Fallback key: only if primary failed with quota/server issue, or if no primary exists.
-    const primaryFailedRecoverable =
-      geminiResult && !geminiResult.ok && shouldTryFallback(geminiResult.status);
-    const noPrimaryAttempt = !geminiResult;
-
-    if (fallbackKey && (noPrimaryAttempt || primaryFailedRecoverable)) {
-      try {
-        const fallbackResult = await callGemini(
-          fallbackKey,
-          imageParts,
-          finalPrompt,
-          'fallback',
-          responseSchema,
-          geminiModel,
-        );
-        if (fallbackResult.ok) {
-          geminiResult = fallbackResult;
-        } else if (!geminiResult || (geminiResult && geminiResult.ok === false)) {
-          // Keep the fallback result if primary was absent or also failed.
-          geminiResult = fallbackResult;
+      if (primaryKey) {
+        try {
+          result = await callGemini(primaryKey, imageParts, finalPrompt, 'primary', responseSchema, model);
+        } catch (error: any) {
+          console.error('[evaluate-device] gemini_primary_fatal', model, error?.message ?? error);
         }
-      } catch (error: any) {
-        console.error('[evaluate-device] gemini_fallback_fatal', error?.message ?? error);
       }
+
+      // Cle de secours : seulement si la primaire a lache sur quota/serveur, ou
+      // s'il n'y a pas de cle primaire.
+      const primaryFailedRecoverable = result && !result.ok && shouldTryFallback(result.status);
+      const noPrimaryAttempt = !result;
+
+      // Sans ce garde-fou, 2 cles x 30 s epuisaient le budget sur le premier
+      // modele et le second n'etait jamais essaye.
+      if (fallbackKey && budgetLeft() <= 0) {
+        console.warn('[evaluate-device] budget epuise, cle de secours non tentee', model);
+      } else if (fallbackKey && (noPrimaryAttempt || primaryFailedRecoverable)) {
+        try {
+          const fallbackResult = await callGemini(fallbackKey, imageParts, finalPrompt, 'fallback', responseSchema, model);
+          // On garde le resultat de secours s'il aboutit, ou si la primaire etait
+          // absente / avait echoue elle aussi.
+          if (fallbackResult.ok || !result || result.ok === false) {
+            result = fallbackResult;
+          }
+        } catch (error: any) {
+          console.error('[evaluate-device] gemini_fallback_fatal', model, error?.message ?? error);
+        }
+      }
+
+      return result;
+    };
+
+    // Boucle sur la chaine de modeles. Un 404/400 signifie que le modele est en
+    // cause : changer de cle ne servirait a rien, on passe au suivant.
+    let geminiResult: GeminiCallResult | null = null;
+    const modelsTried: string[] = [];
+
+    for (const model of modelChain) {
+      modelsTried.push(model);
+      const result = await attemptWithKeys(model);
+      geminiResult = result ?? geminiResult;
+
+      if (result?.ok) break;
+
+      if (budgetLeft() <= 0) {
+        console.warn('[evaluate-device] budget epuise, abandon de la chaine', modelsTried.join(' > '));
+        break;
+      }
+
+      if (!result || shouldTryNextModel(result.status)) {
+        console.warn('[evaluate-device] modele en echec, passage au suivant', model, result?.status ?? 'fatal');
+        continue;
+      }
+
+      // 401/403 : la cle est en cause, epuiser la chaine ne servirait a rien.
+      break;
     }
 
     if (!geminiResult || !geminiResult.ok) {
       const statusCode = geminiResult && !geminiResult.ok ? geminiResult.status : 500;
       const errBody = geminiResult && !geminiResult.ok ? geminiResult.body : 'gemini_unreachable';
       const keyLabel = geminiResult && !geminiResult.ok ? geminiResult.keyUsed : 'none';
-      console.error('[evaluate-device] gemini_error', statusCode, keyLabel, errBody);
+      console.error('[evaluate-device] gemini_error', statusCode, keyLabel, modelsTried.join(' > '), errBody);
       return new Response(
         JSON.stringify({
           error: 'Gemini API error',
           code: `gemini_http_${statusCode}`,
           provider: keyLabel,
+          // Sans le nom des modeles essayes, un 502 ne dit pas SI la chaine de
+          // repli a joue. Le diagnostic du 2026-08-24 a perdu du temps la-dessus.
+          modelsTried,
+          detail: errBody.slice(0, 200),
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
       );

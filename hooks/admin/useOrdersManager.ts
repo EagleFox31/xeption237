@@ -47,9 +47,23 @@ export const useOrdersManager = ({ orders, setOrders, refreshData }: UseOrdersMa
         refreshData?.();
     }, [orders, setOrders, refreshData]);
 
-    const cancelOrder = useCallback(async (order: Order) => {
-        await updateStatus(order.id, 'cancelled');
-    }, [updateStatus]);
+    const cancelOrder = useCallback(async (order: Order, reason?: string) => {
+        const { data, error } = await supabase.rpc('cancel_order_with_stock', {
+            p_order_id: order.id,
+            p_reason: reason ?? null,
+        });
+        if (error) throw error;
+        assertRpcSuccess(data, 'Annulation refusée');
+
+        setOrders((prev) =>
+            prev.map((o) =>
+                o.id === order.id
+                    ? { ...o, status: 'cancelled' as const }
+                    : o,
+            ),
+        );
+        refreshData?.();
+    }, [setOrders, refreshData]);
 
     return { updateStatus, cancelOrder };
 };

@@ -106,6 +106,16 @@
 
 ---
 
+## 2026-08-24 — Sonder un modèle avec la mauvaise clé, et croire `models.list`
+
+- **Symptôme** : après avoir corrigé les slugs Gemini retirés, l'évaluation complète répondait toujours `gemini_http_404` — sur un modèle que je venais pourtant de tester avec succès.
+- **Cause racine** : deux hypothèses fausses, empilées. (1) Je testais les modèles avec `VITE_GEMINI_API_KEY`, la clé du **front** ; l'Edge Function utilise `GEMINI_API_KEY`, une autre clé **aux droits différents**. `gemini-2.5-flash` répondait avec l'une et renvoyait 404 avec l'autre. (2) J'ai ensuite vérifié la disponibilité via `GET /v1beta/models`, qui annonçait `gemini-2.5-flash` comme servi, alors que `generateContent` répondait `This model is no longer available to new users`. **Figurer dans la liste ne prouve pas que le modèle répond.**
+- **Résolution** : ajouter un paramètre `probeModels` au `healthCheck` de la fonction, qui exécute un vrai `generateContent` minimal (`maxOutputTokens: 1`) **avec la clé que la fonction utilise réellement**. Dix candidats sondés d'un coup ont donné la liste exacte de ce qui marche, et les chaînes ont été calées dessus.
+- **Comment ne plus la refaire** : sonder une capacité **avec le credential du code concerné**, jamais avec un homonyme qui traîne dans `.env` — un nom de variable proche ne garantit pas la même valeur ni les mêmes droits. Et préférer une sonde qui **exerce** la capacité à une sonde qui la **déclare** : un endpoint de listing décrit une intention, pas un état.
+- **Effet de bord utile** : l'ancien `healthCheck` répondait « ready » sur simple présence d'une clé — il annonçait donc le pipeline sain pendant qu'il était entièrement par terre. Un contrôle de santé qui ne peut pas échouer ne sert à rien.
+
+---
+
 ## Modèle d'entrée (copier-coller)
 
 ```

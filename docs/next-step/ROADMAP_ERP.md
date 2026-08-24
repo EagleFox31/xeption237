@@ -20,9 +20,9 @@
 | 4 | **Bascule de la vérité du stock** | oui | **élevé** | multi-boutiques |
 | 5 | Le vendeur existe | oui | moyen | P1, primes, classements | ✅ |
 | 6 | Pilotage & export | oui | faible | P2, P3, rapport du soir | ✅ |
-| 7 | Objectifs & primes | oui | faible | UC-V-03, UC-D-04 |
-| 8 | Mouvements de stock avancés | oui | moyen | transferts, inventaires, retours |
-| 9 | Mode hors connexion | oui | élevé | saisie terrain |
+| 7 | Objectifs & primes | oui | faible | UC-V-03, UC-D-04 | ✅ |
+| 8 | Mouvements de stock avancés | oui | moyen | transferts, inventaires, retours | ✅ |
+| 9 | Mode hors connexion | oui | élevé | saisie terrain | ✅ |
 | 10 | Durcissement | non | moyen | isolation par rôle, audit |
 
 Les étapes **1 à 3 ne changent rien pour personne**. Le premier changement de comportement
@@ -162,6 +162,12 @@ top produits · export CSV Excel · rapport de fin de journée (impression).
 - Performance par point de vente *(dépend de l'étape 4)*. ✅
 - Top produits en CA et volume *(dépend d'`order_items`)*. ✅
 
+> **CA encaissé** = vue `orders_reportable` : commandes payées ou livrées, hors
+> annulées, retournées et essais caisse (`TEST-%`), sur la période filtrée
+> (`orders.date`). Source unique pour dashboard, objectifs/primes et mes ventes
+> (migration `20260824_026`). Toute vérification manuelle doit reprendre ces
+> critères pour retomber sur le même chiffre.
+
 > ⚠️ **Trou de couverture connu sur l'historique.** `order_items` ne couvre que
 > **16 des 26 commandes** : 10 commandes antérieures ont `orders.items = NULL`, donc
 > le backfill de l'étape 2 n'a rien pu en tirer. Elles représentent **2 905 000 FCFA**
@@ -177,38 +183,51 @@ top produits · export CSV Excel · rapport de fin de journée (impression).
 
 ---
 
-## Étape 7 — Objectifs & primes
+## Étape 7 — Objectifs & primes ✅ *appliquée 2026-08-24*
 
-Totalement absent du code et du schéma aujourd'hui.
+**Migration** : `20260824_025_erp_step7_sales_targets.sql`
 
-Référentiel d'objectifs par vendeur et par boutique, journaliers et mensuels · taux d'atteinte
-visible par le vendeur · seuils de prime paramétrables par la direction · alerte à l'atteinte.
+Tables `sales_targets` (vendeur ou boutique × journalier/mensuel) et `bonus_rules`
+(seuils de prime). RPC `get_sales_targets_progress`, `upsert_sales_target`,
+`upsert_bonus_rule` — garde staff, écriture réservée à la direction.
 
----
-
-## Étape 8 — Mouvements de stock avancés
-
-- **Annulation** → libération des réservations / réintégration du stock *(étape 4 : `sync_order_stock_on_status`)*.
-- **Retour client** → réintégration si revendable, sinon circuit SAV, avec ajustement du CA.
-- **Inventaire** → session de comptage, écarts affichés, ajustement motivé.
-- **Transferts inter-boutiques en deux temps** : décrément à l'envoi, stock en transit,
-  incrément à la réception confirmée. Alerte sur les transferts partis depuis trop longtemps.
-
-> Le deux-temps n'est pas un raffinement : sans lui, un transfert perdu fait disparaître de la
-> marchandise sans laisser de trace.
+- **UC-V-03** — progression jour/mois dans « Mes ventes », alerte à l'atteinte. ✅
+- **UC-D-04** — onglet « Objectifs & primes » : fixer quotas, primes, suivre l'équipe. ✅
+- CA objectifs = vue `orders_reportable` (aligné dashboard, hors essais `TEST-%`). ✅
 
 ---
 
-## Étape 9 — Mode hors connexion
+## Étape 8 — Mouvements de stock avancés ✅ *appliquée 2026-08-24*
 
-File d'attente locale des ventes, synchronisation à la reconnexion, résolution des conflits de
-stock au moment de la synchro (une vente hors ligne peut arriver après épuisement du stock —
-il faut décider : refus, ou acceptation avec alerte).
+**Migration** : `20260824_027_erp_step8_stock_operations.sql`
 
-`public/manifest.json` existe, mais **aucun service worker**, aucun `vite-plugin-pwa`. Tout est
-à construire.
+- **Annulation tracée** — `cancel_order_with_stock` (motif + auteur, réintégration via
+  `sync_order_stock_on_status`, déjà en place étape 4/17). ✅
+- **Transferts deux temps** — brouillon → expédition (`transfer_out`, stock en transit) →
+  réception (`transfer_in`). Alerte transferts &gt; 5 jours. ✅
+- **Inventaire physique** — session par boutique, écarts, ajustement `inventory_adjust`. ✅
+- **Retour SAV** (après `delivered` + payé) — revendable → réintégration stock + mouvement
+  `return` ; atelier → circuit SAV sans stock ; remboursement → `payment_status = refunded`
+  (exclu du CA via `orders_reportable`). ✅
+- **Journal** — `list_stock_movements` + onglet « Mouvements stock ». ✅
 
-C'est l'étape la plus lourde et la moins bloquante pour les autres — d'où sa position.
+---
+
+## Étape 9 — Mode hors connexion ✅
+
+File d'attente locale des ventes POS (IndexedDB), synchronisation à la reconnexion, refus avec
+alerte si le stock a été épuisé entre-temps (`stock_conflict` — reprise manuelle ou retrait de
+la file).
+
+- **File locale** — `utils/offlinePosQueue.ts` : ventes + snapshot catalogue pour rechargement
+  offline. ✅
+- **Sync** — `services/offlinePosSync.ts` + `hooks/admin/useOfflinePos.ts` : rejeu FIFO via
+  `complete_pos_sale_atomic` au retour réseau. ✅
+- **Caisse** — branche offline dans `usePosSystem.submitSale`, bandeau + file dans `PosTab`. ✅
+- **PWA minimal** — `public/sw-admin.js` (cache shell), `manifest.json` `start_url: /admin`. ✅
+
+Conflit stock : la vente reste en file avec statut `stock_conflict` ; le staff est notifié et
+peut réessayer ou retirer l'entrée (pas d'acceptation automatique hors stock).
 
 ---
 

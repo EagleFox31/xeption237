@@ -33,6 +33,7 @@ export const DB_TABLES = {
     CUSTOMERS: 'customers',
     ORDER_FEEDBACK_INVITES: 'order_feedback_invites',
     ORDER_FEEDBACK: 'order_feedback',
+    CATALOG_HEALTH_FINDINGS: 'catalog_health_findings',
 };
 
 export const DB_SCHEMA = {

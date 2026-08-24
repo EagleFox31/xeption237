@@ -115,6 +115,8 @@ export interface Order {
   createdAt?: string;
   staffId?: string;
   storeId?: string;
+  /** Vente enregistrée localement, en attente de synchronisation serveur. */
+  queuedLocally?: boolean;
 }
 
 export interface Customer {

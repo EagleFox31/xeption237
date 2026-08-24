@@ -20,10 +20,16 @@ interface CatalogHealthCardProps {
 
 const FindingRow: React.FC<{
   finding: CatalogHealthFinding;
+  /** `warn` = fiche à compléter · `danger` = rupture qui bloque la vente. */
+  tone: 'warn' | 'danger';
   onOpenProduct?: (productId: string) => void;
   onSnooze?: (id: string) => void;
-}> = ({ finding, onOpenProduct, onSnooze }) => (
-  <li className="flex items-start justify-between gap-2 p-2.5 rounded-md border border-white/10 bg-black/20 text-sm">
+}> = ({ finding, tone, onOpenProduct, onSnooze }) => (
+  <li className={`flex items-start justify-between gap-2 p-2.5 rounded-md border text-sm ${
+    tone === 'danger'
+      ? 'border-red-400/25 bg-red-500/[0.07]'
+      : 'border-amber-400/25 bg-amber-500/[0.06]'
+  }`}>
     <div className="min-w-0">
       {onOpenProduct ? (
         <button
@@ -110,7 +116,7 @@ const CatalogHealthCard: React.FC<CatalogHealthCardProps> = ({
             ) : (
               <ul className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
                 {dataPreview.map((f) => (
-                  <FindingRow key={f.id} finding={f} onOpenProduct={onOpenProduct} />
+                  <FindingRow key={f.id} finding={f} tone="warn" onOpenProduct={onOpenProduct} />
                 ))}
               </ul>
             )}
@@ -132,6 +138,7 @@ const CatalogHealthCard: React.FC<CatalogHealthCardProps> = ({
                   <FindingRow
                     key={f.id}
                     finding={f}
+                    tone="danger"
                     onOpenProduct={onOpenProduct}
                     onSnooze={onSnooze}
                   />

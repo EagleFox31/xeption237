@@ -218,10 +218,11 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
               type="button"
               disabled={!data || loading}
               onClick={() => data && printEndOfDayReport(data)}
+              title="Ouvre le rapport et la boîte d'impression — choisir « Enregistrer au format PDF » pour le garder"
               className={`${adminUi.btnPrimary} text-xs py-2 px-3.5 flex items-center gap-1.5`}
             >
               <FileText className="h-3.5 w-3.5" />
-              Rapport du soir
+              Rapport du soir (PDF)
             </button>
           </div>
         </div>

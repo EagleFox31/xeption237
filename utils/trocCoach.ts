@@ -25,6 +25,18 @@ export type TrocCoachInput = {
   photoCount: number;
   paymentState?: string;
   hasError?: boolean;
+  /**
+   * Avancement du formulaire d'appareil. Optionnel : la page Troc ne voit que
+   * 4 des 5 conditions (l'état « l'appareil s'allume » reste local au
+   * formulaire), le formulaire lui-même en passe 5. Chacun renseigne ce qu'il
+   * voit, la fonction ne suppose rien.
+   */
+  formDone?: number;
+  formTotal?: number;
+  /** Libellé de la prochaine chose à remplir — sert à guider plutôt qu'à répéter. */
+  formNext?: string;
+  firstName?: string;
+  deviceLabel?: string;
 };
 
 export type TrocCoachView = {
@@ -82,17 +94,52 @@ export function resolveTrocCoach(input: TrocCoachInput): TrocCoachView {
 
   switch (input.step) {
     case 'form':
-    case 'imei':
+    case 'imei': {
+      const who = input.firstName?.trim() ? ` ${input.firstName.trim()}` : '';
+      const done = input.formDone ?? 0;
+      const total = input.formTotal ?? 0;
+      const allDone = total > 0 && done >= total;
+
+      // Le scan d'abord : c'est le seul moment où la mascotte « travaille ».
+      if (input.isCheckingImei) {
+        return {
+          state: 'scanning', missionIndex: 0, completedCount: 0, title: 'Appareil',
+          message: 'Je lis ton IMEI… quelques secondes.',
+        };
+      }
+
+      if (input.imeiBlacklistStatus === 'blacklisted') {
+        return {
+          state: 'warning', missionIndex: 0, completedCount: 0, title: 'Appareil',
+          message: 'Cet appareil est signalé. Passe en boutique, on regarde ensemble.',
+        };
+      }
+
+      if (allDone) {
+        return {
+          state: 'happy', missionIndex: 0, completedCount: 0, title: 'Appareil',
+          message: `Tout y est${who} — lance l’estimation, je m’occupe du reste.`,
+        };
+      }
+
+      // Juste après la reconnaissance : on nomme l'appareil, c'est la récompense.
+      if (input.imeiStatus === 'valid' && input.deviceLabel) {
+        return {
+          state: 'happy', missionIndex: 0, completedCount: 0, title: 'Appareil',
+          message: `${input.deviceLabel} — bien vu${who} !${input.formNext ? ` Il reste ${input.formNext.toLowerCase()}.` : ''}`,
+        };
+      }
+
       return {
         state: input.imeiStatus === 'valid' ? 'happy' : 'idle',
         missionIndex: 0,
         completedCount: 0,
         title: 'Appareil',
-        message:
-          input.imeiStatus === 'valid'
-            ? 'IMEI propre. Encore les photos, ensuite on estime.'
-            : 'Compose *#06# sur le téléphone à reprendre, puis tape l’IMEI 1.',
+        message: input.formNext
+          ? `${done}/${total} — ${input.formNext}`
+          : 'Compose *#06# sur le téléphone à reprendre, puis tape l’IMEI 1.',
       };
+    }
     case 'photos':
       return {
         state: input.photoCount > 0 ? 'thinking' : 'idle',

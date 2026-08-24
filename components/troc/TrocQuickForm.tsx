@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
+import { resolveTrocCoach } from '../../utils/trocCoach';
 import type { TrocDeviceForm } from '../../types';
 import type { ImeiDeviceInfo } from '../../services/trocEvaluationService';
 import { ChameleoMascot } from './ChameleoMascot';
@@ -111,13 +112,21 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
     onNext();
   };
 
-  const quickInspectorMsg = isCheckingImei
-    ? "Vérification IMEI & modèle en cours... 🧐🔍"
-    : imeiOk
-      ? `Modèle identifié : ${effectiveModel || 'Appareil validé'} ! ✨`
-      : blacklisted
-        ? "Appareil signalé sur liste noire."
-        : "Entre ton IMEI pour lancer le diagnostic automatique ! 🔍";
+  // La mascotte parle depuis la MEME source que la barre de progression et que
+  // celle de la barre latérale — une seule voix, pas trois messages divergents.
+  const nextTodo = checklist.find((c) => !c.done)?.label;
+  const quickCoach = resolveTrocCoach({
+    step: 'form',
+    imeiStatus,
+    imeiBlacklistStatus,
+    isCheckingImei,
+    photoCount: 0,
+    formDone: doneCount,
+    formTotal: checklist.length,
+    formNext: nextTodo,
+    firstName: form.customerName,
+    deviceLabel: deviceLabel || undefined,
+  });
 
   return (
     <div className="grid grid-cols-1 gap-6 p-6 sm:p-8 lg:grid-cols-2 lg:gap-x-8 lg:gap-y-5 lg:items-start">
@@ -177,8 +186,8 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
         <ChameleoMascot
           size="sm"
           pose="inspector"
-          state={isCheckingImei ? 'scanning' : imeiOk ? 'happy' : 'idle'}
-          message={quickInspectorMsg}
+          state={quickCoach.state}
+          message={quickCoach.message}
         />
       </div>
 

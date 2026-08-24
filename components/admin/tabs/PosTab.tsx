@@ -1,11 +1,13 @@
 
 import React, { useState, useMemo } from 'react';
-import { Box, User, Phone, Mail, ShoppingCart, Grid, CheckCircle, Printer, ArrowRight, Search, SlidersHorizontal, Filter, X, Building2, AlertTriangle, FlaskConical } from 'lucide-react';
+import { Box, User, Phone, Mail, ShoppingCart, Grid, CheckCircle, Printer, ArrowRight, Search, SlidersHorizontal, Filter, X, Building2, AlertTriangle, FlaskConical, WifiOff, RefreshCw, CloudOff } from 'lucide-react';
 import { Product, CartItem, Order, Category, Brand, TradeInRequest } from '../../../types';
 import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
 import { optimizeImage } from '../../../utils/mediaOptimization';
 import { POS_PAYMENT_OPTIONS, type PosPaymentMethod } from '../../../utils/paymentMethods';
 import { isTestModeEnabled, setTestModeEnabled } from '../../../utils/testMode';
+import type { OfflinePosSaleRecord } from '../../../utils/offlinePosQueue';
+import { adminUi } from '../shared/adminUi';
 import PosTrocPanel from '../pos/PosTrocPanel';
 import {
   getBrandDisplayName,
@@ -37,6 +39,15 @@ interface PosTabProps {
   totalAmount: number;
   trocRequests: TradeInRequest[];
   onTrocSuccess: (orderId: string) => void;
+  isOnline: boolean;
+  offlineQueue: OfflinePosSaleRecord[];
+  offlineSyncing: boolean;
+  offlinePendingCount: number;
+  offlineConflictCount: number;
+  catalogFromCache?: boolean;
+  onOfflineSync: () => void;
+  onOfflineRetry: (localId: string) => void;
+  onOfflineDismiss: (localId: string) => void;
 }
 
 const PosTab: React.FC<PosTabProps> = ({
@@ -63,6 +74,15 @@ const PosTab: React.FC<PosTabProps> = ({
     totalAmount,
     trocRequests,
     onTrocSuccess,
+    isOnline,
+    offlineQueue,
+    offlineSyncing,
+    offlinePendingCount,
+    offlineConflictCount,
+    catalogFromCache,
+    onOfflineSync,
+    onOfflineRetry,
+    onOfflineDismiss,
 }) => {
   const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
   // Lu depuis sessionStorage : le mode survit à la navigation entre onglets de
@@ -115,17 +135,24 @@ const PosTab: React.FC<PosTabProps> = ({
   };
 
   if (lastOrder) {
+      const queued = lastOrder.queuedLocally;
       return (
           <div className="h-full flex items-center justify-center animate-in zoom-in-95 duration-300">
               <div className="bg-black/80 backdrop-blur-xl border border-xeption-gold/30 p-8 rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-md w-full text-center relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-xeption-gold to-transparent"></div>
-                  <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30">
-                      <CheckCircle className="w-10 h-10 text-green-500" />
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border ${queued ? 'bg-amber-500/10 border-amber-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+                      {queued ? <CloudOff className="w-10 h-10 text-amber-400" /> : <CheckCircle className="w-10 h-10 text-green-500" />}
                   </div>
-                  <h2 className="text-3xl font-tech font-bold uppercase text-white mb-2">Vente Validée !</h2>
-                  <p className="text-gray-400 text-sm mb-6">Commande #{lastOrder.id} enregistrée.</p>
+                  <h2 className="text-3xl font-tech font-bold uppercase text-white mb-2">
+                    {queued ? 'Vente en file locale' : 'Vente Validée !'}
+                  </h2>
+                  <p className="text-white/70 text-sm mb-6">
+                    Commande #{lastOrder.id}{queued ? ' — sera synchronisée dès que la connexion revient.' : ' enregistrée.'}
+                  </p>
                   <div className="space-y-3">
-                      <button onClick={handlePrint} className="w-full bg-white text-black font-bold uppercase py-4 rounded-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors"><Printer className="w-5 h-5" /> Imprimer Facture</button>
+                      {!queued && (
+                        <button onClick={handlePrint} className="w-full bg-white text-black font-bold uppercase py-4 rounded-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors"><Printer className="w-5 h-5" /> Imprimer Facture</button>
+                      )}
                       <button onClick={onDismissSuccess} className="w-full bg-xeption-gold/10 text-xeption-gold border border-xeption-gold/30 font-bold uppercase py-4 rounded-sm flex items-center justify-center gap-2 hover:bg-xeption-gold hover:text-black transition-all">Nouvelle Vente <ArrowRight className="w-5 h-5" /></button>
                   </div>
               </div>
@@ -171,9 +198,91 @@ const PosTab: React.FC<PosTabProps> = ({
             <FlaskConical className="h-4 w-4 mt-0.5 shrink-0" />
             <span>
               <strong>Mode test</strong> — les ventes enregistrées seront préfixées{' '}
-              <code className="text-amber-200">TEST-</code> et repérables comme essais.
+              <code className="text-amber-200">TEST-</code> : elles n&apos;entrent ni dans le
+              chiffre d&apos;affaires ni dans les objectifs et primes.
               Pense à le couper avant une vraie vente : elle serait marquée de la même façon.
             </span>
+          </div>
+        )}
+
+        {!isOnline && (
+          <div className="lg:col-span-3 bg-sky-500/15 border border-sky-400/40 rounded-sm p-3 flex flex-wrap items-start justify-between gap-3 text-sky-100 text-sm shrink-0">
+            <div className="flex items-start gap-2">
+              <WifiOff className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                <strong>Hors connexion</strong> — tu peux continuer à encaisser : chaque vente part
+                dans une file locale et sera rejouée à la reconnexion.
+                {catalogFromCache && ' Catalogue chargé depuis le dernier passage en ligne.'}
+              </span>
+            </div>
+            {(offlinePendingCount > 0 || offlineConflictCount > 0) && (
+              <span className="text-xs text-white/80">
+                {offlinePendingCount > 0 && `${offlinePendingCount} en attente`}
+                {offlinePendingCount > 0 && offlineConflictCount > 0 && ' · '}
+                {offlineConflictCount > 0 && `${offlineConflictCount} conflit stock`}
+              </span>
+            )}
+          </div>
+        )}
+
+        {(offlinePendingCount > 0 || offlineConflictCount > 0) && (
+          <div className={`lg:col-span-3 ${adminUi.hintCard} shrink-0`}>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <p className="text-sm text-white font-bold uppercase tracking-wide">File hors ligne</p>
+              {isOnline && (
+                <button
+                  type="button"
+                  onClick={onOfflineSync}
+                  disabled={offlineSyncing}
+                  className={adminUi.btnGhost}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${offlineSyncing ? 'animate-spin' : ''}`} />
+                  {offlineSyncing ? 'Synchronisation…' : 'Synchroniser'}
+                </button>
+              )}
+            </div>
+            {!isOnline && offlinePendingCount > 0 && (
+              <p className="text-xs text-white/75 mb-2">
+                La synchronisation reprendra automatiquement au retour du réseau.
+              </p>
+            )}
+            <ul className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+              {offlineQueue.map((row) => (
+                  <li
+                    key={row.localId}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-white/10 bg-black/30 px-3 py-2 text-xs text-white/85"
+                  >
+                    <div>
+                      <span className="font-mono text-white">{row.payload.orderId}</span>
+                      <span className="text-white/75"> — {row.payload.customerName}</span>
+                      <span className="text-xeption-gold ml-2">
+                        {row.payload.total.toLocaleString('fr-FR')} FCFA
+                      </span>
+                      {row.status === 'stock_conflict' && (
+                        <p className="text-amber-200 mt-1">{row.lastError ?? 'Stock insuffisant au moment de la synchro.'}</p>
+                      )}
+                      {row.status === 'syncing' && (
+                        <p className="text-sky-200 mt-1">Envoi en cours…</p>
+                      )}
+                      {row.status === 'failed' && (
+                        <p className="text-red-300 mt-1">{row.lastError ?? 'Échec de synchronisation.'}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {(row.status === 'failed' || row.status === 'stock_conflict') && isOnline && (
+                        <button type="button" onClick={() => onOfflineRetry(row.localId)} className={adminUi.btnGhost}>
+                          Réessayer
+                        </button>
+                      )}
+                      {(row.status === 'stock_conflict' || row.status === 'failed') && (
+                        <button type="button" onClick={() => onOfflineDismiss(row.localId)} className={adminUi.btnGhost}>
+                          Retirer
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+            </ul>
           </div>
         )}
         

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Product, CartItem, Order, Staff } from '../../types';
 import { supabase } from '../../services/supabaseClient';
 import { applyTestOrderPrefix } from '../../utils/testMode';
+import { enqueueOfflinePosSale, isBrowserOnline } from '../../utils/offlinePosQueue';
 import { generateInvoiceHTML } from '../../utils/invoiceGenerator';
 import { assertRpcSuccess } from '../../utils/rpcResult';
 import type { PosPaymentMethod } from '../../utils/paymentMethods';
@@ -11,9 +12,10 @@ interface UsePosSystemProps {
     products: Product[];
     refreshData: () => void;
     staff?: Staff | null;
+    onSaleQueued?: () => void;
 }
 
-export const usePosSystem = ({ products, refreshData, staff }: UsePosSystemProps) => {
+export const usePosSystem = ({ products, refreshData, staff, onSaleQueued }: UsePosSystemProps) => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [search, setSearch] = useState('');
     const [customer, setCustomer] = useState({ name: '', phone: '', email: '' });
@@ -48,6 +50,50 @@ export const usePosSystem = ({ products, refreshData, staff }: UsePosSystemProps
         const newOrderId = applyTestOrderPrefix(`POS-${Date.now().toString().slice(-6)}`);
         const orderDate = new Date().toISOString();
         const rpcPayment = paymentMethod === 'CARD' ? 'CARD' : paymentMethod;
+
+        if (!isBrowserOnline()) {
+            await enqueueOfflinePosSale({
+                orderId: newOrderId,
+                customerName: customer.name,
+                customerEmail: customer.email?.trim() || null,
+                customerPhone: customer.phone || null,
+                cart: [...cart],
+                paymentMethod,
+                total,
+                subtotal,
+                discountAmount: safeDiscount,
+                storeId: staff.store_id,
+                staffId: staff.id,
+                orderDate,
+            });
+
+            const queuedOrder: Order = {
+                id: newOrderId,
+                items: [...cart],
+                total,
+                subtotal,
+                discountAmount: safeDiscount,
+                status: 'delivered',
+                paymentMethod: rpcPayment,
+                customerName: customer.name,
+                customerEmail: customer.email,
+                customerPhone: customer.phone,
+                customerCity: 'Retrait Boutique',
+                deliveryMode: 'pickup',
+                date: new Date().toLocaleDateString('fr-FR'),
+                staffId: staff.id,
+                storeId: staff.store_id,
+                queuedLocally: true,
+            };
+
+            setLastOrder(queuedOrder);
+            setCart([]);
+            setCustomer({ name: '', phone: '', email: '' });
+            setDiscountAmount(0);
+            setPaymentMethod('CASH');
+            onSaleQueued?.();
+            return;
+        }
 
         const { data: rpcData, error: rpcError } = await supabase.rpc('complete_pos_sale_atomic', {
             p_order_id: newOrderId,

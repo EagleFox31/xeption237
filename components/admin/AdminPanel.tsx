@@ -406,6 +406,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             {showTabChrome && activeMenuItem && (
               <AdminPageHeader
                 key={activeTab}
+                storageKey={activeTab}
                 title={activeMenuItem.label}
                 description={activeMenuItem.description}
                 icon={activeMenuItem.icon}
@@ -441,6 +442,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         products={products}
                         stores={storesMgr.stores}
                         currentStaff={currentStaffSession.staff}
+                        onEditProduct={inventory.setEditingProduct}
                       />
                     )}
                     {activeTab === 'pos' && (

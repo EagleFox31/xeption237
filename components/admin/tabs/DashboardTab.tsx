@@ -29,7 +29,7 @@ import {
   REVENUE_DEFINITION_SHORT,
   topProductsCoverageNote,
 } from '../../../utils/dashboardAnalytics';
-import { exportDashboardCsv, printEndOfDayReport } from '../../../utils/dashboardExport';
+import { exportDashboardCsv, downloadEndOfDayReport } from '../../../utils/dashboardExport';
 import { getOrderStatusLabel } from '../../../utils/orderWorkflow';
 import { notifyInfo } from '../../../utils/notify';
 import type { Order } from '../../../types';
@@ -217,12 +217,12 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <button
               type="button"
               disabled={!data || loading}
-              onClick={() => data && printEndOfDayReport(data)}
-              title="Ouvre le rapport et la boîte d'impression — choisir « Enregistrer au format PDF » pour le garder"
+              onClick={() => data && downloadEndOfDayReport(data)}
+              title="Télécharge le rapport en fichier autonome, ouvrable et imprimable partout"
               className={`${adminUi.btnPrimary} text-xs py-2 px-3.5 flex items-center gap-1.5`}
             >
               <FileText className="h-3.5 w-3.5" />
-              Rapport du soir (PDF)
+              Rapport du soir
             </button>
           </div>
         </div>

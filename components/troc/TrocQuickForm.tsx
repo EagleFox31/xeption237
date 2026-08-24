@@ -23,8 +23,11 @@ const isValidName  = (v: string) => v.trim().length >= 2 && !/\d/.test(v);
 const isValidPhone = (v: string) => /^[62]\d{8}$/.test(v);
 const isValidImei  = (v: string) => /^\d{15}$/.test(v);
 
-const inputCls = 'w-full bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-xl text-white px-4 py-3.5 text-sm font-sans placeholder-gray-500 focus:border-xeption-gold/60 focus:bg-white/[0.06] focus:shadow-[0_0_15px_rgba(255,215,0,0.15)] outline-none transition-all duration-300';
-const labelCls = 'block text-[10px] font-tech uppercase tracking-widest text-gray-400 mb-1.5';
+const inputCls = 'w-full bg-white/[0.09] backdrop-blur-md border border-white/20 rounded-xl text-white px-4 py-3.5 text-sm font-sans placeholder-gray-500 focus:border-xeption-gold/60 focus:bg-white/[0.09] focus:shadow-[0_0_15px_rgba(255,215,0,0.15)] outline-none transition-all duration-300';
+const labelCls = 'block text-[10px] font-tech uppercase tracking-widest text-white/70 mb-1.5';
+const sectionHeaderCls = 'flex h-full flex-col border-b border-white/20 pb-4 text-left';
+const sectionTitleCls = 'text-xl font-tech font-bold uppercase text-white tracking-wider leading-tight';
+const sectionDescCls = 'mt-1 text-xs font-sans leading-relaxed text-white/80';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -41,7 +44,6 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
 
   const patch = (partial: Partial<TrocDeviceForm>) => onChange(partial as TrocDeviceForm);
 
-  // Déclenche le check APRÈS que form.imei est propagé dans le hook
   React.useEffect(() => {
     if (pendingCheck && form.imei === imeiInput.trim() && form.imei.length === 15) {
       setPendingCheck(false);
@@ -55,7 +57,6 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
     setPendingCheck(true);
   };
 
-  // Ce qu'on sait sur l'appareil après le check
   const deviceLabel = imeiDeviceInfo
     ? `${imeiDeviceInfo.brand ?? ''} ${imeiDeviceInfo.model ?? ''}`.trim()
     : null;
@@ -65,7 +66,6 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
   const blacklisted      = imeiBlacklistStatus === 'blacklisted';
   const imeiOk           = checked && imeiStatus === 'valid' && !blacklisted;
 
-  // Sync imeiDeviceInfo → form quand le check revient
   React.useEffect(() => {
     if (imeiOk && imeiDeviceInfo) {
       patch({
@@ -107,59 +107,94 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
         : "Entre ton IMEI pour lancer le diagnostic automatique ! 🔍";
 
   return (
-    <div className="p-6 sm:p-8 flex flex-col gap-6">
+    <div className="grid grid-cols-1 gap-6 p-6 sm:p-8 lg:grid-cols-2 lg:gap-x-8 lg:gap-y-5 lg:items-start">
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/10 pb-4">
-        <div>
-          <h2 className="text-xl font-tech font-bold uppercase text-white tracking-wider">Ton appareil</h2>
-          <p className="text-xs text-gray-300 mt-1 font-sans">3 infos et l'IA Xeption s'occupe de l'estimation instantanée.</p>
-        </div>
-
-        {/* Mascotte Xepti Inspecteur Loupe */}
-        <div className="shrink-0 -my-2">
-          <ChameleoMascot 
-            size="sm"
-            pose="inspector"
-            state={isCheckingImei ? 'scanning' : imeiOk ? 'happy' : 'idle'}
-            message={quickInspectorMsg}
-          />
-        </div>
+      {/* Ligne 1 — en-têtes calés sur la même hauteur (laptop) */}
+      <div className={sectionHeaderCls}>
+        <h2 className={sectionTitleCls}>Ton appareil</h2>
+        <p className={sectionDescCls}>3 infos et l'IA Xeption s'occupe de l'estimation instantanée.</p>
       </div>
 
-      {/* ── Champs principaux ─────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4">
+      <div className={sectionHeaderCls}>
+        <h2 className={sectionTitleCls}>Vérification IMEI</h2>
+        <p className={sectionDescCls}>
+          Compose <span className="font-mono font-semibold text-xeption-gold">*#06#</span> sur l'appareil
+          {' '}— prends le premier numéro affiché (<strong className="text-white">IMEI 1</strong>).
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>Prénom *</label>
-            <input type="text" placeholder="Ton prénom"
-              value={form.customerName}
-              onChange={e => patch({ customerName: e.target.value })}
-              className={`${inputCls} ${form.customerName.length > 0 && !isValidName(form.customerName) ? 'border-red-500/70' : ''}`} />
-            {form.customerName.length > 0 && !isValidName(form.customerName) && (
-              <p className="text-[11px] text-red-400 mt-1 font-sans">
-                {/\d/.test(form.customerName) ? 'Les chiffres ne sont pas acceptés dans un prénom' : 'Prénom trop court'}
-              </p>
+      <div className="flex justify-center lg:hidden">
+        <ChameleoMascot
+          size="sm"
+          pose="inspector"
+          state={isCheckingImei ? 'scanning' : imeiOk ? 'happy' : 'idle'}
+          message={quickInspectorMsg}
+        />
+      </div>
+
+      {/* Ligne 2 — champs alignés */}
+      <div className="flex flex-col gap-3">
+        <div>
+          <label className={labelCls}>Prénom *</label>
+          <input type="text" placeholder="Ton prénom"
+            value={form.customerName}
+            onChange={e => patch({ customerName: e.target.value })}
+            className={`${inputCls} ${form.customerName.length > 0 && !isValidName(form.customerName) ? 'border-red-500/70' : ''}`} />
+          {form.customerName.length > 0 && !isValidName(form.customerName) && (
+            <p className="mt-1 text-[11px] font-sans text-red-400">
+              {/\d/.test(form.customerName) ? 'Les chiffres ne sont pas acceptés dans un prénom' : 'Prénom trop court'}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className={labelCls}>Téléphone *</label>
+          <input type="tel" placeholder="677 123 456"
+            value={form.customerPhone}
+            onChange={e => patch({ customerPhone: e.target.value })}
+            className={`${inputCls} ${form.customerPhone.length > 0 && !isValidPhone(form.customerPhone) ? 'border-red-500/70' : ''}`} />
+          {form.customerPhone.length > 0 && !isValidPhone(form.customerPhone) && (
+            <p className="mt-1 text-[11px] font-sans text-red-400">Numéro invalide — 9 chiffres, commence par 6 ou 2 (ex : 677 123 456)</p>
+          )}
+        </div>
+
+        {(imeiOk || checkFailed) && !blacklisted && (
+          <div className="flex flex-col gap-3 border-t border-white/5 pt-5">
+            <p className="text-sm font-sans text-white/90">L'appareil s'allume normalement ?</p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setPowersOn(true)}
+                className={`flex-1 rounded-xl border py-3 text-xs font-tech font-bold uppercase tracking-wider transition-all duration-300 ${
+                  powersOn ? 'border-xeption-gold bg-xeption-gold text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]' : 'border-white/20 bg-white/[0.08] text-white/80 hover:border-xeption-gold/30 hover:bg-white/[0.08]'
+                }`}>
+                Oui
+              </button>
+              <button type="button" onClick={() => setPowersOn(false)}
+                className={`flex-1 rounded-xl border py-3 text-xs font-tech font-bold uppercase tracking-wider transition-all duration-300 ${
+                  !powersOn ? 'border-red-700/60 bg-red-900/50 text-red-300 shadow-[0_0_20px_rgba(220,38,38,0.2)]' : 'border-white/20 bg-white/[0.08] text-white/80 hover:border-white/30 hover:bg-white/[0.08]'
+                }`}>
+                Non
+              </button>
+            </div>
+            {!powersOn && (
+              <div className="border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm font-sans text-red-300">
+                L'appareil ne s'allume pas — l'évaluation en ligne n'est pas possible. Passe directement en boutique.
+              </div>
             )}
           </div>
-          <div>
-            <label className={labelCls}>Téléphone *</label>
-            <input type="tel" placeholder="677 123 456"
-              value={form.customerPhone}
-              onChange={e => patch({ customerPhone: e.target.value })}
-              className={`${inputCls} ${form.customerPhone.length > 0 && !isValidPhone(form.customerPhone) ? 'border-red-500/70' : ''}`} />
-            {form.customerPhone.length > 0 && !isValidPhone(form.customerPhone) && (
-              <p className="text-[11px] text-red-400 mt-1 font-sans">Numéro invalide — 9 chiffres, commence par 6 ou 2 (ex : 677 123 456)</p>
-            )}
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="lg:hidden">
+          <div className="mb-3 rounded-xl border border-xeption-gold/30 bg-xeption-gold/10 px-4 py-3 text-sm font-sans leading-relaxed text-white/90 shadow-[0_0_20px_rgba(255,215,0,0.1)]">
+            Sur l'appareil à troquer, ouvre le clavier d'appel et compose{' '}
+            <span className="font-mono text-base font-bold text-xeption-gold">*#06#</span>.
+            Plusieurs numéros peuvent s'afficher — prends le premier (<strong className="text-white">IMEI 1</strong>).
           </div>
         </div>
 
-        {/* IMEI */}
         <div>
-          <label className={labelCls}>IMEI</label>
-          <div className="mb-3 px-4 py-3 bg-xeption-gold/10 backdrop-blur-md border border-xeption-gold/30 rounded-xl shadow-[0_0_20px_rgba(255,215,0,0.1)] text-sm font-sans text-gray-200 leading-relaxed">
-            Sur l'appareil à troquer, ouvre le clavier d'appel et compose <span className="text-xeption-gold font-mono font-bold text-base drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]">*#06#</span>. Plusieurs numéros peuvent s'afficher — prends le premier (<strong className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">IMEI 1</strong>).
-          </div>
+          <label className={labelCls}>Numéro IMEI</label>
           <div className="flex gap-2">
             <input type="text" placeholder="15 chiffres"
               value={imeiInput}
@@ -169,39 +204,38 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
                 setChecked(false);
               }}
               maxLength={15}
-              className={`${inputCls} font-mono tracking-widest flex-1`}
+              className={`${inputCls} flex-1 font-mono tracking-widest`}
             />
             <button type="button"
               disabled={!isValidImei(imeiInput) || isCheckingImei}
               onClick={handleVerify}
-              className="shrink-0 px-5 bg-xeption-gold hover:bg-white hover:shadow-[0_0_20px_rgba(255,215,0,0.4)] rounded-xl text-black font-tech font-bold uppercase tracking-widest text-xs transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-2">
+              className="flex shrink-0 items-center gap-2 rounded-xl bg-xeption-gold px-5 text-xs font-tech font-bold uppercase tracking-widest text-black transition-all duration-300 hover:bg-white hover:shadow-[0_0_20px_rgba(255,215,0,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none">
               {isCheckingImei
-                ? <Loader2 className="w-4 h-4 animate-spin" />
+                ? <Loader2 className="h-4 w-4 animate-spin" />
                 : 'Vérifier'}
             </button>
           </div>
 
-          {/* Résultat IMEI */}
           {isCheckingImei && (
-            <p className="text-xs text-gray-500 mt-2 font-sans">Vérification en cours…</p>
+            <p className="mt-2 text-xs font-sans text-white/60">Vérification en cours…</p>
           )}
 
           {blacklisted && (
-            <div className="mt-3 px-4 py-3 bg-red-950/50 border border-red-800/50 text-red-300 text-sm font-sans">
+            <div className="mt-3 border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm font-sans text-red-300">
               Cet IMEI est signalé comme volé ou bloqué. Évaluation impossible en ligne — passe en boutique.
             </div>
           )}
 
           {imeiOk && deviceLabel && (
             <div className="mt-3 flex items-center gap-2 text-sm font-sans text-green-300">
-              <CheckCircle className="w-4 h-4 shrink-0" />
+              <CheckCircle className="h-4 w-4 shrink-0" />
               Appareil identifié : <span className="font-bold text-white">{deviceLabel}</span>
             </div>
           )}
 
           {needsManualModel && (
             <div className="mt-3 flex flex-col gap-2">
-              <p className="text-xs text-gray-400 font-sans">IMEI propre — modèle non reconnu. Quel est le modèle ?</p>
+              <p className="text-xs font-sans text-white/70">IMEI propre — modèle non reconnu. Quel est le modèle ?</p>
               <input type="text" placeholder="ex : Galaxy A54, iPhone 13…"
                 value={manualModel}
                 onChange={e => { setManualModel(e.target.value); patch({ deviceModel: e.target.value }); }}
@@ -211,7 +245,7 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
 
           {checkFailed && (
             <div className="mt-3 flex flex-col gap-2">
-              <p className="text-xs text-amber-300 font-sans">
+              <p className="text-xs font-sans text-amber-300">
                 Vérification indisponible pour l'instant. Indique quand même le modèle — le technicien confirmera en boutique.
               </p>
               <input type="text" placeholder="ex : Galaxy A54, iPhone 13…"
@@ -223,41 +257,14 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
         </div>
       </div>
 
-      {/* ── Question s'allume ─────────────────────────────────────────────── */}
-      {(imeiOk || checkFailed) && !blacklisted && (
-        <div className="border-t border-white/5 pt-5 flex flex-col gap-3">
-          <p className="text-sm font-sans text-gray-200">L'appareil s'allume normalement ?</p>
-          <div className="flex gap-3">
-            <button type="button" onClick={() => setPowersOn(true)}
-              className={`flex-1 py-3 text-xs font-tech font-bold uppercase tracking-wider border rounded-xl transition-all duration-300 ${
-                powersOn ? 'bg-xeption-gold border-xeption-gold text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]' : 'bg-white/[0.02] border-white/10 text-gray-300 hover:border-xeption-gold/30 hover:bg-white/[0.05]'
-              }`}>
-              Oui
-            </button>
-            <button type="button" onClick={() => setPowersOn(false)}
-              className={`flex-1 py-3 text-xs font-tech font-bold uppercase tracking-wider border rounded-xl transition-all duration-300 ${
-                !powersOn ? 'bg-red-900/50 border-red-700/60 text-red-300 shadow-[0_0_20px_rgba(220,38,38,0.2)]' : 'bg-white/[0.02] border-white/10 text-gray-300 hover:border-white/30 hover:bg-white/[0.05]'
-              }`}>
-              Non
-            </button>
-          </div>
-          {!powersOn && (
-            <div className="px-4 py-3 bg-red-950/50 border border-red-800/50 text-red-300 text-sm font-sans">
-              L'appareil ne s'allume pas — l'évaluation en ligne n'est pas possible. Passe directement en boutique.
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col items-end gap-2 pt-2 border-t border-white/5">
+      <div className="flex flex-col items-end gap-2 border-t border-white/5 pt-2 lg:col-span-2">
         {blockingReason && (
-          <p className="text-[11px] text-red-400 font-sans">{blockingReason}</p>
+          <p className="text-[11px] font-sans text-red-400">{blockingReason}</p>
         )}
         <button type="button" disabled={!canProceed}
           onClick={handleNext}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(255,215,0,0.3)] transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none hover:shadow-[0_0_30px_rgba(255,215,0,0.5)]">
-          Passer aux photos <ArrowRight className="w-4 h-4" />
+          className="inline-flex items-center gap-2 rounded-xl bg-xeption-gold px-6 py-3 text-xs font-tech font-bold uppercase tracking-widest text-black shadow-[0_0_20px_rgba(255,215,0,0.3)] transition-all duration-300 hover:bg-white hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none">
+          Passer aux photos <ArrowRight className="h-4 w-4" />
         </button>
       </div>
 

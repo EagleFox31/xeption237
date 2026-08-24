@@ -136,11 +136,11 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
     <div className="flex flex-col gap-5 p-6">
       <div>
         <h2 className="text-xl font-tech font-bold uppercase text-white tracking-wider">Résultat</h2>
-        <p className="text-xs text-gray-500 mt-1 font-sans">{deviceLabel}</p>
+        <p className="text-xs text-white/60 mt-1 font-sans">{deviceLabel}</p>
         {(serviceTier || premiumImeiCheck) && (
           <div className="flex flex-wrap gap-2 mt-2">
             {serviceTier && (
-              <span className="text-[10px] font-tech uppercase tracking-wider px-2 py-0.5 rounded border border-white/15 text-gray-400">
+              <span className="text-[10px] font-tech uppercase tracking-wider px-2 py-0.5 rounded border border-white/15 text-white/70">
                 Formule {TROC_TIER_LABELS[serviceTier]}
               </span>
             )}
@@ -148,7 +148,7 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
               className={`inline-flex items-center gap-1 text-[10px] font-tech uppercase tracking-wider px-2 py-0.5 rounded border ${
                 premiumImeiCheck
                   ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                  : 'border-white/15 text-gray-500'
+                  : 'border-white/15 text-white/60'
               }`}
             >
               {premiumImeiCheck && <Shield className="w-3 h-3" />}
@@ -161,7 +161,7 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
       </div>
 
       {/* Score + Mascotte Xepti Célébration + radar modèle (style Versus) */}
-      <div className="flex flex-col md:flex-row items-center justify-around gap-6 sm:gap-10 py-4 bg-white/[0.02] border border-white/10 rounded-2xl p-6 relative overflow-hidden">
+      <div className="flex flex-col md:flex-row items-center justify-around gap-6 sm:gap-10 py-4 bg-white/[0.08] border border-white/20 rounded-2xl p-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-xeption-gold/30 to-transparent" />
 
         {/* Mascotte Xepti animée */}
@@ -182,14 +182,14 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
           ) : (
             <div className={`w-28 h-28 border-4 flex flex-col items-center justify-center ${ringClass}`}>
               <span className="text-4xl font-tech font-bold leading-none">{score}</span>
-              <span className="text-[10px] font-tech text-gray-500 uppercase tracking-widest mt-1">/100</span>
+              <span className="text-[10px] font-tech text-white/60 uppercase tracking-widest mt-1">/100</span>
             </div>
           )}
           <span className={`text-xs font-tech font-bold uppercase tracking-widest mt-3 ${isSoftRefusal ? 'text-xeption-gold' : ringColor}`}>
             {isRefused && !isSoftRefusal ? 'Refusé' : 'État de votre appareil'}
           </span>
           {!isRefused && (
-            <p className="text-[10px] text-gray-500 font-sans text-center mt-1 max-w-[140px]">
+            <p className="text-[10px] text-white/60 font-sans text-center mt-1 max-w-[140px]">
               {msg.title}
             </p>
           )}
@@ -206,14 +206,14 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
       </div>
 
       {!isRefused && (
-        <p className="text-[11px] text-gray-400 font-sans text-center -mt-1 max-w-md mx-auto leading-relaxed">
+        <p className="text-[11px] text-white/70 font-sans text-center -mt-1 max-w-md mx-auto leading-relaxed">
           {msg.body}
         </p>
       )}
 
       {/* Justification IA */}
       <div className="bg-white/5 border border-white/15 rounded-sm overflow-hidden">
-        <div className="px-4 py-2 border-b border-white/10 bg-white/5">
+        <div className="px-4 py-2 border-b border-white/20 bg-white/5">
           <p className="text-[10px] font-tech uppercase tracking-widest text-xeption-gold">Rapport d&apos;expertise XEPTION</p>
         </div>
         <p className="px-4 py-3 text-sm text-white font-sans leading-relaxed">{justification}</p>
@@ -240,7 +240,7 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
           {!isSoftRefusal && (
             <p className="text-sm font-tech font-bold text-xeption-red uppercase">Troc impossible</p>
           )}
-          <p className="text-xs text-gray-400 font-sans">{msg.body}</p>
+          <p className="text-xs text-white/70 font-sans">{msg.body}</p>
           <a
             href="https://wa.me/237641891031"
             target="_blank"
@@ -275,7 +275,7 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
               Utiliser mon crédit sur un appareil →
             </button>
           ) : (
-            <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+            <div className="rounded-lg border border-white/20 bg-black/20 p-3">
               {/* Le choix d'un appareil lie cible + voucher + appareil de départ + client sur un seul dossier. */}
               <TrocUpgradeChoice
                 credit={tradeInValue ?? result.tradeInValue}
@@ -285,7 +285,7 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
             </div>
           )}
 
-          <p className="text-xs text-gray-400 font-sans text-center">
+          <p className="text-xs text-white/70 font-sans text-center">
             Estimation unique de reprise pour votre troc en boutique.
           </p>
 
@@ -313,7 +313,7 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
           <button
             onClick={onRefuse}
             disabled={isSubmitting}
-            className="w-full text-gray-600 hover:text-gray-400 font-tech font-bold uppercase tracking-widest py-3 text-xs transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-full text-white/50 hover:text-white/70 font-tech font-bold uppercase tracking-widest py-3 text-xs transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Refuser l'offre
           </button>

@@ -104,9 +104,9 @@ const TrocUpgradeChoice: React.FC<TrocUpgradeChoiceProps> = ({ credit, deviceBra
       <div className="rounded-lg border border-xeption-gold/30 bg-xeption-gold/5 px-4 py-3">
         <p className="text-[10px] font-tech uppercase tracking-widest text-xeption-gold">Ton crédit de reprise</p>
         <p className="text-2xl font-tech font-bold text-white">jusqu'à {fmt(credit)} FCFA</p>
-        <p className="text-[11px] text-gray-400 font-sans mt-0.5">
+        <p className="text-[11px] text-white/70 font-sans mt-0.5">
           Applique-le sur un appareil — compare jusqu'à {MAX_COMPARE}.
-          <span className="text-gray-500"> Montant final confirmé en boutique.</span>
+          <span className="text-white/60"> Montant final confirmé en boutique.</span>
         </p>
       </div>
 
@@ -114,13 +114,13 @@ const TrocUpgradeChoice: React.FC<TrocUpgradeChoiceProps> = ({ credit, deviceBra
       {selected.length < MAX_COMPARE && (
         <div className="relative">
           <div className="flex items-center gap-2 rounded-md border border-white/15 bg-[#050505] px-3 py-2">
-            <Search className="w-4 h-4 text-gray-500 shrink-0" />
+            <Search className="w-4 h-4 text-white/60 shrink-0" />
             <input
               value={query}
               onChange={(e) => { setQuery(e.target.value); setSearchOpen(true); }}
               onFocus={() => setSearchOpen(true)}
               placeholder="Ajouter un appareil à comparer…"
-              className="w-full bg-transparent text-sm text-white placeholder:text-gray-600 outline-none font-sans"
+              className="w-full bg-transparent text-sm text-white placeholder:text-white/50 outline-none font-sans"
             />
           </div>
           {searchOpen && results.length > 0 && (
@@ -135,7 +135,7 @@ const TrocUpgradeChoice: React.FC<TrocUpgradeChoiceProps> = ({ credit, deviceBra
                   <img src={optimizeImage(p.image, 80)} alt="" className="w-8 h-8 object-contain shrink-0" />
                   <span className="flex-1 min-w-0 truncate text-sm text-white font-sans">{getProductDisplayName(p)}</span>
                   <span className="text-xs text-xeption-gold font-tech shrink-0">{fmt(p.price)} F</span>
-                  <Plus className="w-4 h-4 text-gray-500 shrink-0" />
+                  <Plus className="w-4 h-4 text-white/60 shrink-0" />
                 </button>
               ))}
             </div>
@@ -145,7 +145,7 @@ const TrocUpgradeChoice: React.FC<TrocUpgradeChoiceProps> = ({ credit, deviceBra
 
       {/* Comparateur */}
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-gray-500 text-xs font-sans">
+        <div className="flex items-center justify-center gap-2 py-8 text-white/60 text-xs font-sans">
           <RefreshCw className="w-4 h-4 animate-spin" /> Chargement du catalogue…
         </div>
       ) : (
@@ -156,17 +156,17 @@ const TrocUpgradeChoice: React.FC<TrocUpgradeChoiceProps> = ({ credit, deviceBra
             return (
               <div
                 key={p.id}
-                className="relative flex flex-col rounded-lg border border-white/10 bg-[#0f0f0f]/80 overflow-hidden"
+                className="relative flex flex-col rounded-lg border border-white/20 bg-[#0f0f0f]/80 overflow-hidden"
               >
                 <button
                   type="button"
                   onClick={() => remove(p.id)}
                   aria-label="Retirer"
-                  className="absolute top-1 right-1 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/60 border border-white/15 text-gray-300 hover:text-white hover:bg-black"
+                  className="absolute top-1 right-1 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/60 border border-white/15 text-white/80 hover:text-white hover:bg-black"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
-                <div className="aspect-square bg-black/40 p-2 flex items-center justify-center border-b border-white/5">
+                <div className="aspect-square bg-[#1c1c16]/90 p-2 flex items-center justify-center border-b border-white/15">
                   <ProductCardImage
                     src={optimizeImage(p.image, 300)}
                     alt={getProductDisplayName(p)}
@@ -179,16 +179,16 @@ const TrocUpgradeChoice: React.FC<TrocUpgradeChoiceProps> = ({ credit, deviceBra
                   <h4 className="text-xs font-tech font-bold uppercase text-white leading-tight line-clamp-2">
                     {getProductDisplayName(p)}
                   </h4>
-                  <p className="text-[10px] text-gray-400 font-sans line-clamp-2 leading-snug">
+                  <p className="text-[10px] text-white/70 font-sans line-clamp-2 leading-snug">
                     {productSpecSummary(p)}
                   </p>
-                  <div className="mt-auto pt-1.5 border-t border-white/10">
-                    <p className="text-[10px] text-gray-500 font-sans">Prix : {fmt(p.price)} F</p>
+                  <div className="mt-auto pt-1.5 border-t border-white/20">
+                    <p className="text-[10px] text-white/60 font-sans">Prix : {fmt(p.price)} F</p>
                     {covered ? (
                       <p className="text-sm font-tech font-bold text-emerald-400">Couvert par ton crédit ✓</p>
                     ) : (
                       <>
-                        <p className="text-[10px] text-gray-500 font-sans">Reste à partir de</p>
+                        <p className="text-[10px] text-white/60 font-sans">Reste à partir de</p>
                         <p className="text-lg font-tech font-bold text-white leading-none">
                           {fmt(reste)} <span className="text-[10px] text-xeption-gold">FCFA</span>
                         </p>
@@ -207,7 +207,7 @@ const TrocUpgradeChoice: React.FC<TrocUpgradeChoiceProps> = ({ credit, deviceBra
             );
           })}
           {!sortedSelected.length && (
-            <p className="col-span-full text-center text-xs text-gray-500 font-sans py-6">
+            <p className="col-span-full text-center text-xs text-white/60 font-sans py-6">
               Ajoute des appareils à comparer via la recherche.
             </p>
           )}

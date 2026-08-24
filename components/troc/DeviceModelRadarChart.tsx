@@ -59,12 +59,12 @@ const DeviceModelRadarChart: React.FC<DeviceModelRadarChartProps> = ({
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
-      <p className="text-[9px] font-tech uppercase tracking-widest text-gray-500 mb-2 text-center">
+      <p className="text-[9px] font-tech uppercase tracking-widest text-white/60 mb-2 text-center">
         Profil modèle
         {source === 'reference' ? (
           <span className="text-xeption-gold/80"> · fiche Versus</span>
         ) : (
-          <span className="text-gray-600"> · estimé</span>
+          <span className="text-white/50"> · estimé</span>
         )}
       </p>
 
@@ -147,7 +147,7 @@ const DeviceModelRadarChart: React.FC<DeviceModelRadarChartProps> = ({
         })}
       </svg>
 
-      <p className="text-[10px] text-gray-500 font-sans text-center mt-2 max-w-[260px] leading-snug">
+      <p className="text-[10px] text-white/60 font-sans text-center mt-2 max-w-[260px] leading-snug">
         {modelLabel}
       </p>
 

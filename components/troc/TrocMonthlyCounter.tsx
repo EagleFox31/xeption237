@@ -36,7 +36,7 @@ export const TrocMonthlyCounter: React.FC<TrocMonthlyCounterProps> = ({
 
   return (
     <p
-      className={`text-[11px] font-sans text-gray-400 text-center md:text-left ${className}`}
+      className={`text-[11px] font-sans text-white/70 text-center md:text-left ${className}`}
       aria-live="polite"
     >
       {text}

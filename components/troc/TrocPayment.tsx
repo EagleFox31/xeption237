@@ -31,7 +31,7 @@ const OperatorBadge: React.FC<{ operator: CameroonOperator | null }> = ({ operat
   const styles =
     operator === 'mtn'
       ? 'bg-[#FFCC00] text-black border-black/10'
-      : 'bg-[#FF6600] text-white border-white/10';
+      : 'bg-[#FF6600] text-white border-white/20';
   return (
     <span
       className={`absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-tech font-bold uppercase px-1.5 py-0.5 rounded border ${styles} transition-opacity`}

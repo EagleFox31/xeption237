@@ -91,7 +91,7 @@ const YesNoToggle: React.FC<{
 }> = ({ label, hint, value, yesLabel = 'Oui', noLabel = 'Non', onChange }) => (
   <div className="flex flex-col gap-1.5">
     <span className={labelClass}>{label}</span>
-    {hint && <span className="text-[10px] text-gray-600 font-sans -mt-1">{hint}</span>}
+    {hint && <span className="text-[10px] text-white/50 font-sans -mt-1">{hint}</span>}
     <div className="flex gap-2">
       <button
         type="button"
@@ -99,7 +99,7 @@ const YesNoToggle: React.FC<{
         className={`flex-1 py-2.5 text-xs font-tech font-bold uppercase tracking-wider transition-all rounded-sm border ${
           value
             ? 'bg-xeption-gold text-black border-xeption-gold'
-            : 'bg-transparent text-gray-500 border-white/10 hover:border-white/20'
+            : 'bg-transparent text-white/60 border-white/20 hover:border-white/20'
         }`}
       >
         {yesLabel}
@@ -110,7 +110,7 @@ const YesNoToggle: React.FC<{
         className={`flex-1 py-2.5 text-xs font-tech font-bold uppercase tracking-wider transition-all rounded-sm border ${
           !value
             ? 'bg-white/10 text-white border-white/20'
-            : 'bg-transparent text-gray-500 border-white/10 hover:border-white/20'
+            : 'bg-transparent text-white/60 border-white/20 hover:border-white/20'
         }`}
       >
         {noLabel}
@@ -120,18 +120,18 @@ const YesNoToggle: React.FC<{
 );
 
 const inputClass =
-  'w-full bg-black/40 border border-white/10 text-white px-4 py-3 text-sm font-sans placeholder-gray-600 focus:border-xeption-gold/60 focus:bg-black/60 outline-none transition-all rounded-sm';
+  'w-full bg-[#1c1c16]/90 border border-white/20 text-white px-4 py-3 text-sm font-sans placeholder-gray-600 focus:border-xeption-gold/60 focus:bg-black/60 outline-none transition-all rounded-sm';
 const selectClass =
-  'w-full bg-black/40 border border-white/10 text-white px-4 py-3 pr-9 text-sm font-sans focus:border-xeption-gold/60 outline-none transition-all rounded-sm appearance-none cursor-pointer';
+  'w-full bg-[#1c1c16]/90 border border-white/20 text-white px-4 py-3 pr-9 text-sm font-sans focus:border-xeption-gold/60 outline-none transition-all rounded-sm appearance-none cursor-pointer';
 const labelClass =
-  'block text-[10px] font-tech font-bold uppercase tracking-widest text-gray-500 mb-1.5';
+  'block text-[10px] font-tech font-bold uppercase tracking-widest text-white/60 mb-1.5';
 
 const SelectField: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = ({ children, ...props }) => (
   <div className="relative">
     <select {...props} className={selectClass}>
       {children}
     </select>
-    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60 pointer-events-none" />
   </div>
 );
 
@@ -206,7 +206,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
     <div className="flex flex-col gap-5 p-6">
       <div>
         <h2 className="text-xl font-tech font-bold uppercase text-white tracking-wider">Ton appareil</h2>
-        <p className="text-xs text-gray-500 mt-1 font-sans">Remplis les infos pour lancer le scan visuel IA</p>
+        <p className="text-xs text-white/60 mt-1 font-sans">Remplis les infos pour lancer le scan visuel IA</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -254,7 +254,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
         </div>
         
         {form.customerEmail && form.customerEmail.trim().length > 0 && (
-          <label className="flex items-center gap-3 cursor-pointer group p-3 bg-black/40 border border-white/10 rounded-sm hover:border-xeption-gold/30 transition-all">
+          <label className="flex items-center gap-3 cursor-pointer group p-3 bg-[#1c1c16]/90 border border-white/20 rounded-sm hover:border-xeption-gold/30 transition-all">
             <div className={`w-5 h-5 border flex items-center justify-center transition-all ${form.createAccount ? 'bg-xeption-gold border-xeption-gold' : 'border-white/20 group-hover:border-xeption-gold/50'}`}>
               {form.createAccount && <div className="w-2.5 h-2.5 bg-black" />}
             </div>
@@ -266,7 +266,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
             />
             <div>
               <p className="text-sm text-white font-sans font-medium">Créer un compte pour sauvegarder mon estimation</p>
-              <p className="text-[10px] text-gray-500 font-sans mt-0.5">Un lien de connexion magique vous sera envoyé par e-mail.</p>
+              <p className="text-[10px] text-white/60 font-sans mt-0.5">Un lien de connexion magique vous sera envoyé par e-mail.</p>
             </div>
           </label>
         )}
@@ -307,7 +307,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
                 <li
                   key={m.id}
                   onMouseDown={(e) => { e.preventDefault(); handleModelSelect(m); }}
-                  className="px-4 py-2.5 text-sm text-gray-200 hover:bg-xeption-gold/20 hover:text-xeption-gold cursor-pointer transition-colors border-b border-white/5 last:border-0"
+                  className="px-4 py-2.5 text-sm text-white/90 hover:bg-xeption-gold/20 hover:text-xeption-gold cursor-pointer transition-colors border-b border-white/5 last:border-0"
                 >
                   {m.model_name}
                 </li>
@@ -382,9 +382,9 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
                   purchaseDate: unknown ? '' : form.purchaseDate,
                 });
               }}
-              className="w-4 h-4 rounded border-white/20 bg-black/40 text-xeption-gold focus:ring-xeption-gold"
+              className="w-4 h-4 rounded border-white/20 bg-[#1c1c16]/90 text-xeption-gold focus:ring-xeption-gold"
             />
-            <span className="text-[11px] text-gray-400 font-sans group-hover:text-gray-300">Je ne sais pas</span>
+            <span className="text-[11px] text-white/70 font-sans group-hover:text-white/80">Je ne sais pas</span>
           </label>
         </div>
       </div>
@@ -416,7 +416,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
             onChange={(e) => update('batteryHealth', Number(e.target.value))}
             className="w-full accent-xeption-gold cursor-pointer"
           />
-          <div className="flex justify-between text-[9px] text-gray-600 font-tech mt-1">
+          <div className="flex justify-between text-[9px] text-white/50 font-tech mt-1">
             <span>0%</span>
             <span>50%</span>
             <span>100%</span>

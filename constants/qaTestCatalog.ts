@@ -72,6 +72,11 @@ export const QA_TESTS: QaTest[] = [
   T('T-C15', 'client', 'important', 'Créer un ticket SAV', 'Ticket enregistré, confirmation visible'),
   T('T-C16', 'client', 'nice', 'Pages légales', 'Les cinq accessibles et lisibles'),
   T('T-C17', 'client', 'blocking', 'Naviguer en navigation privée', 'Aucune erreur bloquante, aucun accès admin'),
+  T('T-C18', 'client', 'blocking', 'Troc — saisir 000000000000000 comme IMEI', 'Refusé comme numéro de test, aucune marque devinée'),
+  T('T-C19', 'client', 'important', 'Troc — saisir un IMEI d’un autre appareil que le modèle déclaré', 'Refus explicite, pas d’estimation'),
+  T('T-C20', 'client', 'important', 'Chatbot conseil d’achat', 'Répond en français, cite des produits en stock, ne s’excuse pas d’une panne'),
+  T('T-C21', 'client', 'blocking', 'Troc — envoyer des photos nettes', 'Pré-check rendu en quelques secondes, pas de « vérification impossible »'),
+  T('T-C22', 'client', 'important', 'Troc — envoyer une photo qui n’est pas un téléphone', 'Photo signalée à reprendre, index correct'),
 
   // ── Vendeur ───────────────────────────────────────────────────────────────
   T('T-V01', 'vendeur', 'blocking', 'Connexion staff', 'Atterrissage direct sur la caisse'),
@@ -119,6 +124,9 @@ export const QA_TESTS: QaTest[] = [
   T('T-R20', 'responsable', 'important', 'Fixer un objectif vendeur', 'Enregistré, visible côté vendeur'),
   T('T-R21', 'responsable', 'blocking', 'Créer une règle de prime', 'Refusé — réservé à la direction'),
   T('T-R22', 'responsable', 'nice', 'Packs, Livraison, SAV', 'Consultation et modification'),
+  T('T-R23', 'responsable', 'important', 'Troc → Prix marché — saisir un relevé', 'Marque, modèle, prix, lieu obligatoires ; la ligne apparaît datée'),
+  T('T-R24', 'responsable', 'important', 'Prix marché — relevé de plus de 180 jours', 'Affiché grisé et marqué périmé, ignoré par l’estimation'),
+  T('T-R25', 'responsable', 'blocking', 'Estimer un modèle ayant un relevé boutique', 'Le prix constaté prime sur le catalogue figé du code'),
 
   // ── Direction ─────────────────────────────────────────────────────────────
   T('T-D01', 'direction', 'important', 'Menu complet', 'Ajoute Boutiques, Structure catalogue, Équipe'),
@@ -138,6 +146,10 @@ export const QA_TESTS: QaTest[] = [
   T('T-D15', 'direction', 'nice', 'Retirer un objectif ou une prime', 'Suppression effective'),
   T('T-D16', 'direction', 'blocking', 'Créer ou modifier un membre d’équipe', 'Compte utilisable ensuite'),
   T('T-D17', 'direction', 'important', 'Structure catalogue', 'Modification reflétée en boutique'),
+  T('T-D18', 'direction', 'blocking', 'Se connecter après qu’un employé a changé son mot de passe', 'Notification « Mot de passe modifié » avec son nom'),
+  T('T-D19', 'direction', 'blocking', 'Réinitialiser le mot de passe d’un membre (icône clé)', 'Nouveau mot de passe affiché, événement journalisé avec la cible'),
+  T('T-D20', 'direction', 'important', 'Changer le rôle d’un membre', 'Journalisé avec « ancien → nouveau »'),
+  T('T-D21', 'direction', 'important', 'Enregistrer un membre sans toucher à son rôle', 'Aucun événement, et son mot de passe reste valide'),
 
   // ── Super admin ───────────────────────────────────────────────────────────
   T('T-S01', 'superadmin', 'nice', 'Accès au Studio', 'Ouvert'),
@@ -145,6 +157,8 @@ export const QA_TESTS: QaTest[] = [
   T('T-S03', 'superadmin', 'nice', 'Traitement d’images en masse', 'Images optimisées et rattachées'),
   T('T-S04', 'superadmin', 'important', 'Accès à tous les onglets', 'Aucun refus'),
   T('T-S05', 'superadmin', 'important', 'Page de recette', 'Verdicts enregistrés et partagés'),
+  T('T-S06', 'superadmin', 'important', 'Appeler evaluate-device en healthCheck', 'Répond l’état réel de chaque modèle, pas seulement « clé présente »'),
+  T('T-S07', 'superadmin', 'nice', 'Lancer npm run market:render -- --limit=2', 'Écrit des lignes d’occasion, aucune ligne de neuf'),
 
   // ── Parcours ──────────────────────────────────────────────────────────────
   T('P1', 'parcours', 'blocking', 'Vente comptoir simple', 'Stock décrémenté sur SA boutique, staff_id et store_id renseignés, facture, Mes ventes, objectif'),
@@ -157,6 +171,7 @@ export const QA_TESTS: QaTest[] = [
   T('P8', 'parcours', 'blocking', 'Mode hors connexion', 'File survit à la fermeture du navigateur ; coupure PENDANT la synchro ne crée pas de doublon ; conflit stock signalé'),
   T('P9', 'parcours', 'important', 'Avis client', 'Un seul avis possible, produit bloqué avant J+7'),
   T('P10', 'parcours', 'important', 'Objectif et prime', 'Barre monte, bannière à l’atteinte, vente en mode test ne compte pas'),
+  T('P11', 'parcours', 'blocking', 'Cycle mot de passe complet', 'Direction crée le compte → mot de passe unique affiché → employé se connecte → le change → direction notifiée'),
 
   // ── Transverse ────────────────────────────────────────────────────────────
   T('T-X01', 'transverse', 'blocking', 'Vendeur tente /admin/stores par URL', 'Redirigé'),
@@ -168,6 +183,12 @@ export const QA_TESTS: QaTest[] = [
   T('T-X07', 'transverse', 'blocking', 'Somme des stocks boutique = products.stock', '0 désynchronisation'),
   T('T-X08', 'transverse', 'blocking', 'Site public en navigation privée', 'Aucune donnée staff accessible'),
   T('T-X09', 'transverse', 'important', 'Déconnexion staff', 'Session effacée, retour au login'),
+  T('T-X10', 'transverse', 'blocking', 'Chercher les clés VITE_ dans dist/assets après build', 'Aucune clé facturable en clair (Gemini, OpenRouter, DeepSeek)'),
+  T('T-X11', 'transverse', 'blocking', 'Deux membres du staff se connectent', 'Mots de passe différents ; celui de l’un ne marche pas pour l’autre'),
+  T('T-X12', 'transverse', 'blocking', 'Un employé sans adresse email change son mot de passe', 'Possible depuis la carte utilisateur, sans lien reçu par mail'),
+  T('T-X13', 'transverse', 'important', 'Un responsable ouvre le journal de sécurité', 'Ne voit rien : lecture réservée à la direction'),
+  T('T-X14', 'transverse', 'important', 'Estimer un iPhone 13 et un Galaxy A15', 'Prix cohérents avec le marché, aucune valeur à 0'),
+  T('T-X15', 'transverse', 'important', 'Vérifier la source du prix marché', 'strategy = shopify_api, titres exacts appariés aux prix'),
 ];
 
 export const QA_TOTAL = QA_TESTS.length;

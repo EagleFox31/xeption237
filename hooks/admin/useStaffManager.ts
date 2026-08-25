@@ -7,7 +7,6 @@ import { DEFAULT_STAFF_ROLE, normalizeStaffRole } from '../../constants/staffRol
 import {
   checkStaffAuthStatuses,
   provisionStaffAuthUser,
-  STAFF_DEFAULT_PASSWORD,
 } from '../../services/staffAuthProvisioning';
 
 interface UseStaffManagerProps {
@@ -53,11 +52,14 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
     const provisionAuthForStaff = async (staff: Staff) => {
         setProvisioningId(staff.id);
         try {
-            const result = await provisionStaffAuthUser(staff.email, staff.name);
+            // Action explicite de l'admin : on (re)genere un mot de passe.
+            const result = await provisionStaffAuthUser(staff.email, staff.name, {
+                resetPassword: true,
+            });
             await refreshAuthStatuses();
             onFeedback?.(
                 'Connexion prête',
-                `${staff.name} — email ${staff.email} — mot de passe ${STAFF_DEFAULT_PASSWORD}`,
+                `${staff.name} — email ${staff.email} — mot de passe ${result.temporaryPassword ?? 'inchangé'} (à noter maintenant)`,
                 'success',
             );
             return result;
@@ -82,8 +84,10 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
         try {
             for (const member of targets) {
                 try {
-                    await provisionStaffAuthUser(member.email, member.name);
-                    lines.push(`${member.name} : ${STAFF_DEFAULT_PASSWORD}`);
+                    const res = await provisionStaffAuthUser(member.email, member.name);
+                    lines.push(
+                        `${member.name} : ${res.temporaryPassword ?? 'déjà en place, inchangé'}`,
+                    );
                 } catch (err) {
                     errors += 1;
                     lines.push(`${member.name} : ${err instanceof Error ? err.message : 'erreur'}`);
@@ -138,10 +142,14 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
             };
 
             try {
-                await provisionStaffAuthUser(savedApp.email, savedApp.name);
+                // Sans resetPassword : changer le role ou la boutique d'un membre
+                // ne doit pas lui reprendre son mot de passe au passage.
+                const res = await provisionStaffAuthUser(savedApp.email, savedApp.name);
                 onFeedback?.(
                     isNew ? 'Membre ajouté' : 'Membre mis à jour',
-                    `${savedApp.name} — mot de passe ${STAFF_DEFAULT_PASSWORD}`,
+                    res.temporaryPassword
+                        ? `${savedApp.name} — mot de passe ${res.temporaryPassword} (à noter maintenant)`
+                        : `${savedApp.name} — profil mis à jour`,
                     'success',
                 );
                 await refreshAuthStatuses(

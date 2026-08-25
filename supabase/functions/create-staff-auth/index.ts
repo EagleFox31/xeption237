@@ -36,8 +36,24 @@ function getSuperAdminEmails(): string[] {
     .filter(Boolean);
 }
 
-function defaultPassword(): string {
-  return Deno.env.get('STAFF_DEFAULT_PASSWORD')?.trim() || '123456';
+/**
+ * Mot de passe aleatoire, unique a chaque compte.
+ *
+ * Remplace un mot de passe d'equipe partage (« 123456 », affiche en clair dans
+ * l'admin). Le probleme n'etait pas la securite en general : c'est que le projet
+ * porte des objectifs de vente, des ventes par vendeur et des commissions. Avec
+ * un mot de passe commun, n'importe qui peut se connecter en tant que n'importe
+ * qui, et l'attribution des ventes ne prouve plus rien.
+ *
+ * Alphabet sans caracteres ambigus (ni 0/O, ni 1/l/I) : il est lu a voix haute
+ * ou recopie depuis un ecran, en boutique.
+ */
+const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+
+function generatePassword(length = 12): string {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => PASSWORD_ALPHABET[b % PASSWORD_ALPHABET.length]).join('');
 }
 
 function resolveDisplayName(name: string, email: string): string {
@@ -168,8 +184,12 @@ async function upsertAuthUser(
   serviceKey: string,
   email: string,
   name: string,
+  resetPassword: boolean,
 ) {
-  const password = defaultPassword();
+  // Un compte existant ne voit son mot de passe change QUE si on le demande.
+  // Auparavant, enregistrer un membre pour changer son role ou sa boutique lui
+  // reinitialisait son mot de passe au passage, sans que personne le sache.
+  const password = generatePassword();
   const displayName = resolveDisplayName(name, email);
   const metadata = buildStaffUserMetadata(name, email);
   const existingUser = await findAuthUserByEmail(adminClient, email);
@@ -182,7 +202,7 @@ async function upsertAuthUser(
     };
 
     const { error: updateError } = await adminClient.auth.admin.updateUserById(existingUser.id, {
-      password,
+      ...(resetPassword ? { password } : {}),
       email_confirm: true,
       user_metadata: mergedMetadata,
     });
@@ -193,7 +213,7 @@ async function upsertAuthUser(
 
     await syncDisplayNameInDatabase(adminClient, email, displayName);
 
-    return { existing: true, displayName, password };
+    return { existing: true, displayName, password: resetPassword ? password : null };
   }
 
   const { data: created, error: createError } = await adminClient.auth.admin.createUser({
@@ -276,7 +296,9 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'Email staff invalide.' }, 400);
     }
 
-    const result = await upsertAuthUser(adminClient, supabaseUrl, serviceKey, email, name);
+    // Par defaut on ne touche pas au mot de passe d'un compte deja provisionne.
+    const resetPassword = body?.resetPassword === true;
+    const result = await upsertAuthUser(adminClient, supabaseUrl, serviceKey, email, name, resetPassword);
 
     return json({
       ok: true,
@@ -285,7 +307,9 @@ Deno.serve(async (req: Request) => {
       displayName: result.displayName,
       userId: result.userId,
       temporaryPassword: result.password,
-      message: `${result.displayName} — mot de passe ${result.password}`,
+      message: result.password
+        ? `${result.displayName} — mot de passe ${result.password} (à noter maintenant, il ne sera plus affiché)`
+        : `${result.displayName} — compte déjà en place, mot de passe inchangé`,
     });
   } catch (err) {
     console.error('create-staff-auth error:', err);

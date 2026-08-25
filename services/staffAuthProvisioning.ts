@@ -1,8 +1,15 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient';
 
-/** Mot de passe staff unique — aligné sur secret Edge Function STAFF_DEFAULT_PASSWORD. */
-export const STAFF_DEFAULT_PASSWORD = '123456';
+/**
+ * Il n'y a plus de mot de passe d'équipe.
+ *
+ * Chaque compte reçoit un mot de passe aléatoire, renvoyé UNE FOIS par
+ * `create-staff-auth` et affiché à l'admin qui provisionne. Un mot de passe
+ * commun rendait l'attribution des ventes invérifiable : n'importe qui pouvait
+ * se connecter en tant que n'importe qui, alors que le projet porte des
+ * objectifs et des commissions par vendeur.
+ */
 
 export type StaffAuthProvisionResult = {
   ok: boolean;
@@ -66,21 +73,29 @@ export async function checkStaffAuthStatuses(emails: string[]): Promise<Record<s
   return Object.fromEntries(statuses.map((s) => [s.email.toLowerCase(), s.hasAuth]));
 }
 
-/** Crée ou met à jour Auth : nom staff + mot de passe STAFF_DEFAULT_PASSWORD. */
+/**
+ * Crée le compte Auth d'un membre, ou met à jour son profil.
+ *
+ * `resetPassword` n'est vrai que sur une action explicite : enregistrer un
+ * membre pour changer son rôle ne doit pas lui reprendre son mot de passe.
+ */
 export async function provisionStaffAuthUser(
   email: string,
   name: string,
+  options: { resetPassword?: boolean } = {},
 ): Promise<StaffAuthProvisionResult> {
   const payload = await invokeStaffAuth({
     action: 'provision',
     email: email.trim().toLowerCase(),
     name: name.trim(),
+    resetPassword: options.resetPassword === true,
   });
 
   return payload as StaffAuthProvisionResult;
 }
 
 export function formatProvisionFeedback(result: StaffAuthProvisionResult): string {
-  const pwd = result.temporaryPassword ?? STAFF_DEFAULT_PASSWORD;
-  return `${result.email} — ${pwd}`;
+  return result.temporaryPassword
+    ? `${result.email} — ${result.temporaryPassword}`
+    : `${result.email} — compte déjà en place`;
 }

@@ -20,7 +20,6 @@ import {
   normalizeStaffRole,
 } from '../../../constants/staffRoles';
 import { adminUi } from '../shared/adminUi';
-import { STAFF_DEFAULT_PASSWORD } from '../../../services/staffAuthProvisioning';
 
 interface StaffEditorModalProps {
   staff: Staff;
@@ -321,8 +320,9 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
           Connexion automatique
         </p>
         <p className="text-sm text-white/75">
-          Compte Auth créé avec le nom <strong className="text-white">{name.trim() || '…'}</strong> et le mot de
-          passe <strong className="text-white">{STAFF_DEFAULT_PASSWORD}</strong> — identique pour toute l’équipe.
+          Compte Auth créé avec le nom <strong className="text-white">{name.trim() || '…'}</strong>. Un mot de
+          passe <strong className="text-white">unique</strong> sera généré et affiché une seule fois, à
+          l’enregistrement — note-le à ce moment-là.
         </p>
       </div>
 

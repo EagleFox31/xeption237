@@ -10,6 +10,12 @@ import {
   buildTrocPhotoCredibilityPrompt,
   parseTrocPhotoCredibilityOutput,
 } from '../_shared/personas/trocPhotoCredibility.ts';
+import { assertAiRateLimit, rateLimitJsonResponse } from '../_shared/rateLimit.ts';
+import {
+  inlinePartsToVisionImages,
+  isOpenRouterConfigured,
+  openRouterVisionJson,
+} from '../_shared/openRouterVision.ts';
 
 export {};
 
@@ -274,21 +280,32 @@ Deno.serve(async (req: Request) => {
         ? Object.values(modelsReachable).some((v) => v === 'ok')
         : null;
 
+      const openRouterConfigured = isOpenRouterConfigured();
+
       return new Response(
         JSON.stringify({
-          ready: ready && anyModelReachable !== false,
+          ready: (ready && anyModelReachable !== false) || openRouterConfigured,
           provider: 'edge-gemini',
-          code: !ready
+          code: !ready && !openRouterConfigured
             ? 'missing_api_key'
-            : anyModelReachable === false
+            : anyModelReachable === false && !openRouterConfigured
               ? 'no_model_available'
               : 'ready',
           keys: { primary: primaryKey.length > 0, fallback: fallbackKey.length > 0 },
+          openRouter: { configured: openRouterConfigured },
           chains: { evaluation: GEMINI_MODELS, preflight: GEMINI_CREDIBILITY_MODELS },
           modelsReachable,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
+    }
+
+    const sessionKey =
+      typeof body.sessionKey === 'string' ? body.sessionKey.trim() : null;
+
+    const rateLimit = await assertAiRateLimit(req, 'evaluate-device', sessionKey);
+    if (!rateLimit.allowed) {
+      return rateLimitJsonResponse(rateLimit, corsHeaders);
     }
 
     const isPreflight = body.preflight === true;
@@ -303,10 +320,11 @@ Deno.serve(async (req: Request) => {
 
     const primaryKey = Deno.env.get('GEMINI_API_KEY')?.trim() || '';
     const fallbackKey = Deno.env.get('GEMINI_API_KEY_FALLBACK')?.trim() || '';
+    const openRouterReady = isOpenRouterConfigured();
 
-    if (!primaryKey && !fallbackKey) {
+    if (!primaryKey && !fallbackKey && !openRouterReady) {
       return new Response(
-        JSON.stringify({ error: 'Aucune clé Gemini configurée', code: 'missing_api_key' }),
+        JSON.stringify({ error: 'Aucune clé vision configurée', code: 'missing_api_key' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 },
       );
     }
@@ -375,13 +393,22 @@ Deno.serve(async (req: Request) => {
     const attemptWithKeys = async (model: string): Promise<GeminiCallResult | null> => {
       let result: GeminiCallResult | null = null;
 
+      // Un ECHEC RESEAU (timeout, DNS) vise le modele, pas la cle : rejouer la
+      // seconde cle sur le meme modele expirerait pareil, en consommant 30 s de
+      // plus. Mesure du 2026-08-25 : deux modeles injoignables coutaient 60 s et
+      // le budget s'epuisait avant d'atteindre le modele suivant.
+      let primaryThrew = false;
+
       if (primaryKey) {
         try {
           result = await callGemini(primaryKey, imageParts, finalPrompt, 'primary', responseSchema, model);
         } catch (error: any) {
+          primaryThrew = true;
           console.error('[evaluate-device] gemini_primary_fatal', model, error?.message ?? error);
         }
       }
+
+      if (primaryThrew) return null;
 
       // Cle de secours : seulement si la primaire a lache sur quota/serveur, ou
       // s'il n'y a pas de cle primaire.
@@ -413,62 +440,128 @@ Deno.serve(async (req: Request) => {
     let geminiResult: GeminiCallResult | null = null;
     const modelsTried: string[] = [];
 
-    for (const model of modelChain) {
-      modelsTried.push(model);
-      const result = await attemptWithKeys(model);
-      geminiResult = result ?? geminiResult;
+    if (primaryKey || fallbackKey) {
+      for (const model of modelChain) {
+        modelsTried.push(model);
+        const result = await attemptWithKeys(model);
+        geminiResult = result ?? geminiResult;
 
-      if (result?.ok) break;
+        if (result?.ok) break;
 
-      if (budgetLeft() <= 0) {
-        console.warn('[evaluate-device] budget epuise, abandon de la chaine', modelsTried.join(' > '));
+        if (budgetLeft() <= 0) {
+          console.warn('[evaluate-device] budget epuise, abandon de la chaine', modelsTried.join(' > '));
+          break;
+        }
+
+        if (!result || shouldTryNextModel(result.status)) {
+          console.warn('[evaluate-device] modele en echec, passage au suivant', model, result?.status ?? 'fatal');
+          continue;
+        }
+
+        // 401/403 : la cle est en cause, epuiser la chaine ne servirait a rien.
         break;
       }
-
-      if (!result || shouldTryNextModel(result.status)) {
-        console.warn('[evaluate-device] modele en echec, passage au suivant', model, result?.status ?? 'fatal');
-        continue;
-      }
-
-      // 401/403 : la cle est en cause, epuiser la chaine ne servirait a rien.
-      break;
     }
 
-    if (!geminiResult || !geminiResult.ok) {
+    let visionText: string | null = null;
+    let visionProvider: string = 'none';
+
+    if (geminiResult?.ok) {
+      visionText = geminiResult.payload?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+      visionProvider = geminiResult.keyUsed;
+    }
+
+    if (!visionText && openRouterReady) {
+      try {
+        console.warn('[evaluate-device] openrouter_fallback', modelsTried.join(' > ') || 'no_gemini');
+        visionText = await openRouterVisionJson(
+          finalPrompt,
+          inlinePartsToVisionImages(imageParts),
+        );
+        visionProvider = 'openrouter';
+      } catch (error: any) {
+        const code = error instanceof Error ? error.message : 'openrouter_failed';
+        console.error('[evaluate-device] openrouter_error', code);
+        if (!geminiResult || !geminiResult.ok) {
+          const statusCode = geminiResult && !geminiResult.ok ? geminiResult.status : 502;
+          const errBody = geminiResult && !geminiResult.ok ? geminiResult.body : code;
+          return new Response(
+            JSON.stringify({
+              error: 'Vision API error',
+              code: code.startsWith('openrouter_http_') ? code : `gemini_http_${statusCode}`,
+              provider: visionProvider,
+              modelsTried,
+              detail: String(errBody).slice(0, 200),
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
+          );
+        }
+      }
+    }
+
+    if (!visionText) {
       const statusCode = geminiResult && !geminiResult.ok ? geminiResult.status : 500;
-      const errBody = geminiResult && !geminiResult.ok ? geminiResult.body : 'gemini_unreachable';
+      const errBody = geminiResult && !geminiResult.ok ? geminiResult.body : 'vision_unreachable';
       const keyLabel = geminiResult && !geminiResult.ok ? geminiResult.keyUsed : 'none';
-      console.error('[evaluate-device] gemini_error', statusCode, keyLabel, modelsTried.join(' > '), errBody);
+      console.error('[evaluate-device] vision_error', statusCode, keyLabel, modelsTried.join(' > '), errBody);
       return new Response(
         JSON.stringify({
-          error: 'Gemini API error',
+          error: 'Vision API error',
           code: `gemini_http_${statusCode}`,
           provider: keyLabel,
-          // Sans le nom des modeles essayes, un 502 ne dit pas SI la chaine de
-          // repli a joue. Le diagnostic du 2026-08-24 a perdu du temps la-dessus.
           modelsTried,
-          detail: errBody.slice(0, 200),
+          detail: String(errBody).slice(0, 200),
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
       );
     }
 
-    const geminiData = geminiResult.payload;
-    const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!text) {
-      console.error('[evaluate-device] empty_response', JSON.stringify(geminiData));
-      return new Response(
-        JSON.stringify({ error: 'Réponse Gemini vide', code: 'empty_response' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
-      );
-    }
-
     if (isPreflight) {
-      const credibility = parseTrocPhotoCredibilityOutput(text);
+      const credibility = parseTrocPhotoCredibilityOutput(visionText);
       if (!credibility) {
+        if (openRouterReady && visionProvider !== 'openrouter') {
+          try {
+            visionText = await openRouterVisionJson(
+              finalPrompt,
+              inlinePartsToVisionImages(imageParts),
+            );
+            visionProvider = 'openrouter';
+            const retry = parseTrocPhotoCredibilityOutput(visionText);
+            if (!retry) {
+              return new Response(
+                JSON.stringify({ error: 'JSON vision invalide', code: 'invalid_json' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
+              );
+            }
+            const analysisDecision =
+              retry.decision === 'approved'
+                ? 'match'
+                : retry.decision === 'mismatch'
+                  ? 'mismatch'
+                  : 'photos_to_retake';
+
+            return new Response(
+              JSON.stringify({
+                preflight: true,
+                evaluationMode: 'credibility_verified',
+                photosUsed: imageParts.length,
+                provider: visionProvider,
+                analysisDecision,
+                photoIssues: retry.photoIssues,
+                observedBrand: retry.observedBrand,
+                observedModel: retry.observedModel,
+                declarationMatch: retry.declarationMatch,
+                credibilitySummary: retry.summary,
+                credibilityConfidence: retry.confidence,
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+            );
+          } catch {
+            /* fall through */
+          }
+        }
         return new Response(
-          JSON.stringify({ error: 'JSON Gemini invalide', code: 'invalid_json' }),
+          JSON.stringify({ error: 'JSON vision invalide', code: 'invalid_json' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
         );
       }
@@ -485,7 +578,7 @@ Deno.serve(async (req: Request) => {
           preflight: true,
           evaluationMode: 'credibility_verified',
           photosUsed: imageParts.length,
-          provider: geminiResult.keyUsed,
+          provider: visionProvider,
           analysisDecision,
           photoIssues: credibility.photoIssues,
           observedBrand: credibility.observedBrand,
@@ -498,11 +591,41 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const parsed = parseTrocVisionAnalystOutput(text);
+    const parsed = parseTrocVisionAnalystOutput(visionText);
 
     if (!parsed) {
+      if (openRouterReady && visionProvider !== 'openrouter') {
+        try {
+          visionText = await openRouterVisionJson(
+            finalPrompt,
+            inlinePartsToVisionImages(imageParts),
+          );
+          visionProvider = 'openrouter';
+          const retryParsed = parseTrocVisionAnalystOutput(visionText);
+          if (retryParsed) {
+            const hasPhotoIssues = retryParsed.photoIssues.length > 0;
+            const safeDecision = hasPhotoIssues ? 'photos_to_retake' : retryParsed.decision;
+            return new Response(
+              JSON.stringify({
+                score: hasPhotoIssues ? 0 : retryParsed.score,
+                justification: hasPhotoIssues ? '' : retryParsed.justification.slice(0, 2000),
+                evaluationMode: 'vision_ai',
+                photosUsed: imageParts.length,
+                provider: visionProvider,
+                analysisDecision: safeDecision,
+                analysisConfidence: retryParsed.confidence,
+                fraudDetected: retryParsed.fraudDetected,
+                photoIssues: retryParsed.photoIssues,
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+            );
+          }
+        } catch {
+          /* fall through */
+        }
+      }
       return new Response(
-        JSON.stringify({ error: 'JSON Gemini invalide', code: 'invalid_json' }),
+        JSON.stringify({ error: 'JSON vision invalide', code: 'invalid_json' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
       );
     }
@@ -510,8 +633,6 @@ Deno.serve(async (req: Request) => {
     const score = parsed.score;
     const justification = parsed.justification.slice(0, 2000);
 
-    // Filet final : si Gemini a listé des photos non conformes, on force
-    // un retour "photos_to_retake" et on n'expose JAMAIS de score au client.
     const hasPhotoIssues = parsed.photoIssues.length > 0;
     const safeDecision = hasPhotoIssues ? 'photos_to_retake' : parsed.decision;
 
@@ -521,11 +642,11 @@ Deno.serve(async (req: Request) => {
         justification: hasPhotoIssues ? '' : justification,
         evaluationMode: 'vision_ai',
         photosUsed: imageParts.length,
-        provider: geminiResult.keyUsed,
+        provider: visionProvider,
         analysisDecision: safeDecision,
         analysisConfidence: parsed.confidence,
         fraudDetected: parsed.fraudDetected,
-        photoIssues: parsed.photoIssues, // [{ index, reason }] — index 1-based
+        photoIssues: parsed.photoIssues,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );

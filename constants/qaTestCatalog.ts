@@ -200,6 +200,8 @@ export const QA_TESTS: QaTest[] = [
   T('T-X18', 'transverse', 'important', 'Vérifier ai_usage_quota après quelques appels IA', 'Les compteurs montent ; la limitation est la protection réelle'),
   T('T-X19', 'transverse', 'blocking', 'Appeler ai-product-details sans être connecté', '401. Idem avec la clé anon en Bearer : une session anonyme n’a pas d’email, donc ne passe pas'),
   T('T-X20', 'transverse', 'important', 'Appeler ai-product-details avec un compte hors table staff', 'Refusé, même si le JWT est valide'),
+  T('T-X21', 'transverse', 'blocking', 'Chercher import.meta.env accédé EN ENTIER dans le code', 'Aucun. Un seul `if (import.meta.env)` suffit à inliner toutes les variables VITE_ dans le bundle'),
+  T('T-X22', 'transverse', 'blocking', 'Sonder la chaîne de modèles vision avant une mise en ligne', 'Au moins deux modèles répondent. Le 25/08, les deux modèles légers étaient en timeout simultané')
 ];
 
 export const QA_TOTAL = QA_TESTS.length;

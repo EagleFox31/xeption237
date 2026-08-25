@@ -10,7 +10,7 @@ interface ModalConfig {
     onConfirm: () => void | Promise<void>;
     type: ModalType;
     confirmLabel?: string;
-    mode: 'action' | 'ask';
+    mode: 'action' | 'ask' | 'alert';
 }
 
 interface AskOptions {
@@ -78,17 +78,45 @@ export const useConfirmModal = () => {
             return;
         }
 
+        if (config.mode === 'alert') {
+            setConfig(null);
+            return;
+        }
+
         setIsConfirming(true);
         try {
             await config.onConfirm();
             setConfig(null);
         } catch (e) {
             const message = e instanceof Error ? e.message : 'Action impossible pour le moment.';
-            alert(message);
+            setConfig({
+                isOpen: true,
+                title: 'Erreur',
+                message,
+                onConfirm: async () => {},
+                type: 'danger',
+                confirmLabel: 'OK',
+                mode: 'alert',
+            });
         } finally {
             setIsConfirming(false);
         }
     }, [config, finishAsk]);
+
+    const alertModal = useCallback(
+        (title: string, message: string, type: ModalType = 'info') => {
+            setConfig({
+                isOpen: true,
+                title,
+                message,
+                onConfirm: async () => {},
+                type,
+                confirmLabel: 'OK',
+                mode: 'alert',
+            });
+        },
+        [],
+    );
 
     const danger = useCallback(
         (title: string, message: string, onConfirm: () => void | Promise<void>) =>
@@ -116,6 +144,7 @@ export const useConfirmModal = () => {
         danger,
         success,
         info,
+        alert: alertModal,
         ask,
     };
 };

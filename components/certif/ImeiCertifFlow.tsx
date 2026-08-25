@@ -145,7 +145,7 @@ export const ImeiCertifFlow: React.FC = () => {
     setCheckError(null);
     setImeiResult(null);
     try {
-      const res = await checkImei(imeiInput);
+      const res = await checkImei(imeiInput, sessionKey);
       setImeiResult({
         status:          res.status,
         blacklistStatus: res.blacklistStatus,

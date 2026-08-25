@@ -24,7 +24,17 @@ export const parseModelChain = (raw: string | undefined, fallback: string[]): st
 export const DEFAULT_TEXT_MODELS = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'];
 
 /** Chaîne légère (tâches simples, quota plus généreux). */
-export const DEFAULT_LITE_MODELS = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite'];
+// Sonde du 2026-08-25, avec la cle des Edge Functions :
+//   gemini-3.1-flash-lite   ok        gemini-flash-lite-latest  timeout
+//   gemini-3.5-flash        ok        gemini-3.5-flash-lite     timeout
+// Les deux modeles de l'ancienne chaine etaient injoignables en meme temps, ce
+// qui mettait le pre-check photo du troc a terre. Comme pour la chaine texte :
+// des modeles EPROUVES d'abord, l'alias en dernier recours.
+export const DEFAULT_LITE_MODELS = [
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-flash-lite-latest',
+];
 
 /**
  * Faut-il essayer le modèle suivant ?

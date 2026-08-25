@@ -8,6 +8,7 @@ import {
   checkStaffAuthStatuses,
   provisionStaffAuthUser,
 } from '../../services/staffAuthProvisioning';
+import { logSecurityEvent } from '../../services/staffSecurity';
 
 interface UseStaffManagerProps {
     staffMembers: Staff[];
@@ -55,6 +56,12 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
             // Action explicite de l'admin : on (re)genere un mot de passe.
             const result = await provisionStaffAuthUser(staff.email, staff.name, {
                 resetPassword: true,
+            });
+            // Journalisé même si le mot de passe n'a pas changé : la tentative
+            // d'accès au compte d'un autre est en soi ce qu'on veut tracer.
+            await logSecurityEvent('password_reset_by_admin', {
+                targetEmail: staff.email,
+                targetName: staff.name,
             });
             await refreshAuthStatuses();
             onFeedback?.(
@@ -116,6 +123,10 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
         try {
         const isNew = editingStaff.id?.startsWith('new_');
         const cleanData = editingStaff as Partial<Staff> & { phone?: string };
+        // Relevé AVANT l'upsert : après, l'ancienne valeur n'existe plus nulle part.
+        const previousRole = isNew
+            ? null
+            : staffMembers.find((m) => m.id === editingStaff.id)?.role ?? null;
         
         const payload = {
             [DB_SCHEMA.STAFF.NAME]: cleanData.name!.trim(),
@@ -140,6 +151,14 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
                 role: normalizeStaffRole(savedDb[DB_SCHEMA.STAFF.ROLE]),
                 store_id: savedDb[DB_SCHEMA.STAFF.STORE_ID] ?? null,
             };
+
+            if (previousRole && previousRole !== savedApp.role) {
+                await logSecurityEvent('role_changed', {
+                    targetEmail: savedApp.email,
+                    targetName: savedApp.name,
+                    detail: `${previousRole} → ${savedApp.role}`,
+                });
+            }
 
             try {
                 // Sans resetPassword : changer le role ou la boutique d'un membre

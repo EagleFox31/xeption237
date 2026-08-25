@@ -113,6 +113,7 @@
 | T-R24 | Prix marché — relevé de plus de 180 jours | Grisé et marqué périmé, ignoré par l'estimation | 🟠 |
 | T-R25 | Estimer un modèle ayant un relevé boutique | Le prix constaté prime sur le catalogue figé | 🔴 |
 | T-R26 | Fiche produit — Auto-fill IA | Champs générés ; message clair si DeepSeek non configuré | 🟠 |
+| T-R27 | Fiche produit — bloc Avis clients | Aucun bouton de génération ; renvoi vers la collecte WhatsApp | 🟠 |
 
 ---
 

@@ -553,6 +553,88 @@ const scrapeOffersViaDuckDuckGo = async (query: string, ctx: MatchContext): Prom
  * parce que la fenetre de +/-220 caracteres attrapait le prix du produit voisin.
  * L'API rend la question sans objet.
  */
+/** Fraicheur maximale d'un releve d'occasion collecte par le moteur de rendu. */
+const USED_OFFER_MAX_AGE_DAYS = 45;
+
+/**
+ * Offres d'OCCASION collectees hors ligne par `scripts/render-market-sources.mjs`.
+ *
+ * Ces sources (Glotelho et consorts) ne rendent leurs fiches qu'apres execution
+ * du JavaScript : une Edge Function Deno ne peut pas les lire en direct. Le
+ * script les rend dans un vrai navigateur et depose le resultat ici ; on se
+ * contente de relire.
+ *
+ * Le filtrage final se fait EN CODE sur le titre, pas sur `model_key` : cette
+ * cle est derivee heuristiquement d'un titre libre, donc trop approximative
+ * pour arbitrer seule. Le `ilike` ne sert qu'a reduire le volume transfere.
+ */
+const dbGetUsedOffers = async (
+  brand: string,
+  model: string,
+  countryCode: string,
+  ctx: MatchContext,
+  supabaseUrl: string,
+  serviceKey: string,
+): Promise<Offer[]> => {
+  if (!supabaseUrl || !serviceKey) return [];
+
+  const since = new Date(Date.now() - USED_OFFER_MAX_AGE_DAYS * 86_400_000).toISOString();
+  const needle = model.trim().split(/\s+/)[0] || model.trim();
+
+  try {
+    const url =
+      `${supabaseUrl}/rest/v1/market_used_offers` +
+      `?country_code=eq.${encodeURIComponent(countryCode)}` +
+      `&captured_at=gte.${encodeURIComponent(since)}` +
+      `&title=ilike.${encodeURIComponent(`*${needle}*`)}` +
+      `&select=title,price_xaf,source,source_url,captured_at` +
+      `&order=captured_at.desc&limit=200`;
+
+    const res = await fetchWithTimeout(
+      url,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+      FETCH_TIMEOUT_MS,
+    );
+    if (!res.ok) return [];
+
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return [];
+
+    return rows
+      .map((row: any): Offer | null => {
+        const title = String(row?.title ?? '');
+        if (!sameRange(title, model)) return null;
+
+        // On n'utilise PAS computeRelevance ici : son mode strict exige que la
+        // MARQUE figure dans le texte, or ces titres de petites annonces n'en
+        // portent pas (« Iphone 13 seconde main - 6.1'' - Dual nano Sim »).
+        // Le test porte donc sur les jetons du modele, que sameRange complete
+        // deja en interdisant les melanges de gamme.
+        const haystack = normalize(title);
+        const tokens = ctx.significantModelTokens.length
+          ? ctx.significantModelTokens
+          : ctx.modelTokens;
+        if (!tokens.length || !tokens.every((t) => haystack.includes(t))) return null;
+
+        const price = Number(row?.price_xaf ?? 0);
+        if (!Number.isFinite(price) || price < MIN_PRICE_XAF || price > MAX_PRICE_XAF) return null;
+
+        return {
+          price,
+          source: String(row?.source ?? 'rendu'),
+          url: String(row?.source_url ?? ''),
+          snippet: title,
+          title,
+          relevance: 10,
+          structured: true,
+        };
+      })
+      .filter(Boolean) as Offer[];
+  } catch {
+    return [];
+  }
+};
+
 const collectShopifyOffers = async (
   brand: string,
   model: string,
@@ -897,6 +979,17 @@ Deno.serve(async (req: Request) => {
       matchCtx,
     );
 
+    // Occasion collectee hors ligne (moteur de rendu) : Deno ne peut pas lire
+    // ces sources en direct, elles ne rendent leurs fiches qu'apres JavaScript.
+    const renderedUsed = await dbGetUsedOffers(
+      deviceBrand,
+      deviceModel,
+      countryCode,
+      matchCtx,
+      supabaseUrl,
+      serviceKey,
+    );
+
     let offers = shopify.offers.length
       ? shopify.offers
       : await scrapeOffers(deviceBrand, deviceModel, deviceStorage, deviceRam);
@@ -932,9 +1025,12 @@ Deno.serve(async (req: Request) => {
     const availableNew = offers.filter((o) => o.relevance > 0).map((o) => o.price);
     const ceilingPrice = availableNew.length ? Math.min(...availableNew) : 0;
 
-    // Reference OCCASION quand la boutique tient une collection reconditionnee.
-    const usedPrices = shopify.usedOffers.map((o) => o.price).sort((a, b) => a - b);
+    // Reference OCCASION : collections reconditionnees (API) + releves rendus.
+    // C'est la donnee de la BONNE NATURE pour une reprise — le reste est du neuf.
+    const allUsed = [...shopify.usedOffers, ...renderedUsed];
+    const usedPrices = allUsed.map((o) => o.price).sort((a, b) => a - b);
     const usedReference = usedPrices.length ? median(usedPrices) : 0;
+    const usedSources = [...new Set(allUsed.map((o) => o.source))];
 
     const prices = offers.map((o) => o.price);
     const lowPrices = prices.slice(0, 3);
@@ -993,7 +1089,9 @@ Deno.serve(async (req: Request) => {
         ceilingPrice,
         /** Mediane des reconditionnes du meme modele, 0 si aucun. */
         usedReference,
-        usedSampleCount: shopify.usedOffers.length,
+        usedSampleCount: allUsed.length,
+        /** Sources d'occasion distinctes ayant contribue. */
+        usedSources,
         /** true = titres et prix apparies a la source, aucune deduction. */
         structured: offers.some((o) => o.structured === true),
         lowPrices,

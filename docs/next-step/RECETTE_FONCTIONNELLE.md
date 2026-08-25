@@ -41,6 +41,11 @@
 | T-C15 | `/sav` — créer un ticket | Ticket enregistré, confirmation visible | 🟠 |
 | T-C16 | Pages légales (`/cgv`, `/mentions-legales`, `/politique-confidentialite`, `/politique-cookies`, `/cgv-smart-troc`) | Toutes accessibles, texte lisible | 🟡 |
 | T-C17 | Naviguer tout le site en **navigation privée** | Aucune erreur console bloquante, aucun accès admin | 🔴 |
+| T-C18 | Troc — saisir `000000000000000` comme IMEI | Refusé comme numéro de test, aucune marque devinée | 🔴 |
+| T-C19 | Troc — IMEI d'un autre appareil que le modèle déclaré | Refus explicite, pas d'estimation | 🟠 |
+| T-C20 | Chatbot conseil d'achat | Répond en français, cite des produits en stock | 🟠 |
+| T-C21 | Troc — photos nettes | Pré-check rendu en quelques secondes | 🔴 |
+| T-C22 | Troc — photo qui n'est pas un téléphone | Photo signalée à reprendre, index correct | 🟠 |
 
 ---
 
@@ -102,6 +107,9 @@
 | T-R20 | Fixer un objectif vendeur | Enregistré, visible côté vendeur | 🟠 |
 | T-R21 | Créer une **règle de prime** | **Refusé** — réservé direction | 🔴 |
 | T-R22 | Packs, Livraison, SAV | Consultation et modification OK | 🟡 |
+| T-R23 | Troc → Prix marché — saisir un relevé | Marque, modèle, prix, lieu obligatoires ; ligne datée | 🟠 |
+| T-R24 | Prix marché — relevé de plus de 180 jours | Grisé et marqué périmé, ignoré par l'estimation | 🟠 |
+| T-R25 | Estimer un modèle ayant un relevé boutique | Le prix constaté prime sur le catalogue figé | 🔴 |
 
 ---
 
@@ -126,6 +134,10 @@
 | T-D15 | Retirer un objectif ou une prime | Suppression effective | 🟡 |
 | T-D16 | Créer / modifier un membre d'équipe | Compte utilisable ensuite | 🔴 |
 | T-D17 | Structure catalogue (catégories, marques, gammes) | Modification reflétée en boutique | 🟠 |
+| T-D18 | Se connecter après qu'un employé a changé son mot de passe | Notification avec son nom | 🔴 |
+| T-D19 | Réinitialiser le mot de passe d'un membre (icône clé) | Nouveau mot de passe affiché, événement journalisé | 🔴 |
+| T-D20 | Changer le rôle d'un membre | Journalisé avec « ancien → nouveau » | 🟠 |
+| T-D21 | Enregistrer un membre sans toucher à son rôle | Aucun événement, mot de passe conservé | 🟠 |
 
 ---
 
@@ -138,6 +150,8 @@
 | T-S03 | Traitement d'images en masse | Images optimisées et rattachées | 🟡 |
 | T-S04 | Accès à tous les onglets admin | Aucun refus | 🟠 |
 | T-S05 | Page de recette (cette liste) | Accessible, verdicts enregistrés | 🟠 |
+| T-S06 | `evaluate-device` en `healthCheck` | État réel de chaque modèle, pas « clé présente » | 🟠 |
+| T-S07 | `npm run market:render -- --limit=2` | Écrit de l'occasion, aucune ligne de neuf | 🟡 |
 
 ---
 
@@ -217,6 +231,16 @@
 
 ---
 
+## P11 — Cycle complet d'un mot de passe staff 🔴
+1. Direction crée un membre → **vérifier** : un mot de passe unique s'affiche, à noter
+2. Le membre se connecte avec ce mot de passe
+3. Il ouvre sa carte utilisateur en bas de la barre latérale → **Changer mon mot de passe**
+4. **Vérifier** : le changement passe sans lien reçu par mail (deux comptes staff sont sur un domaine sans MX)
+5. **Vérifier** : à sa prochaine connexion, la direction voit la notification avec son nom
+6. **Vérifier** : le mot de passe d'un autre membre ne fonctionne toujours pas sur ce compte
+
+---
+
 # 7. CONTRÔLES TRANSVERSES
 
 | # | Test | Attendu | Prio |
@@ -230,6 +254,12 @@
 | T-X07 | Somme des stocks boutique = `products.stock` | 0 désynchronisation | 🔴 |
 | T-X08 | Site public en navigation privée | Aucune donnée staff accessible | 🔴 |
 | T-X09 | Déconnexion staff | Session effacée, retour au login | 🟠 |
+| T-X10 | Chercher les clés `VITE_` dans `dist/assets` après build | Aucune clé facturable en clair | 🔴 |
+| T-X11 | Deux membres du staff se connectent | Mots de passe différents et non interchangeables | 🔴 |
+| T-X12 | Employé sans email change son mot de passe | Possible sans lien reçu par mail | 🔴 |
+| T-X13 | Un responsable ouvre le journal de sécurité | Ne voit rien : lecture réservée à la direction | 🟠 |
+| T-X14 | Estimer un iPhone 13 et un Galaxy A15 | Prix cohérents, aucune valeur à 0 | 🟠 |
+| T-X15 | Vérifier la source du prix marché | `strategy = shopify_api`, titres appariés aux prix | 🟠 |
 
 ---
 

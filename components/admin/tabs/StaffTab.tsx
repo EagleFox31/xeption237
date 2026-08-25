@@ -4,7 +4,6 @@ import { KeyRound, Loader2, Pencil, Trash2, UserPlus, Users } from 'lucide-react
 import { Staff, Store } from '../../../types';
 import { getStaffRoleLabel, getStaffRoleShortLabel } from '../../../constants/staffRoles';
 import { staffInitials } from '../../../hooks/admin/useCurrentStaffSession';
-import { STAFF_DEFAULT_PASSWORD } from '../../../services/staffAuthProvisioning';
 import TableShell from '../shared/TableShell';
 import { adminUi } from '../shared/adminUi';
 
@@ -44,8 +43,9 @@ const StaffTab: React.FC<StaffTabProps> = ({
           </div>
           <h3 className="text-lg font-bold font-tech text-white uppercase">Aucun membre</h3>
           <p className="mt-2 text-sm text-white/65 leading-relaxed">
-            Chaque membre reçoit automatiquement un compte de connexion — mot de passe{' '}
-            <strong className="text-white">{STAFF_DEFAULT_PASSWORD}</strong> pour tous.
+            Chaque membre reçoit un compte de connexion avec un mot de passe{' '}
+            <strong className="text-white">qui lui est propre</strong>, affiché une seule
+            fois au moment où tu le génères.
           </p>
           <button type="button" onClick={onAddStaff} className={`${adminUi.btnPrimary} mt-6 w-full sm:w-auto`}>
             <UserPlus className="h-4 w-4" /> Nouveau membre
@@ -60,7 +60,7 @@ const StaffTab: React.FC<StaffTabProps> = ({
         <div className={`${adminUi.hintCard} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`}>
           <div>
             <p className="text-sm font-bold text-white">
-              Mot de passe équipe : <span className="text-xeption-gold">{STAFF_DEFAULT_PASSWORD}</span>
+              Un mot de passe <span className="text-xeption-gold">différent par membre</span>
             </p>
             <p className="text-xs text-white/60 mt-1">
               Synchronise les noms Supabase Auth et remet le mot de passe pour toute l’équipe.
@@ -140,7 +140,7 @@ const StaffTab: React.FC<StaffTabProps> = ({
                                       À sync
                                     </span>
                                   )}
-                                  <p className="text-[10px] text-white/45 mt-1">{STAFF_DEFAULT_PASSWORD}</p>
+                                  <p className="text-[10px] text-white/45 mt-1">mot de passe personnel</p>
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="inline-flex items-center gap-1">
@@ -150,7 +150,7 @@ const StaffTab: React.FC<StaffTabProps> = ({
                                         disabled={isProvisioning || isBulkProvisioning}
                                         className="text-xeption-gold hover:bg-xeption-gold/10 p-2 rounded disabled:opacity-40"
                                         aria-label={`Synchroniser ${s.name}`}
-                                        title={`Nom + mot de passe ${STAFF_DEFAULT_PASSWORD}`}
+                                        title="Générer un nouveau mot de passe pour ce membre"
                                       >
                                         {isProvisioning ? (
                                           <Loader2 className="w-4 h-4 animate-spin" />

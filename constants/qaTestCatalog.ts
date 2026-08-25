@@ -130,6 +130,7 @@ export const QA_TESTS: QaTest[] = [
   T('T-R24', 'responsable', 'important', 'Prix marché — relevé de plus de 180 jours', 'Affiché grisé et marqué périmé, ignoré par l’estimation'),
   T('T-R25', 'responsable', 'blocking', 'Estimer un modèle ayant un relevé boutique', 'Le prix constaté prime sur le catalogue figé du code'),
   T('T-R26', 'responsable', 'important', 'Fiche produit — Auto-fill IA sur un champ', 'Description, specs, pros et cons générés ; message clair si DeepSeek n’est pas configuré côté serveur'),
+  T('T-R27', 'responsable', 'important', 'Fiche produit — bloc Avis clients', 'Aucun bouton de génération ; le texte renvoie à la collecte WhatsApp'),
 
   // ── Direction ─────────────────────────────────────────────────────────────
   T('T-D01', 'direction', 'important', 'Menu complet', 'Ajoute Boutiques, Structure catalogue, Équipe'),

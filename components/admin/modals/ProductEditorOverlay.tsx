@@ -1,13 +1,18 @@
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Product, Category, Brand, ProductRange } from '../../../types';
 import { findBestDuplicateMatch, validateProductForSave } from '../../../utils/productDuplicate';
-import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star, Smartphone, RefreshCw, MessageCircle } from 'lucide-react';
+import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star, RefreshCw, MessageCircle } from 'lucide-react';
 import { uploadImageToCloudinary, uploadVideoToCloudinary } from '../../../services/uploadService';
-import { generateProductDetails } from '../../../services/geminiService';
+import { generateProductDetails } from '../../../services/aiProductDetailsService';
 import type { ProductEnricherField } from '../../../services/personas/productEnricher';
-import { generateProductReviews } from '../../../services/reviewGenerator';
 import { isWeakProductDescription } from '../../../utils/productDescription';
+import { CATEGORY_SLUGS } from '../../../constants/dbSchema';
+import { brandsForCategory, catalogBrandFromId, normalizeCatalogBrandKey, resolveCatalogBrandId } from '../../../utils/catalogStructure';
+import { isUuid, resolveBrandKeyToDbId } from '../../../utils/productBrand';
+import CatalogRangeCombobox from '../shared/CatalogRangeCombobox';
+import ProductRangeCreateModal from './ProductRangeCreateModal';
+import type { AdminAlertFn } from '../shared/adminAlert';
 
 interface ProductEditorOverlayProps {
     product: Product;
@@ -15,6 +20,8 @@ interface ProductEditorOverlayProps {
     categories: Category[];
     brands?: Brand[];
     ranges?: ProductRange[];
+    onCreateRange?: (params: { name: string; brandId: string; category: string }) => Promise<ProductRange>;
+    showAlert: AdminAlertFn;
     onClose: () => void;
     onSave: (e: React.FormEvent) => void;
     onChange: (updates: Partial<Product>) => void;
@@ -26,15 +33,18 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
     categories,
     brands = [],
     ranges = [],
+    onCreateRange,
+    showAlert,
     onClose,
     onSave,
     onChange,
 }) => {
     const [generatingField, setGeneratingField] = useState<ProductEnricherField | 'all' | null>(null);
-    const [isGeneratingReviews, setIsGeneratingReviews] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
     const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [rangeModalOpen, setRangeModalOpen] = useState(false);
+    const [rangeDraftName, setRangeDraftName] = useState('');
 
     const mainImageInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -69,9 +79,102 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
             .map((line) => line.trim())
             .filter(Boolean);
 
-    // --- LOGIC MARQUE / GAMME ---
-    const isTechProduct = ['smartphones', 'phones', 'laptops', 'ordinateurs', 'tablettes'].some(slug => product.category.toLowerCase().includes(slug));
-    const availableRanges = ranges.filter(r => r.brand_id === product.brand);
+    // --- LOGIC MARQUE / GAMME (phones, tablettes, ordinateurs, accessoires) ---
+    const catalogBrandRangeSlugs = new Set<string>([
+        CATEGORY_SLUGS.PHONES,
+        CATEGORY_SLUGS.TABLETTES,
+        CATEGORY_SLUGS.ORDINATEURS,
+        CATEGORY_SLUGS.ACCESSORIES,
+        'smartphones',
+        'laptops',
+        'ordinateurs',
+        'accessoires',
+    ]);
+    const showBrandRangeFields = catalogBrandRangeSlugs.has(product.category.toLowerCase());
+
+    const brandRefs = useMemo(
+        () => brands.map((b) => ({ id: b.id, name: b.name, slug: b.slug })),
+        [brands],
+    );
+
+    const resolvedBrandId = useMemo(() => {
+        return (
+            resolveBrandKeyToDbId(product.brand, brandRefs) ??
+            resolveCatalogBrandId(product, brands)
+        );
+    }, [product.brand, product.name, brandRefs, brands]);
+
+    useEffect(() => {
+        if (!resolvedBrandId || !isUuid(resolvedBrandId)) return;
+        if (product.brand === resolvedBrandId) return;
+        onChange({ brand: resolvedBrandId });
+    }, [resolvedBrandId, product.brand, onChange]);
+
+    const effectiveBrandId = isUuid(resolvedBrandId ?? '') ? resolvedBrandId! : product.brand || '';
+    const brandKeyForRange =
+        effectiveBrandId || product.brand || resolvedBrandId || '';
+
+    const availableBrands = useMemo(() => {
+        if (!product.category) return [];
+        const inCategory = brandsForCategory(product.category, brands, ranges, allProducts);
+        if (product.brand && !inCategory.some((b) => b.id === product.brand)) {
+            return [...inCategory, catalogBrandFromId(product.brand, brands)].sort((a, b) =>
+                a.name.localeCompare(b.name, 'fr'),
+            );
+        }
+        return inCategory;
+    }, [product.category, product.brand, brands, ranges, allProducts]);
+
+    const availableRanges = useMemo(() => {
+        if (!brandKeyForRange || !product.category) return [];
+        const canonicalBrand = normalizeCatalogBrandKey(brandKeyForRange, brands);
+        return ranges.filter((r) => {
+            if (r.category && r.category !== product.category) return false;
+            return normalizeCatalogBrandKey(r.brand_id, brands) === canonicalBrand;
+        });
+    }, [ranges, brandKeyForRange, product.category, brands]);
+
+    const selectedCategoryLabel =
+        categories.find((c) => c.slug === product.category)?.name ?? product.category;
+    const selectedBrandLabel = effectiveBrandId
+        ? catalogBrandFromId(effectiveBrandId, brands).name
+        : '';
+
+    const openRangeCreateModal = (draftName: string) => {
+        if (!brandKeyForRange) {
+            showAlert(
+                'Marque requise',
+                'Choisissez une marque dans la liste, ou créez-la dans Structure catalogue.',
+                'danger',
+            );
+            return;
+        }
+        if (!product.category) {
+            showAlert('Type requis', 'Choisissez d’abord un type de produit.', 'danger');
+            return;
+        }
+        if (!onCreateRange) {
+            showAlert('Indisponible', 'Création de gamme indisponible — rechargez l’admin.', 'danger');
+            return;
+        }
+        setRangeDraftName(draftName);
+        setRangeModalOpen(true);
+    };
+
+    const handleConfirmCreateRange = async (name: string) => {
+        if (!onCreateRange || !product.category) return;
+        if (!brandKeyForRange) {
+            throw new Error(
+                'Marque obligatoire — sélectionnez-la dans la liste ou créez-la dans Structure catalogue.',
+            );
+        }
+        const created = await onCreateRange({
+            name,
+            brandId: brandKeyForRange,
+            category: product.category,
+        });
+        onChange({ productRange: created.id, brand: created.brand_id });
+    };
 
     // --- HANDLERS MEDIA ---
     const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,7 +218,7 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
 
     const handleAiFieldGeneration = async (field: ProductEnricherField | 'all') => {
         if (!product.name?.trim()) {
-            alert('Ajoutez un nom commercial avant l’auto-fill IA.');
+            showAlert('Nom manquant', 'Ajoutez un nom commercial avant l’auto-fill IA.', 'info');
             return;
         }
         setGeneratingField(field);
@@ -138,7 +241,7 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
             onChange(details);
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Erreur inconnue';
-            alert(`Auto-Fill IA : ${msg}`);
+            showAlert('Auto-fill IA', msg, 'danger');
         } finally {
             setGeneratingField(null);
         }
@@ -166,25 +269,6 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
         </button>
     );
 
-    // --- AI REVIEWS HANDLER ---
-    const handleReviewsGeneration = async () => {
-        if (!product.name || isWeakProductDescription(product.description, product.name)) {
-            alert("Ajoutez un nom et une vraie description avant de générer des avis.");
-            return;
-        }
-        setIsGeneratingReviews(true);
-        try {
-            const reviews = await generateProductReviews(product.name, product.category, product.description);
-
-            // Calculer la nouvelle note moyenne
-            const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
-            const avgRating = reviews.length > 0 ? parseFloat((totalRating / reviews.length).toFixed(1)) : 5;
-
-            onChange({ reviews, rating: avgRating });
-        } finally {
-            setIsGeneratingReviews(false);
-        }
-    };
 
     return (
         <div className="animate-in fade-in slide-in-from-right-5 duration-300 w-full pb-20">
@@ -284,7 +368,13 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
                                     <select
                                         className="w-full bg-black/40 border border-white/10 p-4 text-white focus:border-xeption-gold outline-none transition-all rounded-sm"
                                         value={product.category}
-                                        onChange={e => onChange({ category: e.target.value })}
+                                        onChange={e =>
+                                            onChange({
+                                                category: e.target.value,
+                                                brand: '',
+                                                productRange: '',
+                                            })
+                                        }
                                     >
                                         <option value="">-- Choisir un type --</option>
                                         {categories.map(c => (
@@ -305,20 +395,24 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
                             </div>
 
                             {/* --- SELECTEURS MARQUE & GAMME (Conditionnels) --- */}
-                            {isTechProduct && (
+                            {showBrandRangeFields && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 bg-white/5 p-4 rounded border border-white/5">
                                     <div>
                                         <label className="text-[10px] uppercase font-bold text-xeption-gold mb-1.5 flex items-center gap-1 tracking-widest">
-                                            <Smartphone className="w-3 h-3" /> Marque (Obligatoire)
+                                            <Tag className="w-3 h-3" /> Marque (Obligatoire)
                                         </label>
                                         <select
                                             className="w-full bg-black/40 border border-white/10 p-3 text-white focus:border-xeption-gold outline-none transition-all rounded-sm text-sm"
-                                            value={product.brand || ''}
-                                            onChange={e => onChange({ brand: e.target.value, productRange: '' })} // Reset range on brand change
+                                            value={
+                                                brandKeyForRange
+                                                    ? normalizeCatalogBrandKey(brandKeyForRange, brands)
+                                                    : ''
+                                            }
+                                            onChange={e => onChange({ brand: e.target.value, productRange: '' })}
                                             required
                                         >
                                             <option value="">-- Sélectionner Marque --</option>
-                                            {brands.map(b => (
+                                            {availableBrands.map((b) => (
                                                 <option key={b.id} value={b.id}>{b.name}</option>
                                             ))}
                                         </select>
@@ -327,18 +421,18 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
                                         <label className="text-[10px] uppercase font-bold text-xeption-gold mb-1.5 flex items-center gap-1 tracking-widest">
                                             <Tag className="w-3 h-3" /> Gamme / Série (Obligatoire)
                                         </label>
-                                        <select
-                                            className="w-full bg-black/40 border border-white/10 p-3 text-white focus:border-xeption-gold outline-none transition-all rounded-sm text-sm disabled:opacity-50"
-                                            value={product.productRange || ''}
-                                            onChange={e => onChange({ productRange: e.target.value })}
-                                            disabled={!product.brand}
-                                            required
-                                        >
-                                            <option value="">-- Sélectionner Gamme --</option>
-                                            {availableRanges.map(r => (
-                                                <option key={r.id} value={r.id}>{r.name}</option>
-                                            ))}
-                                        </select>
+                                        <CatalogRangeCombobox
+                                            ranges={availableRanges}
+                                            valueId={product.productRange || ''}
+                                            onSelect={(rangeId) => onChange({ productRange: rangeId })}
+                                            onRequestCreate={openRangeCreateModal}
+                                            disabled={!brandKeyForRange || !onCreateRange}
+                                            placeholder={
+                                                brandKeyForRange
+                                                    ? 'Rechercher ou créer une gamme…'
+                                                    : 'Choisissez une marque d’abord'
+                                            }
+                                        />
                                     </div>
                                 </div>
                             )}
@@ -395,22 +489,16 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
                     <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-white font-tech font-bold uppercase text-sm flex items-center gap-2">
-                                <MessageCircle className="w-4 h-4 text-purple-400" /> Avis Clients (IA Social Proof)
+                                <MessageCircle className="w-4 h-4 text-purple-400" /> Avis clients
                             </h3>
-                            <button
-                                type="button"
-                                onClick={handleReviewsGeneration}
-                                disabled={isGeneratingReviews}
-                                className="bg-purple-500/10 hover:bg-purple-500 hover:text-white text-purple-400 border border-purple-500/30 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"
-                            >
-                                {isGeneratingReviews ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Générer Avis
-                            </button>
+
                         </div>
 
                         <div className="space-y-3">
                             {(product.reviews || []).length === 0 ? (
                                 <div className="text-center py-6 text-gray-500 text-xs italic border border-dashed border-white/10 rounded-sm">
-                                    Aucun avis généré. Cliquez sur le bouton pour simuler des avis locaux.
+                                    Aucun avis. Les avis viennent des clients, via le lien envoyé par
+                                    WhatsApp après l'achat — la génération automatique a été retirée.
                                 </div>
                             ) : (
                                 <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
@@ -719,6 +807,17 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
                     </div>
                 </div>
             </form>
+
+            <ProductRangeCreateModal
+                isOpen={rangeModalOpen}
+                draftName={rangeDraftName}
+                categoryLabel={selectedCategoryLabel}
+                categorySlug={product.category}
+                brandLabel={selectedBrandLabel}
+                brandId={effectiveBrandId}
+                onClose={() => setRangeModalOpen(false)}
+                onConfirm={handleConfirmCreateRange}
+            />
         </div>
     );
 };

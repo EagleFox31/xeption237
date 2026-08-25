@@ -126,6 +126,16 @@
 
 ---
 
+## 2026-08-25 — Affirmer qu'une fonctionnalité est en vente sans vérifier son drapeau
+
+- **Symptôme** : j'ai soutenu à l'utilisateur que le palier « Sûreté » était sélectionnable par les clients et qu'il vendait donc une vérification blacklist non exécutée. C'était faux, et je l'ai maintenu après une première objection de sa part.
+- **Cause racine** : j'ai trouvé `TierSelector.tsx` avec sa ligne `'Vérif IMEI blacklist mondiale'`, puis `TrocPage.tsx` qui l'importe et le rend, et j'ai conclu. Je n'ai pas lu la condition qui gouverne ce rendu : `TROC_TIER_SELECTOR_ENABLED = false` (`utils/trocPricing.ts` l. 27). Le tunnel force `TROC_TUNNEL_TIER = 'express'` (l. 30). Le composant existe, est importé, est rendu dans le JSX — et n'atteint jamais l'écran.
+- **Résolution** : remonter jusqu'à la **valeur** du drapeau, pas seulement jusqu'au point de rendu. Vérifier aussi les autres occurrences (`check-imei` l. 704 n'était qu'un libellé de journal, `ImeiCertifFlow` utilise `tier: 'certif'`) avant de conclure qu'un chemin est vivant.
+- **Comment ne plus la refaire** : **« importé et rendu » ne veut pas dire « atteignable »**. Un drapeau de fonctionnalité, une condition de branche ou une route non montée suffisent à rendre du code mort. La chaîne à remonter est : définition → import → rendu → **condition** → **valeur de la condition**. S'arrêter avant la dernière étape, c'est deviner.
+- **Aggravant** : l'utilisateur m'avait dit « je crois que c'est gelé et inutilisé pour l'instant ». C'était une information de première main sur son propre projet, et je l'ai contredite au lieu de la prendre comme une piste à vérifier. Il m'a aussi rappelé que je n'avais consulté ni les docs, ni AGENTS.md, ni ma mémoire — où cette classe d'erreur est déjà consignée.
+
+---
+
 ## Modèle d'entrée (copier-coller)
 
 ```

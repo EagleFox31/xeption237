@@ -136,6 +136,17 @@
 
 ---
 
+## 2026-08-25 — Conclure sur une configuration externe d'après une sonde unique
+
+- **Symptôme** : j'ai annoncé que « Bot Protection n'est pas activé » et que le captcha du chatbot était donc inerte. Le tableau de bord Supabase montrait le contraire, capture à l'appui.
+- **Mesure** : `POST /auth/v1/signup` corps vide → **HTTP 200 + access_token** à 12h. La même requête, forme strictement identique, → **HTTP 400 `captcha_failed`** quelques minutes plus tard, comme les deux autres points d'entrée testés.
+- **Cause racine** : la sonde était correcte, la conclusion trop ferme. Un réglage de service externe est un **état à un instant t**, pas une propriété du système : il change sans que le dépôt bouge, et une mesure unique ne dit rien de sa stabilité. J'ai présenté un instantané comme un fait établi.
+- **Résolution** : rejouer la forme exacte de la sonde initiale pour distinguer « ma méthode était fausse » de « l'état a changé ». Ici la forme identique donnait un résultat opposé : c'est donc l'état qui a bougé, et le protocole était bon.
+- **Comment ne plus la refaire** : pour une configuration hors dépôt (tableau de bord d'un fournisseur, secret, drapeau distant), **dater la mesure dans la phrase** et la présenter comme telle — « mesuré à telle heure » et non « c'est désactivé ». Et lorsqu'un utilisateur produit une capture qui contredit la mesure, remesurer avant de discuter : c'est plus rapide et ça tranche.
+- **Ce qui a bien fonctionné** : le test `T-X17` ajouté à la recette encode exactement cette vérification. Il échouait, il passe maintenant — c'est le bon endroit pour ce genre de contrôle, plutôt qu'une affirmation dans une conversation.
+
+---
+
 ## Modèle d'entrée (copier-coller)
 
 ```

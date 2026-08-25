@@ -53,7 +53,7 @@ Le bon moment pour refermer, c'est avant ce basculement.
 | 3 | `services/geminiService.ts` → `AiConsultant.tsx` | Chatbot conseil d'achat, **site public** | Gemini | **HS** — modèle retiré |
 | 4 | `services/geminiService.ts` → `ProductEditorOverlay.tsx` | Génération de description produit, admin | **DeepSeek** | fonctionne |
 | 5 | `services/geminiService.ts` → `productIngestionFunnel.ts` | Entonnoir d'import catalogue, admin | **DeepSeek** | fonctionne |
-| 6 | `services/deepseekClient.ts` | Clé DeepSeek, lue côté navigateur | DeepSeek | à traiter comme les autres |
+| 6 | `services/deepseekClient.ts` | Clé DeepSeek, lue côté navigateur | DeepSeek | **résolu** — plus aucun consommateur applicatif après le lot 3 et le retrait de `reviewGenerator`. Aucune clé n'a jamais été définie, donc rien n'a fuité |
 
 ### 2.1 Deux fonctionnalités sont à terre en ce moment
 

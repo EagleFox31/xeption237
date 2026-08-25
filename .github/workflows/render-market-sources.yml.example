@@ -1,31 +1,46 @@
-# Rendu périodique des sources de prix qui n'existent qu'après exécution du JS.
+# Rendu périodique des sources de prix d'occasion.
 #
-# À la différence de `snapshot-market-prices.yml.example`, qui se contente de
-# `curl` une Edge Function, ce workflow exécute un VRAI navigateur : Deno ne
-# rend pas une page, et Glotelho ne sert ses fiches qu'après hydratation.
+# Pourquoi un vrai navigateur : Glotelho ne sert ses fiches qu'après exécution
+# du JavaScript. Une Edge Function Deno ne peut pas les lire, et le rendu prend
+# 20 à 40 s par page — impossible pendant qu'un client attend son estimation.
+# On pré-remplit donc `market_used_offers`, et l'évaluation se contente de lire.
 #
-# Renommer en `render-market-sources.yml` pour activer, et définir 2 secrets :
-#   VITE_SUPABASE_URL         = https://<PROJECT_REF>.supabase.co
-#   SUPABASE_SERVICE_ROLE_KEY = (clé service_role du projet)
+# ─── ACTIVATION ──────────────────────────────────────────────────────────────
 #
-# Sans activation, `npm run market:render` reste un geste manuel. Dit ici pour
-# ne pas laisser croire à un automatisme qui n'existe pas.
+# 1. Renommer ce fichier en `render-market-sources.yml` (retirer `.example`).
+#
+# 2. Ajouter UN SEUL secret de dépôt, sur GitHub :
+#      Settings → Secrets and variables → Actions → New repository secret
+#      Nom   : DATABASE_URL
+#      Valeur: la même chaîne que dans le .env local
+#              (Supabase → Project Settings → Database → Connection string → URI)
+#
+#    Un secret GitHub n'est PAS un fichier .env : il est chiffré, invisible dans
+#    les logs, et n'est jamais livré au navigateur. C'est le bon endroit.
+#
+# 3. Pousser. Le job tourne le lundi à 04:00 UTC, et se déclenche aussi à la
+#    main depuis l'onglet Actions.
+#
+# Sans activation, `npm run market:render` reste un geste manuel — il fonctionne,
+# mais personne ne le lance à ta place.
 
 name: Render market sources (weekly)
 
 on:
   schedule:
-    - cron: '0 4 * * 1' # lundi 04:00 UTC, après le snapshot de 03:00
+    - cron: '0 4 * * 1' # lundi 04:00 UTC (05:00 à Yaoundé, UTC+1 sans heure d'été)
   workflow_dispatch:
     inputs:
-      query:
-        description: 'Requête à rendre (par défaut iPhone 13)'
+      limit:
+        description: 'Nombre de modèles à couvrir (défaut 60)'
         required: false
-        default: 'iPhone 13'
+        default: '60'
 
 jobs:
   render:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+
     steps:
       - uses: actions/checkout@v4
 
@@ -36,11 +51,10 @@ jobs:
 
       - run: npm ci
 
-      # Le runner GitHub embarque déjà Chrome ; le script le trouve via CHROME_PATH
-      # ou retombe sur @sparticuz/chromium, déjà présent dans les dépendances.
-      - name: Rendre et enregistrer les offres
+      # Le runner GitHub embarque Chrome ; sinon le script retombe sur
+      # @sparticuz/chromium, déjà dans les dépendances du projet.
+      - name: Rendre et enregistrer les offres d'occasion
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           CHROME_PATH: /usr/bin/google-chrome
-        run: node scripts/render-market-sources.mjs --query="${{ github.event.inputs.query || 'iPhone 13' }}"
+        run: node scripts/render-market-sources.mjs --limit=${{ github.event.inputs.limit || '60' }}

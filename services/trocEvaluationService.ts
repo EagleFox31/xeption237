@@ -1,4 +1,6 @@
 import { supabase } from './supabaseClient';
+import { getTrocSessionKey } from '../utils/trocSessionKey';
+import { fetchMarketReferencePrice } from './marketReferencePrice';
 import { computeOfferV2, PRICING_RULE_VERSION, MAX_DEVICE_AGE_YEARS, type TrocTier } from '../utils/trocPricing';
 import { TROC_MESSAGES } from '../utils/trocMessages';
 import { isTrocPhotosCredibilityVerified } from '../utils/trocPhotoCredibilitySession';
@@ -206,6 +208,13 @@ const resolveBasePrice = async (
 ): Promise<number> => {
   if (Number.isFinite(currentBasePrice) && currentBasePrice > 0) return currentBasePrice;
 
+  // Un prix constaté en boutique passe AVANT market-price-intel : il est local,
+  // daté, attribué à quelqu'un, et il porte sur de l'OCCASION — alors que les
+  // sources en ligne vendent du neuf. C'est la seule source qui ne dépend
+  // d'aucun concurrent.
+  const observed = await fetchMarketReferencePrice(form.deviceBrand, form.deviceModel);
+  if (observed) return observed.priceXaf;
+
   try {
     const { data, error } = await supabase.functions.invoke('market-price-intel', {
       body: {
@@ -228,6 +237,7 @@ const resolveBasePrice = async (
 
 export const checkImei = async (
   imei: string,
+  sessionKey?: string,
 ): Promise<CheckImeiResponse> => {
   const normalizedImei = sanitizeImei(imei);
 
@@ -240,7 +250,10 @@ export const checkImei = async (
 
   try {
     const { data, error } = await supabase.functions.invoke('check-imei', {
-      body: { imei: normalizedImei },
+      body: {
+        imei: normalizedImei,
+        sessionKey: sessionKey ?? getTrocSessionKey(),
+      },
     });
 
     if (error || !data) {
@@ -519,6 +532,7 @@ export const evaluateDevice = async (
     try {
       const { data, error } = await supabase.functions.invoke('evaluate-device', {
         body: {
+          sessionKey: getTrocSessionKey(),
           photoUrls,
           deviceInfo: {
             brand:           form.deviceBrand,
@@ -533,6 +547,9 @@ export const evaluateDevice = async (
         },
       });
       if (error || !data) throw new Error(error?.message ?? 'evaluate-device failed');
+      if (data.code === 'rate_limited') {
+        throw new Error(TROC_MESSAGES.ai_rate_limited);
+      }
 
       const photoIssues: Array<{ index: number; reason?: string }> = Array.isArray(data.photoIssues)
         ? data.photoIssues

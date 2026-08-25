@@ -7,7 +7,7 @@ import { supabase } from '../../services/supabaseClient'; // Import supabase
 // UI Composition
 import Sidebar from './layout/Sidebar';
 import ChangePasswordModal from './modals/ChangePasswordModal';
-import { fetchRecentSecurityEvents } from '../../services/staffSecurity';
+import { fetchRecentSecurityEvents, describeSecurityEvent } from '../../services/staffSecurity';
 import BottomNav from './layout/BottomNav';
 import AdminPageHeader from './layout/AdminPageHeader';
 import type { AdminTabId } from './layout/adminMenuConfig';
@@ -172,12 +172,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     void (async () => {
       const events = await fetchRecentSecurityEvents(5);
       if (cancelled || events.length === 0) return;
+      const TITRES: Record<string, string> = {
+        password_changed_self: 'Mot de passe modifié',
+        password_reset_by_admin: 'Mot de passe réinitialisé',
+        role_changed: 'Rôle modifié',
+      };
       for (const ev of events) {
         notifs.addNotification({
           id: `security-${ev.id}`,
           type: 'alert',
-          title: 'Mot de passe modifié',
-          message: `${ev.actor_name ?? ev.actor_email} a changé son mot de passe.`,
+          title: TITRES[ev.event_type] ?? 'Sécurité',
+          message: describeSecurityEvent(ev),
           timestamp: new Date(ev.created_at),
           read: false,
           linkToTab: 'staff',

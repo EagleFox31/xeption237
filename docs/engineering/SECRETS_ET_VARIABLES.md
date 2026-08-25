@@ -70,17 +70,15 @@ Comparaison entre les secrets définis sur le projet et ce que le code lit.
 
 | variable | absente ⇒ | où la prendre |
 |---|---|---|
-| `STAFF_DEFAULT_PASSWORD` | **tout compte staff créé prend le mot de passe `123456`** (`create-staff-auth`, défaut codé en dur) | une valeur que tu choisis |
-| `IMEI_PREMIUM_API_KEY` | **le palier Sûreté ne lance aucun contrôle blacklist** : `shouldRunPremium` exige `!!keyPremium`. Le client paie une vérification qui ne tourne pas | imeicheck.net → tableau de bord → API |
+| ~~`STAFF_DEFAULT_PASSWORD`~~ | **plus nécessaire** : chaque compte reçoit désormais un mot de passe aléatoire qui lui est propre, affiché une fois. La variable n'est plus lue | — |
 
-Ces deux-là ne cassent rien visiblement — c'est ce qui les rend gênants. Le
-premier est un trou de sécurité, le second facture un service qui ne s'exécute
-pas.
+Un seul point, en réalité. Voir la correction ci-dessous pour `IMEI_PREMIUM_API_KEY`.
 
 ### Facultatives, absence sans conséquence
 
 | variable | comportement par défaut |
 |---|---|
+| `IMEI_PREMIUM_API_KEY` | **rien ne la requiert aujourd'hui** : le palier Sûreté n'est pas en vente. `TROC_TIER_SELECTOR_ENABLED = false` et `TROC_TUNNEL_TIER = 'express'` (`utils/trocPricing.ts` l. 27 et 30) — le sélecteur de formule n'est pas rendu et tout le tunnel passe en `express`. Reporté volontairement jusqu'au financement. À reprendre le jour où le drapeau repasse à `true` |
 | `BING_SEARCH_API_KEY` | `get-market-trend` saute l'étape proprement |
 | `PUBLIC_VERIFY_BASE_URL` | retombe sur `https://xeptionetwork.shop/verify`. Correct, mais le reste du site utilise `www.xeptionetwork.shop` — une redirection de plus sur les QR de certificat |
 | `GEMINI_MODELS`, `GEMINI_CREDIBILITY_MODELS` | chaînes par défaut, sondées et à jour |

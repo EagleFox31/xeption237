@@ -156,6 +156,7 @@
 | T-S05 | Page de recette (cette liste) | Accessible, verdicts enregistrés | 🟠 |
 | T-S06 | `evaluate-device` en `healthCheck` | État réel de chaque modèle, pas « clé présente » | 🟠 |
 | T-S07 | `npm run market:render -- --limit=2` | Écrit de l'occasion, aucune ligne de neuf | 🟡 |
+| T-S08 | `ai-product-details` `{healthCheck:true, probe:true}` | `ready:true` après un **vrai** appel ; 402 = clé sans crédit | 🟠 |
 
 ---
 

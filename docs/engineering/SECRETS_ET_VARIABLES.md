@@ -62,6 +62,44 @@ ton `.env`.
 
 ---
 
+## 2 bis. Audit du 2026-08-25 — ce qui manque réellement
+
+Comparaison entre les secrets définis sur le projet et ce que le code lit.
+
+### ⚠️ À ajouter — conséquences concrètes
+
+| variable | absente ⇒ | où la prendre |
+|---|---|---|
+| `STAFF_DEFAULT_PASSWORD` | **tout compte staff créé prend le mot de passe `123456`** (`create-staff-auth`, défaut codé en dur) | une valeur que tu choisis |
+| `IMEI_PREMIUM_API_KEY` | **le palier Sûreté ne lance aucun contrôle blacklist** : `shouldRunPremium` exige `!!keyPremium`. Le client paie une vérification qui ne tourne pas | imeicheck.net → tableau de bord → API |
+
+Ces deux-là ne cassent rien visiblement — c'est ce qui les rend gênants. Le
+premier est un trou de sécurité, le second facture un service qui ne s'exécute
+pas.
+
+### Facultatives, absence sans conséquence
+
+| variable | comportement par défaut |
+|---|---|
+| `BING_SEARCH_API_KEY` | `get-market-trend` saute l'étape proprement |
+| `PUBLIC_VERIFY_BASE_URL` | retombe sur `https://xeptionetwork.shop/verify`. Correct, mais le reste du site utilise `www.xeptionetwork.shop` — une redirection de plus sur les QR de certificat |
+| `GEMINI_MODELS`, `GEMINI_CREDIBILITY_MODELS` | chaînes par défaut, sondées et à jour |
+| `SNAPSHOT_BATCH_DELAY_MS`, `SNAPSHOT_MAX_MODELS` | 1500 ms et 200 modèles |
+| `AI_RL_*_MAX_SESSION` / `_MAX_IP` / `_WINDOW_MIN` | quotas par défaut du garde-fou anti-abus |
+
+### Définies mais lues nulle part
+
+| variable | constat |
+|---|---|
+| `GROQ_API_KEY` | aucune fonction ne la lit. Reliquat, supprimable |
+| `SMTP_USER` | `send-invoice` ne lit que `SMTP_PASSWORD` ; l'adresse est **codée en dur** (`support@xeptionetwork.shop`, ligne 174). Modifier ce secret ne change rien |
+
+### Injectées par Supabase — rien à faire
+
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+
+---
+
 ## 3. `.env` local — scripts Node uniquement
 
 Jamais livré au navigateur. Sert aux outils en ligne de commande.

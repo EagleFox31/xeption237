@@ -159,7 +159,8 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin, mode = 'erp' }) => {
       if (isStudio && resolved && isSuperAdminEmail(resolved)) {
         return 'Mot de passe incorrect ou compte absent dans Supabase Auth. Créez l’utilisateur (même email) ou utilisez « Mot de passe oublié ».';
       }
-      return 'Mot de passe incorrect. Utilisez 123456 ou « Mot de passe oublié ».';
+      // Il n'y a plus de mot de passe d'équipe : chaque compte a le sien.
+      return 'Mot de passe incorrect. Utilisez « Mot de passe oublié », ou demandez à votre responsable d'en regénérer un.';
     }
     if (msg.includes('rate limit') || msg.includes('too many requests')) {
       return 'Trop de tentatives. Patientez quelques minutes.';

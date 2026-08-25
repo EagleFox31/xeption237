@@ -129,6 +129,7 @@ export const QA_TESTS: QaTest[] = [
   T('T-R23', 'responsable', 'important', 'Troc → Prix marché — saisir un relevé', 'Marque, modèle, prix, lieu obligatoires ; la ligne apparaît datée'),
   T('T-R24', 'responsable', 'important', 'Prix marché — relevé de plus de 180 jours', 'Affiché grisé et marqué périmé, ignoré par l’estimation'),
   T('T-R25', 'responsable', 'blocking', 'Estimer un modèle ayant un relevé boutique', 'Le prix constaté prime sur le catalogue figé du code'),
+  T('T-R26', 'responsable', 'important', 'Fiche produit — Auto-fill IA sur un champ', 'Description, specs, pros et cons générés ; message clair si DeepSeek n’est pas configuré côté serveur'),
 
   // ── Direction ─────────────────────────────────────────────────────────────
   T('T-D01', 'direction', 'important', 'Menu complet', 'Ajoute Boutiques, Structure catalogue, Équipe'),
@@ -194,6 +195,8 @@ export const QA_TESTS: QaTest[] = [
   T('T-X16', 'transverse', 'blocking', 'Chercher la clé Gemini dans le bundle après le lot 2', 'Le chat ne l’utilise plus, mais elle est encore livrée par le canal vision'),
   T('T-X17', 'transverse', 'blocking', 'Appeler /auth/v1/signup sans captcha', 'Doit ÉCHOUER. S’il renvoie un token, Bot Protection est désactivé et le captcha du chat est inerte'),
   T('T-X18', 'transverse', 'important', 'Vérifier ai_usage_quota après quelques appels IA', 'Les compteurs montent ; la limitation est la protection réelle'),
+  T('T-X19', 'transverse', 'blocking', 'Appeler ai-product-details sans être connecté', '401. Idem avec la clé anon en Bearer : une session anonyme n’a pas d’email, donc ne passe pas'),
+  T('T-X20', 'transverse', 'important', 'Appeler ai-product-details avec un compte hors table staff', 'Refusé, même si le JWT est valide'),
 ];
 
 export const QA_TOTAL = QA_TESTS.length;

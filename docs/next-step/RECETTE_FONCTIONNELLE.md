@@ -112,6 +112,7 @@
 | T-R23 | Troc → Prix marché — saisir un relevé | Marque, modèle, prix, lieu obligatoires ; ligne datée | 🟠 |
 | T-R24 | Prix marché — relevé de plus de 180 jours | Grisé et marqué périmé, ignoré par l'estimation | 🟠 |
 | T-R25 | Estimer un modèle ayant un relevé boutique | Le prix constaté prime sur le catalogue figé | 🔴 |
+| T-R26 | Fiche produit — Auto-fill IA | Champs générés ; message clair si DeepSeek non configuré | 🟠 |
 
 ---
 
@@ -265,6 +266,8 @@
 | T-X16 | Clé Gemini dans le bundle après lot 2 | Chat propre, mais encore livrée par le canal vision | 🔴 |
 | T-X17 | `POST /auth/v1/signup` sans captcha | Doit **échouer**. Un token = Bot Protection off = captcha du chat inerte | 🔴 |
 | T-X18 | `ai_usage_quota` après quelques appels IA | Compteurs qui montent : c'est la protection réelle | 🟠 |
+| T-X19 | `ai-product-details` sans connexion | 401. La clé anon en Bearer échoue aussi : pas d'email dans le jeton | 🔴 |
+| T-X20 | `ai-product-details` avec un compte hors table `staff` | Refusé malgré un JWT valide | 🟠 |
 
 ---
 

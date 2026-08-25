@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { ArrowLeftRight, RefreshCw } from 'lucide-react';
+import { ArrowLeftRight, RefreshCw, TrendingDown } from 'lucide-react';
 import type { TradeInRequest, TrocSession, TrocPayment } from '../../../types';
 import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
 import { adminUi } from '../shared/adminUi';
 import TrocTab from './TrocTab';
 import ArgusTab from './ArgusTab';
+import MarketReferenceTab from './MarketReferenceTab';
 
-type TrocWorkspaceSection = 'dossiers' | 'argus';
+type TrocWorkspaceSection = 'dossiers' | 'argus' | 'marche';
 
 interface TrocWorkspaceTabProps {
   requests: TradeInRequest[];
@@ -28,6 +29,8 @@ const SECTIONS: Array<{
 }> = [
   { id: 'dossiers', label: 'Dossiers', icon: ArrowLeftRight },
   { id: 'argus', label: 'Argus', icon: RefreshCw },
+  // Prix constates ailleurs : l'ancrage externe du troc, saisi au comptoir.
+  { id: 'marche', label: 'Prix marche', icon: TrendingDown },
 ];
 
 const TrocWorkspaceTab: React.FC<TrocWorkspaceTabProps> = ({
@@ -75,6 +78,11 @@ const TrocWorkspaceTab: React.FC<TrocWorkspaceTabProps> = ({
           />
         )}
         {activeSection === 'argus' && <ArgusTab />}
+        {activeSection === 'marche' && (
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+            <MarketReferenceTab />
+          </div>
+        )}
       </div>
     </div>
   );

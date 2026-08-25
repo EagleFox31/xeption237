@@ -1,0 +1,46 @@
+# Rendu périodique des sources de prix qui n'existent qu'après exécution du JS.
+#
+# À la différence de `snapshot-market-prices.yml.example`, qui se contente de
+# `curl` une Edge Function, ce workflow exécute un VRAI navigateur : Deno ne
+# rend pas une page, et Glotelho ne sert ses fiches qu'après hydratation.
+#
+# Renommer en `render-market-sources.yml` pour activer, et définir 2 secrets :
+#   VITE_SUPABASE_URL         = https://<PROJECT_REF>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY = (clé service_role du projet)
+#
+# Sans activation, `npm run market:render` reste un geste manuel. Dit ici pour
+# ne pas laisser croire à un automatisme qui n'existe pas.
+
+name: Render market sources (weekly)
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # lundi 04:00 UTC, après le snapshot de 03:00
+  workflow_dispatch:
+    inputs:
+      query:
+        description: 'Requête à rendre (par défaut iPhone 13)'
+        required: false
+        default: 'iPhone 13'
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      # Le runner GitHub embarque déjà Chrome ; le script le trouve via CHROME_PATH
+      # ou retombe sur @sparticuz/chromium, déjà présent dans les dépendances.
+      - name: Rendre et enregistrer les offres
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CHROME_PATH: /usr/bin/google-chrome
+        run: node scripts/render-market-sources.mjs --query="${{ github.event.inputs.query || 'iPhone 13' }}"

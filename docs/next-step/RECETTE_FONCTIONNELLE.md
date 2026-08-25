@@ -46,6 +46,8 @@
 | T-C20 | Chatbot conseil d'achat | Répond en français, cite des produits en stock | 🟠 |
 | T-C21 | Troc — photos nettes | Pré-check rendu en quelques secondes | 🔴 |
 | T-C22 | Troc — photo qui n'est pas un téléphone | Photo signalée à reprendre, index correct | 🟠 |
+| T-C23 | Chatbot — 5 messages d'affilée | Réponses cohérentes ; captcha au 4e si Bot Protection actif | 🔴 |
+| T-C24 | Chatbot — dépasser 40 messages/heure | Refus poli, pas d'erreur brute | 🟠 |
 
 ---
 
@@ -260,6 +262,9 @@
 | T-X13 | Un responsable ouvre le journal de sécurité | Ne voit rien : lecture réservée à la direction | 🟠 |
 | T-X14 | Estimer un iPhone 13 et un Galaxy A15 | Prix cohérents, aucune valeur à 0 | 🟠 |
 | T-X15 | Vérifier la source du prix marché | `strategy = shopify_api`, titres appariés aux prix | 🟠 |
+| T-X16 | Clé Gemini dans le bundle après lot 2 | Chat propre, mais encore livrée par le canal vision | 🔴 |
+| T-X17 | `POST /auth/v1/signup` sans captcha | Doit **échouer**. Un token = Bot Protection off = captcha du chat inerte | 🔴 |
+| T-X18 | `ai_usage_quota` après quelques appels IA | Compteurs qui montent : c'est la protection réelle | 🟠 |
 
 ---
 

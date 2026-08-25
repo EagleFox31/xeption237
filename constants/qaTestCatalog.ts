@@ -77,6 +77,8 @@ export const QA_TESTS: QaTest[] = [
   T('T-C20', 'client', 'important', 'Chatbot conseil d’achat', 'Répond en français, cite des produits en stock, ne s’excuse pas d’une panne'),
   T('T-C21', 'client', 'blocking', 'Troc — envoyer des photos nettes', 'Pré-check rendu en quelques secondes, pas de « vérification impossible »'),
   T('T-C22', 'client', 'important', 'Troc — envoyer une photo qui n’est pas un téléphone', 'Photo signalée à reprendre, index correct'),
+  T('T-C23', 'client', 'blocking', 'Chatbot — envoyer 5 messages d’affilée', 'Réponses cohérentes ; au 4e, captcha demandé si Bot Protection est actif'),
+  T('T-C24', 'client', 'important', 'Chatbot — dépasser 40 messages en une heure', 'Refus poli « trop de requêtes », pas d’erreur brute'),
 
   // ── Vendeur ───────────────────────────────────────────────────────────────
   T('T-V01', 'vendeur', 'blocking', 'Connexion staff', 'Atterrissage direct sur la caisse'),
@@ -189,6 +191,9 @@ export const QA_TESTS: QaTest[] = [
   T('T-X13', 'transverse', 'important', 'Un responsable ouvre le journal de sécurité', 'Ne voit rien : lecture réservée à la direction'),
   T('T-X14', 'transverse', 'important', 'Estimer un iPhone 13 et un Galaxy A15', 'Prix cohérents avec le marché, aucune valeur à 0'),
   T('T-X15', 'transverse', 'important', 'Vérifier la source du prix marché', 'strategy = shopify_api, titres exacts appariés aux prix'),
+  T('T-X16', 'transverse', 'blocking', 'Chercher la clé Gemini dans le bundle après le lot 2', 'Le chat ne l’utilise plus, mais elle est encore livrée par le canal vision'),
+  T('T-X17', 'transverse', 'blocking', 'Appeler /auth/v1/signup sans captcha', 'Doit ÉCHOUER. S’il renvoie un token, Bot Protection est désactivé et le captcha du chat est inerte'),
+  T('T-X18', 'transverse', 'important', 'Vérifier ai_usage_quota après quelques appels IA', 'Les compteurs montent ; la limitation est la protection réelle'),
 ];
 
 export const QA_TOTAL = QA_TESTS.length;

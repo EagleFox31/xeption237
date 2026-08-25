@@ -61,6 +61,7 @@ export const QA_TESTS: QaTest[] = [
   T('T-C04', 'client', 'important', 'Boutique — pagination', 'Ni doublon ni trou entre les pages'),
   T('T-C05', 'client', 'blocking', 'Fiche produit', 'Nom visible au-dessus de l’image, prix, stock, specs'),
   T('T-C06', 'client', 'important', 'Fiche produit — étoiles', 'Affichées seulement s’il y a de vrais avis'),
+  T('T-C07b', 'client', 'blocking', 'Fiche produit d’un article sans avis', 'AUCUNE étoile affichée — ni pleine ni grise — et rien dans le JSON-LD'),
   T('T-C07', 'client', 'blocking', 'Panier puis checkout', 'Total juste, 19 villes proposées, quartier requis'),
   T('T-C08', 'client', 'blocking', 'Valider une commande', 'Stock réservé, message paiement à la livraison'),
   T('T-C09', 'client', 'blocking', 'Commander un article en rupture', 'Refus propre, aucune commande créée'),

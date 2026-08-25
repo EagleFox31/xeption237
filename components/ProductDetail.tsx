@@ -53,6 +53,17 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     }, [galleryImages.length, product.id]);
 
     const displayName = getProductDisplayName(product);
+
+    /**
+     * Une note ne s'affiche que si des clients l'ont réellement laissée.
+     * Les 171 produits importés portaient `rating = 5` sans le moindre avis :
+     * le `|| 5` du rendu peignait alors cinq étoiles pleines sur du vide.
+     */
+    const hasCustomerRating =
+        typeof product.rating === 'number' &&
+        product.rating > 0 &&
+        Array.isArray(product.reviews) &&
+        product.reviews.length > 0;
     // Source unique partagée avec le FAQPage JSON-LD (ProductPage) : affichage == schéma.
     const faq = buildProductFaq(product);
 
@@ -142,25 +153,24 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                 {displayName}
                             </h1>
 
-                            <div className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm">
+                            {/* Étoiles affichées UNIQUEMENT s'il existe de vrais avis clients.
+                                Le `|| 5` d'origine peignait cinq étoiles pleines même sans
+                                aucune note : une note par défaut n'est pas une note. */}
+                            {hasCustomerRating && (
+                              <div className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm">
                                 <div className="flex">
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`w-4 h-4 ${i < Math.round(product.rating || 5) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-500 fill-gray-300'}`}
+                                            className={`w-4 h-4 ${i < Math.round(product.rating!) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-500 fill-gray-300'}`}
                                         />
                                     ))}
                                 </div>
-                                {product.reviews && product.reviews.length > 0 ? (
-                                    <span className="text-xs font-bold text-gray-700 tracking-wide">
-                                        ({product.rating || 5}/5) &bull; <span className="underline cursor-pointer hover:text-black">Voir les {product.reviews.length} avis</span>
-                                    </span>
-                                ) : (
-                                    <span className="text-xs font-bold text-gray-600 tracking-wide">
-                                        ({product.rating || 5}/5)
-                                    </span>
-                                )}
-                            </div>
+                                <span className="text-xs font-bold text-gray-700 tracking-wide">
+                                    ({product.rating}/5) &bull; <span className="underline cursor-pointer hover:text-black">Voir les {product.reviews!.length} avis</span>
+                                </span>
+                              </div>
+                            )}
                         </div>
 
                         <p className="text-xl text-gray-800 font-light max-w-lg drop-shadow-sm">
@@ -235,19 +245,21 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                             <h1 className="text-2xl sm:text-3xl font-bold font-tech uppercase leading-tight text-black">
                                 {displayName}
                             </h1>
-                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-sm">
+                            {hasCustomerRating && (
+                              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-sm">
                                 <div className="flex">
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`w-3.5 h-3.5 ${i < Math.round(product.rating || 5) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-500 fill-gray-300'}`}
+                                            className={`w-3.5 h-3.5 ${i < Math.round(product.rating!) ? 'text-xeption-gold fill-xeption-gold' : 'text-gray-500 fill-gray-300'}`}
                                         />
                                     ))}
                                 </div>
                                 <span className="text-[10px] font-bold text-gray-600 tracking-wide">
-                                    ({product.rating || 5}/5)
+                                    ({product.rating}/5)
                                 </span>
-                            </div>
+                              </div>
+                            )}
                         </div>
 
                         <div

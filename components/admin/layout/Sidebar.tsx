@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Logo from '../../Logo';
-import { Bell, LogOut } from 'lucide-react';
+import { Bell, KeyRound, LogOut } from 'lucide-react';
 import { ADMIN_MENU_GROUPS, type AdminMenuGroup } from './adminMenuConfig';
 import type { AdminTabId } from './adminMenuConfig';
 import { adminUi } from '../shared/adminUi';
@@ -24,9 +24,12 @@ interface SidebarProps {
   onLogout: () => void;
   currentUser?: StaffSessionDisplay;
   menuGroups?: AdminMenuGroup[];
+  /** Ouvre le changement de mot de passe. La carte utilisateur devient cliquable. */
+  onChangePassword?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
+  onChangePassword,
   activeTab,
   onTabChange,
   unreadCount,
@@ -100,7 +103,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="p-3 border-t border-white/10 space-y-2">
-        <div className={`${adminUi.surface} p-3 flex items-center gap-3`}>
+        <button
+          type="button"
+          onClick={onChangePassword}
+          disabled={!onChangePassword}
+          title={onChangePassword ? 'Changer mon mot de passe' : undefined}
+          className={`${adminUi.surface} p-3 flex items-center gap-3 w-full text-left transition-colors ${
+            onChangePassword ? 'hover:border-xeption-gold/40 cursor-pointer' : 'cursor-default'
+          }`}
+        >
           <div className="w-9 h-9 rounded-full bg-xeption-gold/15 border border-xeption-gold/30 flex items-center justify-center text-xeption-gold font-bold text-sm shrink-0">
             {userInitials}
           </div>
@@ -110,7 +121,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               {userRole}
             </p>
           </div>
-        </div>
+          {onChangePassword && <KeyRound className="w-3.5 h-3.5 text-white/40 ml-auto shrink-0" />}
+        </button>
 
         <BackToShopLink />
 

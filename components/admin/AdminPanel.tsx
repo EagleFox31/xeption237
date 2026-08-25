@@ -6,6 +6,8 @@ import { supabase } from '../../services/supabaseClient'; // Import supabase
 
 // UI Composition
 import Sidebar from './layout/Sidebar';
+import ChangePasswordModal from './modals/ChangePasswordModal';
+import { fetchRecentSecurityEvents } from '../../services/staffSecurity';
 import BottomNav from './layout/BottomNav';
 import AdminPageHeader from './layout/AdminPageHeader';
 import type { AdminTabId } from './layout/adminMenuConfig';
@@ -160,6 +162,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     refreshData: data.refreshAll,
   });
   const [collectingOrder, setCollectingOrder] = useState<Order | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Journal de securite : la RLS ne le rend lisible qu'a la direction, donc un
+  // resultat vide signifie « rien a signaler » OU « pas les droits ». Les deux
+  // se traitent pareil ici — on n'affiche rien.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const events = await fetchRecentSecurityEvents(5);
+      if (cancelled || events.length === 0) return;
+      for (const ev of events) {
+        notifs.addNotification({
+          id: `security-${ev.id}`,
+          type: 'alert',
+          title: 'Mot de passe modifié',
+          message: `${ev.actor_name ?? ev.actor_email} a changé son mot de passe.`,
+          timestamp: new Date(ev.created_at),
+          read: false,
+          linkToTab: 'staff',
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const orderPayment = useOrderPayment(data.refreshAll);
   const staffMgr = useStaffManager({
     staffMembers: data.staffMembers,
@@ -362,9 +389,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             message={confirm.config.message}
             type={confirm.config.type}
             confirmLabel={confirm.config.confirmLabel}
+            mode={confirm.config.mode}
             onConfirm={confirm.handleConfirm}
             onCancel={confirm.close}
             isConfirming={confirm.isConfirming}
+          />
+        )}
+        {isChangingPassword && (
+          <ChangePasswordModal
+            onClose={() => setIsChangingPassword(false)}
+            onDone={(message) =>
+              notifs.addNotification({
+                id: crypto.randomUUID(),
+                type: 'alert',
+                title: 'Sécurité',
+                message,
+                timestamp: new Date(),
+                read: false,
+              })
+            }
           />
         )}
         <NotificationToast notification={notifs.currentToast} onClose={notifs.closeToast} onClick={() => notifs.currentToast && handleNotifyClick(notifs.currentToast)} />
@@ -378,6 +421,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             menuGroups={menuGroups}
             onToggleNotifications={notifs.toggleDrawer} 
             onLogout={handleLogout}
+            onChangePassword={() => setIsChangingPassword(true)}
             currentUser={{
               displayName: currentStaffSession.displayName,
               roleLabel: currentStaffSession.roleLabel,
@@ -422,6 +466,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     categories={data.categories}
                     brands={data.brands} 
                     ranges={data.ranges}
+                    onCreateRange={brandMgr.createRange}
+                    showAlert={confirm.alert}
                     onClose={() => inventory.setEditingProduct(null)} 
                     onSave={onSaveProduct} 
                     onChange={(u) => inventory.setEditingProduct(p => p ? ({ ...p, ...u }) : null)} 
@@ -597,6 +643,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         ranges={data.ranges}
                         products={products}
                         brandMgr={brandMgr}
+                        showAlert={confirm.alert}
                       />
                     )}
                     {activeTab === 'staff' && (

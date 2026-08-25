@@ -51,6 +51,18 @@ const RENDERED_SOURCES = [
     // ce marche. Ne depend pas de la requete : on la parcourt entierement.
     url: () => 'https://glotelho.cm/category/glotelho-seconde-main-1581',
   },
+  // ── Ecartes apres mesure, a ne pas retenter a l'aveugle ────────────────
+  //
+  // ongolaphone.com  /catalogue?q=... rend l'ossature du site (en-tete, menu,
+  //                  telephone de la boutique) mais AUCUN produit, meme apres
+  //                  15 s d'attente. Rien a extraire.
+  // yamba.cm         /products?search=... rend des prix, mais c'est une place
+  //                  de marche generaliste : la seule offre captee sur
+  //                  « iPhone 13 » etait un faux positif capte sur un menu.
+  //
+  // Les deux sont des SPA sans API publique (accueil de 3 a 4 Ko, aucun prix
+  // cote serveur). Leurs routes reelles sont /catalogue?q= et /products?search=
+  // — relevees dans le DOM rendu, pas devinees.
 ];
 
 const args = process.argv.slice(2);
@@ -94,8 +106,14 @@ const extractInPage = (minPrice, maxPrice) => {
 
   const textOf = (el) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
+  // Deux mots minimum : « Categories », « Menu », « Panier » et consorts sont
+  // des libelles de navigation qu'un titre de produit n'a jamais la forme.
   const looksLikeTitle = (text) =>
-    text.length >= 8 && text.length <= 140 && /[a-zA-Z]{3}/.test(text) && !PRICE_RE.test(text);
+    text.length >= 8 &&
+    text.length <= 140 &&
+    text.trim().split(/\s+/).length >= 2 &&
+    /[a-zA-Z]{3}/.test(text) &&
+    !PRICE_RE.test(text);
 
   const results = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -156,12 +174,52 @@ const modelKeyFromTitle = (title) => {
   return `cm|${clean.split(' ').slice(0, 4).join(' ')}`.slice(0, 120);
 };
 
+/** Ecriture directe, pour l'usage local ou seule DATABASE_URL est disponible. */
+const persistViaPostgres = async (dbUrl, offers) => {
+  const { default: pg } = await import('pg');
+  const client = new pg.Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  await client.connect();
+  const capturedAt = new Date().toISOString();
+  let written = 0;
+
+  try {
+    for (const o of offers) {
+      const res = await client.query(
+        `INSERT INTO public.market_used_offers
+           (model_key, country_code, source, source_url, title, price_xaf, compare_price_xaf, captured_at)
+         VALUES ($1,'CM',$2,$3,$4,$5,$6,$7)
+         ON CONFLICT DO NOTHING`,
+        [
+          modelKeyFromTitle(o.title),
+          o.source,
+          o.href || null,
+          o.title,
+          o.price,
+          o.comparePrice ?? null,
+          capturedAt,
+        ],
+      );
+      written += res.rowCount ?? 0;
+    }
+  } finally {
+    await client.end();
+  }
+  return written;
+};
+
 const persistOffers = async (offers) => {
   const url = process.env.VITE_SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const dbUrl = process.env.DATABASE_URL?.trim();
+
   if (!url || !key) {
-    console.warn('[render] SUPABASE_SERVICE_ROLE_KEY absent : rien ecrit en base.');
-    return 0;
+    if (!dbUrl) {
+      console.warn('[render] ni SUPABASE_SERVICE_ROLE_KEY ni DATABASE_URL : rien ecrit.');
+      return 0;
+    }
+    // En CI on aura la cle service ; en local, DATABASE_URL suffit et evite
+    // d'exiger un secret de plus pour un outil de developpement.
+    return persistViaPostgres(dbUrl, offers);
   }
 
   const capturedAt = new Date().toISOString();

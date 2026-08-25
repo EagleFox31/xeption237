@@ -3,6 +3,7 @@ const Deno = globalThis.Deno;
 
 import { assertAiRateLimit, rateLimitJsonResponse } from '../_shared/rateLimit.ts';
 import { parseModelChain, DEFAULT_TEXT_MODELS, shouldTryNextModel } from '../_shared/geminiModels.ts';
+import { searchShopify, fetchShopifyCollection, SHOPIFY_SOURCES, sameRange } from '../_shared/shopifySource.js';
 
 export {};
 
@@ -85,6 +86,12 @@ type Offer = {
   url: string;
   snippet: string;
   relevance: number;
+  /** Prix barre annonce par la boutique = reference NEUF. Absent en scraping. */
+  comparePrice?: number | null;
+  /** Titre exact, quand il vient d'une API structuree plutot que d'un scrape. */
+  title?: string;
+  /** true si titre et prix viennent apparies de la source (aucune deduction). */
+  structured?: boolean;
 };
 
 type MatchContext = {
@@ -537,6 +544,66 @@ const scrapeOffersViaDuckDuckGo = async (query: string, ctx: MatchContext): Prom
   }
 };
 
+/**
+ * Offres issues des API Shopify — titre et prix APPARIES a la source.
+ *
+ * Mesure du 2026-08-25 : le scraping HTML donnait une reference de 233 795 XAF
+ * pour un Tecno Camon 30, alors que la boutique l'annonce a 139 900. Une
+ * surestimation de 67 % qui remontait telle quelle dans les offres de reprise,
+ * parce que la fenetre de +/-220 caracteres attrapait le prix du produit voisin.
+ * L'API rend la question sans objet.
+ */
+const collectShopifyOffers = async (
+  brand: string,
+  model: string,
+  storage: string | undefined,
+  ram: string | undefined,
+  ctx: MatchContext,
+): Promise<{ offers: Offer[]; usedOffers: Offer[] }> => {
+  const query = [brand, model, storage, ram].filter(Boolean).join(' ');
+
+  const toOffer = (raw: any): Offer | null => {
+    // Sur un titre exact, un qualificatif de gamme discrimine : « iPhone 13 Pro
+    // Max » n'est pas un « iPhone 13 ». Sans ce test, la reference iPhone 13
+    // passait de 245 000 a 389 945 XAF (mesure du 2026-08-25).
+    if (!sameRange(raw.title, model)) return null;
+    const relevance = computeRelevance(raw.title, ctx, true);
+    if (relevance <= 0) return null;
+    return {
+      price: raw.price,
+      source: raw.source,
+      url: raw.url,
+      snippet: raw.title,
+      title: raw.title,
+      relevance,
+      comparePrice: raw.comparePrice ?? null,
+      structured: true,
+    };
+  };
+
+  const perSource = await Promise.all(
+    SHOPIFY_SOURCES.map(async (src) => {
+      const [found, refurb] = await Promise.all([
+        searchShopify(src.origin, query, { limit: 10 }),
+        src.refurbishedCollection
+          ? fetchShopifyCollection(src.origin, src.refurbishedCollection, { limit: 50 })
+          : Promise.resolve([]),
+      ]);
+      return {
+        offers: found.map(toOffer).filter(Boolean) as Offer[],
+        // Reconditionne = la seule donnee d'OCCASION locale trouvee sur le
+        // marche camerounais. Decote mesuree : 41 a 46 % face au neuf barre.
+        usedOffers: refurb.map(toOffer).filter(Boolean) as Offer[],
+      };
+    }),
+  );
+
+  return {
+    offers: perSource.flatMap((r) => r.offers),
+    usedOffers: perSource.flatMap((r) => r.usedOffers),
+  };
+};
+
 const scrapeOffers = async (
   brand: string,
   model: string,
@@ -819,10 +886,29 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    let offers = await scrapeOffers(deviceBrand, deviceModel, deviceStorage, deviceRam);
+    // Les API structurees d'abord : titre et prix y sont apparies, donc aucune
+    // mauvaise attribution possible. Le scraping ne sert plus que de repli.
+    const matchCtx = buildMatchContext(deviceBrand, deviceModel, deviceStorage, deviceRam);
+    const shopify = await collectShopifyOffers(
+      deviceBrand,
+      deviceModel,
+      deviceStorage,
+      deviceRam,
+      matchCtx,
+    );
+
+    let offers = shopify.offers.length
+      ? shopify.offers
+      : await scrapeOffers(deviceBrand, deviceModel, deviceStorage, deviceRam);
     offers = offers.sort((a, b) => b.relevance - a.relevance || a.price - b.price).slice(0, 30);
 
-    if (geminiKey) {
+    // Le filtre Gemini nettoie des extraits de scraping bruites. Sur des offres
+    // structurees (titre exact fourni par l'API), il n'a rien a filtrer : c'est
+    // un aller-retour LLM pur cout dans le chemin critique. Mesure avant/apres :
+    // 33 s -> quelques secondes sur un iPhone 13.
+    const needsAiFilter = !offers.some((o) => o.structured === true);
+
+    if (geminiKey && needsAiFilter) {
       offers = await filterOffersWithGemini(
         offers,
         deviceBrand,
@@ -837,6 +923,18 @@ Deno.serve(async (req: Request) => {
       .filter((o) => o.price >= MIN_PRICE_XAF && o.price <= MAX_PRICE_XAF)
       .sort((a, b) => a.price - b.price);
     offers = filterOutlierOffers(offers).sort((a, b) => a.price - b.price);
+
+    // ── Point 1 : le neuf sert de PLAFOND ────────────────────────────────
+    // Une occasion ne peut pas valoir plus que le neuf le moins cher constate.
+    // Le plafond n'est PAS applique a `referencePrice` : borner une mediane par
+    // le minimum la ferait s'effondrer sur l'offre la moins chere a chaque fois.
+    // Il est expose pour que la valorisation de reprise s'en serve (trocPricing).
+    const availableNew = offers.filter((o) => o.relevance > 0).map((o) => o.price);
+    const ceilingPrice = availableNew.length ? Math.min(...availableNew) : 0;
+
+    // Reference OCCASION quand la boutique tient une collection reconditionnee.
+    const usedPrices = shopify.usedOffers.map((o) => o.price).sort((a, b) => a - b);
+    const usedReference = usedPrices.length ? median(usedPrices) : 0;
 
     const prices = offers.map((o) => o.price);
     const lowPrices = prices.slice(0, 3);
@@ -891,6 +989,13 @@ Deno.serve(async (req: Request) => {
         cached: false,
         modelKey,
         referencePrice: referencePrice || 0,
+        /** Neuf le moins cher constate — plafond pour toute valeur d'occasion. */
+        ceilingPrice,
+        /** Mediane des reconditionnes du meme modele, 0 si aucun. */
+        usedReference,
+        usedSampleCount: shopify.usedOffers.length,
+        /** true = titres et prix apparies a la source, aucune deduction. */
+        structured: offers.some((o) => o.structured === true),
         lowPrices,
         highPrices,
         lowOffers,
@@ -900,7 +1005,9 @@ Deno.serve(async (req: Request) => {
         confidence,
         currency: 'XAF',
         countryCode,
-        strategy: geminiKey ? 'live_scrape_plus_ai' : 'live_scrape',
+        strategy: offers.some((o) => o.structured)
+          ? 'shopify_api'
+          : geminiKey ? 'live_scrape_plus_ai' : 'live_scrape',
         offers: persistedOffers,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },

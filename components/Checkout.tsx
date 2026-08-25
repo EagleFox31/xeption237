@@ -13,6 +13,7 @@ import {
 import { useDeliveryZones } from './delivery/deliveryZoneUi';
 import { DeliveryLocationSelect } from './delivery/DeliveryLocationSelect';
 import { FREE_DELIVERY_THRESHOLD_XAF } from '../constants/delivery';
+import { HCAPTCHA_SITE_KEY } from '../constants/hCaptcha';
 
 type PlayfulFieldProps = {
   step: number;
@@ -127,7 +128,6 @@ const Checkout: React.FC<CheckoutProps> = ({
   const [copiedId, setCopiedId] = useState(false);
   
   // Captcha State
-  const HCAPTCHA_SITE_KEY = "0d0cfd40-72aa-4570-a4fa-e8f263ce1d24";
   const captchaRef = useRef<any>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 

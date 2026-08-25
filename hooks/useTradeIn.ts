@@ -19,7 +19,9 @@ import { preflightDevicePhotos } from '../services/trocPhotoPreflight';
 import { validateTrocForm } from '../utils/trocFormValidation';
 import type { Product, TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
 import { TROC_TUNNEL_TIER, type TrocTier } from '../utils/trocPricing';
+import { TROC_MESSAGES } from '../utils/trocMessages';
 import { supabase } from '../services/supabaseClient';
+import { getTrocSessionKey } from '../utils/trocSessionKey';
 
 export type TrocStep = 'form' | 'photos' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
 export type ImeiMatchState = 'unknown' | 'match' | 'mismatch' | 'not_verified';
@@ -72,12 +74,7 @@ const isSoftMatch = (expected?: string, detected?: string) => {
 };
 
 // Clé de session générée une fois par visite, persistée dans sessionStorage.
-const getSessionKey = (): string => {
-  const KEY = 'troc_session_key';
-  let key = sessionStorage.getItem(KEY);
-  if (!key) { key = crypto.randomUUID(); sessionStorage.setItem(KEY, key); }
-  return key;
-};
+const getSessionKey = getTrocSessionKey;
 
 export const useTradeIn = () => {
   const sessionKey = getSessionKey();
@@ -268,7 +265,7 @@ export const useTradeIn = () => {
     setError(null);
 
     try {
-      const { status, blacklistStatus, assuranceLevel, reason, deviceInfo } = await checkImei(form.imei);
+      const { status, blacklistStatus, assuranceLevel, reason, deviceInfo } = await checkImei(form.imei, sessionKey);
       setImeiStatus(status);
       setImeiBlacklistStatus(blacklistStatus);
       setImeiAssuranceLevel(assuranceLevel);
@@ -333,6 +330,8 @@ export const useTradeIn = () => {
         const normalizedReason = (reason || '').toLowerCase();
         if (normalizedReason.includes('401') || normalizedReason.includes('unauthorized')) {
           setError("Vérification IMEI temporairement indisponible. Apportez l'appareil en boutique.");
+        } else if (normalizedReason.includes('rate_limited')) {
+          setError(TROC_MESSAGES.ai_rate_limited);
         } else if (normalizedReason.includes('invalid_imei_checksum')) {
           setError('Ce numéro IMEI semble incorrect. Vérifiez les 15 chiffres en composant *#06# sur votre téléphone.');
         } else {

@@ -6,10 +6,12 @@ import {
   brandsForCategory,
   catalogBrandFromId,
   gammeCountForBrand,
+  normalizeCatalogBrandKey,
   productsForBrand,
   productsWithoutRangeForBrand,
   resolveCatalogBrandId,
 } from '../../../utils/catalogStructure';
+import type { AdminAlertFn } from '../shared/adminAlert';
 
 interface CatalogStructureTabProps {
   categories: Category[];
@@ -34,6 +36,7 @@ interface CatalogStructureTabProps {
     addRange: () => void | Promise<void>;
     deleteRange: (id: string) => void | Promise<void>;
   };
+  showAlert: AdminAlertFn;
 }
 
 const panelClass = `${adminUi.surface} overflow-hidden flex flex-col min-h-0 h-full max-h-full`;
@@ -50,6 +53,7 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
   ranges,
   products,
   brandMgr,
+  showAlert,
 }) => {
   const [selectedTypeSlug, setSelectedTypeSlug] = useState<string | null>(null);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
@@ -65,19 +69,24 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
   }, [selectedTypeSlug]);
 
   useEffect(() => {
-    if (selectedBrandId) brandMgr.setSelectedBrandForRange(selectedBrandId);
-  }, [selectedBrandId]);
+    if (selectedBrandId) {
+      brandMgr.setSelectedBrandForRange(normalizeCatalogBrandKey(selectedBrandId, brands));
+    }
+  }, [selectedBrandId, brands]);
 
   const selectedType = categories.find((c) => c.slug === selectedTypeSlug);
-  const selectedBrand = selectedBrandId
-    ? catalogBrandFromId(selectedBrandId, brands)
+  const canonicalBrandId = selectedBrandId
+    ? normalizeCatalogBrandKey(selectedBrandId, brands)
+    : null;
+  const selectedBrand = canonicalBrandId
+    ? catalogBrandFromId(canonicalBrandId, brands)
     : undefined;
 
   const brandCountByType = useMemo(() => {
     const map = new Map<string, Set<string>>();
     const add = (category: string, brandId: string) => {
       if (!map.has(category)) map.set(category, new Set());
-      map.get(category)!.add(brandId);
+      map.get(category)!.add(normalizeCatalogBrandKey(brandId, brands));
     };
     for (const r of ranges) {
       if (r.category && r.brand_id) add(r.category, r.brand_id);
@@ -93,30 +102,31 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
     if (!selectedTypeSlug) return [];
     const inType = brandsForCategory(selectedTypeSlug, brands, ranges, products);
     if (
-      selectedBrandId &&
-      !inType.some((b) => b.id === selectedBrandId)
+      canonicalBrandId &&
+      !inType.some((b) => normalizeCatalogBrandKey(b.id, brands) === canonicalBrandId)
     ) {
-      return [...inType, catalogBrandFromId(selectedBrandId, brands)];
+      return [...inType, catalogBrandFromId(canonicalBrandId, brands)];
     }
     return inType;
-  }, [brands, ranges, products, selectedTypeSlug, selectedBrandId]);
+  }, [brands, ranges, products, selectedTypeSlug, canonicalBrandId]);
 
   const rangesForSelection = useMemo(() => {
-    if (!selectedTypeSlug || !selectedBrandId) return [];
-    return ranges.filter(
-      (r) => r.brand_id === selectedBrandId && r.category === selectedTypeSlug,
-    );
-  }, [ranges, selectedTypeSlug, selectedBrandId]);
+    if (!selectedTypeSlug || !canonicalBrandId) return [];
+    return ranges.filter((r) => {
+      if (r.category !== selectedTypeSlug) return false;
+      return normalizeCatalogBrandKey(r.brand_id, brands) === canonicalBrandId;
+    });
+  }, [ranges, selectedTypeSlug, canonicalBrandId, brands]);
 
   const orphanProductsForSelection = useMemo(() => {
-    if (!selectedTypeSlug || !selectedBrandId) return [];
+    if (!selectedTypeSlug || !canonicalBrandId) return [];
     return productsWithoutRangeForBrand(
       selectedTypeSlug,
-      selectedBrandId,
+      canonicalBrandId,
       brands,
       products,
     );
-  }, [selectedTypeSlug, selectedBrandId, brands, products]);
+  }, [selectedTypeSlug, canonicalBrandId, brands, products]);
 
   const handleSelectType = (slug: string) => {
     setSelectedTypeSlug(slug);
@@ -134,6 +144,19 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
   const handleDeleteBrand = async (id: string) => {
     await brandMgr.deleteBrand(id);
     if (selectedBrandId === id) setSelectedBrandId(null);
+  };
+
+  const handleAddRange = async () => {
+    try {
+      await brandMgr.addRange();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Impossible de créer la gamme.';
+      showAlert('Gamme non créée', msg, 'danger');
+    }
+  };
+
+  const handleSelectBrand = (brandId: string) => {
+    setSelectedBrandId(normalizeCatalogBrandKey(brandId, brands));
   };
 
   const handleAddBrand = async () => {
@@ -256,28 +279,37 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
             ) : (
               <ul className="divide-y divide-white/5">
                 {displayBrands.map((brand) => {
-                  const active = brand.id === selectedBrandId;
+                  const brandKey = normalizeCatalogBrandKey(brand.id, brands);
+                  const active = brandKey === canonicalBrandId;
                   const gammeCount = gammeCountForBrand(
                     selectedTypeSlug,
-                    brand.id,
+                    brandKey,
                     ranges,
+                    brands,
                   );
                   const productCount = productsForBrand(
                     selectedTypeSlug,
-                    brand.id,
+                    brandKey,
                     brands,
                     products,
                   ).length;
                   return (
-                    <li key={brand.id}>
+                    <li key={brandKey}>
                       <button
                         type="button"
-                        onClick={() => setSelectedBrandId(brand.id)}
+                        onClick={() => handleSelectBrand(brand.id)}
                         className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-left transition-colors ${
                           active ? 'bg-xeption-gold/15 border-l-2 border-xeption-gold' : 'hover:bg-white/5'
                         }`}
                       >
-                        <span className="text-sm font-bold text-white truncate">{brand.name}</span>
+                        <span className="text-sm font-bold text-white truncate">
+                          {brand.name}
+                          {!brand.isDbBrand && (
+                            <span className="ml-1.5 text-[9px] font-normal uppercase text-amber-300/90">
+                              inventaire
+                            </span>
+                          )}
+                        </span>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-[10px] text-white/70 font-mono">
                             {gammeCount > 0
@@ -331,7 +363,7 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
               />
               <button
                 type="button"
-                onClick={() => brandMgr.addRange()}
+                onClick={() => handleAddRange()}
                 className="shrink-0 bg-blue-600 text-white px-3 py-2 rounded-sm text-[10px] font-bold uppercase hover:bg-blue-500 transition-colors"
               >
                 Ajouter

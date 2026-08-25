@@ -6,6 +6,44 @@ export type BrandRef = { id: string; name: string; slug?: string };
 /** Filtre marque : produits sans marque reconnue */
 export const UNASSIGNED_BRAND_KEY = '__unassigned__';
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const isUuid = (value: string): boolean => UUID_RE.test(value);
+
+/** Convertit une clé marque (uuid, slug, name:token…) en id `brands` réel, ou null. */
+export function resolveBrandKeyToDbId(
+  brandKey: string | undefined | null,
+  brands: BrandRef[],
+): string | null {
+  const raw = brandKey?.trim();
+  if (!raw) return null;
+
+  const byId = brands.find((b) => b.id === raw);
+  if (byId) return canonicalizeBrandKey(byId.id, brands);
+
+  const bySlug = brands.find((b) => b.slug === raw || b.slug === raw.toLowerCase());
+  if (bySlug) return canonicalizeBrandKey(bySlug.id, brands);
+
+  const byName = brands.find((b) => b.name.toLowerCase() === raw.toLowerCase());
+  if (byName) return canonicalizeBrandKey(byName.id, brands);
+
+  if (raw.startsWith('name:')) {
+    const slugToken = raw.slice(5);
+    const labelToken = slugToken.replace(/-/g, ' ');
+    const match = brands.find(
+      (b) =>
+        b.slug === slugToken ||
+        b.slug.replace(/-/g, ' ') === labelToken ||
+        b.name.toLowerCase() === labelToken ||
+        b.name.toLowerCase().replace(/\s+/g, '-') === slugToken,
+    );
+    if (match) return canonicalizeBrandKey(match.id, brands);
+  }
+
+  return null;
+}
+
 const PHONE_NAME_TOKENS = [
   'google pixel',
   'samsung',
@@ -99,12 +137,8 @@ function inferBrandFromName(nameLower: string, brands: BrandRef[]): string | nul
 export function resolveProductBrandId(product: Product, brands: BrandRef[]): string | null {
   const raw = product.brand?.trim();
   if (raw) {
-    const byId = brands.find((b) => b.id === raw);
-    if (byId) return canonicalizeBrandKey(byId.id, brands);
-    const bySlug = brands.find((b) => b.slug === raw);
-    if (bySlug) return canonicalizeBrandKey(bySlug.id, brands);
-    const byName = brands.find((b) => b.name.toLowerCase() === raw.toLowerCase());
-    if (byName) return canonicalizeBrandKey(byName.id, brands);
+    const resolved = resolveBrandKeyToDbId(raw, brands);
+    if (resolved) return resolved;
     // brand orphelin en DB → tenter le nom du produit
   }
 

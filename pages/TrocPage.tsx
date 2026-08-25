@@ -540,30 +540,31 @@ const TrocPage: React.FC = () => {
                 </div>
               </button>
 
-              {/* CARTE 2 : Certifier mon appareil */}
-              <button 
-                type="button" 
-                onClick={() => setIntent('certif')}
-                className="group relative text-left bg-[#0a0a0c]/60 backdrop-blur-xl border border-white/20 hover:border-green-400 transition-all duration-300 p-6 sm:p-7 rounded-2xl overflow-hidden hover:shadow-[0_0_40px_rgba(34,197,94,0.2)] hover:-translate-y-1"
+              {/* CARTE 2 : Certifier mon appareil (temporairement indisponible) */}
+              <div
+                aria-disabled="true"
+                className="group relative text-left bg-[#0a0a0c]/40 backdrop-blur-xl border border-white/10 p-6 sm:p-7 rounded-2xl overflow-hidden cursor-not-allowed select-none"
               >
-                {/* Ligne Laser Verte au survol */}
-                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-green-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                  <span className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-sm font-tech font-bold uppercase tracking-widest text-white">
+                    Bientôt disponible
+                  </span>
+                </div>
 
-                <div className="relative z-10 flex flex-col justify-between h-full gap-6">
+                <div className="relative z-10 flex flex-col justify-between h-full gap-6 opacity-50 grayscale group-hover:opacity-30 transition-opacity duration-300">
                   <div>
                     {/* En-tête : Icône + Titre à gauche, Prix à droite */}
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-center gap-3.5">
-                        <div className="w-12 h-12 border border-green-500/40 bg-green-500/10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(34,197,94,0.2)] shrink-0 group-hover:scale-110 group-hover:bg-green-500/20 transition-all">
-                          <Smartphone className="w-6 h-6 text-green-400 group-hover:scale-110 transition-transform duration-300" />
+                        <div className="w-12 h-12 border border-white/15 bg-white/5 rounded-xl flex items-center justify-center shrink-0">
+                          <Smartphone className="w-6 h-6 text-white/40" />
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5 mb-1">
-                            <ShieldCheck className="w-3 h-3 text-green-400" />
-                            <span className="text-[10px] font-tech font-bold uppercase tracking-widest text-green-400">Option 2 · Passeport Officiel</span>
+                            <ShieldCheck className="w-3 h-3 text-white/40" />
+                            <span className="text-[10px] font-tech font-bold uppercase tracking-widest text-white/45">Option 2 · Passeport Officiel</span>
                           </div>
-                          <h3 className="text-white font-tech font-bold uppercase tracking-wider text-lg sm:text-xl group-hover:text-green-400 transition-colors leading-tight">
+                          <h3 className="text-white/70 font-tech font-bold uppercase tracking-wider text-lg sm:text-xl leading-tight">
                             Certifier mon appareil
                           </h3>
                         </div>
@@ -571,31 +572,31 @@ const TrocPage: React.FC = () => {
 
                       {/* Prix 300 FCFA Mis en Exergue */}
                       <div className="flex flex-col items-end shrink-0">
-                        <span className="text-[9px] font-tech uppercase tracking-widest text-white/70 mb-0.5">Frais d'audit</span>
-                        <div className="inline-flex items-baseline gap-1 px-3 py-1 bg-green-500/15 border border-green-500/40 rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.2)] group-hover:scale-105 group-hover:bg-green-500/25 transition-all">
-                          <span className="text-xl font-tech font-extrabold text-green-400 leading-none">300</span>
-                          <span className="text-[10px] font-tech font-bold text-green-400 uppercase">FCFA</span>
+                        <span className="text-[9px] font-tech uppercase tracking-widest text-white/45 mb-0.5">Frais d'audit</span>
+                        <div className="inline-flex items-baseline gap-1 px-3 py-1 bg-white/5 border border-white/15 rounded-xl">
+                          <span className="text-xl font-tech font-extrabold text-white/50 leading-none">300</span>
+                          <span className="text-[10px] font-tech font-bold text-white/45 uppercase">FCFA</span>
                         </div>
                       </div>
                     </div>
 
-                    <p className="text-sm text-white/80 font-sans leading-relaxed">
-                      Vérification IMEI anti-vol en temps réel et délivrance d'un <strong className="text-white font-semibold">certificat officiel Xeption</strong> pour rassurer tout acheteur.
+                    <p className="text-sm text-white/50 font-sans leading-relaxed">
+                      Vérification IMEI anti-vol en temps réel et délivrance d'un <strong className="text-white/60 font-semibold">certificat officiel Xeption</strong> pour rassurer tout acheteur.
                     </p>
                   </div>
 
                   {/* Bouton Action */}
-                  <div className="pt-4 border-t border-white/20 flex items-center justify-between">
-                    <span className="text-xs font-tech font-bold uppercase tracking-widest text-green-400 flex items-center gap-2 group-hover:translate-x-1 transition-transform">
+                  <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-xs font-tech font-bold uppercase tracking-widest text-white/45 flex items-center gap-2">
                       Générer le certificat
-                      <ArrowRight className="w-4 h-4 text-green-400" />
+                      <ArrowRight className="w-4 h-4 text-white/35" />
                     </span>
-                    <span className="text-[11px] font-tech text-white/70 group-hover:text-white transition-colors">
+                    <span className="text-[11px] font-tech text-white/40">
                       Audit en 30 secondes
                     </span>
                   </div>
                 </div>
-              </button>
+              </div>
             </div>
           </div>
         )}

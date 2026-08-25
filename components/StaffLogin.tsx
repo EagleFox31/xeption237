@@ -27,6 +27,7 @@ import {
   StaffRoleId,
 } from '../constants/staffRoles';
 import { adminUi } from './admin/shared/adminUi';
+import { HCAPTCHA_SITE_KEY } from '../constants/hCaptcha';
 
 interface StaffLoginProps {
   onLogin: () => void;
@@ -80,7 +81,6 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin, mode = 'erp' }) => {
   const [info, setInfo] = useState('');
   const [tipIndex, setTipIndex] = useState(0);
 
-  const HCAPTCHA_SITE_KEY = '0d0cfd40-72aa-4570-a4fa-e8f263ce1d24';
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const captchaRef = useRef<HCaptcha>(null);
   const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

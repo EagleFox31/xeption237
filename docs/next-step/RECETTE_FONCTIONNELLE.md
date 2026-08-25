@@ -270,6 +270,8 @@
 | T-X18 | `ai_usage_quota` après quelques appels IA | Compteurs qui montent : c'est la protection réelle | 🟠 |
 | T-X19 | `ai-product-details` sans connexion | 401. La clé anon en Bearer échoue aussi : pas d'email dans le jeton | 🔴 |
 | T-X20 | `ai-product-details` avec un compte hors table `staff` | Refusé malgré un JWT valide | 🟠 |
+| T-X21 | Chercher `import.meta.env` accédé **en entier** | Aucun : un seul test suffit à inliner toutes les `VITE_` | 🔴 |
+| T-X22 | Sonder la chaîne de modèles vision avant mise en ligne | Au moins deux modèles répondent | 🔴 |
 
 ---
 

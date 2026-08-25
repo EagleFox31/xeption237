@@ -82,6 +82,9 @@ export const TROC_MESSAGES = {
   imei_invalid_luhn:
     'Ce numéro IMEI semble incorrect. Vérifiez les 15 chiffres affichés en composant *#06# sur votre téléphone.',
 
+  ai_rate_limited:
+    'Trop de requêtes pour l’instant — patiente quelques minutes avant de réessayer.',
+
   // Important UX/business nuance:
   // Unknown model from free source is an evidence gap, not a fraud signal by itself.
   imei_model_unknown_manual:

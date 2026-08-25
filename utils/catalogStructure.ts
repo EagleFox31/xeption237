@@ -1,5 +1,5 @@
 import type { Brand, Product, ProductRange } from '../types';
-import { getBrandDisplayName, resolveProductBrandId, type BrandRef } from './productBrand';
+import { getBrandDisplayName, resolveBrandKeyToDbId, resolveProductBrandId, type BrandRef } from './productBrand';
 
 export interface CatalogBrand {
   id: string;
@@ -12,8 +12,16 @@ function brandRefs(brands: Brand[]): BrandRef[] {
   return brands.map((b) => ({ id: b.id, name: b.name, slug: b.slug }));
 }
 
+/** Clé marque canonique (uuid DB) — évite les doublons name:asus vs uuid ASUS. */
+export function normalizeCatalogBrandKey(brandKey: string, brands: Brand[]): string {
+  const refs = brandRefs(brands);
+  return resolveBrandKeyToDbId(brandKey, refs) ?? brandKey;
+}
+
 export function resolveCatalogBrandId(product: Product, brands: Brand[]): string | null {
-  return resolveProductBrandId(product, brandRefs(brands));
+  const resolved = resolveProductBrandId(product, brandRefs(brands));
+  if (!resolved) return null;
+  return normalizeCatalogBrandKey(resolved, brands);
 }
 
 export function catalogBrandFromId(id: string, brands: Brand[]): CatalogBrand {
@@ -34,7 +42,9 @@ export function brandIdsForCategory(
 ): Set<string> {
   const ids = new Set<string>();
   for (const r of ranges) {
-    if (r.category === categorySlug && r.brand_id) ids.add(r.brand_id);
+    if (r.category === categorySlug && r.brand_id) {
+      ids.add(normalizeCatalogBrandKey(r.brand_id, brands));
+    }
   }
   for (const p of products) {
     if (p.category !== categorySlug) continue;
@@ -59,8 +69,14 @@ export function gammeCountForBrand(
   categorySlug: string,
   brandId: string,
   ranges: ProductRange[],
+  brands: Brand[] = [],
 ): number {
-  return ranges.filter((r) => r.category === categorySlug && r.brand_id === brandId).length;
+  const canonical = brands.length ? normalizeCatalogBrandKey(brandId, brands) : brandId;
+  return ranges.filter((r) => {
+    if (r.category !== categorySlug) return false;
+    const rangeBrand = brands.length ? normalizeCatalogBrandKey(r.brand_id, brands) : r.brand_id;
+    return rangeBrand === canonical;
+  }).length;
 }
 
 export function productsForBrand(
@@ -69,8 +85,11 @@ export function productsForBrand(
   brands: Brand[],
   products: Product[],
 ): Product[] {
+  const canonical = normalizeCatalogBrandKey(brandId, brands);
   return products.filter(
-    (p) => p.category === categorySlug && resolveCatalogBrandId(p, brands) === brandId,
+    (p) =>
+      p.category === categorySlug &&
+      resolveCatalogBrandId(p, brands) === canonical,
   );
 }
 

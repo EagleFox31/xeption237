@@ -1,9 +1,10 @@
 // @ts-ignore
 const Deno = globalThis.Deno;
 
-export {};
-
 import { isTrivialTestImei, sanitizeImei } from '../_shared/imeiValidation.ts';
+import { assertAiRateLimit, rateLimitJsonResponse } from '../_shared/rateLimit.ts';
+
+export {};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -762,6 +763,11 @@ Deno.serve(async (req: Request) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
+    }
+
+    const rateLimit = await assertAiRateLimit(req, 'check-imei', sessionKey);
+    if (!rateLimit.allowed) {
+      return rateLimitJsonResponse(rateLimit, corsHeaders);
     }
 
     const keyImeiInfo  = Deno.env.get('IMEI_INFO_API_KEY') ?? null;

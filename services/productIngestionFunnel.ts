@@ -1,7 +1,7 @@
 import type { Brand, Product, ProductRange } from '../types';
 import { supabase } from './supabaseClient';
 import { DB_TABLES, DB_SCHEMA } from '../constants/dbSchema';
-import { generateProductDetails } from './geminiService';
+import { generateProductDetails } from './aiProductDetailsService';
 import type { ProductEnricherField } from './personas/productEnricher';
 import {
   parseJsonDraftList,

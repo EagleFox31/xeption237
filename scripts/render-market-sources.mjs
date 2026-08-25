@@ -40,6 +40,9 @@ const SETTLE_MS = 3_500;
 const RENDERED_SOURCES = [
   {
     name: 'glotelho.cm/recherche',
+    // Route de recherche generale : elle renvoie le catalogue NEUF. On n'en
+    // garde que les annonces explicitement d'occasion (cf. isUsedListing).
+    usedOnly: false,
     // `?s=...&post_type=product` etait une URL WORDPRESS, alors que Glotelho
     // tourne sous Nuxt. Elle n'a jamais rien pu rendre : c'est pourquoi cette
     // source ne remontait qu'un prix depuis le debut.
@@ -47,6 +50,7 @@ const RENDERED_SOURCES = [
   },
   {
     name: 'glotelho.cm/seconde-main',
+    usedOnly: true,
     // Categorie « Glotelho Seconde Main » — donnee d'OCCASION locale, rare sur
     // ce marche. Ne depend pas de la requete : on la parcourt entierement.
     url: () => 'https://glotelho.cm/category/glotelho-seconde-main-1581',
@@ -255,6 +259,17 @@ const persistOffers = async (offers) => {
   return rows.length;
 };
 
+/**
+ * L'annonce porte-t-elle sur un appareil d'occasion ?
+ *
+ * Indispensable pour la route de recherche generale, qui renvoie le catalogue
+ * NEUF. Sans ce filtre, une recherche « Samsung A15 » ecrivait des chargeurs et
+ * des A05/A26/A56 neufs dans market_used_offers — 14 lignes sur 45 lors du
+ * premier passage reel — et tirait la reference d'occasion vers le haut.
+ */
+const isUsedListing = (title) =>
+  /(seconde\s*main|occasion|reconditionn)/i.test(String(title ?? ''));
+
 const renderSource = async (browser, source, query) => {
   const page = await browser.newPage();
   try {
@@ -279,7 +294,9 @@ const renderSource = async (browser, source, query) => {
       parTitre.set(o.title, { ...prev, price: bas, comparePrice: haut > bas ? haut : null });
     }
 
-    return [...parTitre.values()].map((o) => ({ ...o, source: source.name }));
+    return [...parTitre.values()]
+      .filter((o) => source.usedOnly || isUsedListing(o.title))
+      .map((o) => ({ ...o, source: source.name }));
   } catch (error) {
     console.warn(`[render] ${source.name} : ${error?.message ?? error}`);
     return [];
@@ -288,8 +305,39 @@ const renderSource = async (browser, source, query) => {
   }
 };
 
+/**
+ * Modeles a couvrir quand aucune requete n'est passee.
+ *
+ * C'est ce qui rend l'automatisation possible : le rendu ne peut PAS tourner
+ * au moment ou un client demande une reprise. Il faut un navigateur, que
+ * l'Edge Function n'a pas, et 20 a 40 s par page. On pre-remplit donc la base
+ * pour les modeles qu'on reprend, et l'evaluation se contente de lire.
+ */
+const fetchTradeInModels = async () => {
+  const dbUrl = process.env.DATABASE_URL?.trim();
+  if (!dbUrl) return [];
+  const { default: pg } = await import('pg');
+  const client = new pg.Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  await client.connect();
+  try {
+    const res = await client.query(
+      'SELECT brand, model_name FROM public.trade_in_models ORDER BY brand, model_name LIMIT $1',
+      [Number(argValue('limit')) || 60],
+    );
+    return res.rows.map((r) => `${r.brand} ${r.model_name}`.trim());
+  } finally {
+    await client.end();
+  }
+};
+
 const main = async () => {
-  const query = argValue('query') ?? 'iPhone 13';
+  const single = argValue('query');
+  const queries = single ? [single] : await fetchTradeInModels();
+
+  if (!queries.length) {
+    console.error('[render] aucun modele a traiter. Passe --query=... ou verifie DATABASE_URL.');
+    process.exit(1);
+  }
 
   let executablePath = findChromeExecutable();
   if (!executablePath) {
@@ -305,7 +353,7 @@ const main = async () => {
   }
 
   console.log(`[render] navigateur : ${executablePath}`);
-  console.log(`[render] requête    : « ${query} »${dryRun ? '  (dry-run)' : ''}`);
+  console.log(`[render] modèles    : ${queries.length}${dryRun ? '  (dry-run)' : ''}`);
 
   const browser = await puppeteer.launch({
     args: chromium.args,
@@ -315,7 +363,20 @@ const main = async () => {
   });
 
   try {
-    for (const source of RENDERED_SOURCES) {
+    let total = 0;
+
+    for (const [index, query] of queries.entries()) {
+      if (queries.length > 1) {
+        console.log(`
+──── ${index + 1}/${queries.length}  « ${query} »`);
+      }
+
+      for (const source of RENDERED_SOURCES) {
+      // Une source qui ignore la requete (categorie entiere) n'a rien a gagner
+      // a etre re-parcourue par modele : ce serait 14 lignes identiques a
+      // chaque tour. `url.length === 0` distingue `() => ...` de `(q) => ...`.
+      if (source.url.length === 0 && index > 0) continue;
+
       const offers = await renderSource(browser, source, query);
       console.log(`\n[${source.name}] ${offers.length} offre(s)`);
       for (const o of offers.slice(0, 12)) {
@@ -331,8 +392,15 @@ const main = async () => {
         console.log('   (dry-run : rien écrit en base)');
       } else {
         const written = await persistOffers(offers);
+        total += written;
         console.log(`   ${written} ligne(s) écrite(s) dans market_used_offers`);
       }
+      }
+    }
+
+    if (queries.length > 1) {
+      console.log(`
+[render] ${total} ligne(s) au total sur ${queries.length} modèle(s).`);
     }
   } finally {
     await browser.close().catch(() => {});

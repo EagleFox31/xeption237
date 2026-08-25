@@ -50,6 +50,8 @@ ton `.env`.
 | `GEMINI_API_KEY_FALLBACK` | 2ᵉ clé, prend le relais sur quota | idem, autre projet Google |
 | `GEMINI_MODELS` | chaîne de modèles, séparés par virgules | facultatif, un défaut existe |
 | `GEMINI_CREDIBILITY_MODELS` | idem pour le pré-check photo | facultatif |
+| `DEEPSEEK_API_KEY` | auto-fill fiches produit (`ai-product-details`) | platform.deepseek.com |
+| `DEEPSEEK_MODEL` | modèle texte DeepSeek (défaut `deepseek-chat`) | facultatif |
 | `IMEI_INFO_API_KEY` | vérification IMEI de base | dash.imei.info |
 | `IMEI_PREMIUM_API_KEY` | contrôle blacklist mondial | imeicheck.net |
 | `CAMPAY_API_TOKEN` · `CAMPAY_BASE_URL` · `CAMPAY_WEBHOOK_KEY` | paiement Mobile Money | tableau de bord Campay |
@@ -57,8 +59,11 @@ ton `.env`.
 | `STAFF_DEFAULT_PASSWORD` | mot de passe initial d'un compte staff | valeur que tu choisis |
 | `SUPER_ADMIN_EMAILS` | qui accède au super-admin | tes adresses |
 | `BING_SEARCH_API_KEY` | recherche de prix (facultatif) | portal.azure.com |
+| `AI_CHAT_CAPTCHA_AFTER` | seuil messages chatbot avant session Auth (défaut `3`) | valeur que tu choisis |
 | `PUBLIC_VERIFY_BASE_URL` | URL publique des certificats | ton domaine |
 | `SUPABASE_URL` · `SUPABASE_ANON_KEY` · `SUPABASE_SERVICE_ROLE_KEY` | injectés automatiquement par Supabase | rien à faire |
+
+**Captcha (hCaptcha)** : une seule config dans le dashboard Supabase → **Authentication → Bot Protection** (site key + secret). Le checkout, le login ERP et le chatbot (via `signInAnonymously`) réutilisent cette config — pas de secret captcha séparé dans les Edge Functions.
 
 ---
 
@@ -108,7 +113,7 @@ Jamais livré au navigateur. Sert aux outils en ligne de commande.
 | `SUPABASE_DB_PASSWORD` | utilisé par le CLI Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | facultatif — `DATABASE_URL` fait le même travail |
 | `CHROME_PATH` | facultatif, si Chrome n'est pas à un emplacement standard |
-| `INDEXNOW_KEY` | ping des moteurs de recherche au build |
+| `INDEXNOW_KEY` | ping Bing / Yandex / DuckDuckGo au build. **Piège rencontré** : la déclaration était collée à la fin d'une ligne de commentaire, donc `dotenv` ignorait tout — le ping ne partait jamais, en silence. Exige aussi `public/<clé>.txt` contenant la clé |
 
 ---
 
@@ -128,7 +133,7 @@ n'importe qui ouvrant les sources du site :
 |---|---|
 | `VITE_GEMINI_API_KEY` | consommation facturée sur ton compte Google |
 | `VITE_OPENROUTER_API_KEY` | tes crédits OpenRouter dépensés |
-| `VITE_DEEPSEEK_API_KEY` | idem côté DeepSeek |
+| ~~`VITE_DEEPSEEK_API_KEY`~~ | **aucune clé définie** — rien ne fuit aujourd'hui. Le chemin de code existait et l'exposerait si on en posait une ; il a été retiré au lot 3 et à la suppression de `reviewGenerator`. Seul `StudioSystemTab` teste encore sa présence, sans l'envoyer |
 | `VITE_SUPER_ADMIN_EMAILS` | divulgue les adresses des super-admins |
 
 C'est l'objet du cadrage `docs/next-step/CADRAGE_CLES_IA_COTE_SERVEUR.md` : ces
@@ -161,3 +166,14 @@ for(const k of Object.keys(process.env).filter(k=>k.startsWith('VITE_'))){
 À relancer après toute modification du `.env` : c'est la seule preuve qui vaille.
 Une première version de ce contrôle ne lisait qu'un seul fichier `dist/assets` et
 concluait « absente » à tort — il y en a plusieurs.
+
+### Et pour lire le `.env` lui-même
+
+```bash
+sed -E 's/^([^=]+=)(.{0,4}).*/…/' .env
+```
+
+Ne **pas** filtrer sur `^[A-Z_]+` : ce motif rate les lignes commentées et les
+déclarations mal formées. C'est ainsi qu'`INDEXNOW_KEY`, collée à un commentaire,
+est restée invisible — et qu'un simple intitulé « # DeepSeek = texte » a été pris
+pour une clé absente alors qu'il n'y en avait jamais eu.

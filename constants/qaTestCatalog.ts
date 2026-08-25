@@ -164,6 +164,7 @@ export const QA_TESTS: QaTest[] = [
   T('T-S05', 'superadmin', 'important', 'Page de recette', 'Verdicts enregistrés et partagés'),
   T('T-S06', 'superadmin', 'important', 'Appeler evaluate-device en healthCheck', 'Répond l’état réel de chaque modèle, pas seulement « clé présente »'),
   T('T-S07', 'superadmin', 'nice', 'Lancer npm run market:render -- --limit=2', 'Écrit des lignes d’occasion, aucune ligne de neuf'),
+  T('T-S08', 'superadmin', 'important', 'Sonder DeepSeek : ai-product-details avec {healthCheck:true, probe:true}', 'ready:true APRÈS un vrai appel. Un 402 signifie clé valide mais compte sans crédit'),
 
   // ── Parcours ──────────────────────────────────────────────────────────────
   T('P1', 'parcours', 'blocking', 'Vente comptoir simple', 'Stock décrémenté sur SA boutique, staff_id et store_id renseignés, facture, Mes ventes, objectif'),

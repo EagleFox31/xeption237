@@ -1,5 +1,5 @@
-import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient';
+import { readEdgeFunctionErrorMessage } from '../utils/edgeFunctionError';
 
 /**
  * Il n'y a plus de mot de passe d'équipe.
@@ -26,28 +26,11 @@ export type StaffAuthStatus = {
 
 type InvokePayload = StaffAuthProvisionResult | { error?: string; ok?: boolean; statuses?: StaffAuthStatus[] };
 
-async function readFunctionErrorMessage(error: unknown): Promise<string> {
-  if (error instanceof FunctionsHttpError) {
-    try {
-      const body = await error.context.json();
-      if (body && typeof body === 'object' && 'error' in body && typeof body.error === 'string') {
-        return body.error;
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-  return 'Appel serveur impossible.';
-}
-
 async function invokeStaffAuth(body: Record<string, unknown>): Promise<InvokePayload> {
   const { data, error } = await supabase.functions.invoke('create-staff-auth', { body });
 
   if (error) {
-    throw new Error(await readFunctionErrorMessage(error));
+    throw new Error(await readEdgeFunctionErrorMessage(error, 'Appel serveur impossible.'));
   }
 
   const payload = data as InvokePayload | null;

@@ -18,6 +18,8 @@ interface ChameleoMascotProps {
   pose?: 'waving' | 'pointing' | 'shopping' | 'inspector' | 'delivery' | 'engineer';
   /** vertical = bulle au-dessus · horizontal = bulle à gauche, mascotte à droite */
   layout?: 'vertical' | 'horizontal';
+  /** Charger le PNG en priorité (hero). Sinon lazy + SVG immédiat. */
+  priority?: boolean;
   onClick?: () => void;
 }
 
@@ -46,6 +48,7 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
   isDancing = true,
   pose = 'waving',
   layout = 'vertical',
+  priority = false,
   onClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +56,9 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
   const [isJumping, setIsJumping] = useState(false);
   const [clickSparkles, setClickSparkles] = useState<Sparkle[]>([]);
   const [isOpenMouth, setIsOpenMouth] = useState(false);
+  const loadedImagesRef = useRef<Set<string>>(new Set());
+  const [loadedTick, setLoadedTick] = useState(0);
+  const [imgError, setImgError] = useState(false);
 
   // Messages par défaut par état
   const defaultMessages: Record<ChameleoState, string> = {
@@ -162,20 +168,35 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
   }[size];
 
   // Image courante selon la pose et l'état de parole
-  let currentImage = '/mascot/xepti_transparent.png';
-  if (pose === 'engineer') {
-    currentImage = '/mascot/xepti_engineer_transparent.png';
-  } else if (pose === 'delivery') {
-    currentImage = '/mascot/xepti_delivery_transparent.png';
-  } else if (pose === 'inspector') {
-    currentImage = '/mascot/xepti_inspector_transparent.png';
-  } else if (pose === 'shopping') {
-    currentImage = '/mascot/xepti_shopping_transparent.png';
-  } else if (pose === 'pointing') {
-    currentImage = '/mascot/xepti_pointing_transparent.png';
-  } else if (isOpenMouth) {
-    currentImage = '/mascot/xepti_open_transparent.png';
-  }
+  const baseImage = (() => {
+    if (pose === 'engineer') return '/mascot/xepti_engineer_transparent.png';
+    if (pose === 'delivery') return '/mascot/xepti_delivery_transparent.png';
+    if (pose === 'inspector') return '/mascot/xepti_inspector_transparent.png';
+    if (pose === 'shopping') return '/mascot/xepti_shopping_transparent.png';
+    if (pose === 'pointing') return '/mascot/xepti_pointing_transparent.png';
+    return '/mascot/xepti_transparent.png';
+  })();
+  const openMouthImage = '/mascot/xepti_open_transparent.png';
+  const currentImage =
+    pose === 'waving' && isOpenMouth && loadedImagesRef.current.has(openMouthImage)
+      ? openMouthImage
+      : baseImage;
+
+  const markImageLoaded = (src: string) => {
+    if (loadedImagesRef.current.has(src)) return;
+    loadedImagesRef.current.add(src);
+    setLoadedTick((n) => n + 1);
+  };
+
+  const isCurrentLoaded = loadedImagesRef.current.has(currentImage);
+  const showSvgFallback = !isCurrentLoaded && !imgError;
+
+  useEffect(() => {
+    const preload = new Image();
+    preload.src = baseImage;
+    preload.onload = () => markImageLoaded(baseImage);
+    preload.onerror = () => setImgError(true);
+  }, [baseImage]);
 
   // Animation selon la pose
   const danceSpeed = state === 'happy' ? '1.4s' : '2.4s';
@@ -238,17 +259,70 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
 
         {/* Mascotte Xepti (Waving ou Pointing avec animation fluide) */}
         <div 
-          className="w-full h-full"
+          className="w-full h-full relative"
           style={{
             animation: animationStyle
           }}
         >
-          <img
-            src={currentImage}
-            alt="Xepti - Mascotte Xeption"
-            className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(255,215,0,0.25)] pointer-events-auto transition-opacity duration-75"
-            loading="eager"
-          />
+          {showSvgFallback && (
+            <svg
+              viewBox="0 0 200 240"
+              className="absolute inset-0 w-full h-full drop-shadow-[0_15px_30px_rgba(255,215,0,0.25)]"
+              aria-hidden
+            >
+              <defs>
+                <linearGradient id="xeptiBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#34d399" />
+                  <stop offset="55%" stopColor="#059669" />
+                  <stop offset="100%" stopColor="#047857" />
+                </linearGradient>
+                <linearGradient id="xeptiGold" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#fde68a" />
+                  <stop offset="50%" stopColor="#ffd700" />
+                  <stop offset="100%" stopColor="#f59e0b" />
+                </linearGradient>
+              </defs>
+              <ellipse cx="100" cy="188" rx="58" ry="14" fill="rgba(255,215,0,0.18)" />
+              <path
+                d="M58 118c8-44 36-62 42-62s34 18 42 62c6 34-8 58-42 58s-48-24-42-58z"
+                fill="url(#xeptiBody)"
+                stroke="#ffd700"
+                strokeWidth="3"
+              />
+              <circle cx="100" cy="72" r="34" fill="url(#xeptiBody)" stroke="#ffd700" strokeWidth="3" />
+              <circle cx="88" cy="68" r="6" fill="#111827" />
+              <circle cx="112" cy="68" r="6" fill="#111827" />
+              <circle cx="90" cy="66" r="2" fill="#fff" />
+              <circle cx="114" cy="66" r="2" fill="#fff" />
+              <path d="M92 82 Q100 90 108 82" fill="none" stroke="#064e3b" strokeWidth="3" strokeLinecap="round" />
+              <path d="M66 52 L82 62" stroke="url(#xeptiGold)" strokeWidth="8" strokeLinecap="round" />
+              <path d="M134 52 L118 62" stroke="url(#xeptiGold)" strokeWidth="8" strokeLinecap="round" />
+              <text
+                x="100"
+                y="138"
+                textAnchor="middle"
+                fontSize="34"
+                fontWeight="700"
+                fill="url(#xeptiGold)"
+                fontFamily="monospace"
+              >
+                X
+              </text>
+            </svg>
+          )}
+          {!imgError && (
+            <img
+              src={currentImage}
+              alt="Xepti - Mascotte Xeption"
+              className={`w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(255,215,0,0.25)] pointer-events-auto transition-opacity duration-300 ${
+                isCurrentLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              loading={priority ? 'eager' : 'lazy'}
+              decoding="async"
+              onLoad={() => markImageLoaded(currentImage)}
+              onError={() => setImgError(true)}
+            />
+          )}
         </div>
 
         {/* Particules d'étoiles dorées au clic */}

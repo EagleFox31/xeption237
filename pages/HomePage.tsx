@@ -122,7 +122,9 @@ const HomePage: React.FC<HomePageProps> = ({ products, packs, onAddToCart, onAdd
           onAddToCart={onAddToCart} onProductClick={goProduct}
         />
         <HomeProductRow
-          eyebrow="Catégorie" title="Ordinateurs & Gaming"
+          eyebrow="Catégorie"
+          title="Ordinateurs & Gaming"
+          mobileTitle="PC & Gaming"
           icon={<Laptop className="w-6 h-6 md:w-7 md:h-7 text-purple-400" />}
           products={rows.ordinateurs}
           onViewAll={() => navigate('/shop?cat=computer')}

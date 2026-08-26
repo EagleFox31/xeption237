@@ -31,7 +31,8 @@ const HeroWelcomeSlide: React.FC<HeroWelcomeSlideProps> = ({ compact, desktopCom
         }`}
       >
         <span className="text-transparent bg-clip-text bg-gradient-to-r from-xeption-gold via-yellow-100 to-xeption-goldDim font-tech">
-          Smartphones, PC & accessoires
+          <span className="block sm:inline">Smartphones,</span>{' '}
+          <span className="block sm:inline">PC & accessoires</span>
         </span>
         <span
           className={`block text-white font-tech uppercase tracking-wide mt-2 ${

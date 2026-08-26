@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Send, Bot, X, Loader2, Sparkles, ShieldCheck } from 'lucide-react';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { sendAiChatMessage, ensureChatAuth, AI_CHAT_CAPTCHA_AFTER } from '../services/aiChatService';
@@ -10,6 +11,8 @@ const WELCOME_MESSAGE =
   "Salut le Boss ! C'veut dire quoi aujourd'hui ?\n\nC'est Xeption AI. Tu cherches un téléphone ou un PC ?\n\nDonne-moi ton budget, je te sors les meilleures pépites du Mboa.";
 
 const AiConsultant: React.FC = () => {
+  const location = useLocation();
+  const isProductPage = location.pathname.startsWith('/product/');
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -108,7 +111,9 @@ const AiConsultant: React.FC = () => {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-40 bg-black border border-xeption-gold text-xeption-gold p-4 shadow-[0_0_20px_rgba(255,215,0,0.2)] hover:shadow-[0_0_30px_rgba(255,215,0,0.4)] hover:scale-105 transition-all duration-300 group ${isOpen ? 'hidden' : 'flex'}`}
+        className={`fixed right-4 sm:right-6 z-40 bg-black border border-xeption-gold text-xeption-gold p-3.5 sm:p-4 shadow-[0_0_20px_rgba(255,215,0,0.2)] hover:shadow-[0_0_30px_rgba(255,215,0,0.4)] hover:scale-105 transition-all duration-300 group ${
+          isProductPage ? 'bottom-24 md:bottom-6' : 'bottom-6'
+        } ${isOpen ? 'hidden' : 'flex'}`}
       >
         <div className="absolute inset-0 bg-xeption-gold/10 animate-pulse" />
         <Bot className="h-6 w-6 relative z-10" />

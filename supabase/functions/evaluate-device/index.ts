@@ -16,6 +16,10 @@ import {
   isOpenRouterConfigured,
   openRouterVisionJson,
 } from '../_shared/openRouterVision.ts';
+import {
+  isDeepSeekVisionConfigured,
+  deepseekVisionJson,
+} from '../_shared/deepseekVision.ts';
 
 export {};
 
@@ -59,9 +63,13 @@ const GEMINI_MODELS = parseModelChain(
   ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'],
 );
 
+// Sonde du 2026-08-26 avec la cle des Edge Functions : gemini-flash-lite-latest
+// ET gemini-3.5-flash-lite etaient en timeout EN MEME TEMPS, ce qui a mis le
+// pre-check photo a terre. gemini-3.1-flash-lite et gemini-3.5-flash repondent.
+// Comme pour la chaine texte : des modeles eprouves d'abord, l'alias en dernier.
 const GEMINI_CREDIBILITY_MODELS = parseModelChain(
   Deno.env.get('GEMINI_CREDIBILITY_MODELS') ?? Deno.env.get('GEMINI_CREDIBILITY_MODEL'),
-  ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite'],
+  ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-flash-lite-latest'],
 );
 // Mesure du 2026-08-24 : le preflight repond en 1,7 s sur gemini-flash-lite-latest.
 
@@ -293,6 +301,7 @@ Deno.serve(async (req: Request) => {
               : 'ready',
           keys: { primary: primaryKey.length > 0, fallback: fallbackKey.length > 0 },
           openRouter: { configured: openRouterConfigured },
+          deepSeekVision: { configured: isDeepSeekVisionConfigured() },
           chains: { evaluation: GEMINI_MODELS, preflight: GEMINI_CREDIBILITY_MODELS },
           modelsReachable,
         }),
@@ -321,8 +330,30 @@ Deno.serve(async (req: Request) => {
     const primaryKey = Deno.env.get('GEMINI_API_KEY')?.trim() || '';
     const fallbackKey = Deno.env.get('GEMINI_API_KEY_FALLBACK')?.trim() || '';
     const openRouterReady = isOpenRouterConfigured();
+    const deepSeekReady = isDeepSeekVisionConfigured();
 
-    if (!primaryKey && !fallbackKey && !openRouterReady) {
+    /**
+     * Secours vision, essayes dans l'ordre.
+     *
+     * DeepSeek d'abord : c'est un fournisseur payant, donc sans file d'attente
+     * gratuite, et la cle est deja posee. OpenRouter ensuite, en dernier filet —
+     * son modele gratuit a ete mesure a 27 s de latence le 2026-08-25, et son
+     * slug precedent avait deja ete retire une fois.
+     *
+     * Les deux sont hors famille Google : c'est tout l'objet de cette chaine.
+     */
+    const visionFallbacks: Array<{
+      name: string;
+      ready: boolean;
+      call: (prompt: string, images: ReturnType<typeof inlinePartsToVisionImages>) => Promise<string>;
+    }> = [
+      { name: 'deepseek', ready: deepSeekReady, call: deepseekVisionJson },
+      { name: 'openrouter', ready: openRouterReady, call: openRouterVisionJson },
+    ];
+
+    const anyFallbackReady = visionFallbacks.some((f) => f.ready);
+
+    if (!primaryKey && !fallbackKey && !anyFallbackReady) {
       return new Response(
         JSON.stringify({ error: 'Aucune clé vision configurée', code: 'missing_api_key' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 },
@@ -471,24 +502,37 @@ Deno.serve(async (req: Request) => {
       visionProvider = geminiResult.keyUsed;
     }
 
-    if (!visionText && openRouterReady) {
-      try {
-        console.warn('[evaluate-device] openrouter_fallback', modelsTried.join(' > ') || 'no_gemini');
-        visionText = await openRouterVisionJson(
-          finalPrompt,
-          inlinePartsToVisionImages(imageParts),
-        );
-        visionProvider = 'openrouter';
-      } catch (error: any) {
-        const code = error instanceof Error ? error.message : 'openrouter_failed';
-        console.error('[evaluate-device] openrouter_error', code);
+    let lastFallbackError = '';
+
+    // Parcourt les secours jusqu'au premier qui repond.
+    const runVisionFallback = async (exclude: string[] = []): Promise<string | null> => {
+      for (const provider of visionFallbacks) {
+        if (!provider.ready || exclude.includes(provider.name)) continue;
+        try {
+          console.warn('[evaluate-device] fallback_vision', provider.name, modelsTried.join(' > ') || 'no_gemini');
+          const text = await provider.call(finalPrompt, inlinePartsToVisionImages(imageParts));
+          visionProvider = provider.name;
+          return text;
+        } catch (error: any) {
+          lastFallbackError = error instanceof Error ? error.message : `${provider.name}_failed`;
+          console.error('[evaluate-device] fallback_error', provider.name, lastFallbackError);
+        }
+      }
+      return null;
+    };
+
+    if (!visionText && anyFallbackReady) {
+      visionText = await runVisionFallback();
+
+      if (!visionText) {
+        const code = lastFallbackError || 'vision_fallback_failed';
         if (!geminiResult || !geminiResult.ok) {
           const statusCode = geminiResult && !geminiResult.ok ? geminiResult.status : 502;
           const errBody = geminiResult && !geminiResult.ok ? geminiResult.body : code;
           return new Response(
             JSON.stringify({
               error: 'Vision API error',
-              code: code.startsWith('openrouter_http_') ? code : `gemini_http_${statusCode}`,
+              code: /^(openrouter|deepseek_vision)_http_/.test(code) ? code : `gemini_http_${statusCode}`,
               provider: visionProvider,
               modelsTried,
               detail: String(errBody).slice(0, 200),
@@ -519,13 +563,13 @@ Deno.serve(async (req: Request) => {
     if (isPreflight) {
       const credibility = parseTrocPhotoCredibilityOutput(visionText);
       if (!credibility) {
-        if (openRouterReady && visionProvider !== 'openrouter') {
+        // Un JSON illisible n'est pas une panne : on redemande a un AUTRE
+        // fournisseur, en excluant celui qui vient de repondre de travers.
+        if (anyFallbackReady) {
           try {
-            visionText = await openRouterVisionJson(
-              finalPrompt,
-              inlinePartsToVisionImages(imageParts),
-            );
-            visionProvider = 'openrouter';
+            const retryText = await runVisionFallback([visionProvider]);
+            if (!retryText) throw new Error('invalid_json');
+            visionText = retryText;
             const retry = parseTrocPhotoCredibilityOutput(visionText);
             if (!retry) {
               return new Response(

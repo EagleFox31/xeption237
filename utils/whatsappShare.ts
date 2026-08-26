@@ -1,5 +1,6 @@
 import type { TradeInRequest } from '../types';
 import { CREDIT_BONUS_PERCENT } from './trocPricing';
+import { resolveVoucherReference } from './trocVoucherRef';
 
 /**
  * Messages WhatsApp — volontairement SANS emoji.
@@ -29,17 +30,24 @@ export const buildWhatsAppUrl = (message: string): string =>
 const formatFcfa = (amount: number): string =>
   new Intl.NumberFormat('fr-FR').format(amount).replace(/\s/g, '.') + ' XAF';
 
-export const buildTradeInVoucherShareMessage = (request: TradeInRequest): string => {
-  const ref = request.voucher_reference || request.id;
+export const buildTradeInVoucherShareMessage = (
+  request: TradeInRequest,
+  opts?: { reste?: number },
+): string => {
+  const ref = resolveVoucherReference(request);
   const device = `${request.device_brand} ${request.device_model}`.trim();
   const value = request.trade_in_value ?? 0;
   const target = request.target_product_name?.trim() || '';
+  const reste = opts?.reste;
   return [
     'MON ÉVALUATION SMART TROC — XEPTION NETWORK',
     '',
     `Appareil : ${device}`,
     `Valeur de reprise : ${formatFcfa(value)}`,
     ...(target ? [`Appareil souhaité : ${target}`] : []),
+    ...(reste != null
+      ? [`Reste à payer : ${reste > 0 ? formatFcfa(reste) : 'Rien à payer'}`]
+      : []),
     `Référence : ${ref}`,
     '',
     `Crédit boutique disponible : +${CREDIT_BONUS_PERCENT} % selon offre en cours.`,
@@ -48,7 +56,7 @@ export const buildTradeInVoucherShareMessage = (request: TradeInRequest): string
 };
 
 export const buildTradeInAppointmentMessage = (request: TradeInRequest): string => {
-  const ref = request.voucher_reference || request.id;
+  const ref = resolveVoucherReference(request);
   const device = `${request.device_brand} ${request.device_model}`.trim();
   const value = request.trade_in_value ?? 0;
   return [

@@ -16,6 +16,8 @@ interface ChameleoMascotProps {
   isDancing?: boolean;
   /** Pose du personnage : waving, pointing, shopping, inspector, delivery ou engineer (tournevis & puce SAV). */
   pose?: 'waving' | 'pointing' | 'shopping' | 'inspector' | 'delivery' | 'engineer';
+  /** vertical = bulle au-dessus · horizontal = bulle à gauche, mascotte à droite */
+  layout?: 'vertical' | 'horizontal';
   onClick?: () => void;
 }
 
@@ -43,6 +45,7 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
   trackPointer = true,
   isDancing = true,
   pose = 'waving',
+  layout = 'vertical',
   onClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -193,21 +196,34 @@ export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
   return (
     <div 
       ref={containerRef}
-      className={`relative inline-flex flex-col items-center select-none [perspective:800px] ${className}`}
+      className={`relative select-none [perspective:800px] ${
+        layout === 'horizontal'
+          ? 'inline-flex flex-row items-center gap-3 sm:gap-4'
+          : 'inline-flex flex-col items-center'
+      } ${className}`}
     >
       {/* Bulle de Dialogue Réactive */}
       {showSpeechBubble && activeMessage && (
-        <div className="mb-3 max-w-xs px-4 py-2 bg-black/90 border border-xeption-gold/50 text-white rounded-2xl shadow-[0_0_20px_rgba(255,215,0,0.25)] text-xs font-tech tracking-wide text-center relative animate-fade-in backdrop-blur-xl z-20 transition-transform duration-300">
+        <div
+          className={`${
+            layout === 'horizontal' ? 'mb-0 mr-0 max-w-[min(100%,280px)]' : 'mb-3 max-w-xs'
+          } px-4 py-2.5 bg-black/90 border border-xeption-gold/50 text-white rounded-2xl shadow-[0_0_20px_rgba(255,215,0,0.25)] text-xs font-tech tracking-wide ${
+            layout === 'horizontal' ? 'text-left' : 'text-center'
+          } relative animate-fade-in backdrop-blur-xl z-20 transition-transform duration-300 shrink-0 min-w-0`}
+        >
           <span className="text-white/95">{activeMessage}</span>
-          {/* Flèche bulle */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-black/90" />
+          {layout === 'horizontal' ? (
+            <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-black/90" />
+          ) : (
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-black/90" />
+          )}
         </div>
       )}
 
       {/* Conteneur Pivot 3D vers la souris */}
       <div 
         onClick={handleClick}
-        className={`relative cursor-pointer ${sizeClasses} ${
+        className={`relative shrink-0 cursor-pointer ${sizeClasses} ${
           isJumping ? 'animate-[jump_0.65s_ease-out]' : ''
         }`}
         style={{

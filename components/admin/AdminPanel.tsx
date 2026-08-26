@@ -673,6 +673,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         requests={trocMgr.requests}
                         sessions={data.trocSessions}
                         payments={trocMgr.payments}
+                        products={products}
                         isLoadingPayments={trocMgr.isLoadingPayments}
                         onRefresh={trocMgr.refreshAll}
                         onTransition={trocMgr.transitionStatus}

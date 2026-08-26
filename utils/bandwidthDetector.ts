@@ -20,7 +20,8 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 /** Asset local ~50–100 KB — test léger, pas de requête externe */
 const SPEED_TEST_URL = '/icons/icon-512x512.png';
 
-let activeTier: BandwidthTier = 'medium';
+/** Pessimiste par défaut (237) — le cache session ou l’API réseau peut relever avant le 1er paint. */
+let activeTier: BandwidthTier = 'slow';
 
 export const getBandwidthTier = (): BandwidthTier => activeTier;
 
@@ -134,7 +135,29 @@ export const detectBandwidth = async (): Promise<BandwidthProfile> => {
   return profile;
 };
 
-/** Hydrate le tier depuis le cache session au chargement du bundle */
-if (typeof window !== 'undefined') {
-  readCache();
-}
+/**
+ * Hydrate le tier **avant** le premier render React (appel depuis index.tsx).
+ * 1. Cache session (10 min) — visite récente
+ * 2. Network Information API — synchrone si dispo (Chrome / Edge mobile)
+ * 3. Sinon reste `slow`
+ */
+export const hydrateBandwidthTier = (): BandwidthTier => {
+  const cached = readCache();
+  if (cached) return cached.tier;
+
+  const connection = getConnection();
+  if (connection?.saveData) {
+    setBandwidthTier('slow');
+    return 'slow';
+  }
+
+  const downlink = connection?.downlink ?? null;
+  const effectiveType = connection?.effectiveType ?? null;
+  if (downlink != null || effectiveType != null) {
+    const tier = classifyTier(downlink, effectiveType);
+    setBandwidthTier(tier);
+    return tier;
+  }
+
+  return activeTier;
+};

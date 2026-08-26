@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ShoppingCart, Menu, X, Search, Lock, ArrowRight, Tag, ChevronDown, Zap, Smartphone, Laptop, Tablet, Headphones, RotateCcw } from 'lucide-react';
+import { ShoppingCart, Menu, X, Search, Lock, ArrowRight, Tag, ChevronDown, Zap, Smartphone, Laptop, Tablet, Headphones, RotateCcw, RefreshCw } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 import { Product, Category } from '../types';
@@ -575,12 +575,23 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
             aria-label="Catégories et marques"
             className="flex items-center gap-0.5 md:gap-1 h-14 pl-1.5 pr-6 md:pl-2 md:pr-6 lg:pr-8 xl:pr-10 overflow-x-auto snap-x snap-mandatory md:snap-none scroll-px-1 md:scroll-px-2 border-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {/* Promos */}
+            {/* Mobile : Smart Troc en tête de barre */}
             <button
-              onClick={() => goShop('promo=1')}
-              className="group shrink-0 snap-start inline-flex items-center gap-0.5 md:gap-1.5 px-1.5 md:px-3 py-2 rounded-md text-[10px] md:text-sm font-tech font-bold uppercase tracking-normal md:tracking-wide text-xeption-gold hover:bg-white/5 transition-colors whitespace-nowrap"
+              type="button"
+              onClick={() => navigate('/troc')}
+              className="md:hidden group shrink-0 snap-start inline-flex items-center gap-1 px-1.5 py-2 rounded-md text-[10px] font-tech font-bold uppercase tracking-normal text-xeption-gold hover:bg-white/5 transition-colors whitespace-nowrap"
             >
-              <Zap className="w-3 h-3 md:w-4 md:h-4 fill-current" /> Promos
+              <RefreshCw className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} />
+              Troc
+            </button>
+
+            {/* Desktop : Promos */}
+            <button
+              type="button"
+              onClick={() => goShop('promo=1')}
+              className="hidden md:inline-flex group shrink-0 snap-start items-center gap-1.5 px-3 py-2 rounded-md text-sm font-tech font-bold uppercase tracking-wide text-xeption-gold hover:bg-white/5 transition-colors whitespace-nowrap"
+            >
+              <Zap className="w-4 h-4 fill-current" /> Promos
             </button>
 
             <span className="shrink-0 w-px h-4 bg-white/10 mx-0.5 md:mx-1.5" />

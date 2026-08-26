@@ -8,7 +8,7 @@
  * Pré-requis :
  *   npm run db:apply -- supabase/migrations/20260721_001_products_release_year.sql
  *   VITE_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY dans .env
- *   VITE_DEEPSEEK_API_KEY dans .env
+ *   DEEPSEEK_API_KEY dans .env
  *
  * Usage :
  *   node scripts/batch-enrich-release-year.mjs --dry-run
@@ -39,8 +39,10 @@ const batchSizeArg = process.argv.find((a) => a.startsWith('--batch-size='));
 const AI_BATCH_SIZE = batchSizeArg ? Math.max(1, Math.min(8, Number(batchSizeArg.split('=')[1]) || 5)) : 5;
 const DELAY_MS = Number(process.env.BATCH_ENRICH_DELAY_MS || 3000);
 
-const DEEPSEEK_KEY = process.env.VITE_DEEPSEEK_API_KEY?.trim() || '';
-const DEEPSEEK_MODEL = process.env.VITE_DEEPSEEK_MODEL?.trim() || 'deepseek-chat';
+const DEEPSEEK_KEY =
+  process.env.DEEPSEEK_API_KEY?.trim() || process.env.VITE_DEEPSEEK_API_KEY?.trim() || '';
+const DEEPSEEK_MODEL =
+  process.env.DEEPSEEK_MODEL?.trim() || process.env.VITE_DEEPSEEK_MODEL?.trim() || 'deepseek-chat';
 
 const normalizeModelKey = (brand, model) => {
   const norm = (s) =>
@@ -191,7 +193,7 @@ async function main() {
   const url = process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error('Missing Supabase credentials');
-  if (!SKIP_AI && !DEEPSEEK_KEY) throw new Error('Missing VITE_DEEPSEEK_API_KEY in .env');
+  if (!SKIP_AI && !DEEPSEEK_KEY) throw new Error('Missing DEEPSEEK_API_KEY in .env');
 
   const supabase = createClient(url, key);
 

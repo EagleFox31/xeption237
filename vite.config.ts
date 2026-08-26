@@ -15,12 +15,8 @@ export default defineConfig(({ mode }) => {
       dedupe: ['react', 'react-dom'],
     },
     define: {
-      // Polyfill spécifique pour API_KEY
-      'process.env.API_KEY': JSON.stringify(
-        env.VITE_GEMINI_API_KEY || env.API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.API_KEY || ''
-      ),
-      // Polyfill sûr pour process.env pour éviter les crashs si d'autres libs l'utilisent, mais sans injecter l'objet Node complet
-      'process.env': {}
+      // Polyfill sûr pour process.env (évite les crashs si une lib le lit) — sans injecter de secrets
+      'process.env': {},
     },
     build: {
       outDir: 'dist',

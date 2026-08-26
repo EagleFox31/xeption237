@@ -46,14 +46,16 @@ const DELAY_MS = Number(process.env.BATCH_ENRICH_DELAY_MS || 3000);
 
 const GEMINI_MODEL =
   process.env.BATCH_ENRICH_MODEL?.trim() ||
-  process.env.VITE_GEMINI_TEXT_MODEL?.trim() ||
+  process.env.GEMINI_TEXT_MODEL?.trim() ||
   'gemini-2.5-flash';
 const GEMINI_KEY =
-  process.env.VITE_GEMINI_API_KEY?.trim() ||
   process.env.GEMINI_API_KEY?.trim() ||
+  process.env.VITE_GEMINI_API_KEY?.trim() ||
   process.env.API_KEY?.trim();
-const DEEPSEEK_KEY = process.env.VITE_DEEPSEEK_API_KEY?.trim() || '';
-const DEEPSEEK_MODEL = process.env.VITE_DEEPSEEK_MODEL?.trim() || 'deepseek-chat';
+const DEEPSEEK_KEY =
+  process.env.DEEPSEEK_API_KEY?.trim() || process.env.VITE_DEEPSEEK_API_KEY?.trim() || '';
+const DEEPSEEK_MODEL =
+  process.env.DEEPSEEK_MODEL?.trim() || process.env.VITE_DEEPSEEK_MODEL?.trim() || 'deepseek-chat';
 
 const COMMERCIAL_KEYS = ['stockage', 'origine', 'source', 'sim', 'conditionnement', 'condition', 'ram'];
 
@@ -363,9 +365,9 @@ function sleep(ms) {
 }
 
 async function main() {
-  if (PROVIDER === 'gemini' && !GEMINI_KEY) throw new Error('Missing VITE_GEMINI_API_KEY in .env');
+  if (PROVIDER === 'gemini' && !GEMINI_KEY) throw new Error('Missing GEMINI_API_KEY in .env');
   if (PROVIDER === 'deepseek' && !DEEPSEEK_KEY) {
-    throw new Error('Missing VITE_DEEPSEEK_API_KEY in .env');
+    throw new Error('Missing DEEPSEEK_API_KEY in .env');
   }
   const url = process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;

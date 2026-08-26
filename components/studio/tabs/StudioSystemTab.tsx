@@ -1,6 +1,5 @@
 import React from 'react';
 import { CheckCircle2, XCircle, Terminal } from 'lucide-react';
-import { hasDeepSeekApiKey } from '../../../services/deepseekClient';
 import { getSuperAdminEmails } from '../../../utils/superAdmin';
 
 const StudioSystemTab: React.FC = () => {
@@ -11,9 +10,9 @@ const StudioSystemTab: React.FC = () => {
       detail: import.meta.env.VITE_SUPABASE_URL ? 'Configuré' : 'VITE_SUPABASE_URL manquant',
     },
     {
-      label: 'DeepSeek (enrichissement)',
-      ok: hasDeepSeekApiKey(),
-      detail: hasDeepSeekApiKey() ? 'VITE_DEEPSEEK_API_KEY OK' : 'Clé absente dans .env',
+      label: 'DeepSeek (auto-fill produit)',
+      ok: true,
+      detail: 'Côté serveur — secret DEEPSEEK_API_KEY sur Supabase (Edge ai-product-details)',
     },
     {
       label: 'Super admin emails',

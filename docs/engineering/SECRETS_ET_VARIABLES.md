@@ -52,6 +52,8 @@ ton `.env`.
 | `GEMINI_CREDIBILITY_MODELS` | idem pour le pré-check photo | facultatif |
 | `DEEPSEEK_API_KEY` | auto-fill fiches produit (`ai-product-details`) | platform.deepseek.com |
 | `DEEPSEEK_MODEL` | modèle texte DeepSeek (défaut `deepseek-chat`) | facultatif |
+| `OPENROUTER_API_KEY` | secours vision Smart Troc (`evaluate-device`) | openrouter.ai |
+| `OPENROUTER_VISION_MODEL` | modèle vision OpenRouter (défaut `dots-studio/dots-3-note-preview:free`) | facultatif |
 | `IMEI_INFO_API_KEY` | vérification IMEI de base | dash.imei.info |
 | `IMEI_PREMIUM_API_KEY` | contrôle blacklist mondial | imeicheck.net |
 | `CAMPAY_API_TOKEN` · `CAMPAY_BASE_URL` · `CAMPAY_WEBHOOK_KEY` | paiement Mobile Money | tableau de bord Campay |
@@ -112,6 +114,11 @@ Jamais livré au navigateur. Sert aux outils en ligne de commande.
 | `DATABASE_URL` | migrations, scripts de vérification, moteur de rendu |
 | `SUPABASE_DB_PASSWORD` | utilisé par le CLI Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | facultatif — `DATABASE_URL` fait le même travail |
+| `DEEPSEEK_API_KEY` | enrichissement catalogue (scripts batch / ingestion) |
+| `DEEPSEEK_MODEL` | modèle texte pour les scripts (défaut `deepseek-chat`) |
+| `GEMINI_API_KEY` | optionnel — `batch-enrich-product-specs.mjs --provider=gemini` |
+| `OPENROUTER_API_KEY` | optionnel — `scripts/test-openrouter-vision.mjs` |
+| `OPENROUTER_VISION_MODEL` | modèle pour le script de test OpenRouter |
 | `CHROME_PATH` | facultatif, si Chrome n'est pas à un emplacement standard |
 | `INDEXNOW_KEY` | ping Bing / Yandex / DuckDuckGo au build. **Piège rencontré** : la déclaration était collée à la fin d'une ligne de commentaire, donc `dotenv` ignorait tout — le ping ne partait jamais, en silence. Exige aussi `public/<clé>.txt` contenant la clé |
 
@@ -119,27 +126,24 @@ Jamais livré au navigateur. Sert aux outils en ligne de commande.
 
 ## 4. Variables `VITE_` — publiées, à traiter comme telles
 
-Elles sont dans le bundle. Vérifié sur `dist/assets/index-*.js`.
+Elles sont dans le bundle. Vérifié sur `dist/assets/index-*.js` (lot 5, août 2026).
 
 **Sans danger** — conçues pour être publiques :
 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (protégée par la RLS),
-`VITE_ENABLE_TROC_AI`, et tous les `VITE_*_MODEL(S)`, qui ne sont que des noms
-de modèles.
+`VITE_ENABLE_TROC_AI`, `VITE_SUPER_ADMIN_EMAILS`.
 
-**⚠️ Problématiques** — ce sont de vraies clés facturables, lisibles par
-n'importe qui ouvrant les sources du site :
+**Lot 5 — retiré du bundle** (août 2026) :
+chatbot (`ai-chat`), auto-fill produit (`ai-product-details`), vision Smart Troc
+(`evaluate-device`) passent tous par les Edge Functions Supabase. Les clés
+`GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY` ne doivent **jamais**
+recevoir le préfixe `VITE_`.
 
-| variable | conséquence si extraite |
-|---|---|
-| `VITE_GEMINI_API_KEY` | consommation facturée sur ton compte Google |
-| `VITE_OPENROUTER_API_KEY` | tes crédits OpenRouter dépensés |
-| ~~`VITE_DEEPSEEK_API_KEY`~~ | **aucune clé définie** — rien ne fuit aujourd'hui. Le chemin de code existait et l'exposerait si on en posait une ; il a été retiré au lot 3 et à la suppression de `reviewGenerator`. Seul `StudioSystemTab` teste encore sa présence, sans l'envoyer |
-| `VITE_SUPER_ADMIN_EMAILS` | divulgue les adresses des super-admins |
+**Attention** — `VITE_SUPER_ADMIN_EMAILS` divulgue les adresses des super-admins ;
+acceptable en dev, à évaluer en prod.
 
-C'est l'objet du cadrage `docs/next-step/CADRAGE_CLES_IA_COTE_SERVEUR.md` : ces
-appels doivent passer par une Edge Function, comme le canal vision principal.
-Tant que ce n'est pas fait, ces clés sont exposées dès la première mise en ligne
-publique — et les trois premières sont à révoquer et recréer à ce moment-là.
+**Action post-déploiement** : révoquer et recréer toute clé Google / OpenRouter
+qui a déjà été exposée via un ancien `VITE_GEMINI_API_KEY` ou
+`VITE_OPENROUTER_API_KEY` dans un build public.
 
 ---
 

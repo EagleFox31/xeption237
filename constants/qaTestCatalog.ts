@@ -201,7 +201,7 @@ export const QA_TESTS: QaTest[] = [
   T('T-X19', 'transverse', 'blocking', 'Appeler ai-product-details sans être connecté', '401. Idem avec la clé anon en Bearer : une session anonyme n’a pas d’email, donc ne passe pas'),
   T('T-X20', 'transverse', 'important', 'Appeler ai-product-details avec un compte hors table staff', 'Refusé, même si le JWT est valide'),
   T('T-X21', 'transverse', 'blocking', 'Chercher import.meta.env accédé EN ENTIER dans le code', 'Aucun. Un seul `if (import.meta.env)` suffit à inliner toutes les variables VITE_ dans le bundle'),
-  T('T-X22', 'transverse', 'blocking', 'Sonder la chaîne de modèles vision avant une mise en ligne', 'Au moins deux modèles répondent. Le 25/08, les deux modèles légers étaient en timeout simultané')
+  T('T-X22', 'transverse', 'blocking', 'Sonder la chaîne de modèles vision avant une mise en ligne', 'Au moins deux modèles répondent. Le 25/08, les deux modèles légers étaient en timeout simultané'),
   T('T-X23', 'transverse', 'blocking', 'Comparer la chaîne renvoyée par healthCheck à celle du code', 'Identiques. Un module partagé non importé n’est PAS déployé : l’éditer ne change rien'),
 ];
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeftRight, RefreshCw, TrendingDown } from 'lucide-react';
-import type { TradeInRequest, TrocSession, TrocPayment } from '../../../types';
+import type { Product, TradeInRequest, TrocSession, TrocPayment } from '../../../types';
 import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
 import { adminUi } from '../shared/adminUi';
 import TrocTab from './TrocTab';
@@ -13,6 +13,7 @@ interface TrocWorkspaceTabProps {
   requests: TradeInRequest[];
   sessions: TrocSession[];
   payments: TrocPayment[];
+  products: Product[];
   isLoadingPayments?: boolean;
   onRefresh?: () => void;
   onTransition: (
@@ -37,6 +38,7 @@ const TrocWorkspaceTab: React.FC<TrocWorkspaceTabProps> = ({
   requests,
   sessions,
   payments,
+  products,
   isLoadingPayments,
   onRefresh,
   onTransition,
@@ -72,6 +74,7 @@ const TrocWorkspaceTab: React.FC<TrocWorkspaceTabProps> = ({
             requests={requests}
             sessions={sessions}
             payments={payments}
+            products={products}
             isLoadingPayments={isLoadingPayments}
             onRefresh={onRefresh}
             onTransition={onTransition}

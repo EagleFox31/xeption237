@@ -7,6 +7,8 @@ interface HomeProductRowProps {
   /** Petit label en éyebrow (ex: "CATÉGORIE"). */
   eyebrow?: string;
   title: string;
+  /** Titre court sur mobile si le libellé complet risque de déborder. */
+  mobileTitle?: string;
   icon?: React.ReactNode;
   products: Product[];
   onViewAll: () => void;
@@ -23,6 +25,7 @@ interface HomeProductRowProps {
 const HomeProductRow: React.FC<HomeProductRowProps> = ({
   eyebrow,
   title,
+  mobileTitle,
   icon,
   products,
   onViewAll,
@@ -45,7 +48,7 @@ const HomeProductRow: React.FC<HomeProductRowProps> = ({
       }`}
     >
       {/* Bandeau d'en-tête (card pleine largeur de section) - Version Premium */}
-      <div className="relative overflow-hidden flex items-center justify-between gap-4 mb-4 md:mb-5 rounded-xl border border-xeption-gold/20 bg-[#0a0a0c]/60 backdrop-blur-xl px-4 md:px-6 py-4 md:py-5 shadow-[0_0_30px_rgba(255,215,0,0.15)] group transition-shadow duration-500 hover:shadow-[0_0_40px_rgba(255,215,0,0.25)]">
+      <div className="relative overflow-hidden flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 mb-4 md:mb-5 rounded-xl border border-xeption-gold/20 bg-[#0a0a0c]/60 backdrop-blur-xl px-4 md:px-6 py-4 md:py-5 shadow-[0_0_30px_rgba(255,215,0,0.15)] group transition-shadow duration-500 hover:shadow-[0_0_40px_rgba(255,215,0,0.25)]">
         
         {/* Ligne lumineuse au sommet pour le côté "bijou" */}
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-xeption-gold/50 to-transparent opacity-60"></div>
@@ -62,14 +65,17 @@ const HomeProductRow: React.FC<HomeProductRowProps> = ({
               </span>
             </div>
           )}
-          <h2 className="flex items-center gap-3 text-2xl md:text-3xl font-bold font-tech uppercase text-white tracking-wide truncate drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]">
+          <h2 className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xl sm:text-2xl md:text-3xl font-bold font-tech uppercase text-white tracking-wide leading-snug drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]">
             {icon && (
-               <span className="drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] scale-110">{icon}</span>
+               <span className="drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] scale-110 shrink-0">{icon}</span>
             )}
-            {title}
+            <span className="min-w-0 break-words">
+              <span className="sm:hidden">{mobileTitle ?? title}</span>
+              <span className="hidden sm:inline">{title}</span>
+            </span>
           </h2>
         </div>
-        <div className="shrink-0 flex items-center gap-2 relative z-10">
+        <div className="shrink-0 flex items-center gap-2 relative z-10 self-end sm:self-auto">
           <button
             type="button"
             onClick={() => scrollByPage(-1)}
@@ -97,23 +103,52 @@ const HomeProductRow: React.FC<HomeProductRowProps> = ({
         </div>
       </div>
 
-      <div
-        ref={trackRef}
-        className="flex gap-3 md:gap-4 overflow-x-auto pb-2 snap-x [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {products.map((product) => (
-          <div
-            key={product.id}
-            className="shrink-0 snap-start w-[calc((100%-0.75rem)/2)] md:w-[calc((100%-3rem)/4)] xl:w-[calc((100%-4rem)/5)]"
-          >
-            <ProductCard
-              product={product}
-              onAddToCart={onAddToCart}
-              onProductClick={onProductClick}
-            />
-          </div>
-        ))}
+      <div className="relative">
+        <div
+          ref={trackRef}
+          className="home-product-row-scroll flex gap-3 md:gap-4 overflow-x-auto overscroll-x-contain pb-3 md:pb-2 snap-x snap-mandatory scroll-smooth md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden"
+        >
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="shrink-0 snap-start w-[calc((100%-1.5rem)/2.5)] md:w-[calc((100%-3rem)/4)] xl:w-[calc((100%-4rem)/5)]"
+            >
+              <ProductCard
+                product={product}
+                onAddToCart={onAddToCart}
+                onProductClick={onProductClick}
+              />
+            </div>
+          ))}
+        </div>
+        <div
+          className="pointer-events-none absolute right-0 top-0 bottom-3 w-10 bg-gradient-to-l from-black/80 to-transparent md:hidden"
+          aria-hidden
+        />
       </div>
+
+      <style>{`
+        .home-product-row-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 215, 0, 0.45) rgba(255, 255, 255, 0.08);
+        }
+        .home-product-row-scroll::-webkit-scrollbar {
+          height: 6px;
+        }
+        .home-product-row-scroll::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 9999px;
+        }
+        .home-product-row-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255, 215, 0, 0.45);
+          border-radius: 9999px;
+        }
+        @media (min-width: 768px) {
+          .home-product-row-scroll {
+            scrollbar-width: none;
+          }
+        }
+      `}</style>
     </section>
   );
 };

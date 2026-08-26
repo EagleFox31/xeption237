@@ -1,18 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { RefreshCw } from 'lucide-react';
-import type { TradeInRequest, TrocSession, TrocPayment } from '../../../types';
+import { RefreshCw, Check, X, CheckCircle2 } from 'lucide-react';
+import type { Product, TradeInRequest, TrocSession, TrocPayment } from '../../../types';
 import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
 import TableShell from '../shared/TableShell';
 import { TrocDetailsModal } from '../modals/TrocDetailsModal';
 import { PaymentChannelBadge, PaymentStatusBadge, TierBadge } from '../shared/trocTableBadges';
 import { VoucherExpiryBadge } from '../shared/VoucherExpiryBadge';
 import { buildTrocDossierRows, phonesMatch } from '../../../utils/trocDossierJoin';
+import { resteAPayer } from '../../../services/trocCheckoutService';
 import { notifyError, notifySuccess } from '../../../utils/notify';
 
 interface TrocTabProps {
   requests: TradeInRequest[];
   sessions: TrocSession[];
   payments: TrocPayment[];
+  products: Product[];
   isLoadingPayments?: boolean;
   onRefresh?: () => void;
   onTransition: (
@@ -25,6 +27,9 @@ interface TrocTabProps {
 type FilterValue = TradeInRequest['status'] | 'all';
 type PaymentFilterValue = TrocPayment['status'] | 'all';
 type TierFilterValue = TrocPayment['tier'] | 'all';
+
+/** Refusés / annulés : hors total « valeur reprise active ». */
+const BLOCKED_REPRISE_STATUSES = new Set<TradeInRequest['status']>(['refused', 'cancelled']);
 
 const STEPS: Array<{ key: TrocSession['last_step']; label: string }> = [
   { key: 'form', label: 'Formulaire' },
@@ -64,7 +69,9 @@ const BLOCKER_LABELS: Record<string, string> = {
 };
 
 const formatFCFA = (amount?: number) =>
-  amount != null ? new Intl.NumberFormat('fr-FR').format(amount).replace(/\s/g, '.') + ' F' : '—';
+  amount != null
+    ? `${new Intl.NumberFormat('fr-FR').format(amount).replace(/\s/g, '.')}\u00a0F`
+    : '—';
 
 const formatXaf = (n: number): string =>
   new Intl.NumberFormat('fr-FR').format(n).replace(/\s/g, '.');
@@ -123,6 +130,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
   requests,
   sessions,
   payments,
+  products,
   isLoadingPayments = false,
   onRefresh,
   onTransition,
@@ -133,6 +141,39 @@ export const TrocTab: React.FC<TrocTabProps> = ({
   const [search, setSearch] = useState('');
   const [showFunnel, setShowFunnel] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TradeInRequest | null>(null);
+
+  const targetPriceById = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const product of products) {
+      map.set(product.id, product.price);
+    }
+    return map;
+  }, [products]);
+
+  const resolveResteForRequest = (req: TradeInRequest | null | undefined): number | 'missing' | null => {
+    if (!req?.target_product_id) return null;
+    const price = targetPriceById.get(req.target_product_id);
+    if (price == null) return 'missing';
+    return resteAPayer(price, req.trade_in_value ?? 0);
+  };
+
+  const renderResteAPayer = (req: TradeInRequest | null | undefined) => {
+    if (!req) return <span className="text-white/40">—</span>;
+    const reste = resolveResteForRequest(req);
+    if (reste === null) return <span className="text-white/40">—</span>;
+    if (reste === 'missing') {
+      return (
+        <span className="text-white/45 italic" title="Prix boutique à confirmer">
+          À confirmer
+        </span>
+      );
+    }
+    return (
+      <span className={`font-medium whitespace-nowrap tabular-nums ${reste > 0 ? 'text-white' : 'text-xeption-gold'}`}>
+        {formatFCFA(reste)}
+      </span>
+    );
+  };
 
   // Transition gardée + retour utilisateur (les cas bloqués — bon expiré, motif requis —
   // renvoient vers la modale « Détails » où le motif/la ré-évaluation sont gérés).
@@ -195,7 +236,11 @@ export const TrocTab: React.FC<TrocTabProps> = ({
 
   const dossierCount = filtered.filter((r) => r.kind === 'dossier').length;
   const awaitingCount = filtered.filter((r) => r.kind === 'awaiting_voucher').length;
-  const totalValue = filtered.reduce((sum, row) => sum + (row.request?.trade_in_value ?? 0), 0);
+  const totalValue = filtered.reduce((sum, row) => {
+    if (row.kind !== 'dossier' || !row.request) return sum;
+    if (BLOCKED_REPRISE_STATUSES.has(row.request.status)) return sum;
+    return sum + (row.request.trade_in_value ?? 0);
+  }, 0);
   const pendingCount = filtered.filter(
     (row) => row.kind === 'dossier' && row.request?.status === 'pending',
   ).length;
@@ -240,7 +285,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
 
   return (
     <div className="animate-in fade-in h-full min-h-0 flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 shrink-0 text-xs text-white">
+      <div className="flex flex-wrap items-center gap-3 shrink-0 text-xs text-white">
         <span>
           <strong className="font-tech text-base">{dossierCount}</strong>
           <span className="ml-1">dossiers</span>
@@ -249,23 +294,47 @@ export const TrocTab: React.FC<TrocTabProps> = ({
             <span className="text-white/50 ml-1">· {awaitingCount} bon(s) non émis</span>
           )}
         </span>
+        <span className="text-white/30">|</span>
         <span>
           <strong className="text-yellow-300 font-tech">{pendingCount}</strong>
-          <span className="ml-1">en attente</span>
+          <span className="ml-1 text-white/70">en attente</span>
         </span>
-        <span className="text-xeption-gold font-mono font-bold">{formatFCFA(totalValue)}</span>
-        <span className="text-white/40">·</span>
-        <span>
-          Encaissé <strong className="text-xeption-gold font-mono">{formatXaf(grandTotal)}</strong> F
+        <span className="text-white/30">|</span>
+        <span className="inline-flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
+          <span className="text-[10px] font-tech uppercase tracking-widest text-white/50">
+            Valeur reprise active
+          </span>
+          <strong className="text-xeption-gold font-mono text-sm">{formatFCFA(totalValue)}</strong>
         </span>
-        <span>Express <strong className="font-mono">{formatXaf(revenueByTier.express)}</strong></span>
-        <span>Premium <strong className="font-mono">{formatXaf(revenueByTier.premium)}</strong></span>
-        <span>Sûreté <strong className="font-mono">{formatXaf(revenueByTier.safety)}</strong></span>
+        <span className="text-white/30 hidden sm:inline">|</span>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:pl-1">
+          <span className="text-[10px] font-tech uppercase tracking-widest text-white/50">
+            Frais service encaissés
+          </span>
+          <strong className="text-xeption-gold font-mono">{formatXaf(grandTotal)} F</strong>
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                ['express', 'Express', revenueByTier.express],
+                ['premium', 'Premium', revenueByTier.premium],
+                ['safety', 'Sûreté', revenueByTier.safety],
+              ] as const
+            ).map(([key, label, amount]) => (
+              <span
+                key={key}
+                className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-tech uppercase tracking-wide text-white/80"
+              >
+                {label}
+                <strong className="font-mono text-white">{formatXaf(amount)}</strong>
+              </span>
+            ))}
+          </div>
+        </div>
         {sessions.length > 0 && (
           <button
             type="button"
             onClick={() => setShowFunnel((v) => !v)}
-            className="text-[10px] font-tech uppercase tracking-widest text-white/70 hover:text-white transition-colors"
+            className="text-[10px] font-tech uppercase tracking-widest text-white/70 hover:text-white transition-colors ml-auto sm:ml-0"
           >
             Funnel {showFunnel ? '▲' : '▼'}
           </button>
@@ -321,7 +390,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
             </div>
           }
         >
-          <table className="w-full text-left border-collapse min-w-[1200px]">
+          <table className="w-full text-left border-collapse min-w-[1280px]">
             <thead className="sticky top-0 z-20 bg-[#0c0c0e] text-white/60 text-xs uppercase tracking-wider shadow-md">
               <tr>
                 <th className="px-4 py-3">Référence</th>
@@ -331,18 +400,19 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                 <th className="px-4 py-3">Frais service</th>
                 <th className="px-4 py-3">Opérateur</th>
                 <th className="px-4 py-3">Payé le</th>
-                <th className="px-4 py-3">Score</th>
-                <th className="px-4 py-3">Valeur reprise</th>
-                <th className="px-4 py-3">Qualité</th>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Statut dossier</th>
+                <th className="px-4 py-3 whitespace-nowrap">Score</th>
+                <th className="px-4 py-3 whitespace-nowrap">Valeur reprise</th>
+                <th className="px-4 py-3 whitespace-nowrap min-w-[7rem]">Reste à payer</th>
+                <th className="px-4 py-3 whitespace-nowrap">Qualité</th>
+                <th className="px-4 py-3 whitespace-nowrap">Date</th>
+                <th className="px-4 py-3 whitespace-nowrap min-w-[9rem]">Statut dossier</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-white/80 text-sm">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={14} className="text-center py-10 text-white/50 text-sm">
+                  <td colSpan={15} className="text-center py-10 text-white/50 text-sm">
                     Aucun dossier trouvé.
                   </td>
                 </tr>
@@ -362,7 +432,11 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                 return (
                   <tr
                     key={row.id}
-                    className={`hover:bg-white/5 transition-colors ${isAwaiting ? 'bg-white/[0.03]' : ''}`}
+                    onClick={req ? () => setSelectedRequest(req) : undefined}
+                    title={req ? 'Voir le détail du dossier' : undefined}
+                    className={`transition-colors ${
+                      req ? 'cursor-pointer hover:bg-white/10' : 'hover:bg-white/5'
+                    } ${isAwaiting ? 'bg-white/[0.03]' : ''}`}
                   >
                     <td className="px-4 py-3 font-mono text-xs text-white/60">
                       <span>{req?.voucher_reference ?? req?.id?.slice(0, 8) ?? '—'}</span>
@@ -412,8 +486,8 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                     </td>
                     <td className="px-4 py-3">
                       {pay ? (
-                        <div className="flex flex-col gap-1">
-                          <span className="text-white font-medium text-xs">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-white font-medium text-xs whitespace-nowrap tabular-nums">
                             {formatXaf(Number(pay.amount))} {pay.currency}
                           </span>
                           <PaymentStatusBadge status={pay.status} />
@@ -427,7 +501,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                         <span className="text-white/40 text-xs">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-white/70">
+                    <td className="px-4 py-3 text-xs text-white/70 whitespace-nowrap tabular-nums">
                       {formatDateTime(pay?.paid_at ?? (pay?.status === 'paid' ? pay.created_at : undefined))}
                     </td>
                     <td className="px-4 py-3">
@@ -441,11 +515,12 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                         '—'
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs">
+                    <td className="px-4 py-3 text-xs whitespace-nowrap tabular-nums">
                       <span className="text-xeption-gold font-medium">
                         {req ? formatFCFA(req.trade_in_value) : '—'}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-xs whitespace-nowrap">{renderResteAPayer(req)}</td>
                     <td className="px-4 py-3 text-xs text-white/60">
                       {req ? (
                         <div className="flex flex-col gap-1">
@@ -472,9 +547,9 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                     </td>
                     <td className="px-4 py-3">
                       {req ? (
-                        <>
+                        <div className="flex flex-wrap items-center gap-1.5">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
                           req.status === 'in_progress'
                             ? 'bg-sky-500/20 text-sky-300'
                             : req.status === 'pending'
@@ -491,46 +566,49 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                           {STATUS_LABELS[req.status] ?? req.status}
                         </span>
                         {(req.status === 'pending' || req.status === 'accepted' || req.status === 'validated') && (
-                          <VoucherExpiryBadge request={req} className="ml-1 align-middle" />
+                          <VoucherExpiryBadge request={req} />
                         )}
-                        </>
+                        </div>
                       ) : (
                         <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300">
                           Bon non émis
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       {req ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setSelectedRequest(req)}
-                            className="px-2 py-1 bg-white/5 text-white/80 border border-white/10 rounded text-xs hover:bg-white/10 transition-all"
-                          >
-                            Détails
-                          </button>
+                        <div className="flex items-center justify-end gap-1">
                           {(req.status === 'pending' || req.status === 'accepted') && (
                             <button
+                              type="button"
                               onClick={() => runTransition(req.id, 'validated')}
-                              className="px-2 py-1 bg-green-600/20 text-green-400 border border-green-600/30 rounded text-xs hover:bg-green-600/40 transition-all"
+                              title="Valider l'échange"
+                              aria-label="Valider l'échange"
+                              className="p-1.5 rounded border border-green-600/30 bg-green-600/20 text-green-400 hover:bg-green-600/40 transition-all"
                             >
-                              Valider
+                              <Check className="w-4 h-4" />
                             </button>
                           )}
                           {req.status === 'validated' && (
                             <button
+                              type="button"
                               onClick={() => setSelectedRequest(req)}
-                              className="px-2 py-1 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded text-xs hover:bg-blue-600/40 transition-all"
+                              title="Terminer l'échange"
+                              aria-label="Terminer l'échange"
+                              className="p-1.5 rounded border border-blue-600/30 bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-all"
                             >
-                              Terminer
+                              <CheckCircle2 className="w-4 h-4" />
                             </button>
                           )}
                           {(req.status === 'pending' || req.status === 'accepted') && (
                             <button
+                              type="button"
                               onClick={() => runTransition(req.id, 'refused')}
-                              className="px-2 py-1 bg-red-600/20 text-red-400 border border-red-600/30 rounded text-xs hover:bg-red-600/40 transition-all"
+                              title="Refuser l'échange"
+                              aria-label="Refuser l'échange"
+                              className="p-1.5 rounded border border-red-600/30 bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-all"
                             >
-                              Refuser
+                              <X className="w-4 h-4" />
                             </button>
                           )}
                         </div>

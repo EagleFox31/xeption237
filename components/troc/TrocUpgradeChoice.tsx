@@ -188,7 +188,7 @@ const TrocUpgradeChoice: React.FC<TrocUpgradeChoiceProps> = ({ credit, deviceBra
                       <p className="text-sm font-tech font-bold text-emerald-400">Couvert par ton crédit ✓</p>
                     ) : (
                       <>
-                        <p className="text-[10px] text-white/60 font-sans">Reste à partir de</p>
+                        <p className="text-[10px] text-white/60 font-sans">Reste à payer</p>
                         <p className="text-lg font-tech font-bold text-white leading-none">
                           {fmt(reste)} <span className="text-[10px] text-xeption-gold">FCFA</span>
                         </p>

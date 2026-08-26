@@ -10,7 +10,7 @@ export type TrocTier = 'express' | 'premium' | 'safety' | 'certif';
 export const TROC_TIERS: readonly TrocTier[] = ['express', 'premium', 'safety', 'certif'] as const;
 
 export const TROC_TIER_PRICES: Record<TrocTier, number> = {
-  express: 150,
+  express: 100,
   premium: 500,
   safety:  1000,
   certif:  300,

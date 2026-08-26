@@ -8,7 +8,8 @@ export type AiRateLimitScope =
   | 'ai-product-details'
   | 'evaluate-device'
   | 'check-imei'
-  | 'market-price-intel';
+  | 'market-price-intel'
+  | 'troc-voucher-lookup';
 
 export interface AiRateLimitPolicy {
   /** Durée d'une fenêtre (ms). */
@@ -26,6 +27,7 @@ const DEFAULT_POLICIES: Record<AiRateLimitScope, AiRateLimitPolicy> = {
   'evaluate-device': { windowMs: HOUR_MS, maxSession: 30, maxIp: 90 },
   'check-imei': { windowMs: HOUR_MS, maxSession: 20, maxIp: 60 },
   'market-price-intel': { windowMs: HOUR_MS, maxSession: 25, maxIp: 75 },
+  'troc-voucher-lookup': { windowMs: HOUR_MS, maxSession: 30, maxIp: 60 },
 };
 
 const parsePolicyOverride = (

@@ -6,7 +6,7 @@ import { TROC_MESSAGES } from '../utils/trocMessages';
 import { isTrocPhotosCredibilityVerified } from '../utils/trocPhotoCredibilitySession';
 import { normalizeModelKey } from '../utils/modelKey';
 import { getProductDisplayName } from '../utils/productDisplay';
-import { computeVoucherExpiry } from '../utils/trocVoucher';
+import { computeVoucherExpiry } from '../utils/voucherValidity';
 import {
   sanitizeImei,
   isValidImei as isValidImeiStrict,
@@ -752,7 +752,12 @@ export const saveTradeInRequest = async (
   sessionKey?: string,
   /** Appareil cible du troc (Smart Troc). Lié au MÊME dossier — voucher + précommande boutique. */
   targetProduct?: Product | null,
-): Promise<{ id: string; voucherReference: string }> => {
+): Promise<{
+  id: string;
+  voucherReference: string;
+  voucherExpiresAt: string | null;
+  createdAt: string | null;
+}> => {
   // Le score IA est transmis mais l'offre monétaire est RECALCULÉE server-side.
   // imei_status est aussi revalidé par la edge function (Luhn + check-imei).
   // sessionKey permet à save-trade-in de retrouver le tier payé dans troc_payments.
@@ -806,7 +811,12 @@ export const saveTradeInRequest = async (
 
   if (error || !data) throw new Error((error as any)?.message ?? 'save-trade-in failed');
 
-  return { id: data.id, voucherReference: data.voucherReference };
+  return {
+    id: data.id,
+    voucherReference: data.voucherReference || data.id,
+    voucherExpiresAt: data.voucherExpiresAt ?? null,
+    createdAt: data.createdAt ?? null,
+  };
 };
 
 // ─── Ré-évaluation d'un bon périmé (tranche 3.2b) ────────────────────────────

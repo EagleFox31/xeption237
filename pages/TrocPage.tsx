@@ -353,12 +353,13 @@ const TrocPage: React.FC = () => {
     troc.result && troc.savedRequest
       ? {
           id:               troc.savedRequest.id,
-          created_at:       new Date().toISOString(),
+          created_at:       troc.savedRequest.created_at ?? new Date().toISOString(),
           customer_name:    troc.form.customerName,
           customer_phone:   troc.form.customerPhone,
           device_brand:     troc.form.deviceBrand,
           device_model:     troc.form.deviceModel,
           photo_urls:       troc.photoUrls,
+          imei:             troc.form.imei,
           imei_status:      troc.imeiStatus,
           imei_blacklist_status: troc.imeiBlacklistStatus,
           imei_assurance_level: troc.imeiAssuranceLevel,
@@ -367,8 +368,12 @@ const TrocPage: React.FC = () => {
           ai_justification: troc.result.justification,
           trade_in_value:   troc.result.tradeInValue,
           trade_in_grade:   troc.result.tradeInGrade,
-          status:           'accepted',
+          status:           'pending',
+          tier:             troc.selectedTier,
           voucher_reference: troc.savedRequest.voucher_reference,
+          voucher_expires_at: troc.savedRequest.voucher_expires_at,
+          target_product_id: troc.savedRequest.target_product_id,
+          target_product_name: troc.savedRequest.target_product_name,
         }
       : null;
 

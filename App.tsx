@@ -6,6 +6,7 @@ import { supabase } from './services/supabaseClient';
 import SiteBackground from './components/SiteBackground';
 import {
   isLightBackgroundRoute,
+  isImageOnlyBackgroundRoute,
   SITE_BACKGROUND_IMAGES,
   SITE_BACKGROUND_LIGHT_IMAGES,
 } from './constants/backgroundImages';
@@ -15,6 +16,7 @@ import { Toaster } from 'sonner';
 import { resolveSuperAdminAccess } from './utils/superAdmin';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { notifyError } from './utils/notify';
+import { getProductSlug } from './utils/slug';
 //Newlmlmpmmlm
 // Pages
 import HomePage from './pages/HomePage';
@@ -23,6 +25,7 @@ import ShopPage from './pages/ShopPage';
 import ContactPage from './pages/ContactPage';
 import TrocPage from './pages/TrocPage';
 import TrackingPage from './pages/TrackingPage';
+import TrocVoucherPage from './pages/TrocVoucherPage';
 import SavPage from './pages/SavPage';
 import ProductPage from './pages/ProductPage';
 import MentionsLegalesPage from './pages/MentionsLegalesPage';
@@ -75,7 +78,9 @@ const App: React.FC = () => {
   const isStudioPage = location.pathname.startsWith('/studio');
   const isStaffPortal = isAdminPage || isStudioPage;
   const isTrocPage = location.pathname === '/troc';
+  const isImageOnlyBackgroundPage = isImageOnlyBackgroundRoute(location.pathname);
   const isLightBackgroundPage = isLightBackgroundRoute(location.pathname);
+  const { isSlow: isSlowConnection } = useBandwidthDetector();
 
   useEffect(() => {
     let isMounted = true;
@@ -205,13 +210,13 @@ const App: React.FC = () => {
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = 0.35;
-      if (isAdminPage || isStudioPage || isTrocPage || isLightBackgroundPage) {
+      if (isAdminPage || isStudioPage || isImageOnlyBackgroundPage || isLightBackgroundPage || isSlowConnection) {
         videoRef.current.pause();
       } else {
         videoRef.current.play().catch(e => console.log("Video auto-play prevented:", e));
       }
     }
-  }, [isAdminPage, isStudioPage, isTrocPage, isLightBackgroundPage]);
+  }, [isAdminPage, isStudioPage, isImageOnlyBackgroundPage, isLightBackgroundPage, isSlowConnection]);
 
   // Scroll to top on route change
   useEffect(() => {
@@ -285,12 +290,11 @@ const App: React.FC = () => {
   };
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
-  const { isSlow: isSlowConnection } = useBandwidthDetector();
 
   const bgVideoUrl =
     'https://res.cloudinary.com/dli0kdkg9/video/upload/v1768438828/xption7_zrgro4.mp4';
   const isBackgroundVideoPaused =
-    isAdminPage || isStudioPage || isTrocPage || isLightBackgroundPage || isSlowConnection;
+    isAdminPage || isStudioPage || isImageOnlyBackgroundPage || isLightBackgroundPage || isSlowConnection;
   const backgroundImagePool = isLightBackgroundPage
     ? SITE_BACKGROUND_LIGHT_IMAGES
     : SITE_BACKGROUND_IMAGES;
@@ -347,7 +351,8 @@ const App: React.FC = () => {
             />
           } />
           <Route path="/troc" element={<TrocPage />} />
-          <Route path="/tracking" element={<TrackingPage />} />
+          <Route path="/tracking/*" element={<TrackingPage />} />
+          <Route path="/bon" element={<TrocVoucherPage />} />
           <Route path="/sav" element={<SavPage />} />
           <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
           <Route path="/politique-confidentialite" element={<PolitiqueConfidentialitePage />} />
@@ -448,7 +453,7 @@ const App: React.FC = () => {
 
       {!isStaffPortal && shouldRenderAiConsultant && (
         <Suspense fallback={null}>
-          <AiConsultant products={products} />
+          <AiConsultant />
         </Suspense>
       )}
 

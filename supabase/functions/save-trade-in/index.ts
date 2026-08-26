@@ -582,10 +582,44 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify({ id: row.id, voucherReference: row.voucher_reference }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    // Référence bon = id dossier (TRC-…) si absent — évite TR-TRC-… sur le PDF et lookup cassé.
+    if (row?.id && !row.voucher_reference) {
+      try {
+        const refPatch = await fetchWithTimeout(
+          `${supabaseUrl}/rest/v1/trade_in_requests?id=eq.${encodeURIComponent(String(row.id))}`,
+          {
+            method: 'PATCH',
+            headers: restHeaders,
+            body: JSON.stringify({ voucher_reference: row.id }),
+          },
+        );
+        if (refPatch.ok) {
+          const patched = await refPatch.json();
+          const updated = Array.isArray(patched) ? patched[0] : patched;
+          if (updated?.voucher_reference) row.voucher_reference = updated.voucher_reference;
+          else row.voucher_reference = row.id;
+        } else {
+          row.voucher_reference = row.id;
+        }
+      } catch {
+        row.voucher_reference = row.id;
+      }
+    }
+
+    const voucherReference = String(row.voucher_reference || row.id);
+
+    return new Response(
+      JSON.stringify({
+        id: row.id,
+        voucherReference,
+        voucherExpiresAt: row.voucher_expires_at ?? null,
+        createdAt: row.created_at ?? null,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    );
   } catch (error: any) {
     console.error('[save-trade-in] fatal', error);
     return new Response(JSON.stringify({ error: error?.message ?? 'unknown' }), {

@@ -22,6 +22,7 @@ import { TROC_TUNNEL_TIER, type TrocTier } from '../utils/trocPricing';
 import { TROC_MESSAGES } from '../utils/trocMessages';
 import { supabase } from '../services/supabaseClient';
 import { getTrocSessionKey } from '../utils/trocSessionKey';
+import { getProductDisplayName } from '../utils/productDisplay';
 
 export type TrocStep = 'form' | 'photos' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
 export type ImeiMatchState = 'unknown' | 'match' | 'mismatch' | 'not_verified';
@@ -93,7 +94,14 @@ export const useTradeIn = () => {
   const [imeiEvidenceCount, setImeiEvidenceCount] = useState(0);
   const [imeiMatchState, setImeiMatchState] = useState<ImeiMatchState>('unknown');
   const [result, setResult] = useState<TrocEvaluationResult | null>(null);
-  const [savedRequest, setSavedRequest] = useState<Pick<TradeInRequest, 'id' | 'voucher_reference'> | null>(null);
+  const [savedRequest, setSavedRequest] = useState<{
+    id: string;
+    voucher_reference: string;
+    voucher_expires_at?: string | null;
+    created_at?: string | null;
+    target_product_id?: string | null;
+    target_product_name?: string | null;
+  } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckingPhotos, setIsCheckingPhotos] = useState(false);
   const [isCheckingImei, setIsCheckingImei] = useState(false);
@@ -476,7 +484,12 @@ export const useTradeIn = () => {
       if (evaluation.tradeInGrade === 'refuse') {
         saveTradeInRequest(form, photoUrls, evaluation, sessionKey)
           .then((saved) =>
-            setSavedRequest({ id: saved.id, voucher_reference: saved.voucherReference }))
+            setSavedRequest({
+              id: saved.id,
+              voucher_reference: saved.voucherReference || saved.id,
+              voucher_expires_at: saved.voucherExpiresAt,
+              created_at: saved.createdAt,
+            }))
           .catch((e) => console.warn('[troc] save dossier refusé échoué', e));
       }
     } catch (err: any) {
@@ -528,7 +541,11 @@ export const useTradeIn = () => {
       const saved = await saveTradeInRequest(form, photoUrls, result, sessionKey, targetProduct);
       setSavedRequest({
         id: saved.id,
-        voucher_reference: saved.voucherReference,
+        voucher_reference: saved.voucherReference || saved.id,
+        voucher_expires_at: saved.voucherExpiresAt,
+        created_at: saved.createdAt,
+        target_product_id: targetProduct?.id ?? null,
+        target_product_name: targetProduct ? getProductDisplayName(targetProduct) : null,
       });
       setStep('voucher');
       upsertSession(sessionKey, 'voucher', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel, tradeInId: saved.id });

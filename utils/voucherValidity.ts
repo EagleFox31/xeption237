@@ -72,6 +72,21 @@ export const resolveVoucherExpiryIso = (
   return new Date(created + LEGACY_VOUCHER_FALLBACK_DAYS * MS_PER_DAY).toISOString();
 };
 
+/** Nombre de jours de validité affiché sur le bon (barème ou forfait legacy 30 j). */
+export const resolveVoucherValidityDays = (
+  expiresAt: string | null | undefined,
+  createdAt: string,
+): number => {
+  if (expiresAt) {
+    const created = new Date(createdAt).getTime();
+    const expires = new Date(expiresAt).getTime();
+    if (Number.isFinite(created) && Number.isFinite(expires) && expires > created) {
+      return Math.round((expires - created) / MS_PER_DAY);
+    }
+  }
+  return LEGACY_VOUCHER_FALLBACK_DAYS;
+};
+
 /** Palier de validité (jours) pour une année de sortie donnée. Exporté pour les tests. */
 export const resolveValidityDays = (
   releaseYear: number | null | undefined,

@@ -24,8 +24,15 @@ const arg = (name, fallback) => {
   return hit ? hit.split('=').slice(1).join('=') : fallback;
 };
 
-const API_KEY = String(process.env.VITE_OPENROUTER_API_KEY || '').trim();
-const MODEL = arg('model', process.env.VITE_OPENROUTER_VISION_MODEL?.trim() || 'nvidia/nemotron-nano-12b-v2-vl:free');
+const API_KEY = String(
+  process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY || '',
+).trim();
+const MODEL = arg(
+  'model',
+  process.env.OPENROUTER_VISION_MODEL?.trim() ||
+    process.env.VITE_OPENROUTER_VISION_MODEL?.trim() ||
+    'nvidia/nemotron-nano-12b-v2-vl:free',
+);
 // Image de test : une vraie photo de smartphone (remplaçable via --image=).
 const IMAGE_URL = arg(
   'image',
@@ -98,7 +105,7 @@ const main = async () => {
   console.log('Image  :', IMAGE_URL);
 
   if (!API_KEY) {
-    console.error('\n❌ VITE_OPENROUTER_API_KEY absent du .env — impossible de tester.');
+    console.error('\n❌ OPENROUTER_API_KEY absent du .env — impossible de tester.');
     process.exit(1);
   }
 

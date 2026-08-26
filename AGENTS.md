@@ -61,7 +61,7 @@ Toute la doc projet est dans [`docs/`](./docs/) (index : [`docs/README.md`](./do
 - **Marque** : `resolveProductBrandId()` + `canonicalizeBrandKey()` (`utils/productBrand.ts`) — une seule entrée **Samsung** (pas Samsung + Samsung Galaxy).
 - **Étoiles / avis** : afficher seulement si `product.reviews?.length > 0` — pas `rating || 5` sur les cards.
 - **Descriptions faibles** : `utils/productDescription.ts` / `isWeakProductDescription()` — stubs Mfoundi = vide.
-- **Enrichissement IA** : DeepSeek (`services/deepseekClient.ts`, `geminiService.ts` → DeepSeek) — pas Gemini pour specs/descriptions.
+- **Enrichissement IA** : DeepSeek via Edge Function `ai-product-details` (admin) ; scripts CLI via `DEEPSEEK_API_KEY` dans `.env`.
 
 ## Catégories Supabase (slugs)
 

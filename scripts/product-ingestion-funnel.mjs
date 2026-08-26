@@ -23,8 +23,10 @@ const NO_ENRICH = process.argv.includes('--no-enrich');
 const fileArg = process.argv.find((a) => a.startsWith('--file='));
 const formatArg = process.argv.find((a) => a.startsWith('--format='));
 const DELAY_MS = Number(process.env.BATCH_ENRICH_DELAY_MS || 2500);
-const DEEPSEEK_KEY = process.env.VITE_DEEPSEEK_API_KEY?.trim() || '';
-const DEEPSEEK_MODEL = process.env.VITE_DEEPSEEK_MODEL?.trim() || 'deepseek-chat';
+const DEEPSEEK_KEY =
+  process.env.DEEPSEEK_API_KEY?.trim() || process.env.VITE_DEEPSEEK_API_KEY?.trim() || '';
+const DEEPSEEK_MODEL =
+  process.env.DEEPSEEK_MODEL?.trim() || process.env.VITE_DEEPSEEK_MODEL?.trim() || 'deepseek-chat';
 const DEFAULT_IMAGE = '/icons/icon-192x192.png';
 
 if (!fileArg) {
@@ -259,7 +261,7 @@ function sleep(ms) {
 
 async function main() {
   if (!NO_ENRICH && !DEEPSEEK_KEY) {
-    console.error('VITE_DEEPSEEK_API_KEY requis pour l’enrichissement');
+    console.error('DEEPSEEK_API_KEY requis pour l’enrichissement');
     process.exit(1);
   }
   const url = process.env.VITE_SUPABASE_URL;

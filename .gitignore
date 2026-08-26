@@ -13,6 +13,9 @@ dist-ssr
 *.local
 .env
 .env.*
+# Le modèle ne contient que des espaces réservés : il doit être versionné,
+# sinon personne ne sait quoi renseigner en clonant le dépôt.
+!.env.example
 
 
 # Editor directories and files

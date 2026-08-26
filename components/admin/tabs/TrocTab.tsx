@@ -63,13 +63,6 @@ const BLOCKER_LABELS: Record<string, string> = {
   no_base_price: 'Modèle non référencé',
 };
 
-const OWNERSHIP_LABELS: Record<string, string> = {
-  first: '1er',
-  second: '2e',
-  third_plus: '3e+',
-  unknown: '?',
-};
-
 const formatFCFA = (amount?: number) =>
   amount != null ? new Intl.NumberFormat('fr-FR').format(amount).replace(/\s/g, '.') + ' F' : '—';
 
@@ -333,12 +326,11 @@ export const TrocTab: React.FC<TrocTabProps> = ({
               <tr>
                 <th className="px-4 py-3">Référence</th>
                 <th className="px-4 py-3">Client</th>
-                <th className="px-4 py-3">Appareil</th>
+                <th className="px-4 py-3 min-w-[220px]">Appareil</th>
                 <th className="px-4 py-3">Palier</th>
                 <th className="px-4 py-3">Frais service</th>
                 <th className="px-4 py-3">Opérateur</th>
                 <th className="px-4 py-3">Payé le</th>
-                <th className="px-4 py-3">Historique</th>
                 <th className="px-4 py-3">Score</th>
                 <th className="px-4 py-3">Valeur reprise</th>
                 <th className="px-4 py-3">Qualité</th>
@@ -393,17 +385,20 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                         <p className="text-xs text-white/50">{payPhone}</p>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-top min-w-[220px]">
                       {req ? (
                         <>
-                          <p>{req.device_brand} {req.device_model}</p>
+                          <p className="leading-snug">{req.device_brand} {req.device_model}</p>
                           {(req.device_storage || req.device_ram) && (
                             <p className="text-xs text-white/50">
                               {[req.device_storage, req.device_ram].filter(Boolean).join(' / ')}
                             </p>
                           )}
                           {req.target_product_name && (
-                            <p className="text-[10px] text-xeption-gold/80 mt-0.5">→ vers {req.target_product_name}</p>
+                            <p className="text-[11px] text-xeption-gold/90 mt-1 leading-snug">
+                              <span className="text-white/40">échange contre</span>{' '}
+                              {req.target_product_name}
+                            </p>
                           )}
                         </>
                       ) : session?.device_brand && session?.device_model ? (
@@ -434,19 +429,6 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                     </td>
                     <td className="px-4 py-3 text-xs text-white/70">
                       {formatDateTime(pay?.paid_at ?? (pay?.status === 'paid' ? pay.created_at : undefined))}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {req?.ownership_rank && (
-                        <span className="inline-block px-1.5 py-0.5 bg-white/5 rounded text-white/60 mr-1">
-                          {OWNERSHIP_LABELS[req.ownership_rank] ?? '?'} propriétaire
-                        </span>
-                      )}
-                      {req?.acquisition_condition && (
-                        <span className="text-white/50">
-                          {req.acquisition_condition === 'new' ? 'Acheté neuf' : 'Acheté occasion'}
-                        </span>
-                      )}
-                      {!req && <span className="text-white/40">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       {req?.ai_score != null ? (

@@ -11,6 +11,53 @@ import { assertRpcSuccess } from '../utils/rpcResult';
 export const resteAPayer = (targetPrice: number, credit: number): number =>
   Math.max(0, Math.round(targetPrice - credit));
 
+/**
+ * Resume de l'appareil cible : prix, credit, reste a payer.
+ *
+ * Un seul point de calcul pour l'ERP et pour le bon remis au client. Les deux
+ * affichaient jusqu'ici des choses differentes — l'ERP le reste a payer, le bon
+ * rien du tout — et un client comparant les deux n'aurait rien compris.
+ *
+ * Le credit est la valeur de reprise BRUTE, sans la bonification de
+ * CREDIT_BONUS_PERCENT : celle-ci est conditionnelle (« selon offre en cours »),
+ * donc l'annoncer sur un bon en ferait une promesse. C'est deja la regle
+ * appliquee par l'ERP, on s'aligne dessus plutot que d'en inventer une seconde.
+ *
+ * Le prix est relu a chaque affichage plutot que fige a l'emission : un bon
+ * ancien reste ainsi juste si le tarif de la cible a bouge, et les dossiers
+ * deja enregistres affichent leur cible sans aucune migration.
+ */
+export interface TrocTargetSummary {
+  productId: string;
+  name: string;
+  price: number;
+  stock: number;
+  credit: number;
+  reste: number;
+}
+
+export const resolveTrocTargetSummary = async (
+  request: Pick<TradeInRequest, 'target_product_id' | 'target_product_name' | 'trade_in_value'>,
+): Promise<TrocTargetSummary | null> => {
+  const productId = request.target_product_id?.trim();
+  if (!productId) return null;
+
+  const pricing = await getTargetPricing(productId);
+  // Cible retiree du catalogue : on renvoie null plutot qu'un montant faux.
+  // L'appelant affiche alors le nom seul, ce qui reste vrai.
+  if (!pricing) return null;
+
+  const credit = Number(request.trade_in_value ?? 0);
+  return {
+    productId,
+    name: pricing.name || request.target_product_name || '',
+    price: pricing.price,
+    stock: pricing.stock,
+    credit,
+    reste: resteAPayer(pricing.price, credit),
+  };
+};
+
 export interface TrocCheckoutResult {
   orderId: string;
   targetName: string;

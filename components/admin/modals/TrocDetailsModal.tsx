@@ -4,7 +4,7 @@ import type { TradeInRequest } from '../../../types';
 import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
 import { downloadTradeInVoucher } from '../../../utils/tradeInVoucherGenerator';
 import { redemptionState, evaluateCompletion, REDEMPTION_GRACE_DAYS } from '../../../utils/trocRedemption';
-import { completeTrocWithSale, getTargetPricing, resteAPayer } from '../../../services/trocCheckoutService';
+import { completeTrocWithSale, getTargetPricing, resteAPayer, resolveTrocTargetSummary } from '../../../services/trocCheckoutService';
 import { reevaluateAndPersist } from '../../../services/trocEvaluationService';
 import { VoucherExpiryBadge } from '../shared/VoucherExpiryBadge';
 import { notifyError, notifySuccess } from '../../../utils/notify';
@@ -27,6 +27,20 @@ const SCORE_COLOR_CLASSES: Record<string, string> = {
 
 const formatFCFA = (amount?: number) =>
   amount != null ? new Intl.NumberFormat('fr-FR').format(amount).replace(/\s/g, '.') + ' F' : '—';
+
+/**
+ * Provenance de l'appareil. Elle vivait dans une colonne « Historique » du
+ * tableau, retiree pour laisser respirer la colonne Appareil — mais elle
+ * n'existait nulle part ailleurs dans l'ERP. La supprimer sans la replacer
+ * aurait rendu invisible une information qui pese sur la valeur de reprise :
+ * un premier proprietaire ayant achete neuf ne vaut pas un troisieme.
+ */
+const OWNERSHIP_LABELS: Record<string, string> = {
+  first: '1er propriétaire',
+  second: '2e propriétaire',
+  third_plus: '3e propriétaire ou plus',
+  unknown: 'Propriétaire inconnu',
+};
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -151,6 +165,21 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
                   {request.device_ram && `/ ${request.device_ram} RAM`}
                 </p>
                 {request.imei && <p className="text-[10px] font-mono text-gray-500 mt-1">IMEI: {request.imei}</p>}
+
+                {(request.ownership_rank || request.acquisition_condition) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/10 pt-2">
+                    {request.ownership_rank && (
+                      <span className="inline-block rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/70">
+                        {OWNERSHIP_LABELS[request.ownership_rank] ?? 'Propriétaire inconnu'}
+                      </span>
+                    )}
+                    {request.acquisition_condition && (
+                      <span className="inline-block rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/70">
+                        {request.acquisition_condition === 'new' ? 'Acheté neuf' : 'Acheté d’occasion'}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -347,7 +376,13 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
               )}
 
               <button
-                onClick={() => downloadTradeInVoucher(request)}
+                onClick={async () => {
+                  // Resolu au clic plutot que reutiliser `targetInfo` : celui-ci
+                  // n'est charge que pour les dossiers 'validated', or on peut
+                  // telecharger le bon a d'autres etapes.
+                  const summary = await resolveTrocTargetSummary(request);
+                  await downloadTradeInVoucher(request, summary);
+                }}
                 disabled={!request.trade_in_value}
                 className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-tech font-bold uppercase tracking-widest py-3 text-xs rounded-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >

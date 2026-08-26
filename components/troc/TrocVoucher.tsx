@@ -5,6 +5,7 @@ import { downloadTradeInVoucher } from '../../utils/tradeInVoucherGenerator';
 import { buildWhatsAppUrl, buildTradeInVoucherShareMessage, buildTradeInAppointmentMessage } from '../../utils/whatsappShare';
 import { generateCertificate, TierNotEligibleError, type TrocCertificate } from '../../services/trocEvaluationService';
 import { resolveVoucherExpiryIso } from '../../utils/trocVoucher';
+import { resolveTrocTargetSummary, type TrocTargetSummary } from '../../services/trocCheckoutService';
 
 interface TrocVoucherProps {
   request: TradeInRequest;
@@ -21,6 +22,11 @@ const formatDate = (iso: string): string =>
 export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNewEvaluation }) => {
   const { voucher_reference, customer_name, device_brand, device_model, trade_in_value, created_at, voucher_expires_at, tier, id: tradeInId } = request;
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Appareil souhaite et reste a payer. Resolus a l'affichage : les dossiers
+  // deja enregistres portent target_product_id, donc les anciens bons se
+  // completent sans migration, et un tarif qui bouge reste refletee.
+  const [target, setTarget] = useState<TrocTargetSummary | null>(null);
   const isCertEligible = tier === 'premium' || tier === 'safety';
 
   // ─── Certificat PDF (Premium / Sûreté uniquement) ─────────────────────────
@@ -53,11 +59,22 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNe
     return () => { cancelled = true; };
   }, [isCertEligible, tradeInId, cert]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const summary = await resolveTrocTargetSummary(request);
+      if (!cancelled) setTarget(summary);
+    })();
+    return () => { cancelled = true; };
+  }, [request.target_product_id, request.trade_in_value]);
+
   const handleDownload = async () => {
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadTradeInVoucher(request);
+      // On reutilise le resume deja resolu a l'affichage : le PDF montre donc
+      // exactement les montants que le client a sous les yeux.
+      await downloadTradeInVoucher(request, target);
     } finally {
       setIsDownloading(false);
     }
@@ -92,6 +109,44 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({ request, onPrint, onNe
           </p>
         </div>
 
+
+        {/* Appareil souhaite — n'apparait que si le client en a choisi un. */}
+        {(target || request.target_product_name) && (
+          <div className="bg-[#1c1c16]/90 border border-white/20 px-4 py-3 rounded-sm">
+            <p className="text-[10px] font-tech uppercase tracking-widest text-white/80 mb-2">
+              Appareil souhaité
+            </p>
+            <p className="font-tech font-bold text-white">
+              {target?.name || request.target_product_name}
+            </p>
+
+            {target ? (
+              <div className="mt-3 flex flex-col gap-1.5 border-t border-white/10 pt-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/70 font-sans">Prix boutique</span>
+                  <span className="font-tech text-white">{formatFCFA(target.price)}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/70 font-sans">Votre reprise</span>
+                  <span className="font-tech text-xeption-gold">− {formatFCFA(target.credit)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-white/10 pt-2 mt-1">
+                  <span className="text-[10px] font-tech uppercase tracking-widest text-white">
+                    Reste à payer
+                  </span>
+                  <span className="font-tech font-bold text-lg text-white">
+                    {target.reste > 0 ? formatFCFA(target.reste) : 'Rien à payer'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              // Cible retiree du catalogue : le nom reste vrai, pas le prix.
+              <p className="mt-2 text-[10px] text-white/60 font-sans italic">
+                Prix à confirmer en boutique.
+              </p>
+            )}
+          </div>
+        )}
         <div className="bg-[#1c1c16]/90 border border-white/20 px-4 py-3 rounded-sm text-center">
           <p className="text-[10px] font-tech uppercase tracking-widest text-white">
             Valable jusqu'au {formatDate(resolveVoucherExpiryIso(voucher_expires_at, created_at))}

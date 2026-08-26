@@ -15,7 +15,15 @@ const escapeHtml = (value: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
+/**
+ * `targetSummary` est resolu par l'appelant (resolveTrocTargetSummary) plutot
+ * que lu ici : ce module est purement synchrone, et une lecture reseau au milieu
+ * d'une generation de PDF est une source de bons a moitie remplis.
+ */
+export const generateTradeInVoucherHTML = (
+  request: TradeInRequest,
+  targetSummary?: { name: string; price: number; credit: number; reste: number } | null,
+): string => {
   const amount    = Number(request.trade_in_value || 0);
   const customer  = escapeHtml(request.customer_name || '');
   const device    = escapeHtml(`${request.device_brand || ''} ${request.device_model || ''}`.trim());
@@ -197,6 +205,11 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
       text-transform: uppercase;
     }
 
+    .target-table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 12px; }
+    .target-table td { padding: 4px 0; color: #444; }
+    .target-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .target-table tr.total td { border-top: 1px solid #d8d8d8; padding-top: 7px; font-weight: 700; color: #111; font-size: 14px; }
+    .target-note { margin-top: 8px; font-size: 11px; font-style: italic; color: #777; }
     .validity {
       background: #0f0f0f;
       border: 1px solid #1e1e1e;
@@ -314,6 +327,13 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
       ${target ? `<div class="field">
         <div class="field-label">Pour l'achat de</div>
         <div class="field-value">${target}</div>
+        ${targetSummary ? `<table class="target-table">
+          <tr><td>Prix boutique</td><td class="num">${formatFCFA(targetSummary.price)}</td></tr>
+          <tr><td>Votre reprise</td><td class="num">&minus; ${formatFCFA(targetSummary.credit)}</td></tr>
+          <tr class="total"><td>Reste à payer</td><td class="num">${
+            targetSummary.reste > 0 ? formatFCFA(targetSummary.reste) : 'Rien à payer'
+          }</td></tr>
+        </table>` : `<div class="target-note">Prix à confirmer en boutique.</div>`}
       </div>` : ''}
 
       <div class="amount-block">
@@ -349,11 +369,14 @@ export const generateTradeInVoucherHTML = (request: TradeInRequest): string => {
  * Génère et télécharge un vrai PDF du bon de troc côté client.
  * Lib chargée dynamiquement → n'impacte pas le bundle initial.
  */
-export const downloadTradeInVoucher = async (request: TradeInRequest): Promise<void> => {
+export const downloadTradeInVoucher = async (
+  request: TradeInRequest,
+  targetSummary?: { name: string; price: number; credit: number; reste: number } | null,
+): Promise<void> => {
   const html2pdfModule = await import('html2pdf.js');
   const html2pdf = html2pdfModule.default;
 
-  const html = generateTradeInVoucherHTML(request);
+  const html = generateTradeInVoucherHTML(request, targetSummary);
 
   // Conteneur off-screen pour le rendu — html2canvas a besoin du DOM réel.
   // Largeur fixée = largeur de capture déterministe (sinon white-space aléatoire).

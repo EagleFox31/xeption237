@@ -17,6 +17,12 @@ import {
   openRouterVisionJson,
 } from '../_shared/openRouterVision.ts';
 import {
+  parseModelChain,
+  shouldTryNextModel,
+  DEFAULT_TEXT_MODELS,
+  DEFAULT_LITE_MODELS,
+} from '../_shared/geminiModels.ts';
+import {
   isDeepSeekVisionConfigured,
   deepseekVisionJson,
 } from '../_shared/deepseekVision.ts';
@@ -33,53 +39,22 @@ const GEMINI_TIMEOUT_MS = 30_000;
 const MAX_PHOTOS = 8;
 const CREDIBILITY_MAX_PHOTOS = 4;
 // Chaine de modeles, pas un slug unique.
+// Chaines de modeles : voir `_shared/geminiModels.ts`.
 //
-// Le 2026-08-24 le pipeline vision est tombe entierement : gemini-2.0-flash et
-// gemini-2.0-flash-lite, codes en dur ici, avaient ete retires par Google. Le
-// repli existant est au niveau des CLES (primaire -> secours) et ne se declenche
-// que sur 429/503/5xx : un 404 « modele retire » n'est pas rattrapable en
-// changeant de cle, donc la panne n'avait aucun chemin de secours.
+// Elles y vivaient deja, puis une refonte les a re-declarees ICI en local. Ce
+// doublon a coute trois deploiements le 2026-08-26 : je corrigeais l'ordre dans
+// le module partage sans effet, parce que cette fonction ne l'importait plus et
+// que le fichier n'apparaissait donc meme pas dans les assets envoyes.
 //
-// Les alias (-latest) ne peuvent pas etre retires silencieusement : ils viennent
-// en premier. Un modele epingle les suit, au cas ou l'alias basculerait vers un
-// modele au comportement different.
-const parseModelChain = (raw: string | undefined, fallback: string[]): string[] => {
-  const parsed = (raw ?? '').split(',').map((m) => m.trim()).filter(Boolean);
-  return parsed.length > 0 ? parsed : fallback;
-};
+// Une seule declaration, importee. Le test T-X23 de la recette compare la chaine
+// renvoyee par `healthCheck` a celle du code, precisement pour que cette derive
+// se voie au lieu de rester muette.
+const GEMINI_MODELS = parseModelChain(Deno.env.get('GEMINI_MODELS'), DEFAULT_TEXT_MODELS);
 
-// Ordre voulu : des modeles EPROUVES d'abord, l'alias en dernier comme survivant.
-//
-// Chaine sondee le 2026-08-24 avec la cle reellement utilisee par cette fonction
-// (`healthCheck` + `probeModels`), car les droits varient d'une cle a l'autre :
-//   gemini-3.5-flash        ok        gemini-2.5-flash       404 (retire)
-//   gemini-3.6-flash        ok        gemini-2.5-flash-lite  404 (retire)
-//   gemini-flash-latest     timeout (congestion) -> garde en dernier recours
-//
-// L'alias protege du retrait silencieux mais il est congestionne : en tete de
-// chaine il consommait tout le budget avant que le modele suivant soit essaye.
-const GEMINI_MODELS = parseModelChain(
-  Deno.env.get('GEMINI_MODELS'),
-  ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'],
-);
-
-// Sonde du 2026-08-26 avec la cle des Edge Functions : gemini-flash-lite-latest
-// ET gemini-3.5-flash-lite etaient en timeout EN MEME TEMPS, ce qui a mis le
-// pre-check photo a terre. gemini-3.1-flash-lite et gemini-3.5-flash repondent.
-// Comme pour la chaine texte : des modeles eprouves d'abord, l'alias en dernier.
 const GEMINI_CREDIBILITY_MODELS = parseModelChain(
   Deno.env.get('GEMINI_CREDIBILITY_MODELS') ?? Deno.env.get('GEMINI_CREDIBILITY_MODEL'),
-  ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-flash-lite-latest'],
+  DEFAULT_LITE_MODELS,
 );
-// Mesure du 2026-08-24 : le preflight repond en 1,7 s sur gemini-flash-lite-latest.
-
-// Faut-il essayer le MODELE suivant apres qu'un modele a echoue sur les deux cles ?
-//
-// Oui dans presque tous les cas : un 404 signifie que le modele a ete retire, un
-// 503 « forte demande » vise ce modele precis (un autre a d'autres capacites),
-// un 400 est un refus propre a ce modele. Non sur 401/403 : c'est la cle qui est
-// en cause, et aucun autre modele n'y changera quoi que ce soit.
-const shouldTryNextModel = (status: number): boolean => status !== 401 && status !== 403;
 
 // Budget global. Sans lui, une chaine de 2 modeles x 2 cles x 30 s ferait
 // patienter le client jusqu'a deux minutes devant un ecran fige. Mesure sur la

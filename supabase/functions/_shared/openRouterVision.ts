@@ -6,8 +6,29 @@ export type VisionImagePart = {
 export const isOpenRouterConfigured = (): boolean =>
   Boolean(Deno.env.get('OPENROUTER_API_KEY')?.trim());
 
-const defaultVisionModel = (): string =>
-  Deno.env.get('OPENROUTER_VISION_MODEL')?.trim() || 'dots-studio/dots-3-note-preview:free';
+/**
+ * Chaine de modeles, pas un slug unique.
+ *
+ * Le catalogue gratuit d'OpenRouter bouge en permanence. Mesure du 2026-08-26,
+ * sur des identifiants recommandes le jour meme :
+ *
+ *   nvidia/nemotron-nano-12b-2-vl:free     400  « is not a valid model ID »
+ *   google/gemma-4-26b-a4b:free            400  « is not a valid model ID »
+ *   moonshotai/kimi-vl-a3b-thinking:free   404  « No endpoints found »
+ *   google/gemma-4-26b-a4b-it:free         429  identifiant valide, quota atteint
+ *   dots-studio/dots-3-note-preview:free   timeout a 60 s  <- ancien defaut
+ *
+ * Deux slugs sur trois n'existaient pas, et notre propre defaut ne repondait
+ * plus. Un modele unique ici est donc une panne programmee : on en essaie
+ * plusieurs, et ce canal reste le DERNIER recours, derriere DeepSeek.
+ */
+const visionModelChain = (): string[] => {
+  const raw = Deno.env.get('OPENROUTER_VISION_MODELS') ?? Deno.env.get('OPENROUTER_VISION_MODEL');
+  const parsed = (raw ?? '').split(',').map((m) => m.trim()).filter(Boolean);
+  return parsed.length > 0
+    ? parsed
+    : ['dots-studio/dots-3-note-preview:free', 'google/gemma-4-26b-a4b-it:free'];
+};
 
 export const openRouterVisionJson = async (
   prompt: string,
@@ -16,7 +37,8 @@ export const openRouterVisionJson = async (
   const apiKey = Deno.env.get('OPENROUTER_API_KEY')?.trim() || '';
   if (!apiKey) throw new Error('OPENROUTER_MISSING_KEY');
 
-  const model = defaultVisionModel();
+  const models = visionModelChain();
+  let lastError = 'openrouter_no_model';
   const content: Array<
     | { type: 'text'; text: string }
     | { type: 'image_url'; image_url: { url: string } }
@@ -31,39 +53,58 @@ export const openRouterVisionJson = async (
 
   const referer = Deno.env.get('PUBLIC_VERIFY_BASE_URL')?.trim() || 'https://xeptionetwork.shop';
 
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': referer,
-      'X-Title': 'Xeption Smart Troc',
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content }],
-      response_format: { type: 'json_object' },
-      max_tokens: 2500,
-      temperature: 0.1,
-    }),
-  });
+  for (const model of models) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'HTTP-Referer': referer,
+          'X-Title': 'Xeption Smart Troc',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content }],
+          response_format: { type: 'json_object' },
+          max_tokens: 2500,
+          temperature: 0.1,
+        }),
+        // Sans delai, un modele qui ne repond plus bloque tout le canal : le
+        // defaut precedent expirait au-dela de 60 s.
+        signal: AbortSignal.timeout(25_000),
+      });
 
-  const bodyText = await res.text();
-  if (!res.ok) {
-    console.error('[openRouterVision] http_error', res.status, bodyText.slice(0, 200));
-    throw new Error(`openrouter_http_${res.status}`);
+      const bodyText = await res.text();
+
+      if (!res.ok) {
+        // Le message de l'API donne la raison exacte (« is not a valid model ID »,
+        // « No endpoints found ») : le jeter obligerait a rejouer l'appel a la main.
+        let apiMessage = bodyText.slice(0, 160);
+        try {
+          apiMessage = JSON.parse(bodyText)?.error?.message ?? apiMessage;
+        } catch {
+          /* corps non-JSON */
+        }
+        console.error(`[openRouterVision] ${res.status} sur ${model} : ${apiMessage}`);
+        lastError = `openrouter_http_${res.status}`;
+        continue;
+      }
+
+      const payload = JSON.parse(bodyText) as { choices?: Array<{ message?: { content?: string } }> };
+      const text = payload?.choices?.[0]?.message?.content;
+      if (!text?.trim()) {
+        lastError = 'empty_response';
+        continue;
+      }
+      return text.trim();
+    } catch (error: any) {
+      lastError = error?.name === 'TimeoutError' ? 'openrouter_timeout' : 'openrouter_failed';
+      console.error('[openRouterVision] echec', model, lastError);
+    }
   }
 
-  let payload: { choices?: Array<{ message?: { content?: string } }> };
-  try {
-    payload = JSON.parse(bodyText);
-  } catch {
-    throw new Error('invalid_json');
-  }
-
-  const text = payload?.choices?.[0]?.message?.content;
-  if (!text?.trim()) throw new Error('empty_response');
-  return text.trim();
+  throw new Error(lastError);
 };
 
 export const inlinePartsToVisionImages = (

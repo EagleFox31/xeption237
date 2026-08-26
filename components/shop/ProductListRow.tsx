@@ -86,10 +86,11 @@ const ProductListRow: React.FC<ProductListRowProps> = ({ product, onAddToCart, o
             e.stopPropagation();
             onAddToCart(product);
           }}
-          className="flex items-center gap-1.5 px-3 py-2 bg-xeption-gold text-black text-[10px] font-tech font-bold uppercase hover:bg-white transition-colors rounded-sm"
+          aria-label="Ajouter au panier"
+          className="flex items-center justify-center gap-1.5 p-2.5 sm:px-3 sm:py-2 bg-xeption-gold text-black text-[10px] font-tech font-bold uppercase hover:bg-white transition-colors rounded-sm shrink-0"
         >
-          <ShoppingCart className="w-3.5 h-3.5" />
-          Ajouter
+          <ShoppingCart className="w-4 h-4" />
+          <span className="hidden sm:inline">Ajouter</span>
         </button>
       </div>
     </div>

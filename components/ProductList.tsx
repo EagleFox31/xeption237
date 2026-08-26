@@ -739,17 +739,66 @@ const ProductList: React.FC<ProductListProps> = ({
     </div>
   ) : null;
 
+  const productCountLabel = (
+    <span className="text-xs md:text-sm text-white font-tech font-semibold shrink-0">
+      {filteredProducts.length} produit{filteredProducts.length !== 1 ? 's' : ''}
+    </span>
+  );
+
+  const mobileFiltersButton = isShopLayout ? (
+    <button
+      type="button"
+      onClick={() => setMobileFiltersOpen(true)}
+      className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-1.5 text-[9px] font-tech uppercase text-white border border-white/25 hover:border-xeption-gold hover:text-xeption-gold transition-colors rounded-sm"
+    >
+      <SlidersHorizontal className="w-3 h-3 shrink-0" />
+      <span className="truncate">Filtres</span>
+      {hasActiveFilters ? (
+        <span className="w-1.5 h-1.5 rounded-full bg-xeption-gold shrink-0" />
+      ) : null}
+    </button>
+  ) : null;
+
+  const resetFiltersButton = (compact = false) =>
+    hasActiveFilters && onResetFilters ? (
+      <button
+        type="button"
+        onClick={onResetFilters}
+        className={
+          compact
+            ? 'flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-1.5 text-[9px] font-tech font-semibold uppercase text-white hover:text-xeption-gold border border-white/30 hover:border-xeption-gold/60 transition-colors rounded-sm'
+            : 'shrink-0 flex items-center gap-1 px-2 py-1.5 text-xs md:text-sm font-tech font-semibold uppercase text-white hover:text-xeption-gold border border-white/30 hover:border-xeption-gold/60 transition-colors'
+        }
+      >
+        <RotateCcw className={compact ? 'w-2.5 h-2.5 shrink-0' : 'w-3 h-3'} />
+        <span className={compact ? 'truncate' : undefined}>
+          {isShopLayout ? 'Réinitialiser' : 'Effacer'}
+        </span>
+      </button>
+    ) : null;
+
+  const shopMobileToolbar = isShopLayout ? (
+    <div className="md:hidden flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        {productCountLabel}
+        {viewToggle}
+      </div>
+      <div className="flex items-center gap-2 min-w-0 w-full">
+        {mobileFiltersButton}
+        {resetFiltersButton(true)}
+      </div>
+    </div>
+  ) : null;
+
   const toolbarControls = (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs md:text-sm text-white font-tech font-semibold shrink-0">
-        {filteredProducts.length} produit{filteredProducts.length !== 1 ? 's' : ''}
-      </span>
+      {productCountLabel}
       {viewToggle}
       {isShopLayout ? (
         <button
           type="button"
           onClick={() => setMobileFiltersOpen(true)}
-          className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-tech uppercase text-white border border-white/25 hover:border-xeption-gold hover:text-xeption-gold transition-colors rounded-sm"
+          className="lg:hidden hidden md:flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-tech uppercase text-white border border-white/25 hover:border-xeption-gold hover:text-xeption-gold transition-colors rounded-sm"
         >
           <SlidersHorizontal className="w-3.5 h-3.5" />
           Filtres
@@ -791,7 +840,7 @@ const ProductList: React.FC<ProductListProps> = ({
         <button
           type="button"
           onClick={onResetFilters}
-          className="shrink-0 flex items-center gap-1 px-2 py-1.5 text-xs md:text-sm font-tech font-semibold uppercase text-white hover:text-xeption-gold border border-white/30 hover:border-xeption-gold/60 transition-colors"
+          className={`${isShopLayout ? 'hidden md:flex' : 'flex'} shrink-0 items-center gap-1 px-2 py-1.5 text-xs md:text-sm font-tech font-semibold uppercase text-white hover:text-xeption-gold border border-white/30 hover:border-xeption-gold/60 transition-colors`}
         >
           <RotateCcw className="w-3 h-3" />
           {isShopLayout ? 'Réinitialiser' : 'Effacer'}
@@ -819,7 +868,7 @@ const ProductList: React.FC<ProductListProps> = ({
             isShopLayout ? 'top-[132px] scroll-mt-[132px]' : 'top-20'
           } ${
             isShopLayout
-              ? 'mt-4 md:mt-6 rounded-lg border border-white/10 px-4 sm:px-5 md:px-6 py-3 md:py-3.5'
+              ? 'mt-2 sm:mt-4 md:mt-6 rounded-lg border border-white/10 px-3 sm:px-5 md:px-6 py-3.5 md:py-3.5'
               : '-mx-2 sm:-mx-6 lg:-mx-8 px-2 sm:px-6 lg:px-8 border-b border-white/10 pt-3 pb-4 md:pb-5 before:pointer-events-none before:absolute before:left-0 before:right-0 before:-top-10 before:h-10 before:bg-black/90 before:backdrop-blur-xl'
           }`}
         >
@@ -841,11 +890,21 @@ const ProductList: React.FC<ProductListProps> = ({
               <div className="hidden md:block">{toolbarControls}</div>
             </div>
           ) : (
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-5">
-              <div className="flex-1 min-w-0">{activeFilterChips}</div>
-              <div className="hidden md:flex shrink-0 items-center">{toolbarControls}</div>
-            </div>
+            <>
+              <div className="hidden md:flex md:items-center md:justify-between md:gap-5">
+                <div className="flex-1 min-w-0">{activeFilterChips}</div>
+                <div className="shrink-0 flex items-center">{toolbarControls}</div>
+              </div>
+              <div className="md:hidden flex flex-col gap-4">
+                <div className="min-w-0">{activeFilterChips}</div>
+                {shopMobileToolbar}
+              </div>
+            </>
           )}
+
+          {!hasShopHero ? (
+            <div className="md:hidden mb-2">{toolbarControls}</div>
+          ) : null}
 
           {!hasShopHero ? (
             <div className="flex items-center gap-2 mb-2">
@@ -858,8 +917,6 @@ const ProductList: React.FC<ProductListProps> = ({
               </h2>
             </div>
           ) : null}
-
-          <div className={`md:hidden ${hasShopHero ? '' : 'mb-2'}`}>{toolbarControls}</div>
 
           {!hasShopHero ? activeFilterChips : null}
 

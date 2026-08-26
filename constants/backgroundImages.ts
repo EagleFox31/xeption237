@@ -18,6 +18,9 @@ export const SITE_BACKGROUND_LIGHT_IMAGES = [
   '/background/clairback6.jpg',
 ] as const;
 
+/** Pages sans vidéo — images rotatives uniquement */
+export const IMAGE_ONLY_BACKGROUND_ROUTES = ['/troc', '/bon'] as const;
+
 /** Pages avec fond clair dédié */
 export const LIGHT_BACKGROUND_ROUTES = [
   '/about',
@@ -33,6 +36,11 @@ export const LIGHT_BACKGROUND_ROUTES = [
 
 export const isLightBackgroundRoute = (pathname: string): boolean =>
   LIGHT_BACKGROUND_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+
+export const isImageOnlyBackgroundRoute = (pathname: string): boolean =>
+  IMAGE_ONLY_BACKGROUND_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 

@@ -46,6 +46,8 @@ const CATEGORY_MOBILE_LABEL: Record<string, string> = {
  * (Samsung) et d'autres de petites icônes (Apple), on harmonise le poids visuel.
  * `hideClass` : masquage responsive — sur les petits écrans (~15" et moins) on retire
  * les marques secondaires pour que « Reconditionnés » reste visible sans scroller.
+ * `wideDesktopOnly` : marque bonus visible seulement si la fenêtre fait ≥ 1920 px
+ * (typique écran 24" plein écran). Le CSS ne voit pas les pouces — pas la résolution.
  */
 const BRAND_QUICKBAR: {
   slug: string;
@@ -54,18 +56,21 @@ const BRAND_QUICKBAR: {
   h?: number;
   maxW?: number;
   hideClass?: string;
+  wideDesktopOnly?: boolean;
 }[] = [
   { slug: 'apple', label: 'iPhone', logo: '/logos/apple.svg', h: 22, maxW: 28 },
   { slug: 'samsung', label: 'Samsung', logo: '/logos/samsung.svg', h: 42, maxW: 240 },
   { slug: 'xiaomi', label: 'Xiaomi', logo: '/logos/xiaomi.svg', h: 24, maxW: 36 },
   { slug: 'huawei', label: 'Huawei', logo: '/logos/huawei.svg', h: 18, maxW: 120 },
   { slug: 'tecno', label: 'Tecno', logo: '/logo_marques_africaines/tecno.png', h: 16, maxW: 86 },
+  { slug: 'infinix', label: 'Infinix', logo: '/logos/infinix.svg', h: 16, maxW: 86, wideDesktopOnly: true },
   { slug: 'google-pixel', label: 'Pixel', logo: '/logos/google.svg', h: 22, maxW: 28 },
   { slug: 'sony', label: 'Sony', logo: '/logos/sony.svg', h: 18, maxW: 80 },
   { slug: 'microsoft', label: 'Microsoft', logo: '/logos/microsoft.svg', h: 20, maxW: 80 },
   { slug: 'hp', label: 'HP', logo: '/logos/hp.svg', h: 20, maxW: 80 },
   { slug: 'dell', label: 'Dell', logo: '/logos/dell.svg', h: 20, maxW: 80 },
   { slug: 'lenovo', label: 'Lenovo', logo: '/logos/lenovo.svg', h: 16, maxW: 80 },
+  { slug: 'asus', label: 'ASUS', logo: '/logos/asus.svg', h: 18, maxW: 72, wideDesktopOnly: true },
 ];
 
 /**
@@ -113,6 +118,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
     totalProductMatches: number;
   }>({ products: [], categories: [], totalProductMatches: 0 });
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const shopDropdownRef = useRef<HTMLDivElement>(null);
   const shopSearchDebounceRef = useRef<ReturnType<typeof setTimeout>>();
   const catBarRef = useRef<HTMLElement>(null);
@@ -137,15 +143,27 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsSearchOpen(false);
-        if (!isShopPage) setSearchQuery('');
+        searchInputRef.current?.blur();
       }
       if (shopDropdownRef.current && !shopDropdownRef.current.contains(event.target as Node)) {
         setIsShopDropdownOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isShopPage]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsSearchOpen(false);
+        searchInputRef.current?.blur();
+      }
+    };
+    document.addEventListener('keydown', onEscape);
+    return () => document.removeEventListener('keydown', onEscape);
+  }, [isSearchOpen]);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -262,10 +280,19 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
 
   const handleSearchInputChange = (value: string) => {
     setSearchQuery(value);
+    if (value.trim()) setIsSearchOpen(true);
     if (!isShopPage) return;
     if (shopSearchDebounceRef.current) clearTimeout(shopSearchDebounceRef.current);
     shopSearchDebounceRef.current = setTimeout(() => pushShopSearchToUrl(value), 350);
   };
+
+  const closeSearchDropdown = () => {
+    setIsSearchOpen(false);
+    searchInputRef.current?.blur();
+  };
+
+  const hasSearchResults = results.products.length > 0 || results.categories.length > 0;
+  const showSearchDropdown = isSearchOpen && searchQuery.trim().length > 0 && hasSearchResults;
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return;
@@ -276,25 +303,21 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
     } else if (searchQuery.trim()) {
       navigate(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
     }
-    setIsSearchOpen(false);
+    closeSearchDropdown();
   };
 
   const handleViewAllSearchResults = () => {
     const q = searchQuery.trim();
     if (q) navigate(`/shop?q=${encodeURIComponent(q)}`);
     else navigate('/shop');
-    setIsSearchOpen(false);
+    closeSearchDropdown();
   };
 
   const handleSearchResultClick = (product: Product) => {
-    if (onProductSelect) {
-      onProductSelect(product);
-    } else {
-      // If no handler passed (e.g. from Routes context), default navigation
-      navigate(`/product/${getProductSlug(product)}`);
-    }
-    setIsSearchOpen(false);
-    setSearchQuery('');
+    closeSearchDropdown();
+    if (!isShopPage) setSearchQuery('');
+    onProductSelect?.(product);
+    navigate(`/product/${getProductSlug(product)}`);
   };
 
   const navItems = [
@@ -323,6 +346,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
             <div className="relative group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 w-4 h-4 group-focus-within:text-xeption-gold transition-colors" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Chercher (ex: iPhone 15, PC Gamer...)"
                 className="w-full bg-[#18181b] border border-white/20 text-white pl-12 pr-4 py-2.5 rounded-full text-sm font-medium focus:border-xeption-gold focus:ring-1 focus:ring-xeption-gold/50 outline-none transition-all placeholder:text-white/70"
@@ -333,8 +357,10 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => {
                     setSearchQuery('');
+                    closeSearchDropdown();
                     if (isShopPage) pushShopSearchToUrl('');
                   }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white"
@@ -345,8 +371,14 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
             </div>
 
             {/* DROPDOWN RESULTS */}
-            {searchQuery && (results.products.length > 0 || results.categories.length > 0) && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-[#09090b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+            {showSearchDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-[90]"
+                  aria-hidden="true"
+                  onMouseDown={closeSearchDropdown}
+                />
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[#09090b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden z-[95] animate-in fade-in slide-in-from-top-2">
 
                 {/* Category Hits */}
                 {results.categories.length > 0 && (
@@ -355,12 +387,14 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                     {results.categories.map(cat => (
                       <button
                         key={cat}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
                           const params = new URLSearchParams();
                           params.set('cat', cat);
                           if (searchQuery.trim()) params.set('q', searchQuery.trim());
                           navigate(`/shop?${params.toString()}`);
-                          setIsSearchOpen(false);
+                          closeSearchDropdown();
                         }}
                         className="flex items-center gap-2 w-full text-left px-3 py-2 text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-bold"
                       >
@@ -384,6 +418,8 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                   {results.products.map(p => (
                     <button
                       key={p.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => handleSearchResultClick(p)}
                       className="flex items-center gap-3 w-full p-2 hover:bg-white/5 rounded-lg transition-all group"
                     >
@@ -403,7 +439,12 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                 </div>
 
                 <div className="p-2 bg-black/40 text-center border-t border-white/5">
-                  <button onClick={handleViewAllSearchResults} className="text-xs text-white/85 hover:text-white transition-colors">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleViewAllSearchResults}
+                    className="text-xs text-white/85 hover:text-white transition-colors"
+                  >
                     Voir tous les résultats pour &quot;{searchQuery}&quot;
                     {results.totalProductMatches > results.products.length && (
                       <span className="text-xeption-gold">
@@ -413,6 +454,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                   </button>
                 </div>
               </div>
+              </>
             )}
           </div>
 
@@ -574,7 +616,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                   key={b.slug}
                   onClick={() => goShop(ref ? `brand=${b.slug}` : `q=${b.label}`)}
                   aria-label={b.label}
-                  className={`group shrink-0 hidden md:inline-flex items-center px-2 py-2 rounded-md hover:bg-white/5 transition-colors whitespace-nowrap ${b.hideClass ?? ''}`}
+                  className={`group shrink-0 ${b.wideDesktopOnly ? 'hidden min-[1920px]:inline-flex' : 'hidden md:inline-flex'} items-center px-2 py-2 rounded-md hover:bg-white/5 transition-colors whitespace-nowrap ${b.hideClass ?? ''}`}
                 >
                   <BrandChipLogo logo={b.logo} label={b.label} h={b.h} maxW={b.maxW} />
                 </button>

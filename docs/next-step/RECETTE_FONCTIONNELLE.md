@@ -272,6 +272,7 @@
 | T-X20 | `ai-product-details` avec un compte hors table `staff` | Refusé malgré un JWT valide | 🟠 |
 | T-X21 | Chercher `import.meta.env` accédé **en entier** | Aucun : un seul test suffit à inliner toutes les `VITE_` | 🔴 |
 | T-X22 | Sonder la chaîne de modèles vision avant mise en ligne | Au moins deux modèles répondent | 🔴 |
+| T-X23 | Chaîne du `healthCheck` vs celle du code | Identiques : un module partagé non importé n'est pas déployé | 🔴 |
 
 ---
 

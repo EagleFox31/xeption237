@@ -20,7 +20,19 @@ const capWidthForTier = (width: number, tier: BandwidthTier): number => {
   return width;
 };
 
-export const optimizeImage = (url: string | undefined, width: number = 800): string => {
+/** Au-delà : écran Retina utile (fiche produit). En dessous : vignettes grille. */
+const DPR_AUTO_MIN_WIDTH = 800;
+
+const buildCloudinaryTransform = (
+  parts: string[],
+  transformation: string,
+): string => `${parts[0]}/upload/${transformation}/${parts[1]}`;
+
+export const optimizeImage = (
+  url: string | undefined,
+  width: number = 800,
+  options?: { dpr?: boolean },
+): string => {
   if (!url) return IMAGE_FALLBACK;
 
   // Si ce n'est pas une image Cloudinary, on retourne l'URL telle quelle
@@ -29,15 +41,17 @@ export const optimizeImage = (url: string | undefined, width: number = 800): str
   const tier = getBandwidthTier();
   const cappedWidth = capWidthForTier(width, tier);
   const quality = imageQualityForTier(tier);
+  const useDpr = options?.dpr ?? cappedWidth >= DPR_AUTO_MIN_WIDTH;
 
   // f_auto : format optimal (AVIF / WebP)
   // q_auto:* : qualité selon bande passante détectée
-  const transformation = `f_auto,${quality},w_${cappedWidth},dpr_auto,c_limit`;
+  // dpr_auto : uniquement grandes images (zoom fiche produit), pas les vignettes
+  const dpr = useDpr ? ',dpr_auto' : '';
+  const transformation = `f_auto,${quality},w_${cappedWidth}${dpr},c_limit`;
 
-  // Insertion de la transformation dans l'URL
   const parts = url.split('/upload/');
   if (parts.length === 2) {
-    return `${parts[0]}/upload/${transformation}/${parts[1]}`;
+    return buildCloudinaryTransform(parts, transformation);
   }
 
   return url;
@@ -51,11 +65,11 @@ export const optimizeProductThumb = (url: string | undefined, size: number = 400
   const tier = getBandwidthTier();
   const cappedSize = capWidthForTier(size, tier);
   const quality = imageQualityForTier(tier);
-  const transformation = `f_auto,${quality},w_${cappedSize},h_${cappedSize},dpr_auto,c_fill,g_center`;
+  const transformation = `f_auto,${quality},w_${cappedSize},h_${cappedSize},c_fill,g_center`;
 
   const parts = url.split('/upload/');
   if (parts.length === 2) {
-    return `${parts[0]}/upload/${transformation}/${parts[1]}`;
+    return buildCloudinaryTransform(parts, transformation);
   }
 
   return url;

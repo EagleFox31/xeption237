@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   detectBandwidth,
+  getBandwidthTier,
   type BandwidthProfile,
   type BandwidthTier,
 } from '../utils/bandwidthDetector';
@@ -18,7 +19,7 @@ export const useBandwidthDetector = () => {
     };
   }, []);
 
-  const tier: BandwidthTier = profile?.tier ?? 'medium';
+  const tier: BandwidthTier = profile?.tier ?? getBandwidthTier();
 
   return {
     profile,

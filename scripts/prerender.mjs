@@ -265,21 +265,181 @@ const main = async () => {
   });
 
   try {
-    const page = await browser.newPage();
-    let index = 0;
-    await page.evaluateOnNewDocument(() => {
-      window.__PRERENDER__ = true;
-      window.__PRERENDER_READY__ = false;
-    });
+    /*
+     * Rendu en parallele.
+     *
+     * La boucle etait sequentielle, sur un seul onglet : 3,8 s par route mesurees
+     * sur ce projet, soit environ 15 minutes pour 240 routes — ajoutees a CHAQUE
+     * deploiement Vercel, que le code ait change ou non.
+     *
+     * Les routes sont independantes : chacune ouvre une page, attend son signal
+     * `prerender-ready`, ecrit son HTML. Rien de partage, donc rien a
+     * synchroniser hormis la file et le compteur d'avancement.
+     *
+     * La concurrence reste modeste par defaut : chaque onglet est un vrai
+     * rendu, gourmand en memoire. Un runner CI serre supporte mal davantage, et
+     * un onglet tue par manque de memoire couterait plus cher que le temps
+     * gagne. Ajustable par PRERENDER_CONCURRENCY.
+     */
+    const concurrence = Math.max(
+      1,
+      Math.min(12, Number(process.env.PRERENDER_CONCURRENCY) || 5),
+    );
+    console.log(`[prerender] concurrence: ${concurrence}`);
 
-    for (const route of routes) {
-      index += 1;
-      console.log(`[prerender] ${index}/${routes.length} ${route}`);
-      const url = `http://localhost:${port}${route}`;
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-      await waitForPrerender(page, route);
-      const html = await page.content();
-      await writeRouteHtml(route, html);
+    /*
+     * Le titre du shell EST le titre de repli, par definition : c'est celui
+     * qu'affiche index.html avant que Helmet ait pose le SEO de la route.
+     */
+    const titreRepli = (
+      fs.readFileSync(path.join(distDir, 'index.html'), 'utf8').match(/<title>([^<]*)<\/title>/) || [, '']
+    )[1].trim();
+
+    const file = [...routes];
+    let traitees = 0;
+    const echecs = [];
+    const essais = new Map();
+    const MAX_ESSAIS = 3;
+
+    const nouvellePage = async () => {
+      const page = await browser.newPage();
+      await page.evaluateOnNewDocument(() => {
+        window.__PRERENDER__ = true;
+        window.__PRERENDER_READY__ = false;
+      });
+      return page;
+    };
+
+    const travailleur = async () => {
+      let page = await nouvellePage();
+
+      try {
+        for (;;) {
+          const route = file.shift();
+          if (route === undefined) break;
+
+          try {
+            const url = `http://localhost:${port}${route}`;
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await waitForPrerender(page, route);
+
+            /*
+             * Le signal `prerender-ready` part AVANT que Helmet ait pose les
+             * balises. En sequentiel, le temps CPU masquait l'ecart ; des deux
+             * onglets il devient visible. Mesure sur 10 fiches :
+             *
+             *   sequentiel                    10/10 titres SEO corrects
+             *   2 onglets, signal seul         6/10
+             *   5 onglets, signal seul         4/10
+             *   5 onglets, attente du titre   10/10
+             *
+             * On attend donc le RESULTAT — un titre different du repli — et non
+             * le signal. Reserve aux fiches produit : l'accueil porte
+             * legitimement le titre du shell, l'y attendre ferait patienter
+             * pour rien.
+             */
+            if (route.startsWith('/product/') && titreRepli) {
+              const titreObtenu = await page.evaluate(async (repli) => {
+                for (let i = 0; i < 60; i += 1) {
+                  if (document.title && document.title.trim() !== repli) return document.title.trim();
+                  await new Promise((r) => setTimeout(r, 250));
+                }
+                return document.title.trim();
+              }, titreRepli);
+
+              /*
+               * Impératif, pas indicatif. Avec une simple attente, 93 fiches sur
+               * 228 repartaient encore avec le titre du repli — et le build
+               * s'achevait quand meme. Une fiche produit sans titre propre est
+               * une page morte pour le referencement : mieux vaut la refaire sur
+               * un onglet neuf, quitte a ralentir.
+               */
+              if (titreObtenu === titreRepli) {
+                throw new Error('titre SEO non applique (titre de repli conserve)');
+              }
+            }
+
+            const html = await page.content();
+            await writeRouteHtml(route, html);
+            traitees += 1;
+            console.log(`[prerender] ${traitees}/${routes.length} ${route}`);
+          } catch (err) {
+            const message = err?.message || String(err);
+
+            // Un onglet peut mourir en cours de route (« detached Frame »), et
+            // il reste alors inutilisable. Sans recreation, ce travailleur
+            // echouait sur TOUTES les routes suivantes en les consommant :
+            // 150 pertes sur 240 lors du premier essai, avec le meme
+            // identifiant de frame repete dans chaque message.
+            await page.close().catch(() => {});
+            page = await nouvellePage();
+
+            const n = (essais.get(route) || 0) + 1;
+            essais.set(route, n);
+
+            if (n < MAX_ESSAIS) {
+              // Remise en tete de file : la route repasse tout de suite, sur
+              // un onglet neuf.
+              file.unshift(route);
+              console.warn(`[prerender] reprise ${route} (essai ${n + 1}) — ${message}`);
+            } else {
+              echecs.push({ route, message });
+              traitees += 1;
+              console.error(`[prerender] echec definitif ${route} : ${message}`);
+            }
+          }
+        }
+      } finally {
+        await page.close().catch(() => {});
+      }
+    };
+
+    await Promise.all(Array.from({ length: concurrence }, travailleur));
+
+    /*
+     * Passe finale, SEQUENTIELLE, pour les retardataires.
+     *
+     * Dix fiches sur 228 perdaient encore la course apres trois essais en
+     * parallele — des produits normaux, pas des donnees manquantes. La cause est
+     * la contention : seul, un onglet applique toujours son SEO (10/10 mesures).
+     *
+     * Le gros du travail va donc vite en parallele, et le reliquat repasse sans
+     * concurrence. C'est le seul endroit ou la lenteur achete de la certitude.
+     */
+    if (echecs.length) {
+      const retardataires = echecs.splice(0, echecs.length);
+      console.log(`[prerender] passe sequentielle pour ${retardataires.length} route(s)`);
+      const page = await nouvellePage();
+      try {
+        for (const { route } of retardataires) {
+          try {
+            await page.goto(`http://localhost:${port}${route}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await waitForPrerender(page, route);
+            if (route.startsWith('/product/') && titreRepli) {
+              const titre = await page.evaluate(async (repli) => {
+                for (let i = 0; i < 80; i += 1) {
+                  if (document.title && document.title.trim() !== repli) return document.title.trim();
+                  await new Promise((r) => setTimeout(r, 250));
+                }
+                return document.title.trim();
+              }, titreRepli);
+              if (titre === titreRepli) throw new Error('titre SEO non applique');
+            }
+            await writeRouteHtml(route, await page.content());
+            console.log(`[prerender] rattrape ${route}`);
+          } catch (err) {
+            echecs.push({ route, message: err?.message || String(err) });
+            console.error(`[prerender] echec apres passe sequentielle ${route}`);
+          }
+        }
+      } finally {
+        await page.close().catch(() => {});
+      }
+    }
+
+    if (echecs.length) {
+      console.warn(`[prerender] ${echecs.length} route(s) en echec :`);
+      echecs.forEach((e) => console.warn(`  ${e.route} — ${e.message}`));
     }
 
     const rootHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');

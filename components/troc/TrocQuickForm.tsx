@@ -226,30 +226,6 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
           )}
         </div>
 
-        {(imeiOk || checkFailed) && !blacklisted && (
-          <div className="flex flex-col gap-3 border-t border-white/5 pt-5">
-            <p className="text-sm font-sans text-white/90">Il s'allume encore, ton appareil ?</p>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => { setPowerAnswered(true); setPowersOn(true); }}
-                className={`flex-1 rounded-xl border py-3 text-xs font-tech font-bold uppercase tracking-wider transition-all duration-300 ${
-                  powersOn ? 'border-xeption-gold bg-xeption-gold text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]' : 'border-white/20 bg-white/[0.08] text-white/80 hover:border-xeption-gold/30 hover:bg-white/[0.08]'
-                }`}>
-                Oui
-              </button>
-              <button type="button" onClick={() => { setPowerAnswered(true); setPowersOn(false); }}
-                className={`flex-1 rounded-xl border py-3 text-xs font-tech font-bold uppercase tracking-wider transition-all duration-300 ${
-                  !powersOn ? 'border-red-700/60 bg-red-900/50 text-red-300 shadow-[0_0_20px_rgba(220,38,38,0.2)]' : 'border-white/20 bg-white/[0.08] text-white/80 hover:border-white/30 hover:bg-white/[0.08]'
-                }`}>
-                Non
-              </button>
-            </div>
-            {!powersOn && (
-              <div className="border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm font-sans text-red-300">
-                L'appareil ne s'allume pas — l'évaluation en ligne n'est pas possible. Passe directement en boutique.
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       <div className="flex flex-col gap-3">
@@ -338,6 +314,40 @@ export const TrocQuickForm: React.FC<TrocQuickFormProps> = ({
           )}
         </div>
       </div>
+      {/*
+        Question posee APRES l'IMEI, et sur toute la largeur.
+
+        Elle vivait dans la colonne de gauche, sous le telephone : cote a cote
+        avec l'IMEI sur grand ecran, mais AU-DESSUS de lui des que la grille
+        s'empile sur mobile. Comme elle n'apparait qu'une fois l'IMEI valide,
+        elle surgissait tout en haut, hors du champ de vision du client qui
+        venait de taper ses quinze chiffres plus bas.
+      */}
+      {(imeiOk || checkFailed) && !blacklisted && (
+        <div className="flex flex-col gap-3 border-t border-white/5 pt-5 lg:col-span-2">
+          <p className="text-sm font-sans text-white/90">Il s'allume encore, ton appareil ?</p>
+          <div className="flex gap-3">
+            <button type="button" onClick={() => { setPowerAnswered(true); setPowersOn(true); }}
+              className={`flex-1 rounded-xl border py-3 text-xs font-tech font-bold uppercase tracking-wider transition-all duration-300 ${
+                powersOn ? 'border-xeption-gold bg-xeption-gold text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]' : 'border-white/20 bg-white/[0.08] text-white/80 hover:border-xeption-gold/30 hover:bg-white/[0.08]'
+              }`}>
+              Oui
+            </button>
+            <button type="button" onClick={() => { setPowerAnswered(true); setPowersOn(false); }}
+              className={`flex-1 rounded-xl border py-3 text-xs font-tech font-bold uppercase tracking-wider transition-all duration-300 ${
+                !powersOn ? 'border-red-700/60 bg-red-900/50 text-red-300 shadow-[0_0_20px_rgba(220,38,38,0.2)]' : 'border-white/20 bg-white/[0.08] text-white/80 hover:border-white/30 hover:bg-white/[0.08]'
+              }`}>
+              Non
+            </button>
+          </div>
+          {!powersOn && (
+            <div className="border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm font-sans text-red-300">
+              L'appareil ne s'allume pas — l'évaluation en ligne n'est pas possible. Passe directement en boutique.
+            </div>
+          )}
+        </div>
+      )}
+
 
       <div className="flex flex-col items-end gap-2 border-t border-white/5 pt-2 lg:col-span-2">
         {blockingReason && (

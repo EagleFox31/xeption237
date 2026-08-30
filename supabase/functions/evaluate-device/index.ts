@@ -227,14 +227,26 @@ Deno.serve(async (req: Request) => {
       // ment. Elle annonce gemini-2.5-flash comme servi alors que l'appel repond
       // « This model is no longer available to new users ». Les droits varient
       // d'une cle a l'autre, donc seule la cle reellement utilisee fait foi.
-      const candidates: string[] = Array.isArray(body.probeModels) && body.probeModels.length > 0
+      /*
+       * La sonde ne tourne QUE si on la demande.
+       *
+       * Elle exerce chaque modele par un vrai generateContent — indispensable
+       * pour diagnostiquer, ruineux par defaut : le front appelle ce healthCheck
+       * au montage de la page troc, donc CHAQUE visiteur declenchait cinq appels
+       * Gemini, 2,5 a 8 s. Sur une connexion mobile, `functions.invoke` expirait
+       * avant la reponse, et l'interface annoncait « GEMINI_API_KEY non
+       * configuree » alors que la cle etait bien en place.
+       *
+       * Sans `probeModels`, on repond sur la simple presence des cles : immediat.
+       */
+      const candidates: string[] = Array.isArray(body.probeModels)
         ? body.probeModels.filter((m: unknown) => typeof m === 'string').slice(0, 12)
-        : [...new Set([...GEMINI_MODELS, ...GEMINI_CREDIBILITY_MODELS])];
+        : [];
 
       let modelsReachable: Record<string, string> | null = null;
       const probeKey = primaryKey || fallbackKey;
 
-      if (probeKey) {
+      if (probeKey && candidates.length > 0) {
         const probe = async (model: string): Promise<[string, string]> => {
           try {
             const res = await fetchWithTimeout(

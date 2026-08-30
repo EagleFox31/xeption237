@@ -800,7 +800,6 @@ const TrocPage: React.FC = () => {
                 issueIndices={troc.photoIssueIndices}
                 visionReady={visionHealth.report?.ready ?? true}
                 visionLoading={visionHealth.loading}
-                visionSetupHint={visionHealth.setupHint}
               />
             )}
 

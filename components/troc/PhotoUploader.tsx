@@ -12,12 +12,11 @@ interface PhotoUploaderProps {
   issueIndices?: number[];
   visionReady?: boolean;
   visionLoading?: boolean;
-  visionSetupHint?: string | null;
 }
 
 export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   photos, onPhotosChange, onNext, isUploading = false, isCheckingPhotos = false, issueIndices = [],
-  visionReady = true, visionLoading = false, visionSetupHint = null,
+  visionReady = true, visionLoading = false,
 }) => {
   const issueSet = new Set(issueIndices);
   const hasIssues = issueSet.size > 0;
@@ -46,12 +45,21 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         <p className="text-xs text-white/70 font-sans">Préparation du contrôle photo…</p>
       )}
 
-      {!visionLoading && !visionReady && visionSetupHint && (
-        <div className="flex items-start gap-2 bg-red-950/50 border border-red-700/60 rounded-sm p-3">
-          <AlertTriangle className="w-4 h-4 text-red-300 mt-0.5 shrink-0" />
-          <div className="text-red-100 text-xs font-sans leading-relaxed space-y-2">
-            <p className="font-medium text-white">Contrôle photo IA non configuré</p>
-            <p>{visionSetupHint}</p>
+      {/*
+        Message CLIENT, pas message d'exploitation.
+        Cette bannière affichait « Contrôle photo IA non configuré » suivi des
+        étapes Supabase — nom de secret et clé compris — à quiconque ouvrait la
+        page. Outre que c'est incompréhensible pour un client, ça exposait la
+        configuration interne, et c'était le plus souvent faux : la cause
+        habituelle est un simple délai dépassé, pas une clé absente.
+        Le détail technique part en console, pour l'équipe.
+      */}
+      {!visionLoading && !visionReady && (
+        <div className="flex items-start gap-2 rounded-sm border border-amber-700/50 bg-amber-950/40 p-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+          <div className="space-y-1 font-sans text-xs leading-relaxed text-amber-100">
+            <p className="font-medium text-white">Service temporairement très sollicité</p>
+            <p>Réessaie dans 3 minutes — tes photos et tes infos sont conservées.</p>
           </div>
         </div>
       )}

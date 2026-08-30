@@ -445,7 +445,9 @@ const TrocPage: React.FC = () => {
               <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                 <div className="flex-1 max-w-xl">
                   {/* Badge Mode Hub */}
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-xeption-gold/10 text-xeption-gold text-xs font-bold uppercase tracking-[0.2em] font-tech mb-4 border border-xeption-gold/30 rounded-full">
+                  {/* MOBILE : ni cadre ni fond — encadre, ce libelle passait pour
+                      un bouton. L'apparence pilule reprend a partir de sm:. */}
+                  <div className="inline-flex items-center gap-2 mb-4 text-xeption-gold text-xs font-bold uppercase tracking-[0.2em] font-tech sm:px-3 sm:py-1 sm:bg-xeption-gold/10 sm:border sm:border-xeption-gold/30 sm:rounded-full">
                     <span className="w-2 h-2 rounded-full bg-xeption-gold animate-ping" />
                     Xeption Smart Troc · Hub de Reprise
                   </div>
@@ -457,17 +459,18 @@ const TrocPage: React.FC = () => {
                   {/* Typing Scanner avec Loupe sur CASH et NOUVEL APPAREIL */}
                   <TypingLoupeScanner />
 
-                  {/* 3 Pilules de Statut avec Icônes Lucide (Zéro Emoji) */}
-                  <div className="flex flex-wrap gap-2">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/20 rounded-lg text-[11px] font-tech text-white/90">
+                  {/* MOBILE : trois lignes de texte, pas trois pastilles encadrees.
+                      Le patron les prenait pour des boutons. Pastilles des sm:. */}
+                  <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:gap-2">
+                    <div className="flex items-center gap-2 text-[11px] font-tech text-white/70 sm:px-3 sm:py-1.5 sm:bg-white/5 sm:border sm:border-white/20 sm:rounded-lg sm:text-white/90">
                       <Zap className="w-3.5 h-3.5 text-xeption-gold" />
                       <span>Scan IA Express (30s)</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-xeption-gold/10 border border-xeption-gold/30 rounded-lg text-[11px] font-tech text-xeption-gold font-bold">
+                    <div className="flex items-center gap-2 text-[11px] font-tech text-xeption-gold font-bold sm:px-3 sm:py-1.5 sm:bg-xeption-gold/10 sm:border sm:border-xeption-gold/30 sm:rounded-lg">
                       <Coins className="w-3.5 h-3.5 text-xeption-gold" />
                       <span>Bonus Combo +18%</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-lg text-[11px] font-tech text-green-400">
+                    <div className="flex items-center gap-2 text-[11px] font-tech text-green-400 sm:px-3 sm:py-1.5 sm:bg-green-500/10 sm:border sm:border-green-500/30 sm:rounded-lg">
                       <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
                       <span>Anti-Vol CAMCIS</span>
                     </div>
@@ -520,7 +523,9 @@ const TrocPage: React.FC = () => {
                       {/* Prix 100 FCFA Mis en Exergue */}
                       <div className="flex flex-col items-end shrink-0">
                         <span className="text-[9px] font-tech uppercase tracking-widest text-white/70 mb-0.5">Frais de service</span>
-                        <div className="inline-flex items-baseline gap-1 px-3 py-1 bg-xeption-gold/15 border border-xeption-gold/40 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.2)] group-hover:scale-105 group-hover:bg-xeption-gold/25 transition-all">
+                        {/* MOBILE : encadre, le prix se lisait comme un second bouton
+                            a l'interieur de la carte. Cadre restitue des sm:. */}
+                        <div className="inline-flex items-baseline gap-1 sm:px-3 sm:py-1 sm:bg-xeption-gold/15 sm:border sm:border-xeption-gold/40 sm:rounded-xl sm:shadow-[0_0_15px_rgba(255,215,0,0.2)] sm:group-hover:scale-105 sm:group-hover:bg-xeption-gold/25 transition-all">
                           <span className="text-xl font-tech font-extrabold text-xeption-gold leading-none">100</span>
                           <span className="text-[10px] font-tech font-bold text-xeption-gold uppercase">FCFA</span>
                         </div>
@@ -532,13 +537,19 @@ const TrocPage: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Bouton Action */}
-                  <div className="pt-4 border-t border-white/20 flex items-center justify-between">
-                    <span className="text-xs font-tech font-bold uppercase tracking-widest text-xeption-gold flex items-center gap-2 group-hover:translate-x-1 transition-transform">
+                  {/*
+                    MOBILE : une vraie barre d'action, pleine largeur et pleine
+                    couleur. « Lancer la reprise » existait deja, mais en petit
+                    texte dore — noye parmi le badge, les pastilles et le prix,
+                    tous dores et encadres eux aussi. Rien ne disait ou taper.
+                    A partir de sm:, on retrouve la ligne discrete d'origine.
+                  */}
+                  <div className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-xeption-gold px-4 py-3.5 sm:mt-0 sm:justify-between sm:rounded-none sm:border-t sm:border-white/20 sm:bg-transparent sm:px-0 sm:py-0 sm:pt-4">
+                    <span className="flex items-center gap-2 text-sm font-tech font-bold uppercase tracking-widest text-black sm:text-xs sm:text-xeption-gold sm:group-hover:translate-x-1 sm:transition-transform">
                       Lancer la reprise
-                      <ArrowRight className="w-4 h-4 text-xeption-gold" />
+                      <ArrowRight className="h-4 w-4 text-black sm:text-xeption-gold" />
                     </span>
-                    <span className="text-[11px] font-tech text-white/70 group-hover:text-white transition-colors">
+                    <span className="hidden text-[11px] font-tech text-white/70 group-hover:text-white transition-colors sm:inline">
                       Estimation en 1 min
                     </span>
                   </div>

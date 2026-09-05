@@ -6,6 +6,26 @@ import {
   parseTrocVisionAnalystOutput,
   type TrocVisionAnalystInput,
 } from '../_shared/personas/trocVisionAnalyst.ts';
+import {
+  buildTrocPhotoCredibilityPrompt,
+  parseTrocPhotoCredibilityOutput,
+} from '../_shared/personas/trocPhotoCredibility.ts';
+import { assertAiRateLimit, rateLimitJsonResponse } from '../_shared/rateLimit.ts';
+import {
+  inlinePartsToVisionImages,
+  isOpenRouterConfigured,
+  openRouterVisionJson,
+} from '../_shared/openRouterVision.ts';
+import {
+  parseModelChain,
+  shouldTryNextModel,
+  DEFAULT_TEXT_MODELS,
+  DEFAULT_LITE_MODELS,
+} from '../_shared/geminiModels.ts';
+import {
+  isDeepSeekVisionConfigured,
+  deepseekVisionJson,
+} from '../_shared/deepseekVision.ts';
 
 export {};
 
@@ -17,7 +37,29 @@ const corsHeaders = {
 const PHOTO_FETCH_TIMEOUT_MS = 10_000;
 const GEMINI_TIMEOUT_MS = 30_000;
 const MAX_PHOTOS = 8;
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const CREDIBILITY_MAX_PHOTOS = 4;
+// Chaine de modeles, pas un slug unique.
+// Chaines de modeles : voir `_shared/geminiModels.ts`.
+//
+// Elles y vivaient deja, puis une refonte les a re-declarees ICI en local. Ce
+// doublon a coute trois deploiements le 2026-08-26 : je corrigeais l'ordre dans
+// le module partage sans effet, parce que cette fonction ne l'importait plus et
+// que le fichier n'apparaissait donc meme pas dans les assets envoyes.
+//
+// Une seule declaration, importee. Le test T-X23 de la recette compare la chaine
+// renvoyee par `healthCheck` a celle du code, precisement pour que cette derive
+// se voie au lieu de rester muette.
+const GEMINI_MODELS = parseModelChain(Deno.env.get('GEMINI_MODELS'), DEFAULT_TEXT_MODELS);
+
+const GEMINI_CREDIBILITY_MODELS = parseModelChain(
+  Deno.env.get('GEMINI_CREDIBILITY_MODELS') ?? Deno.env.get('GEMINI_CREDIBILITY_MODEL'),
+  DEFAULT_LITE_MODELS,
+);
+
+// Budget global. Sans lui, une chaine de 2 modeles x 2 cles x 30 s ferait
+// patienter le client jusqu'a deux minutes devant un ecran fige. Mesure sur la
+// panne du 2026-08-24 : 59 s pour un seul modele.
+const TOTAL_GEMINI_BUDGET_MS = 45_000;
 
 const fetchWithTimeout = async (
   input: RequestInfo | URL,
@@ -35,7 +77,77 @@ const fetchWithTimeout = async (
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-const validateBody = (body: any): string | null => {
+const FULL_VISION_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    score: { type: 'INTEGER' },
+    justification: { type: 'STRING' },
+    observedBrand: { type: 'STRING' },
+    observedModel: { type: 'STRING' },
+    decision: { type: 'STRING' },
+    confidence: { type: 'NUMBER' },
+    fraudDetected: { type: 'BOOLEAN' },
+    photoIssues: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          index: { type: 'INTEGER' },
+          reason: { type: 'STRING' },
+        },
+        required: ['index', 'reason'],
+      },
+    },
+    evidence: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          source: { type: 'STRING' },
+          signal: { type: 'STRING' },
+        },
+      },
+    },
+    warnings: { type: 'ARRAY', items: { type: 'STRING' } },
+  },
+  required: ['score', 'justification', 'observedBrand', 'observedModel', 'decision', 'confidence', 'fraudDetected', 'photoIssues', 'evidence', 'warnings'],
+};
+
+const CREDIBILITY_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    decision: { type: 'STRING' },
+    confidence: { type: 'NUMBER' },
+    observedBrand: { type: 'STRING' },
+    observedModel: { type: 'STRING' },
+    allPhotosShowSmartphone: { type: 'BOOLEAN' },
+    declarationMatch: { type: 'STRING' },
+    summary: { type: 'STRING' },
+    photoIssues: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          index: { type: 'INTEGER' },
+          reason: { type: 'STRING' },
+        },
+        required: ['index', 'reason'],
+      },
+    },
+  },
+  required: [
+    'decision',
+    'confidence',
+    'observedBrand',
+    'observedModel',
+    'allPhotosShowSmartphone',
+    'declarationMatch',
+    'summary',
+    'photoIssues',
+  ],
+};
+
+const validateBody = (body: any, isPreflight: boolean): string | null => {
   if (!Array.isArray(body.photoUrls)) return 'photoUrls doit être un tableau';
   if (body.photoUrls.length === 0) return 'photoUrls : au moins une photo requise';
   if (body.photoUrls.length > MAX_PHOTOS) return `photoUrls : maximum ${MAX_PHOTOS} photos`;
@@ -47,8 +159,10 @@ const validateBody = (body: any): string | null => {
   if (!str(info.brand).trim()) return 'deviceInfo.brand requis';
   if (!str(info.model).trim()) return 'deviceInfo.model requis';
 
-  const bh = Number(info.batteryHealth);
-  if (!Number.isFinite(bh) || bh < 0 || bh > 100) return 'deviceInfo.batteryHealth invalide (0-100)';
+  if (!isPreflight) {
+    const bh = Number(info.batteryHealth);
+    if (!Number.isFinite(bh) || bh < 0 || bh > 100) return 'deviceInfo.batteryHealth invalide (0-100)';
+  }
 
   return null;
 };
@@ -62,53 +176,21 @@ type GeminiCallResult =
 const callGemini = async (
   apiKey: string,
   parts: any[],
-  deviceInfo: TrocVisionAnalystInput,
+  promptText: string,
   keyUsed: 'primary' | 'fallback',
+  responseSchema: Record<string, unknown>,
+  model: string,
 ): Promise<GeminiCallResult> => {
   const geminiRes = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: buildTrocVisionAnalystPrompt(deviceInfo) }, ...parts] }],
+        contents: [{ parts: [{ text: promptText }, ...parts] }],
         generationConfig: {
           responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'OBJECT',
-            properties: {
-              score: { type: 'INTEGER' },
-              justification: { type: 'STRING' },
-              observedBrand: { type: 'STRING' },
-              observedModel: { type: 'STRING' },
-              decision: { type: 'STRING' },
-              confidence: { type: 'NUMBER' },
-              fraudDetected: { type: 'BOOLEAN' },
-              photoIssues: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    index: { type: 'INTEGER' },
-                    reason: { type: 'STRING' },
-                  },
-                  required: ['index', 'reason'],
-                },
-              },
-              evidence: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    source: { type: 'STRING' },
-                    signal: { type: 'STRING' },
-                  },
-                },
-              },
-              warnings: { type: 'ARRAY', items: { type: 'STRING' } },
-            },
-            required: ['score', 'justification', 'observedBrand', 'observedModel', 'decision', 'confidence', 'fraudDetected', 'photoIssues', 'evidence', 'warnings'],
-          },
+          responseSchema,
         },
       }),
     },
@@ -132,7 +214,87 @@ Deno.serve(async (req: Request) => {
   try {
     const body = await req.json();
 
-    const validationError = validateBody(body);
+    if (body.healthCheck === true) {
+      const primaryKey = Deno.env.get('GEMINI_API_KEY')?.trim() || '';
+      const fallbackKey = Deno.env.get('GEMINI_API_KEY_FALLBACK')?.trim() || '';
+      const ready = primaryKey.length > 0 || fallbackKey.length > 0;
+
+      // Une cle presente ne suffit pas : le 2026-08-24 les cles etaient valides
+      // mais les modeles codes en dur avaient ete retires, et ce healthCheck
+      // repondait « ready » pendant que tout le pipeline tombait.
+      //
+      // On sonde par un VRAI generateContent, pas par models.list : cette liste
+      // ment. Elle annonce gemini-2.5-flash comme servi alors que l'appel repond
+      // « This model is no longer available to new users ». Les droits varient
+      // d'une cle a l'autre, donc seule la cle reellement utilisee fait foi.
+      const candidates: string[] = Array.isArray(body.probeModels) && body.probeModels.length > 0
+        ? body.probeModels.filter((m: unknown) => typeof m === 'string').slice(0, 12)
+        : [...new Set([...GEMINI_MODELS, ...GEMINI_CREDIBILITY_MODELS])];
+
+      let modelsReachable: Record<string, string> | null = null;
+      const probeKey = primaryKey || fallbackKey;
+
+      if (probeKey) {
+        const probe = async (model: string): Promise<[string, string]> => {
+          try {
+            const res = await fetchWithTimeout(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${probeKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: 'ping' }] }],
+                  generationConfig: { maxOutputTokens: 1, temperature: 0 },
+                }),
+              },
+              8_000,
+            );
+            return [model, res.ok ? 'ok' : `http_${res.status}`];
+          } catch (error: any) {
+            return [model, error?.name === 'AbortError' ? 'timeout' : 'failed'];
+          }
+        };
+
+        const results = await Promise.all(candidates.map(probe));
+        modelsReachable = Object.fromEntries(results);
+      }
+
+      const anyModelReachable = modelsReachable
+        ? Object.values(modelsReachable).some((v) => v === 'ok')
+        : null;
+
+      const openRouterConfigured = isOpenRouterConfigured();
+
+      return new Response(
+        JSON.stringify({
+          ready: (ready && anyModelReachable !== false) || openRouterConfigured,
+          provider: 'edge-gemini',
+          code: !ready && !openRouterConfigured
+            ? 'missing_api_key'
+            : anyModelReachable === false && !openRouterConfigured
+              ? 'no_model_available'
+              : 'ready',
+          keys: { primary: primaryKey.length > 0, fallback: fallbackKey.length > 0 },
+          openRouter: { configured: openRouterConfigured },
+          deepSeekVision: { configured: isDeepSeekVisionConfigured() },
+          chains: { evaluation: GEMINI_MODELS, preflight: GEMINI_CREDIBILITY_MODELS },
+          modelsReachable,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    }
+
+    const sessionKey =
+      typeof body.sessionKey === 'string' ? body.sessionKey.trim() : null;
+
+    const rateLimit = await assertAiRateLimit(req, 'evaluate-device', sessionKey);
+    if (!rateLimit.allowed) {
+      return rateLimitJsonResponse(rateLimit, corsHeaders);
+    }
+
+    const isPreflight = body.preflight === true;
+
+    const validationError = validateBody(body, isPreflight);
     if (validationError) {
       return new Response(JSON.stringify({ error: validationError }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -142,21 +304,62 @@ Deno.serve(async (req: Request) => {
 
     const primaryKey = Deno.env.get('GEMINI_API_KEY')?.trim() || '';
     const fallbackKey = Deno.env.get('GEMINI_API_KEY_FALLBACK')?.trim() || '';
+    const openRouterReady = isOpenRouterConfigured();
+    const deepSeekReady = isDeepSeekVisionConfigured();
 
-    if (!primaryKey && !fallbackKey) {
+    /**
+     * Secours vision, essayes dans l'ordre.
+     *
+     * DeepSeek d'abord : c'est un fournisseur payant, donc sans file d'attente
+     * gratuite, et la cle est deja posee. OpenRouter ensuite, en dernier filet —
+     * son modele gratuit a ete mesure a 27 s de latence le 2026-08-25, et son
+     * slug precedent avait deja ete retire une fois.
+     *
+     * Les deux sont hors famille Google : c'est tout l'objet de cette chaine.
+     */
+    const visionFallbacks: Array<{
+      name: string;
+      ready: boolean;
+      call: (prompt: string, images: ReturnType<typeof inlinePartsToVisionImages>) => Promise<string>;
+    }> = [
+      { name: 'deepseek', ready: deepSeekReady, call: deepseekVisionJson },
+      { name: 'openrouter', ready: openRouterReady, call: openRouterVisionJson },
+    ];
+
+    const anyFallbackReady = visionFallbacks.some((f) => f.ready);
+
+    if (!primaryKey && !fallbackKey && !anyFallbackReady) {
       return new Response(
-        JSON.stringify({ error: 'Aucune clé Gemini configurée', code: 'missing_api_key' }),
+        JSON.stringify({ error: 'Aucune clé vision configurée', code: 'missing_api_key' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 },
       );
     }
 
     const { photoUrls, deviceInfo } = body;
+    const analystInput: TrocVisionAnalystInput = {
+      brand: str(deviceInfo.brand).trim(),
+      model: str(deviceInfo.model).trim(),
+      storage: str(deviceInfo.storage),
+      ram: str(deviceInfo.ram),
+      batteryHealth: Number.isFinite(Number(deviceInfo.batteryHealth))
+        ? Number(deviceInfo.batteryHealth)
+        : 80,
+      screenCondition: str(deviceInfo.screenCondition),
+      bodyCondition: str(deviceInfo.bodyCondition),
+      cameraCondition: str(deviceInfo.cameraCondition),
+      accessories: Array.isArray(deviceInfo.accessories) ? deviceInfo.accessories : [],
+      photoCount: 0,
+    };
+
+    const responseSchema = isPreflight ? CREDIBILITY_SCHEMA : FULL_VISION_SCHEMA;
+    const photoLimit = isPreflight ? CREDIBILITY_MAX_PHOTOS : MAX_PHOTOS;
+    const modelChain = isPreflight ? GEMINI_CREDIBILITY_MODELS : GEMINI_MODELS;
 
     // Fetch photos depuis Cloudinary et conversion base64.
     // On utilise allSettled pour ne pas bloquer sur une photo manquante —
     // on évalue avec les photos disponibles et on signale le compte effectif.
     const imageResults = await Promise.allSettled(
-      (photoUrls as string[]).slice(0, MAX_PHOTOS).map(async (url: string) => {
+      (photoUrls as string[]).slice(0, photoLimit).map(async (url: string) => {
         const res = await fetchWithTimeout(url, {}, PHOTO_FETCH_TIMEOUT_MS);
         if (!res.ok) throw new Error(`http_${res.status}`);
         const buffer = await res.arrayBuffer();
@@ -180,76 +383,268 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    let geminiResult: GeminiCallResult | null = null;
+    const finalPrompt = isPreflight
+      ? buildTrocPhotoCredibilityPrompt({
+          brand: analystInput.brand,
+          model: analystInput.model,
+          photoCount: imageParts.length,
+        })
+      : buildTrocVisionAnalystPrompt({ ...analystInput, photoCount: imageParts.length });
 
-    if (primaryKey) {
-      try {
-        geminiResult = await callGemini(
-          primaryKey,
-          imageParts,
-          { ...deviceInfo, photoCount: imageParts.length },
-          'primary',
-        );
-      } catch (error: any) {
-        console.error('[evaluate-device] gemini_primary_fatal', error?.message ?? error);
-      }
-    }
+    // Une tentative complete pour UN modele : cle primaire, puis cle de secours
+    // si le quota ou le serveur a laché. Inchange par rapport a l'existant.
+    const startedAt = Date.now();
+    const budgetLeft = () => TOTAL_GEMINI_BUDGET_MS - (Date.now() - startedAt);
 
-    // Fallback key: only if primary failed with quota/server issue, or if no primary exists.
-    const primaryFailedRecoverable =
-      geminiResult && !geminiResult.ok && shouldTryFallback(geminiResult.status);
-    const noPrimaryAttempt = !geminiResult;
+    const attemptWithKeys = async (model: string): Promise<GeminiCallResult | null> => {
+      let result: GeminiCallResult | null = null;
 
-    if (fallbackKey && (noPrimaryAttempt || primaryFailedRecoverable)) {
-      try {
-        const fallbackResult = await callGemini(
-          fallbackKey,
-          imageParts,
-          { ...deviceInfo, photoCount: imageParts.length },
-          'fallback',
-        );
-        if (fallbackResult.ok) {
-          geminiResult = fallbackResult;
-        } else if (!geminiResult || (geminiResult && geminiResult.ok === false)) {
-          // Keep the fallback result if primary was absent or also failed.
-          geminiResult = fallbackResult;
+      // Un ECHEC RESEAU (timeout, DNS) vise le modele, pas la cle : rejouer la
+      // seconde cle sur le meme modele expirerait pareil, en consommant 30 s de
+      // plus. Mesure du 2026-08-25 : deux modeles injoignables coutaient 60 s et
+      // le budget s'epuisait avant d'atteindre le modele suivant.
+      let primaryThrew = false;
+
+      if (primaryKey) {
+        try {
+          result = await callGemini(primaryKey, imageParts, finalPrompt, 'primary', responseSchema, model);
+        } catch (error: any) {
+          primaryThrew = true;
+          console.error('[evaluate-device] gemini_primary_fatal', model, error?.message ?? error);
         }
-      } catch (error: any) {
-        console.error('[evaluate-device] gemini_fallback_fatal', error?.message ?? error);
+      }
+
+      if (primaryThrew) return null;
+
+      // Cle de secours : seulement si la primaire a lache sur quota/serveur, ou
+      // s'il n'y a pas de cle primaire.
+      const primaryFailedRecoverable = result && !result.ok && shouldTryFallback(result.status);
+      const noPrimaryAttempt = !result;
+
+      // Sans ce garde-fou, 2 cles x 30 s epuisaient le budget sur le premier
+      // modele et le second n'etait jamais essaye.
+      if (fallbackKey && budgetLeft() <= 0) {
+        console.warn('[evaluate-device] budget epuise, cle de secours non tentee', model);
+      } else if (fallbackKey && (noPrimaryAttempt || primaryFailedRecoverable)) {
+        try {
+          const fallbackResult = await callGemini(fallbackKey, imageParts, finalPrompt, 'fallback', responseSchema, model);
+          // On garde le resultat de secours s'il aboutit, ou si la primaire etait
+          // absente / avait echoue elle aussi.
+          if (fallbackResult.ok || !result || result.ok === false) {
+            result = fallbackResult;
+          }
+        } catch (error: any) {
+          console.error('[evaluate-device] gemini_fallback_fatal', model, error?.message ?? error);
+        }
+      }
+
+      return result;
+    };
+
+    // Boucle sur la chaine de modeles. Un 404/400 signifie que le modele est en
+    // cause : changer de cle ne servirait a rien, on passe au suivant.
+    let geminiResult: GeminiCallResult | null = null;
+    const modelsTried: string[] = [];
+
+    if (primaryKey || fallbackKey) {
+      for (const model of modelChain) {
+        modelsTried.push(model);
+        const result = await attemptWithKeys(model);
+        geminiResult = result ?? geminiResult;
+
+        if (result?.ok) break;
+
+        if (budgetLeft() <= 0) {
+          console.warn('[evaluate-device] budget epuise, abandon de la chaine', modelsTried.join(' > '));
+          break;
+        }
+
+        if (!result || shouldTryNextModel(result.status)) {
+          console.warn('[evaluate-device] modele en echec, passage au suivant', model, result?.status ?? 'fatal');
+          continue;
+        }
+
+        // 401/403 : la cle est en cause, epuiser la chaine ne servirait a rien.
+        break;
       }
     }
 
-    if (!geminiResult || !geminiResult.ok) {
+    let visionText: string | null = null;
+    let visionProvider: string = 'none';
+
+    if (geminiResult?.ok) {
+      visionText = geminiResult.payload?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+      visionProvider = geminiResult.keyUsed;
+    }
+
+    let lastFallbackError = '';
+
+    // Parcourt les secours jusqu'au premier qui repond.
+    const runVisionFallback = async (exclude: string[] = []): Promise<string | null> => {
+      for (const provider of visionFallbacks) {
+        if (!provider.ready || exclude.includes(provider.name)) continue;
+        try {
+          console.warn('[evaluate-device] fallback_vision', provider.name, modelsTried.join(' > ') || 'no_gemini');
+          const text = await provider.call(finalPrompt, inlinePartsToVisionImages(imageParts));
+          visionProvider = provider.name;
+          return text;
+        } catch (error: any) {
+          lastFallbackError = error instanceof Error ? error.message : `${provider.name}_failed`;
+          console.error('[evaluate-device] fallback_error', provider.name, lastFallbackError);
+        }
+      }
+      return null;
+    };
+
+    if (!visionText && anyFallbackReady) {
+      visionText = await runVisionFallback();
+
+      if (!visionText) {
+        const code = lastFallbackError || 'vision_fallback_failed';
+        if (!geminiResult || !geminiResult.ok) {
+          const statusCode = geminiResult && !geminiResult.ok ? geminiResult.status : 502;
+          const errBody = geminiResult && !geminiResult.ok ? geminiResult.body : code;
+          return new Response(
+            JSON.stringify({
+              error: 'Vision API error',
+              code: /^(openrouter|deepseek_vision)_http_/.test(code) ? code : `gemini_http_${statusCode}`,
+              provider: visionProvider,
+              modelsTried,
+              detail: String(errBody).slice(0, 200),
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
+          );
+        }
+      }
+    }
+
+    if (!visionText) {
       const statusCode = geminiResult && !geminiResult.ok ? geminiResult.status : 500;
-      const errBody = geminiResult && !geminiResult.ok ? geminiResult.body : 'gemini_unreachable';
+      const errBody = geminiResult && !geminiResult.ok ? geminiResult.body : 'vision_unreachable';
       const keyLabel = geminiResult && !geminiResult.ok ? geminiResult.keyUsed : 'none';
-      console.error('[evaluate-device] gemini_error', statusCode, keyLabel, errBody);
+      console.error('[evaluate-device] vision_error', statusCode, keyLabel, modelsTried.join(' > '), errBody);
       return new Response(
         JSON.stringify({
-          error: 'Gemini API error',
+          error: 'Vision API error',
           code: `gemini_http_${statusCode}`,
           provider: keyLabel,
+          modelsTried,
+          detail: String(errBody).slice(0, 200),
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
       );
     }
 
-    const geminiData = geminiResult.payload;
-    const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (isPreflight) {
+      const credibility = parseTrocPhotoCredibilityOutput(visionText);
+      if (!credibility) {
+        // Un JSON illisible n'est pas une panne : on redemande a un AUTRE
+        // fournisseur, en excluant celui qui vient de repondre de travers.
+        if (anyFallbackReady) {
+          try {
+            const retryText = await runVisionFallback([visionProvider]);
+            if (!retryText) throw new Error('invalid_json');
+            visionText = retryText;
+            const retry = parseTrocPhotoCredibilityOutput(visionText);
+            if (!retry) {
+              return new Response(
+                JSON.stringify({ error: 'JSON vision invalide', code: 'invalid_json' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
+              );
+            }
+            const analysisDecision =
+              retry.decision === 'approved'
+                ? 'match'
+                : retry.decision === 'mismatch'
+                  ? 'mismatch'
+                  : 'photos_to_retake';
 
-    if (!text) {
-      console.error('[evaluate-device] empty_response', JSON.stringify(geminiData));
+            return new Response(
+              JSON.stringify({
+                preflight: true,
+                evaluationMode: 'credibility_verified',
+                photosUsed: imageParts.length,
+                provider: visionProvider,
+                analysisDecision,
+                photoIssues: retry.photoIssues,
+                observedBrand: retry.observedBrand,
+                observedModel: retry.observedModel,
+                declarationMatch: retry.declarationMatch,
+                credibilitySummary: retry.summary,
+                credibilityConfidence: retry.confidence,
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+            );
+          } catch {
+            /* fall through */
+          }
+        }
+        return new Response(
+          JSON.stringify({ error: 'JSON vision invalide', code: 'invalid_json' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
+        );
+      }
+
+      const analysisDecision =
+        credibility.decision === 'approved'
+          ? 'match'
+          : credibility.decision === 'mismatch'
+            ? 'mismatch'
+            : 'photos_to_retake';
+
       return new Response(
-        JSON.stringify({ error: 'Réponse Gemini vide', code: 'empty_response' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
+        JSON.stringify({
+          preflight: true,
+          evaluationMode: 'credibility_verified',
+          photosUsed: imageParts.length,
+          provider: visionProvider,
+          analysisDecision,
+          photoIssues: credibility.photoIssues,
+          observedBrand: credibility.observedBrand,
+          observedModel: credibility.observedModel,
+          declarationMatch: credibility.declarationMatch,
+          credibilitySummary: credibility.summary,
+          credibilityConfidence: credibility.confidence,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
     }
 
-    const parsed = parseTrocVisionAnalystOutput(text);
+    const parsed = parseTrocVisionAnalystOutput(visionText);
 
     if (!parsed) {
+      if (openRouterReady && visionProvider !== 'openrouter') {
+        try {
+          visionText = await openRouterVisionJson(
+            finalPrompt,
+            inlinePartsToVisionImages(imageParts),
+          );
+          visionProvider = 'openrouter';
+          const retryParsed = parseTrocVisionAnalystOutput(visionText);
+          if (retryParsed) {
+            const hasPhotoIssues = retryParsed.photoIssues.length > 0;
+            const safeDecision = hasPhotoIssues ? 'photos_to_retake' : retryParsed.decision;
+            return new Response(
+              JSON.stringify({
+                score: hasPhotoIssues ? 0 : retryParsed.score,
+                justification: hasPhotoIssues ? '' : retryParsed.justification.slice(0, 2000),
+                evaluationMode: 'vision_ai',
+                photosUsed: imageParts.length,
+                provider: visionProvider,
+                analysisDecision: safeDecision,
+                analysisConfidence: retryParsed.confidence,
+                fraudDetected: retryParsed.fraudDetected,
+                photoIssues: retryParsed.photoIssues,
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+            );
+          }
+        } catch {
+          /* fall through */
+        }
+      }
       return new Response(
-        JSON.stringify({ error: 'JSON Gemini invalide', code: 'invalid_json' }),
+        JSON.stringify({ error: 'JSON vision invalide', code: 'invalid_json' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 },
       );
     }
@@ -257,8 +652,6 @@ Deno.serve(async (req: Request) => {
     const score = parsed.score;
     const justification = parsed.justification.slice(0, 2000);
 
-    // Filet final : si Gemini a listé des photos non conformes, on force
-    // un retour "photos_to_retake" et on n'expose JAMAIS de score au client.
     const hasPhotoIssues = parsed.photoIssues.length > 0;
     const safeDecision = hasPhotoIssues ? 'photos_to_retake' : parsed.decision;
 
@@ -268,11 +661,11 @@ Deno.serve(async (req: Request) => {
         justification: hasPhotoIssues ? '' : justification,
         evaluationMode: 'vision_ai',
         photosUsed: imageParts.length,
-        provider: geminiResult.keyUsed,
+        provider: visionProvider,
         analysisDecision: safeDecision,
         analysisConfidence: parsed.confidence,
         fraudDetected: parsed.fraudDetected,
-        photoIssues: parsed.photoIssues, // [{ index, reason }] — index 1-based
+        photoIssues: parsed.photoIssues,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );

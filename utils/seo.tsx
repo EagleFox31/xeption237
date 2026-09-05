@@ -2,6 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
 const SITE_URL = 'https://www.xeptionetwork.shop';
+export const absoluteUrl = (path: string) => `${SITE_URL}${path}`;
 const DEFAULT_OG_IMAGE =
   'https://res.cloudinary.com/dli0kdkg9/image/upload/w_1200,h_630,c_pad,b_rgb:050505/v1768287078/logo_mbajfa.png';
 
@@ -75,6 +76,10 @@ export interface ProductSchemaInput {
   price?: number;
   currency?: string;
   availability?: 'InStock' | 'OutOfStock' | 'PreOrder';
+  /** État du produit : impacte itemCondition (neuf vs reconditionné). */
+  condition?: 'new' | 'refurbished';
+  /** Caractéristiques techniques affichées → miroir en additionalProperty. */
+  specs?: { label: string; value: string }[];
   url: string;
   rating?: { value: number; count: number } | null;
 }
@@ -93,9 +98,22 @@ export const productJsonLd = (p: ProductSchemaInput) => ({
         price: p.price,
         priceCurrency: p.currency || 'XAF',
         availability: `https://schema.org/${p.availability || 'InStock'}`,
-        seller: { '@type': 'Organization', name: 'Xeption Network' },
+        itemCondition:
+          p.condition === 'refurbished'
+            ? 'https://schema.org/RefurbishedCondition'
+            : 'https://schema.org/NewCondition',
+        areaServed: 'Cameroun',
+        seller: { '@id': `${SITE_URL}/#organization` },
       }
     : undefined,
+  // Specs affichées → additionalProperty (fort levier d'extraction pour les LLM).
+  additionalProperty: p.specs?.length
+    ? p.specs
+        .filter((s) => s.label && s.value)
+        .map((s) => ({ '@type': 'PropertyValue', name: s.label, value: s.value }))
+    : undefined,
+  // Note honnête uniquement : jamais de note inventée sans avis réels
+  // (exigence policy Google review-snippet).
   aggregateRating: p.rating
     ? {
         '@type': 'AggregateRating',
@@ -104,6 +122,31 @@ export const productJsonLd = (p: ProductSchemaInput) => ({
       }
     : undefined,
 });
+
+export interface FaqEntry {
+  q: string;
+  a: string;
+}
+
+/**
+ * Schéma FAQPage. À n'utiliser QUE si les questions/réponses sont réellement
+ * affichées sur la page (exigence policy Google structured-data).
+ */
+export const faqJsonLd = (items: FaqEntry[]) => ({
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: items.map((it) => ({
+    '@type': 'Question',
+    name: it.q,
+    acceptedAnswer: { '@type': 'Answer', text: it.a },
+  })),
+});
+
+// NB : le nœud #organization (Organization + ElectronicsStore local complet :
+// adresse, geo, horaires, paymentAccepted, sameAs) est défini STATIQUEMENT dans
+// index.html — donc présent sur toutes les pages prerendues. C'est lui qui est
+// référencé par websiteJsonLd (publisher) et les offers produit (seller).
+// Ne pas redéclarer d'Organization ici : ça créerait un conflit de @id.
 
 export interface BreadcrumbItem {
   name: string;
@@ -118,8 +161,51 @@ export const breadcrumbJsonLd = (items: BreadcrumbItem[]) => ({
     '@type': 'ListItem',
     position: idx + 1,
     name: item.name,
-    ...(item.path ? { item: `${SITE_URL}${item.path}` } : {}),
+    ...(item.path ? { item: absoluteUrl(item.path) } : {}),
   })),
+});
+
+export interface ItemListEntry {
+  name: string;
+  url: string;
+}
+
+export const itemListJsonLd = (opts: {
+  name: string;
+  path: string;
+  items: ItemListEntry[];
+}) => ({
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: opts.name,
+  url: absoluteUrl(opts.path),
+  numberOfItems: opts.items.length,
+  itemListElement: opts.items.map((item, idx) => ({
+    '@type': 'ListItem',
+    position: idx + 1,
+    name: item.name,
+    url: item.url,
+  })),
+});
+
+/** Schéma WebSite + SearchAction (recherche boutique ?q=) — page d'accueil. */
+export const websiteJsonLd = () => ({
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': `${SITE_URL}/#website`,
+  name: 'Xeption Network',
+  alternateName: 'Xeption 237',
+  url: SITE_URL,
+  inLanguage: 'fr-CM',
+  publisher: { '@id': `${SITE_URL}/#organization` },
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${SITE_URL}/shop?q={search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
 });
 
 /**

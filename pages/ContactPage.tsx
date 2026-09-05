@@ -2,19 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Clock3, Mail, MapPin, MessageCircle, Phone, RefreshCw, ShieldCheck, Wrench } from 'lucide-react';
 import { PageSEO } from '../utils/seo';
+import {
+  INSTITUTIONAL_FEATURE_CARD_CLASS,
+  INSTITUTIONAL_HEADER_BADGE_CLASS,
+  INSTITUTIONAL_PAGE_HEADER_CLASS,
+  INSTITUTIONAL_PAGE_LEAD_CLASS,
+  INSTITUTIONAL_PAGE_TITLE_CLASS,
+  INSTITUTIONAL_SECTION_BODY_CLASS,
+  INSTITUTIONAL_SECTION_CLASS,
+  INSTITUTIONAL_SECTION_DIVIDER_CLASS,
+  INSTITUTIONAL_SECTION_HEADING_CLASS,
+  INSTITUTIONAL_TOC_CLASS,
+  INSTITUTIONAL_TOC_LINK_IDLE,
+} from '../constants/institutionalPageStyles';
 
 const Section: React.FC<{ id: string; icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ id, icon, title, children }) => (
-  <section
-    id={id}
-    className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 md:p-8 hover:border-xeption-gold/20 transition-all duration-300 scroll-mt-32 snap-start"
-  >
-    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
+  <section id={id} className={INSTITUTIONAL_SECTION_CLASS}>
+    <div className={`flex items-center gap-3 mb-6 pb-4 ${INSTITUTIONAL_SECTION_DIVIDER_CLASS}`}>
       <div className="w-10 h-10 bg-xeption-gold/10 rounded-lg flex items-center justify-center text-xeption-gold">
         {icon}
       </div>
-      <h2 className="text-xl font-bold text-white font-tech uppercase tracking-wider">{title}</h2>
+      <h2 className={INSTITUTIONAL_SECTION_HEADING_CLASS}>{title}</h2>
     </div>
-    <div className="space-y-4 text-gray-300 text-sm leading-relaxed">
+    <div className={INSTITUTIONAL_SECTION_BODY_CLASS}>
       {children}
     </div>
   </section>
@@ -27,13 +37,13 @@ const ContactCard: React.FC<{
   href?: string;
   cta?: string;
 }> = ({ icon, title, text, href, cta }) => (
-  <div className="bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col gap-3">
+  <div className={`${INSTITUTIONAL_FEATURE_CARD_CLASS} flex flex-col gap-3`}>
     <div className="w-10 h-10 bg-xeption-gold/10 rounded-lg flex items-center justify-center text-xeption-gold">
       {icon}
     </div>
     <div>
       <h3 className="text-white font-bold font-tech uppercase tracking-wider text-sm mb-2">{title}</h3>
-      <p className="text-gray-400 text-sm leading-relaxed">{text}</p>
+      <p className="text-white/90 text-sm leading-relaxed">{text}</p>
     </div>
     {href && cta && (
       <a
@@ -57,20 +67,20 @@ const SECTIONS = [
 ];
 
 const TOC: React.FC<{ activeId: string }> = ({ activeId }) => (
-  <nav className="fixed top-24 right-4 w-[min(20rem,calc(100vw-2rem))] max-h-[calc(100vh-7rem)] overflow-auto bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-xl z-40" aria-label="Sommaire">
-    <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest mb-4">Sommaire</p>
-    <ol className="flex flex-col gap-2 text-sm">
+  <nav className={INSTITUTIONAL_TOC_CLASS} aria-label="Sommaire">
+    <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest mb-3 xl:mb-4">Sommaire</p>
+    <ol className="flex gap-2 overflow-x-auto no-scrollbar text-sm xl:flex-col xl:overflow-visible">
       {SECTIONS.map((item, idx) => {
         const isActive = activeId === item.id;
         return (
-          <li key={item.id}>
+          <li key={item.id} className="shrink-0 xl:shrink">
             <a
               href={`#${item.id}`}
-              className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 group ${
-                isActive ? 'bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 group whitespace-nowrap ${
+                isActive ? 'bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold' : INSTITUTIONAL_TOC_LINK_IDLE
               }`}
             >
-              <ChevronRight className={`w-3 h-3 transition-transform duration-300 shrink-0 ${isActive ? 'text-xeption-gold translate-x-1' : 'text-gray-600 group-hover:text-xeption-gold group-hover:translate-x-0.5'}`} />
+              <ChevronRight className={`w-3 h-3 transition-transform duration-300 shrink-0 ${isActive ? 'text-xeption-gold translate-x-1' : 'text-white/60 group-hover:text-xeption-gold group-hover:translate-x-0.5'}`} />
               <span className={`font-mono text-xs w-5 shrink-0 ${isActive ? 'text-xeption-gold' : 'text-xeption-gold/50'}`}>
                 {String(idx + 1).padStart(2, '0')}
               </span>
@@ -116,23 +126,21 @@ const ContactPage: React.FC = () => {
       />
 
       <div className="min-h-screen pt-28 pb-20 px-4 relative">
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-0 pointer-events-none" />
-
         <div className="max-w-4xl mx-auto relative z-10">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-xeption-gold/10 border border-xeption-gold/30 rounded-full px-4 py-2 text-xeption-gold text-xs font-bold uppercase tracking-widest mb-6">
+          <div className={INSTITUTIONAL_PAGE_HEADER_CLASS}>
+            <div className={INSTITUTIONAL_HEADER_BADGE_CLASS}>
               <Phone className="w-3.5 h-3.5" />
               Contact Xeption
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-lg mb-4">
+            <h1 className={INSTITUTIONAL_PAGE_TITLE_CLASS}>
               Nous <span className="text-xeption-gold">Contacter</span>
             </h1>
-            <p className="text-gray-300 max-w-2xl mx-auto text-sm leading-relaxed">
+            <p className={`${INSTITUTIONAL_PAGE_LEAD_CLASS} max-w-2xl leading-relaxed`}>
               Pour une commande, une question produit, un besoin SAV ou une demande Smart Troc, utilisez le canal le
               plus adapté ci-dessous. Les demandes sensibles ou nécessitant vérification technique peuvent être traitées
               en boutique.
             </p>
-            <div className="flex items-center justify-center gap-2 mt-4 text-gray-500 text-xs">
+            <div className="flex items-center justify-center gap-2 mt-4 text-white/75 text-xs">
               <RefreshCw className="w-3 h-3" />
               Dernière mise à jour : {lastUpdated}
             </div>
@@ -147,14 +155,14 @@ const ContactPage: React.FC = () => {
                   icon={<MessageCircle className="w-5 h-5" />}
                   title="WhatsApp"
                   text="Canal rapide pour les questions produit, confirmations et échanges pratiques."
-                  href="https://wa.me/237697686684"
+                  href="https://wa.me/237641891031"
                   cta="Écrire sur WhatsApp"
                 />
                 <ContactCard
                   icon={<Phone className="w-5 h-5" />}
                   title="Téléphone"
                   text="Pour parler directement avec la boutique ou confirmer une information urgente."
-                  href="tel:+237697686684"
+                  href="tel:+237641891031"
                   cta="Appeler"
                 />
                 <ContactCard
@@ -173,10 +181,10 @@ const ContactPage: React.FC = () => {
             </section>
             <Section id="coordonnees" icon={<MapPin className="w-5 h-5" />} title="Coordonnées">
               <div className="space-y-3">
-                <p><span className="text-gray-500 uppercase tracking-widest text-[10px] block mb-1">Entreprise</span><span className="text-white font-medium">ETS XEPTION</span></p>
-                <p><span className="text-gray-500 uppercase tracking-widest text-[10px] block mb-1">Adresse</span><span className="text-white">Mfoundi Mall, Boutique 2063, Avenue Mgr Vogt, Marché Mfoundi, Centre-ville, Yaoundé, Cameroun</span></p>
-                <p><span className="text-gray-500 uppercase tracking-widest text-[10px] block mb-1">Téléphone</span><a href="tel:+237697686684" className="text-xeption-gold hover:underline">+237 697 686 684</a></p>
-                <p><span className="text-gray-500 uppercase tracking-widest text-[10px] block mb-1">Email</span><a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline">support@xeptionetwork.shop</a></p>
+                <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Entreprise</span><span className="text-white font-medium">ETS XEPTION</span></p>
+                <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Adresse</span><span className="text-white">Mfoundi Mall, Boutique 2063, Avenue Mgr Vogt, Marché Mfoundi, Centre-ville, Yaoundé, Cameroun</span></p>
+                <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Téléphone</span><a href="tel:+237641891031" className="text-xeption-gold hover:underline">+237 641 891 031</a></p>
+                <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Email</span><a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline">support@xeptionetwork.shop</a></p>
               </div>
             </Section>
 

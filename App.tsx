@@ -3,8 +3,19 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import { Product, CartItem, Pack } from './types';
 import { supabase } from './services/supabaseClient';
-import { optimizeVideo, optimizeImage } from './utils/mediaOptimization';
+import SiteBackground from './components/SiteBackground';
+import {
+  isLightBackgroundRoute,
+  isImageOnlyBackgroundRoute,
+  SITE_BACKGROUND_IMAGES,
+  SITE_BACKGROUND_LIGHT_IMAGES,
+} from './constants/backgroundImages';
+import { useBandwidthDetector } from './hooks/useBandwidthDetector';
 import { Lock, MapPin } from 'lucide-react';
+import { Toaster } from 'sonner';
+import { resolveSuperAdminAccess } from './utils/superAdmin';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { notifyError } from './utils/notify';
 import { getProductSlug } from './utils/slug';
 //Newlmlmpmmlm
 // Pages
@@ -14,6 +25,7 @@ import ShopPage from './pages/ShopPage';
 import ContactPage from './pages/ContactPage';
 import TrocPage from './pages/TrocPage';
 import TrackingPage from './pages/TrackingPage';
+import TrocVoucherPage from './pages/TrocVoucherPage';
 import SavPage from './pages/SavPage';
 import ProductPage from './pages/ProductPage';
 import MentionsLegalesPage from './pages/MentionsLegalesPage';
@@ -21,10 +33,13 @@ import PolitiqueConfidentialitePage from './pages/PolitiqueConfidentialitePage';
 import PolitiqueCookiesPage from './pages/PolitiqueCookiesPage';
 import CGVPage from './pages/CGVPage';
 import CGVSmartTrocPage from './pages/CGVSmartTrocPage';
+import VerifyCertificatePage from './pages/VerifyCertificatePage';
+import FeedbackPage from './pages/FeedbackPage';
 
 const Checkout = lazy(() => import('./components/Checkout'));
 const AiConsultant = lazy(() => import('./components/AiConsultant'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const StudioPage = lazy(() => import('./pages/StudioPage'));
 
 const PageFallback: React.FC = () => (
   <div className="min-h-[40vh] flex items-center justify-center">
@@ -44,7 +59,9 @@ const App: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isStaffAuthenticated, setIsStaffAuthenticated] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [authEmail, setAuthEmail] = useState<string | undefined>();
   const [shouldRenderAiConsultant, setShouldRenderAiConsultant] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const prerenderNotified = useRef(false);
@@ -57,8 +74,13 @@ const App: React.FC = () => {
 
   // Helper to determine if we are on a product detail page (to hide footer/adjust layout)
   const isProductPage = location.pathname.startsWith('/product/');
-  const isAdminPage = location.pathname === '/admin';
+  const isAdminPage = location.pathname.startsWith('/admin');
+  const isStudioPage = location.pathname.startsWith('/studio');
+  const isStaffPortal = isAdminPage || isStudioPage;
   const isTrocPage = location.pathname === '/troc';
+  const isImageOnlyBackgroundPage = isImageOnlyBackgroundRoute(location.pathname);
+  const isLightBackgroundPage = isLightBackgroundRoute(location.pathname);
+  const { isSlow: isSlowConnection } = useBandwidthDetector();
 
   useEffect(() => {
     let isMounted = true;
@@ -69,33 +91,41 @@ const App: React.FC = () => {
       return searchParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
     };
 
-    const syncStaffAuth = async (session: any) => {
+    const syncAuth = async (session: any) => {
       if (!isMounted) return;
       if (isRecoveryFlow()) {
-        setIsAuthenticated(false);
+        setIsStaffAuthenticated(false);
+        setIsSuperAdmin(false);
+        setAuthEmail(undefined);
         return;
       }
       if (!session?.user?.email) {
-        setIsAuthenticated(false);
+        setIsStaffAuthenticated(false);
+        setIsSuperAdmin(false);
+        setAuthEmail(undefined);
         return;
       }
 
+      const email = session.user.email;
+
       const { data, error } = await supabase
         .from('staff')
-        .select('id')
-        .eq('email', session.user.email)
+        .select('id, role')
+        .eq('email', email)
         .maybeSingle();
 
       if (!isMounted) return;
-      setIsAuthenticated(!error && !!data);
+      setAuthEmail(email);
+      setIsStaffAuthenticated(!error && !!data);
+      setIsSuperAdmin(await resolveSuperAdminAccess(email));
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      void syncStaffAuth(session);
+      void syncAuth(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      void syncStaffAuth(session);
+      void syncAuth(session);
     });
 
     return () => {
@@ -108,6 +138,9 @@ const App: React.FC = () => {
     const fetchData = async () => {
       const notifyPrerenderReady = () => {
         if (prerenderNotified.current) return;
+        if (typeof window !== 'undefined') {
+          (window as any).__PRERENDER_READY__ = true;
+        }
         if (typeof document !== 'undefined') {
           document.dispatchEvent(new Event('prerender-ready'));
           prerenderNotified.current = true;
@@ -124,6 +157,7 @@ const App: React.FC = () => {
             oldPrice: p.old_price || p.oldPrice || null,
             isPromo: p.is_promo || p.isPromo || false,
             warrantyMonths: p.warranty_months || p.warrantyMonths || 0,
+            releaseYear: p.release_year ?? p.releaseYear ?? undefined,
             isFeatured: p.is_featured || p.isFeatured || false,
             brand: p.brand || null,
             productRange: p.product_range || p.productRange || null
@@ -147,7 +181,8 @@ const App: React.FC = () => {
         }
 
       } catch (error) {
-        console.error('Error fetching data:', error);
+        notifyError('Impossible de charger les produits', 'Vérifiez votre connexion et réessayez.');
+        console.error('[App] fetch_failed', error);
       } finally {
         notifyPrerenderReady();
       }
@@ -175,13 +210,13 @@ const App: React.FC = () => {
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = 0.35;
-      if (isAdminPage || isTrocPage) {
+      if (isAdminPage || isStudioPage || isImageOnlyBackgroundPage || isLightBackgroundPage || isSlowConnection) {
         videoRef.current.pause();
       } else {
         videoRef.current.play().catch(e => console.log("Video auto-play prevented:", e));
       }
     }
-  }, [isAdminPage, isTrocPage]);
+  }, [isAdminPage, isStudioPage, isImageOnlyBackgroundPage, isLightBackgroundPage, isSlowConnection]);
 
   // Scroll to top on route change
   useEffect(() => {
@@ -189,7 +224,7 @@ const App: React.FC = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (isAdminPage || isPrerender) {
+    if (isAdminPage || isStudioPage || isPrerender) {
       setShouldRenderAiConsultant(false);
       return;
     }
@@ -203,7 +238,7 @@ const App: React.FC = () => {
 
     const timeoutId = window.setTimeout(onIdle, 1200);
     return () => window.clearTimeout(timeoutId);
-  }, [isAdminPage, isPrerender]);
+  }, [isAdminPage, isStudioPage, isPrerender]);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -256,37 +291,42 @@ const App: React.FC = () => {
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const bgVideoUrl = "https://res.cloudinary.com/dli0kdkg9/video/upload/v1768438828/xption7_zrgro4.mp4";
-  const bgPosterUrl = "https://images.unsplash.com/photo-1634152962476-4b8a00e1915c?q=80&w=1280&auto=format&fit=crop";
+  const bgVideoUrl =
+    'https://res.cloudinary.com/dli0kdkg9/video/upload/v1768438828/xption7_zrgro4.mp4';
+  const isBackgroundVideoPaused =
+    isAdminPage || isStudioPage || isImageOnlyBackgroundPage || isLightBackgroundPage || isSlowConnection;
+  const backgroundImagePool = isLightBackgroundPage
+    ? SITE_BACKGROUND_LIGHT_IMAGES
+    : SITE_BACKGROUND_IMAGES;
 
   return (
-    <div className="min-h-screen text-white font-sans selection:bg-xeption-gold selection:text-black relative overflow-x-hidden">
+    <div className="min-h-screen flex flex-col text-white font-sans selection:bg-xeption-gold selection:text-black relative overflow-x-clip">
 
-      {/* Background Video */}
-      <div
-        className="fixed inset-0 z-0 w-full h-full bg-cover bg-center pointer-events-none"
-        style={{ backgroundImage: `url('${optimizeImage(bgPosterUrl, 1280)}')` }}
-      >
-        <video
-          ref={videoRef}
-          autoPlay loop muted playsInline
-          poster={optimizeImage(bgPosterUrl, 1280)}
-          className="w-full h-full object-cover opacity-90 md:opacity-100"
-        >
-          <source src={optimizeVideo(bgVideoUrl)} type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,215,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.05)_1px,transparent_1px)] bg-[size:60px_60px] opacity-10"></div>
-      </div>
-
-      <Header
-        cartCount={cartCount}
-        onOpenCart={() => setIsCartOpen(true)}
-        products={products}
-        onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
+      <SiteBackground
+        videoRef={videoRef}
+        videoUrl={bgVideoUrl}
+        isVideoPaused={isBackgroundVideoPaused}
+        imagePool={backgroundImagePool}
+        variant={isLightBackgroundPage ? 'light' : 'dark'}
       />
 
-      <main className={`pt-20 relative z-10 w-full ${isProductPage ? 'pb-24 md:pb-6' : 'pb-20'}`}>
+      {!isStaffPortal && (
+        <Header
+          cartCount={cartCount}
+          onOpenCart={() => setIsCartOpen(true)}
+          products={products}
+          onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
+        />
+      )}
+
+      <ErrorBoundary>
+      <main
+        className={`relative z-10 flex-1 flex flex-col w-full min-w-0 max-w-full overflow-x-clip box-border ${
+          isStaffPortal
+            ? 'pt-0 pb-0'
+            : `pt-[132px] ${isProductPage ? 'pb-24 md:pb-6' : 'pb-20'}`
+        }`}
+      >
         <Routes>
           <Route path="/" element={
             <HomePage
@@ -311,28 +351,43 @@ const App: React.FC = () => {
             />
           } />
           <Route path="/troc" element={<TrocPage />} />
-          <Route path="/tracking" element={<TrackingPage />} />
+          <Route path="/tracking/*" element={<TrackingPage />} />
+          <Route path="/bon" element={<TrocVoucherPage />} />
           <Route path="/sav" element={<SavPage />} />
           <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
           <Route path="/politique-confidentialite" element={<PolitiqueConfidentialitePage />} />
           <Route path="/politique-cookies" element={<PolitiqueCookiesPage />} />
           <Route path="/cgv" element={<CGVPage />} />
           <Route path="/cgv-smart-troc" element={<CGVSmartTrocPage />} />
+          <Route path="/verify/:token" element={<VerifyCertificatePage />} />
+          <Route path="/avis/:token" element={<FeedbackPage />} />
           <Route path="/admin/*" element={
             <Suspense fallback={<PageFallback />}>
               <AdminPage
-                isAuthenticated={isAuthenticated}
-                setIsAuthenticated={setIsAuthenticated}
+                isAuthenticated={isStaffAuthenticated}
+                setIsAuthenticated={setIsStaffAuthenticated}
                 products={products}
                 onUpdateProducts={setProducts}
               />
             </Suspense>
           } />
+          <Route path="/studio/*" element={
+            <Suspense fallback={<PageFallback />}>
+              <StudioPage
+                isSuperAdmin={isSuperAdmin}
+                setIsSuperAdmin={setIsSuperAdmin}
+                products={products}
+                onUpdateProducts={setProducts}
+                userEmail={authEmail}
+              />
+            </Suspense>
+          } />
         </Routes>
       </main>
+      </ErrorBoundary>
 
-      {!isProductPage && (
-        <footer className="bg-black/80 backdrop-blur-xl border-t border-gray-800 py-12 relative z-10">
+      {!isProductPage && !isStaffPortal && !isTrocPage && (
+        <footer className="mt-auto bg-black/80 backdrop-blur-xl border-t border-gray-800 py-12 relative z-10 shrink-0">
           <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-8">
             <div className="mb-6 md:mb-0">
               <h3 className="text-xl font-bold text-white mb-2 font-tech uppercase">Xeption</h3>
@@ -362,7 +417,7 @@ const App: React.FC = () => {
                 <a href="https://web.facebook.com/xeptioon/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Facebook</a>
                 <a href="https://www.instagram.com/xeption_corp/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Instagram</a>
                 <a href="https://www.tiktok.com/@xeption237?_r=1&_t=ZM-939Ae3o3r2J" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">TikTok</a>
-                <a href="https://wa.me/237697686684" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
+                <a href="https://wa.me/237641891031" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
               </div>
               <div className="flex gap-4 text-[11px] text-gray-600">
                 <button onClick={() => navigate('/about')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">À propos</button>
@@ -396,11 +451,27 @@ const App: React.FC = () => {
         </Suspense>
       )}
 
-      {!isAdminPage && shouldRenderAiConsultant && (
+      {!isStaffPortal && shouldRenderAiConsultant && (
         <Suspense fallback={null}>
-          <AiConsultant products={products} />
+          <AiConsultant />
         </Suspense>
       )}
+
+      <Toaster
+        position="top-right"
+        theme="dark"
+        toastOptions={{
+          style: {
+            background: 'rgba(9,9,11,0.92)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#F3F4F6',
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '13px',
+            borderRadius: '12px',
+          },
+        }}
+      />
     </div>
   );
 };

@@ -25,13 +25,13 @@ export const TrocStepper: React.FC<TrocStepperProps> = ({ currentStep, labels })
                   ? 'bg-xeption-gold/20 border-xeption-gold text-xeption-gold shadow-[0_0_10px_rgba(255,215,0,0.3)]'
                   : isActive
                   ? 'bg-xeption-gold text-black border-xeption-gold shadow-[0_0_15px_rgba(255,215,0,0.5)]'
-                  : 'bg-white/5 border-white/10 text-gray-600'
+                  : 'bg-white/5 border-white/20 text-white/50'
                 }`}
               >
                 {isCompleted ? <Check className="w-4 h-4" /> : index + 1}
               </div>
               <span className={`text-[9px] font-tech font-bold uppercase tracking-widest mt-1.5 transition-colors
-                ${isActive ? 'text-xeption-gold' : isCompleted ? 'text-xeption-gold/60' : 'text-gray-600'}`}
+                ${isActive ? 'text-xeption-gold' : isCompleted ? 'text-xeption-gold/60' : 'text-white/50'}`}
               >
                 {label}
               </span>

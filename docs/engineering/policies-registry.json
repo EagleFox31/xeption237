@@ -1,0 +1,2108 @@
+{
+  "generated_at": "2026-08-23T12:40:13.046Z",
+  "policy_count": 66,
+  "tables_without_rls": [
+    "products"
+  ],
+  "duplicate_groups": [
+    {
+      "signature": "orders|INSERT|{public}||true",
+      "policies": [
+        "Enable insert access for all users",
+        "Public Insert Orders"
+      ],
+      "canonical": "Enable insert access for all users"
+    },
+    {
+      "signature": "orders|SELECT|{public}|true|true",
+      "policies": [
+        "Enable read access for all users",
+        "Public Read Orders"
+      ],
+      "canonical": "Enable read access for all users"
+    },
+    {
+      "signature": "orders|INSERT|{anon,authenticated}||true",
+      "policies": [
+        "Public Create Orders",
+        "Public insert orders"
+      ],
+      "canonical": "Public Create Orders"
+    },
+    {
+      "signature": "orders|SELECT|{anon,authenticated}|true|true",
+      "policies": [
+        "Public View Own Orders",
+        "Public read orders"
+      ],
+      "canonical": "Public read orders"
+    },
+    {
+      "signature": "orders|ALL|{authenticated}|true|true",
+      "policies": [
+        "Staff Full Access Orders",
+        "Staff full access orders"
+      ],
+      "canonical": "Staff full access orders"
+    },
+    {
+      "signature": "products|ALL|{authenticated}|true|true",
+      "policies": [
+        "Staff Full Access Products",
+        "Staff Write Products",
+        "Staff update products"
+      ],
+      "canonical": "Staff Full Access Products"
+    },
+    {
+      "signature": "repair_tickets|INSERT|{anon,authenticated}||true",
+      "policies": [
+        "Public Create Ticket",
+        "Public insert tickets"
+      ],
+      "canonical": "Public Create Ticket"
+    },
+    {
+      "signature": "repair_tickets|ALL|{authenticated}|true|true",
+      "policies": [
+        "Staff Manage Tickets",
+        "Staff full access tickets"
+      ],
+      "canonical": "Staff full access tickets"
+    },
+    {
+      "signature": "trade_in_models|ALL|{authenticated}|true|true",
+      "policies": [
+        "Staff Manage Argus",
+        "Staff Write Trade Models"
+      ],
+      "canonical": "Staff Manage Argus"
+    }
+  ],
+  "impact_summary": {
+    "legacy_no_caller": 1,
+    "active": 37,
+    "bypass_service_role": 9,
+    "active_rare": 1,
+    "redundant_shadowed": 4,
+    "redundant_duplicate": 8,
+    "inactive_rls_off": 6
+  },
+  "impact_labels": {
+    "active": "Active — contrôle un flux client réel",
+    "inactive_rls_off": "Inactive — RLS désactivée sur la table",
+    "bypass_service_role": "Contournée — accès edge en service_role (RLS bypass)",
+    "redundant_duplicate": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+    "redundant_shadowed": "Redondante — couverte par une policy `{public}` équivalente",
+    "legacy_no_caller": "Orpheline — aucun appelant dans le code",
+    "bypass_rpc": "Contournée — flux principal via RPC SECURITY DEFINER",
+    "active_rare": "Active rare — insert/update direct legacy (hors RPC principal)"
+  },
+  "policies": [
+    {
+      "table": "argus",
+      "policy": "argus_read_service",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'service_role'::text)",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [],
+      "impact": "legacy_no_caller",
+      "impact_label": "Orpheline — aucun appelant dans le code",
+      "impact_note": "Table `argus` sans référence code — policy probablement morte.",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "brands",
+      "policy": "Public read brands",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "brands",
+      "policy": "Staff manage brands",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "categories",
+      "policy": "Public View Categories",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "components\\shop\\ShopHero.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useCategoriesManager.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "categories",
+      "policy": "Staff Full Access Categories",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "components\\shop\\ShopHero.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useCategoriesManager.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "customers",
+      "policy": "Public insert",
+      "cmd": "INSERT",
+      "roles": "{public}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "customers",
+      "policy": "Public read",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_004_troc_certificates.sql"
+      ],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "customers",
+      "policy": "Public update",
+      "cmd": "UPDATE",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "customers",
+      "policy": "Staff Full Access Customers",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "delivery_zones",
+      "policy": "Enable read access for all users",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\admin\\tabs\\DeliveryTab.tsx",
+        "components\\delivery\\deliveryZoneUi.tsx"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable read access for all users"
+    },
+    {
+      "table": "delivery_zones",
+      "policy": "Enable write access for authenticated users",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'authenticated'::text)",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\admin\\tabs\\DeliveryTab.tsx",
+        "components\\delivery\\deliveryZoneUi.tsx"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "imei_certif_records",
+      "policy": "imei_certif_records_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260720_001_imei_certif_records.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\generate-imei-certificate\\index.ts"
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "imei_premium_calls",
+      "policy": "imei_premium_calls_admin_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_001_troc_tier_columns.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "market_demand_signals",
+      "policy": "market_demand_signals_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_005_market_trend_tables.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts"
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "market_price_cache",
+      "policy": "market_price_cache_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": null,
+      "migration_sources": [
+        "20260823_002_market_price_cache_fix.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\market-price-intel\\index.ts"
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "market_price_snapshots",
+      "policy": "market_price_snapshots_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_005_market_trend_tables.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "market_trend_cache",
+      "policy": "market_trend_cache_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_005_market_trend_tables.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts"
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "order_items",
+      "policy": "order_items_staff_all",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [
+        "20260823_010_erp_step2_data_foundation.sql"
+      ],
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "orders",
+      "policy": "Enable insert access for all users",
+      "cmd": "INSERT",
+      "roles": "{public}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active_rare",
+      "impact_label": "Active rare — insert/update direct legacy (hors RPC principal)",
+      "impact_note": "Checkout via RPC (create_order_atomic) ; insert direct encore dans legacy AdminPanel.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable insert access for all users"
+    },
+    {
+      "table": "orders",
+      "policy": "Enable read access for all users",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable read access for all users"
+    },
+    {
+      "table": "orders",
+      "policy": "Enable update access for all users",
+      "cmd": "UPDATE",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "orders",
+      "policy": "Public Create Orders",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "redundant_shadowed",
+      "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
+      "impact_note": "Couvert par `Enable insert access for all users` ({public} inclut anon + authenticated).",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public Create Orders"
+    },
+    {
+      "table": "orders",
+      "policy": "Public Insert Orders",
+      "cmd": "INSERT",
+      "roles": "{public}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Enable insert access for all users`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable insert access for all users"
+    },
+    {
+      "table": "orders",
+      "policy": "Public Read Orders",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Enable read access for all users`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Enable read access for all users"
+    },
+    {
+      "table": "orders",
+      "policy": "Public View Own Orders",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Public read orders`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public read orders"
+    },
+    {
+      "table": "orders",
+      "policy": "Public insert orders",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Public Create Orders`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public Create Orders"
+    },
+    {
+      "table": "orders",
+      "policy": "Public read orders",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "redundant_shadowed",
+      "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
+      "impact_note": "Couvert par `Enable read access for all users` ({public} inclut anon + authenticated).",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public read orders"
+    },
+    {
+      "table": "orders",
+      "policy": "Staff Full Access Orders",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Staff full access orders`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff full access orders"
+    },
+    {
+      "table": "orders",
+      "policy": "Staff full access orders",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff full access orders"
+    },
+    {
+      "table": "packs",
+      "policy": "Packs sont publics",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "hooks\\admin\\usePacksManager.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "packs",
+      "policy": "Staff peut tout gérer",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'authenticated'::text)",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "hooks\\admin\\usePacksManager.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "phone_releases",
+      "policy": "phone_releases_public_read",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260615_003_phone_releases.sql"
+      ],
+      "code_callers": [
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\import-phone-releases.mjs",
+        "services\\trocEvaluationService.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "product_ranges",
+      "policy": "Public read ranges",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "product_ranges",
+      "policy": "Staff manage ranges",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "products",
+      "policy": "Public Read Products",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "products",
+      "policy": "Public View Products",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "products",
+      "policy": "Staff Full Access Products",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Full Access Products"
+    },
+    {
+      "table": "products",
+      "policy": "Staff Write Products",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Full Access Products"
+    },
+    {
+      "table": "products",
+      "policy": "Staff update products",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Full Access Products"
+    },
+    {
+      "table": "products",
+      "policy": "TEMP: authenticated can insert products",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "inactive_rls_off",
+      "impact_label": "Inactive — RLS désactivée sur la table",
+      "impact_note": "RLS désactivée : policy ignorée par Postgres.",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Public Create Ticket",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ],
+      "impact": "redundant_shadowed",
+      "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
+      "impact_note": "Couvert par `Public can create tickets` ({public} inclut anon + authenticated).",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public Create Ticket"
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Public can create tickets",
+      "cmd": "INSERT",
+      "roles": "{public}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Public insert tickets",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Public Create Ticket`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Public Create Ticket"
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Staff Manage Tickets",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Staff full access tickets`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff full access tickets"
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Staff can manage tickets",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'authenticated'::text)",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "repair_tickets",
+      "policy": "Staff full access tickets",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff full access tickets"
+    },
+    {
+      "table": "staff",
+      "policy": "Public Read Staff",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\StaffLogin.tsx",
+        "hooks\\admin\\useCurrentStaffSession.ts",
+        "hooks\\admin\\useStaffManager.ts",
+        "supabase\\functions\\create-staff-auth\\index.ts",
+        "utils\\superAdmin.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "staff",
+      "policy": "Staff Self Edit",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\StaffLogin.tsx",
+        "hooks\\admin\\useCurrentStaffSession.ts",
+        "hooks\\admin\\useStaffManager.ts",
+        "supabase\\functions\\create-staff-auth\\index.ts",
+        "utils\\superAdmin.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "stock_movements",
+      "policy": "stock_movements_staff_all",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [
+        "20260823_010_erp_step2_data_foundation.sql"
+      ],
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "store_stock",
+      "policy": "store_stock_staff_all",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [
+        "20260823_010_erp_step2_data_foundation.sql"
+      ],
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "stores",
+      "policy": "stores_staff_all",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [
+        "20260823_010_erp_step2_data_foundation.sql"
+      ],
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "tac_cache",
+      "policy": "tac_cache_read_all",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260401_003_tac_cache.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "tac_cache",
+      "policy": "tac_cache_write_service",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.role() = 'service_role'::text)",
+      "with_check": "(auth.role() = 'service_role'::text)",
+      "migration_sources": [
+        "20260401_003_tac_cache.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "trade_in_models",
+      "policy": "Public Read Trade Models",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "trade_in_models",
+      "policy": "Public View Argus",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ],
+      "impact": "redundant_shadowed",
+      "impact_label": "Redondante — couverte par une policy `{public}` équivalente",
+      "impact_note": "Couvert par `Public Read Trade Models` ({public} inclut anon + authenticated).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "trade_in_models",
+      "policy": "Staff Manage Argus",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Manage Argus"
+    },
+    {
+      "table": "trade_in_models",
+      "policy": "Staff Write Trade Models",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [],
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ],
+      "impact": "redundant_duplicate",
+      "impact_label": "Redondante — doublon strict (même table/cmd/rôles/qual)",
+      "impact_note": "Doublon strict — garder `Staff Manage Argus`.",
+      "also_duplicate": true,
+      "duplicate_canonical": "Staff Manage Argus"
+    },
+    {
+      "table": "trade_in_requests",
+      "policy": "staff_delete_trade_in_requests",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\OrderTracking.tsx",
+        "hooks\\admin\\useTrocManager.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\check-imei\\index.ts",
+        "supabase\\functions\\generate-certificate\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "trade_in_requests",
+      "policy": "staff_select_trade_in_requests",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": null,
+      "migration_sources": [],
+      "code_callers": [
+        "components\\OrderTracking.tsx",
+        "hooks\\admin\\useTrocManager.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\check-imei\\index.ts",
+        "supabase\\functions\\generate-certificate\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "trade_in_requests",
+      "policy": "staff_update_trade_in_requests",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "migration_sources": [],
+      "code_callers": [
+        "components\\OrderTracking.tsx",
+        "hooks\\admin\\useTrocManager.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\check-imei\\index.ts",
+        "supabase\\functions\\generate-certificate\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "troc_certificates",
+      "policy": "troc_certificates_staff_read",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260516_004_troc_certificates.sql"
+      ],
+      "code_callers": [
+        "supabase\\functions\\generate-certificate\\index.ts"
+      ],
+      "impact": "bypass_service_role",
+      "impact_label": "Contournée — accès edge en service_role (RLS bypass)",
+      "impact_note": "Seules les Edge Functions touchent cette table, en service_role (bypass RLS).",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "troc_payments",
+      "policy": "troc_payments_insert_anon",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [
+        "20260404_007_troc_payments.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useTrocManager.ts",
+        "supabase\\functions\\create-payment\\index.ts",
+        "supabase\\functions\\generate-imei-certificate\\index.ts",
+        "supabase\\functions\\get-payment-status\\index.ts",
+        "supabase\\functions\\payment-webhook\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "troc_payments",
+      "policy": "troc_payments_select_anon",
+      "cmd": "SELECT",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": null,
+      "migration_sources": [
+        "20260404_007_troc_payments.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useTrocManager.ts",
+        "supabase\\functions\\create-payment\\index.ts",
+        "supabase\\functions\\generate-imei-certificate\\index.ts",
+        "supabase\\functions\\get-payment-status\\index.ts",
+        "supabase\\functions\\payment-webhook\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "troc_sessions",
+      "policy": "troc_sessions_insert_public",
+      "cmd": "INSERT",
+      "roles": "{anon,authenticated}",
+      "qual": null,
+      "with_check": "true",
+      "migration_sources": [
+        "20260403_006_troc_rls_and_audit_columns.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "troc_sessions",
+      "policy": "troc_sessions_select_staff",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM staff s\n  WHERE (lower(s.email) = lower((auth.jwt() ->> 'email'::text)))))",
+      "with_check": null,
+      "migration_sources": [
+        "20260403_006_troc_rls_and_audit_columns.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    },
+    {
+      "table": "troc_sessions",
+      "policy": "troc_sessions_update_public",
+      "cmd": "UPDATE",
+      "roles": "{anon,authenticated}",
+      "qual": "true",
+      "with_check": "true",
+      "migration_sources": [
+        "20260403_006_troc_rls_and_audit_columns.sql"
+      ],
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact": "active",
+      "impact_label": "Active — contrôle un flux client réel",
+      "impact_note": "Active — contrôle un flux client réel",
+      "also_duplicate": false,
+      "duplicate_canonical": null
+    }
+  ],
+  "table_index": [
+    {
+      "table": "argus",
+      "policy_count": 1,
+      "code_callers": [],
+      "impact_by_policy": [
+        {
+          "policy": "argus_read_service",
+          "impact": "legacy_no_caller"
+        }
+      ]
+    },
+    {
+      "table": "brands",
+      "policy_count": 2,
+      "code_callers": [
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public read brands",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff manage brands",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "categories",
+      "policy_count": 2,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\Header.tsx",
+        "components\\ProductList.tsx",
+        "components\\shop\\ShopHero.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useCategoriesManager.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public View Categories",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff Full Access Categories",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "customers",
+      "policy_count": 4,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "hooks\\admin\\useAdminData.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public insert",
+          "impact": "active"
+        },
+        {
+          "policy": "Public read",
+          "impact": "active"
+        },
+        {
+          "policy": "Public update",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff Full Access Customers",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "delivery_zones",
+      "policy_count": 2,
+      "code_callers": [
+        "components\\admin\\tabs\\DeliveryTab.tsx",
+        "components\\delivery\\deliveryZoneUi.tsx"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Enable read access for all users",
+          "impact": "active"
+        },
+        {
+          "policy": "Enable write access for authenticated users",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "imei_certif_records",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\generate-imei-certificate\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "imei_certif_records_staff_read",
+          "impact": "bypass_service_role"
+        }
+      ]
+    },
+    {
+      "table": "imei_premium_calls",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "imei_premium_calls_admin_read",
+          "impact": "bypass_service_role"
+        }
+      ]
+    },
+    {
+      "table": "market_demand_signals",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "market_demand_signals_staff_read",
+          "impact": "bypass_service_role"
+        }
+      ]
+    },
+    {
+      "table": "market_price_cache",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\market-price-intel\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "market_price_cache_staff_read",
+          "impact": "bypass_service_role"
+        }
+      ]
+    },
+    {
+      "table": "market_price_snapshots",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "market_price_snapshots_staff_read",
+          "impact": "bypass_service_role"
+        }
+      ]
+    },
+    {
+      "table": "market_trend_cache",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\get-market-trend\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "market_trend_cache_staff_read",
+          "impact": "bypass_service_role"
+        }
+      ]
+    },
+    {
+      "table": "order_items",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "order_items_staff_all",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "orders",
+      "policy_count": 11,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\OrderTracking.tsx",
+        "components\\SocialProof.tsx",
+        "hooks\\admin\\useAdminData.ts",
+        "scripts\\apply-migration.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Enable insert access for all users",
+          "impact": "active_rare"
+        },
+        {
+          "policy": "Enable read access for all users",
+          "impact": "active"
+        },
+        {
+          "policy": "Enable update access for all users",
+          "impact": "active"
+        },
+        {
+          "policy": "Public Create Orders",
+          "impact": "redundant_shadowed"
+        },
+        {
+          "policy": "Public Insert Orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Public Read Orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Public View Own Orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Public insert orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Public read orders",
+          "impact": "redundant_shadowed"
+        },
+        {
+          "policy": "Staff Full Access Orders",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Staff full access orders",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "packs",
+      "policy_count": 2,
+      "code_callers": [
+        "hooks\\admin\\usePacksManager.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Packs sont publics",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff peut tout gérer",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "phone_releases",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\import-phone-releases.mjs",
+        "services\\trocEvaluationService.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "phone_releases_public_read",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "product_ranges",
+      "policy_count": 2,
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "hooks\\admin\\useBrandsManager.ts",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\product-ingestion-funnel.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public read ranges",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff manage ranges",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "products",
+      "policy_count": 6,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\troc\\TrocUpgradeChoice.tsx",
+        "hooks\\admin\\useInventoryManager.ts",
+        "scripts\\apply-manual-mfoundi-merges.mjs",
+        "scripts\\apply-researched-product-release-years.mjs",
+        "scripts\\audit-product-specs.mjs",
+        "scripts\\batch-enrich-catalog.mjs",
+        "scripts\\batch-enrich-product-specs.mjs",
+        "scripts\\batch-enrich-release-year.mjs",
+        "scripts\\compare-mfoundi-duplicates.mjs",
+        "scripts\\delete-legacy-duplicate-products.mjs",
+        "scripts\\fill-product-specs.mjs",
+        "scripts\\generate-mfoundi-import.mjs",
+        "scripts\\generateSitemap.js",
+        "scripts\\import-pc-catalog-july-2026.mjs",
+        "scripts\\merge-mfoundi-duplicates.mjs",
+        "scripts\\prerender.mjs",
+        "scripts\\product-ingestion-funnel.mjs",
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public Read Products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "Public View Products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "Staff Full Access Products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "Staff Write Products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "Staff update products",
+          "impact": "inactive_rls_off"
+        },
+        {
+          "policy": "TEMP: authenticated can insert products",
+          "impact": "inactive_rls_off"
+        }
+      ]
+    },
+    {
+      "table": "repair_tickets",
+      "policy_count": 6,
+      "code_callers": [
+        "components\\RepairTicketManagement.tsx"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public Create Ticket",
+          "impact": "redundant_shadowed"
+        },
+        {
+          "policy": "Public can create tickets",
+          "impact": "active"
+        },
+        {
+          "policy": "Public insert tickets",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Staff Manage Tickets",
+          "impact": "redundant_duplicate"
+        },
+        {
+          "policy": "Staff can manage tickets",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff full access tickets",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "staff",
+      "policy_count": 2,
+      "code_callers": [
+        "components\\AdminPanel.tsx",
+        "components\\StaffLogin.tsx",
+        "hooks\\admin\\useCurrentStaffSession.ts",
+        "hooks\\admin\\useStaffManager.ts",
+        "supabase\\functions\\create-staff-auth\\index.ts",
+        "utils\\superAdmin.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public Read Staff",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff Self Edit",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "stock_movements",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "stock_movements_staff_all",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "store_stock",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "store_stock_staff_all",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "stores",
+      "policy_count": 1,
+      "code_callers": [
+        "scripts\\verify-erp-step2.mjs"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "stores_staff_all",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "tac_cache",
+      "policy_count": 2,
+      "code_callers": [
+        "supabase\\functions\\check-imei\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "tac_cache_read_all",
+          "impact": "bypass_service_role"
+        },
+        {
+          "policy": "tac_cache_write_service",
+          "impact": "bypass_service_role"
+        }
+      ]
+    },
+    {
+      "table": "trade_in_models",
+      "policy_count": 4,
+      "code_callers": [
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\snapshot-market-prices\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "Public Read Trade Models",
+          "impact": "active"
+        },
+        {
+          "policy": "Public View Argus",
+          "impact": "redundant_shadowed"
+        },
+        {
+          "policy": "Staff Manage Argus",
+          "impact": "active"
+        },
+        {
+          "policy": "Staff Write Trade Models",
+          "impact": "redundant_duplicate"
+        }
+      ]
+    },
+    {
+      "table": "trade_in_requests",
+      "policy_count": 3,
+      "code_callers": [
+        "components\\OrderTracking.tsx",
+        "hooks\\admin\\useTrocManager.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\check-imei\\index.ts",
+        "supabase\\functions\\generate-certificate\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "staff_delete_trade_in_requests",
+          "impact": "active"
+        },
+        {
+          "policy": "staff_select_trade_in_requests",
+          "impact": "active"
+        },
+        {
+          "policy": "staff_update_trade_in_requests",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "troc_certificates",
+      "policy_count": 1,
+      "code_callers": [
+        "supabase\\functions\\generate-certificate\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "troc_certificates_staff_read",
+          "impact": "bypass_service_role"
+        }
+      ]
+    },
+    {
+      "table": "troc_payments",
+      "policy_count": 2,
+      "code_callers": [
+        "hooks\\admin\\useTrocManager.ts",
+        "supabase\\functions\\create-payment\\index.ts",
+        "supabase\\functions\\generate-imei-certificate\\index.ts",
+        "supabase\\functions\\get-payment-status\\index.ts",
+        "supabase\\functions\\payment-webhook\\index.ts",
+        "supabase\\functions\\save-trade-in\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "troc_payments_insert_anon",
+          "impact": "active"
+        },
+        {
+          "policy": "troc_payments_select_anon",
+          "impact": "active"
+        }
+      ]
+    },
+    {
+      "table": "troc_sessions",
+      "policy_count": 3,
+      "code_callers": [
+        "hooks\\admin\\useAdminData.ts",
+        "services\\trocEvaluationService.ts",
+        "supabase\\functions\\upsert-troc-intake\\index.ts"
+      ],
+      "impact_by_policy": [
+        {
+          "policy": "troc_sessions_insert_public",
+          "impact": "active"
+        },
+        {
+          "policy": "troc_sessions_select_staff",
+          "impact": "active"
+        },
+        {
+          "policy": "troc_sessions_update_public",
+          "impact": "active"
+        }
+      ]
+    }
+  ]
+}

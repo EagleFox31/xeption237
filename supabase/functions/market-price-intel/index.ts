@@ -1,6 +1,10 @@
 // @ts-ignore
 const Deno = globalThis.Deno;
 
+import { assertAiRateLimit, rateLimitJsonResponse } from '../_shared/rateLimit.ts';
+import { parseModelChain, DEFAULT_TEXT_MODELS, shouldTryNextModel } from '../_shared/geminiModels.ts';
+import { searchShopify, fetchShopifyCollection, SHOPIFY_SOURCES, sameRange } from '../_shared/shopifySource.js';
+
 export {};
 
 const corsHeaders = {
@@ -13,11 +17,22 @@ const GEMINI_TIMEOUT_MS = 12000;
 const CACHE_TTL_HOURS = 12;
 const MIN_PRICE_XAF = 20000;
 const MAX_PRICE_XAF = 3000000;
-const GEMINI_MODEL = 'gemini-2.0-flash';
+// Chaine de modeles : gemini-2.0-flash a ete retire par Google le 2026-08-24 et
+// ce filtre tournait donc dans le vide (cf. plus bas, `if (!res.ok) return offers`).
+const GEMINI_MODELS = parseModelChain(Deno.env.get('GEMINI_MODELS'), DEFAULT_TEXT_MODELS);
 const SNIPPET_RADIUS = 220;
 const MAX_OFFERS_PER_SOURCE = 40;
 const DDG_MAX_LINKS = 6;
 const DDG_PAGE_FETCH_LIMIT = 4;
+
+// Vrai UA navigateur : les sites marchands (Cloudflare) bloquent les UA non-navigateur.
+// L'ancien 'Mozilla/5.0 (XEPTION Market Intel)' se faisait jeter → 0 offre.
+const BROWSER_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+};
 
 const MODEL_WEAK_TOKENS = new Set([
   'pro',
@@ -71,6 +86,12 @@ type Offer = {
   url: string;
   snippet: string;
   relevance: number;
+  /** Prix barre annonce par la boutique = reference NEUF. Absent en scraping. */
+  comparePrice?: number | null;
+  /** Titre exact, quand il vient d'une API structuree plutot que d'un scrape. */
+  title?: string;
+  /** true si titre et prix viennent apparies de la source (aucune deduction). */
+  structured?: boolean;
 };
 
 type MatchContext = {
@@ -199,18 +220,16 @@ const buildMatchContext = (
 
 const sourceConfigs = (query: string) => {
   const encoded = encodeURIComponent(query);
+  // jumia.cm retiré : Jumia Cameroun a fermé en novembre 2019 (domaine mort).
+  // kmerphone : prix en HTML serveur (scrapable). glotelho : rendu JS (souvent vide en server-side).
   return [
     {
-      name: 'jumia.cm',
-      url: `https://www.jumia.cm/catalog/?q=${encoded}`,
+      name: 'kmerphone.com',
+      url: `https://kmerphone.com/?s=${encoded}&post_type=product`,
     },
     {
       name: 'glotelho.cm',
       url: `https://glotelho.cm/?s=${encoded}&post_type=product`,
-    },
-    {
-      name: 'kmerphone.com',
-      url: `https://kmerphone.com/?s=${encoded}&post_type=product`,
     },
   ];
 };
@@ -479,10 +498,7 @@ const scrapeOffersViaDuckDuckGo = async (query: string, ctx: MatchContext): Prom
   try {
     const encoded = encodeURIComponent(query);
     const ddgRes = await fetchWithTimeout(`https://duckduckgo.com/html/?q=${encoded}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (XEPTION Market Intel)',
-        Accept: 'text/html,application/xhtml+xml',
-      },
+      headers: BROWSER_HEADERS,
     });
     if (!ddgRes.ok) return [];
 
@@ -497,10 +513,7 @@ const scrapeOffersViaDuckDuckGo = async (query: string, ctx: MatchContext): Prom
       fetchableHits.map(async (hit) => {
         try {
           const pageRes = await fetchWithTimeout(hit.url, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (XEPTION Market Intel)',
-              Accept: 'text/html,application/xhtml+xml',
-            },
+            headers: BROWSER_HEADERS,
           });
           if (!pageRes.ok) return [] as Offer[];
           const pageHtml = await pageRes.text();
@@ -531,6 +544,148 @@ const scrapeOffersViaDuckDuckGo = async (query: string, ctx: MatchContext): Prom
   }
 };
 
+/**
+ * Offres issues des API Shopify — titre et prix APPARIES a la source.
+ *
+ * Mesure du 2026-08-25 : le scraping HTML donnait une reference de 233 795 XAF
+ * pour un Tecno Camon 30, alors que la boutique l'annonce a 139 900. Une
+ * surestimation de 67 % qui remontait telle quelle dans les offres de reprise,
+ * parce que la fenetre de +/-220 caracteres attrapait le prix du produit voisin.
+ * L'API rend la question sans objet.
+ */
+/** Fraicheur maximale d'un releve d'occasion collecte par le moteur de rendu. */
+const USED_OFFER_MAX_AGE_DAYS = 45;
+
+/**
+ * Offres d'OCCASION collectees hors ligne par `scripts/render-market-sources.mjs`.
+ *
+ * Ces sources (Glotelho et consorts) ne rendent leurs fiches qu'apres execution
+ * du JavaScript : une Edge Function Deno ne peut pas les lire en direct. Le
+ * script les rend dans un vrai navigateur et depose le resultat ici ; on se
+ * contente de relire.
+ *
+ * Le filtrage final se fait EN CODE sur le titre, pas sur `model_key` : cette
+ * cle est derivee heuristiquement d'un titre libre, donc trop approximative
+ * pour arbitrer seule. Le `ilike` ne sert qu'a reduire le volume transfere.
+ */
+const dbGetUsedOffers = async (
+  brand: string,
+  model: string,
+  countryCode: string,
+  ctx: MatchContext,
+  supabaseUrl: string,
+  serviceKey: string,
+): Promise<Offer[]> => {
+  if (!supabaseUrl || !serviceKey) return [];
+
+  const since = new Date(Date.now() - USED_OFFER_MAX_AGE_DAYS * 86_400_000).toISOString();
+  const needle = model.trim().split(/\s+/)[0] || model.trim();
+
+  try {
+    const url =
+      `${supabaseUrl}/rest/v1/market_used_offers` +
+      `?country_code=eq.${encodeURIComponent(countryCode)}` +
+      `&captured_at=gte.${encodeURIComponent(since)}` +
+      `&title=ilike.${encodeURIComponent(`*${needle}*`)}` +
+      `&select=title,price_xaf,source,source_url,captured_at` +
+      `&order=captured_at.desc&limit=200`;
+
+    const res = await fetchWithTimeout(
+      url,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+      FETCH_TIMEOUT_MS,
+    );
+    if (!res.ok) return [];
+
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return [];
+
+    return rows
+      .map((row: any): Offer | null => {
+        const title = String(row?.title ?? '');
+        if (!sameRange(title, model)) return null;
+
+        // On n'utilise PAS computeRelevance ici : son mode strict exige que la
+        // MARQUE figure dans le texte, or ces titres de petites annonces n'en
+        // portent pas (« Iphone 13 seconde main - 6.1'' - Dual nano Sim »).
+        // Le test porte donc sur les jetons du modele, que sameRange complete
+        // deja en interdisant les melanges de gamme.
+        const haystack = normalize(title);
+        const tokens = ctx.significantModelTokens.length
+          ? ctx.significantModelTokens
+          : ctx.modelTokens;
+        if (!tokens.length || !tokens.every((t) => haystack.includes(t))) return null;
+
+        const price = Number(row?.price_xaf ?? 0);
+        if (!Number.isFinite(price) || price < MIN_PRICE_XAF || price > MAX_PRICE_XAF) return null;
+
+        return {
+          price,
+          source: String(row?.source ?? 'rendu'),
+          url: String(row?.source_url ?? ''),
+          snippet: title,
+          title,
+          relevance: 10,
+          structured: true,
+        };
+      })
+      .filter(Boolean) as Offer[];
+  } catch {
+    return [];
+  }
+};
+
+const collectShopifyOffers = async (
+  brand: string,
+  model: string,
+  storage: string | undefined,
+  ram: string | undefined,
+  ctx: MatchContext,
+): Promise<{ offers: Offer[]; usedOffers: Offer[] }> => {
+  const query = [brand, model, storage, ram].filter(Boolean).join(' ');
+
+  const toOffer = (raw: any): Offer | null => {
+    // Sur un titre exact, un qualificatif de gamme discrimine : « iPhone 13 Pro
+    // Max » n'est pas un « iPhone 13 ». Sans ce test, la reference iPhone 13
+    // passait de 245 000 a 389 945 XAF (mesure du 2026-08-25).
+    if (!sameRange(raw.title, model)) return null;
+    const relevance = computeRelevance(raw.title, ctx, true);
+    if (relevance <= 0) return null;
+    return {
+      price: raw.price,
+      source: raw.source,
+      url: raw.url,
+      snippet: raw.title,
+      title: raw.title,
+      relevance,
+      comparePrice: raw.comparePrice ?? null,
+      structured: true,
+    };
+  };
+
+  const perSource = await Promise.all(
+    SHOPIFY_SOURCES.map(async (src) => {
+      const [found, refurb] = await Promise.all([
+        searchShopify(src.origin, query, { limit: 10 }),
+        src.refurbishedCollection
+          ? fetchShopifyCollection(src.origin, src.refurbishedCollection, { limit: 50 })
+          : Promise.resolve([]),
+      ]);
+      return {
+        offers: found.map(toOffer).filter(Boolean) as Offer[],
+        // Reconditionne = la seule donnee d'OCCASION locale trouvee sur le
+        // marche camerounais. Decote mesuree : 41 a 46 % face au neuf barre.
+        usedOffers: refurb.map(toOffer).filter(Boolean) as Offer[],
+      };
+    }),
+  );
+
+  return {
+    offers: perSource.flatMap((r) => r.offers),
+    usedOffers: perSource.flatMap((r) => r.usedOffers),
+  };
+};
+
 const scrapeOffers = async (
   brand: string,
   model: string,
@@ -545,10 +700,7 @@ const scrapeOffers = async (
     configs.map(async (cfg) => {
       try {
         const res = await fetchWithTimeout(cfg.url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (XEPTION Market Intel)',
-            Accept: 'text/html,application/xhtml+xml',
-          },
+          headers: BROWSER_HEADERS,
         });
         if (!res.ok) return { cfg, text: '' };
         const html = await res.text();
@@ -637,32 +789,48 @@ const filterOffersWithGemini = async (
     JSON.stringify(compact),
   ].join('\n');
 
-  const res = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'OBJECT',
-            properties: {
-              keep: {
-                type: 'ARRAY',
-                items: { type: 'INTEGER' },
+  // Ce filtre echoue OUVERT : sans lui, les offres non pertinentes (accessoires,
+  // chargeurs, autres modeles) entrent dans le prix de reference, qui ancre les
+  // offres de reprise. Un modele mort ici ne se voyait donc pas.
+  let res: Response | null = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const attempt = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: 'OBJECT',
+                properties: {
+                  keep: {
+                    type: 'ARRAY',
+                    items: { type: 'INTEGER' },
+                  },
+                },
+                required: ['keep'],
               },
             },
-            required: ['keep'],
-          },
+          }),
         },
-      }),
-    },
-    GEMINI_TIMEOUT_MS,
-  );
+        GEMINI_TIMEOUT_MS,
+      );
 
-  if (!res.ok) return offers;
+      if (attempt.ok) { res = attempt; break; }
+
+      console.warn('[market-price-intel] filtre indisponible', model, attempt.status);
+      if (!shouldTryNextModel(attempt.status)) break;
+    } catch (error: any) {
+      console.warn('[market-price-intel] filtre en echec', model, error?.message ?? error);
+    }
+  }
+
+  if (!res) return offers;
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) return offers;
@@ -758,6 +926,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const sessionKey =
+      typeof body?.sessionKey === 'string' ? body.sessionKey.trim() : null;
+    const rateLimit = await assertAiRateLimit(req, 'market-price-intel', sessionKey);
+    if (!rateLimit.allowed) {
+      return rateLimitJsonResponse(rateLimit, corsHeaders);
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
@@ -793,10 +968,40 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    let offers = await scrapeOffers(deviceBrand, deviceModel, deviceStorage, deviceRam);
+    // Les API structurees d'abord : titre et prix y sont apparies, donc aucune
+    // mauvaise attribution possible. Le scraping ne sert plus que de repli.
+    const matchCtx = buildMatchContext(deviceBrand, deviceModel, deviceStorage, deviceRam);
+    const shopify = await collectShopifyOffers(
+      deviceBrand,
+      deviceModel,
+      deviceStorage,
+      deviceRam,
+      matchCtx,
+    );
+
+    // Occasion collectee hors ligne (moteur de rendu) : Deno ne peut pas lire
+    // ces sources en direct, elles ne rendent leurs fiches qu'apres JavaScript.
+    const renderedUsed = await dbGetUsedOffers(
+      deviceBrand,
+      deviceModel,
+      countryCode,
+      matchCtx,
+      supabaseUrl,
+      serviceKey,
+    );
+
+    let offers = shopify.offers.length
+      ? shopify.offers
+      : await scrapeOffers(deviceBrand, deviceModel, deviceStorage, deviceRam);
     offers = offers.sort((a, b) => b.relevance - a.relevance || a.price - b.price).slice(0, 30);
 
-    if (geminiKey) {
+    // Le filtre Gemini nettoie des extraits de scraping bruites. Sur des offres
+    // structurees (titre exact fourni par l'API), il n'a rien a filtrer : c'est
+    // un aller-retour LLM pur cout dans le chemin critique. Mesure avant/apres :
+    // 33 s -> quelques secondes sur un iPhone 13.
+    const needsAiFilter = !offers.some((o) => o.structured === true);
+
+    if (geminiKey && needsAiFilter) {
       offers = await filterOffersWithGemini(
         offers,
         deviceBrand,
@@ -811,6 +1016,21 @@ Deno.serve(async (req: Request) => {
       .filter((o) => o.price >= MIN_PRICE_XAF && o.price <= MAX_PRICE_XAF)
       .sort((a, b) => a.price - b.price);
     offers = filterOutlierOffers(offers).sort((a, b) => a.price - b.price);
+
+    // ── Point 1 : le neuf sert de PLAFOND ────────────────────────────────
+    // Une occasion ne peut pas valoir plus que le neuf le moins cher constate.
+    // Le plafond n'est PAS applique a `referencePrice` : borner une mediane par
+    // le minimum la ferait s'effondrer sur l'offre la moins chere a chaque fois.
+    // Il est expose pour que la valorisation de reprise s'en serve (trocPricing).
+    const availableNew = offers.filter((o) => o.relevance > 0).map((o) => o.price);
+    const ceilingPrice = availableNew.length ? Math.min(...availableNew) : 0;
+
+    // Reference OCCASION : collections reconditionnees (API) + releves rendus.
+    // C'est la donnee de la BONNE NATURE pour une reprise — le reste est du neuf.
+    const allUsed = [...shopify.usedOffers, ...renderedUsed];
+    const usedPrices = allUsed.map((o) => o.price).sort((a, b) => a - b);
+    const usedReference = usedPrices.length ? median(usedPrices) : 0;
+    const usedSources = [...new Set(allUsed.map((o) => o.source))];
 
     const prices = offers.map((o) => o.price);
     const lowPrices = prices.slice(0, 3);
@@ -865,6 +1085,15 @@ Deno.serve(async (req: Request) => {
         cached: false,
         modelKey,
         referencePrice: referencePrice || 0,
+        /** Neuf le moins cher constate — plafond pour toute valeur d'occasion. */
+        ceilingPrice,
+        /** Mediane des reconditionnes du meme modele, 0 si aucun. */
+        usedReference,
+        usedSampleCount: allUsed.length,
+        /** Sources d'occasion distinctes ayant contribue. */
+        usedSources,
+        /** true = titres et prix apparies a la source, aucune deduction. */
+        structured: offers.some((o) => o.structured === true),
         lowPrices,
         highPrices,
         lowOffers,
@@ -874,7 +1103,9 @@ Deno.serve(async (req: Request) => {
         confidence,
         currency: 'XAF',
         countryCode,
-        strategy: geminiKey ? 'live_scrape_plus_ai' : 'live_scrape',
+        strategy: offers.some((o) => o.structured)
+          ? 'shopify_api'
+          : geminiKey ? 'live_scrape_plus_ai' : 'live_scrape',
         offers: persistedOffers,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },

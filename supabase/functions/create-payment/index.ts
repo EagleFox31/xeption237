@@ -1,6 +1,8 @@
 // @ts-ignore
 const Deno = globalThis.Deno;
 
+import { resolveTier, TROC_TIER_PRICES, type TrocTier } from '../_shared/trocTiers.ts';
+
 export {};
 
 const corsHeaders = {
@@ -8,9 +10,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const IS_SANDBOX     = (Deno.env.get('CAMPAY_BASE_URL') || '').includes('demo');
-const PAYMENT_AMOUNT = IS_SANDBOX ? 25 : 150;
+const IS_SANDBOX = (Deno.env.get('CAMPAY_BASE_URL') || '').includes('demo');
+// Le montant sandbox CamPay est plafonné à 25 XAF — on conserve cette borne quel que soit le tier.
+const SANDBOX_AMOUNT = 25;
 const IDEMPOTENCY_WINDOW_MINUTES = 15;
+
+const resolveAmount = (tier: TrocTier): number =>
+  IS_SANDBOX ? SANDBOX_AMOUNT : TROC_TIER_PRICES[tier];
 
 const fetchWithTimeout = async (
   input: RequestInfo | URL,
@@ -39,6 +45,7 @@ const validateBody = (body: any): string | null => {
   if (!str(body.phone).trim())      return 'phone requis';
   const digits = str(body.phone).replace(/\D/g, '').replace(/^237/, '');
   if (!/^[62]\d{8}$/.test(digits))  return 'phone invalide (format camerounais)';
+  // tier est optionnel — resolveTier sécurise en express si absent ou invalide.
   return null;
 };
 
@@ -73,12 +80,19 @@ Deno.serve(async (req: Request) => {
     }
 
     const { sessionKey, phone } = body;
+    const tier = resolveTier(body.tier);
+    const paymentAmount = resolveAmount(tier);
     const normalizedPhone = normalizePhone(str(phone));
+    const customerName = str(body.customerName).trim() || null;
+    const rawCustomerPhone = str(body.customerPhone).trim();
+    const customerPhone = rawCustomerPhone ? normalizePhone(rawCustomerPhone) : null;
 
-    // ── Idempotence : réutiliser une tentative pending récente ───────────────
+    // ── Idempotence : réutiliser une tentative pending récente AU MÊME TIER ──
+    // Si l'utilisateur change de palier, on lance une nouvelle tentative
+    // (l'ancienne expirera côté CamPay).
     const windowStart = new Date(Date.now() - IDEMPOTENCY_WINDOW_MINUTES * 60 * 1_000).toISOString();
     const existingRes = await fetchWithTimeout(
-      `${supabaseUrl}/rest/v1/troc_payments?session_key=eq.${encodeURIComponent(sessionKey)}&status=eq.pending&created_at=gte.${encodeURIComponent(windowStart)}&order=created_at.desc&limit=1`,
+      `${supabaseUrl}/rest/v1/troc_payments?session_key=eq.${encodeURIComponent(sessionKey)}&tier=eq.${tier}&status=eq.pending&created_at=gte.${encodeURIComponent(windowStart)}&order=created_at.desc&limit=1`,
       { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Accept: 'application/json' } },
     );
 
@@ -86,10 +100,9 @@ Deno.serve(async (req: Request) => {
       const existing = await existingRes.json();
       if (Array.isArray(existing) && existing.length > 0) {
         const row = existing[0];
-        console.info('[create-payment] reusing existing pending', row.reference);
-        // Retourner sans authorization_url — le client attend déjà le USSD
+        console.info('[create-payment] reusing existing pending', row.reference, 'tier', tier);
         return new Response(
-          JSON.stringify({ reference: row.reference, paymentUrl: null, reused: true }),
+          JSON.stringify({ reference: row.reference, paymentUrl: null, reused: true, tier, amount: row.amount }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
         );
       }
@@ -107,9 +120,9 @@ Deno.serve(async (req: Request) => {
           'Authorization': campayToken,
         },
         body: JSON.stringify({
-          amount:             String(PAYMENT_AMOUNT),
+          amount:             String(paymentAmount),
           from:               normalizedPhone,
-          description:        'Estimation Smart Troc — Xeption Network',
+          description:        tier === 'certif' ? 'Xeption Certif — Vérification IMEI' : `Smart Troc ${tier} — Xeption Network`,
           external_reference: reference,
         }),
       },
@@ -142,6 +155,23 @@ Deno.serve(async (req: Request) => {
     // channel : MTN → momo, Orange → om
     const channel: 'om' | 'momo' = operator === 'MTN' ? 'momo' : 'om';
 
+    // Lier au dossier in_progress si les photos ont déjà été enregistrées
+    let tradeInRequestId: string | null = null;
+    try {
+      const draftRes = await fetchWithTimeout(
+        `${supabaseUrl}/rest/v1/trade_in_requests?session_key=eq.${encodeURIComponent(sessionKey)}&status=eq.in_progress&select=id&limit=1`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Accept: 'application/json' } },
+      );
+      if (draftRes.ok) {
+        const draftRows = await draftRes.json();
+        if (Array.isArray(draftRows) && draftRows[0]?.id) {
+          tradeInRequestId = draftRows[0].id;
+        }
+      }
+    } catch {
+      /* non bloquant */
+    }
+
     // Persiste en DB
     const insertRes = await fetchWithTimeout(
       `${supabaseUrl}/rest/v1/troc_payments`,
@@ -156,10 +186,14 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           session_key:     sessionKey,
           reference,
-          amount:          PAYMENT_AMOUNT,
+          amount:          paymentAmount,
           currency:        'XAF',
+          tier,
           channel,
           phone:           normalizedPhone,
+          customer_name:   customerName,
+          customer_phone:  customerPhone,
+          trade_in_request_id: tradeInRequestId,
           status:          'pending',
           notchpay_status: campayReference, // stocke la référence interne CamPay
           updated_at:      new Date().toISOString(),
@@ -171,11 +205,11 @@ Deno.serve(async (req: Request) => {
       console.error('[create-payment] db_insert_error', await insertRes.text());
     }
 
-    console.info('[create-payment] initiated', { reference, campayReference, operator });
+    console.info('[create-payment] initiated', { reference, campayReference, operator, tier, amount: paymentAmount });
 
     // CamPay ne retourne pas d'URL de redirection — le client attend le USSD sur son téléphone
     return new Response(
-      JSON.stringify({ reference, paymentUrl: null }),
+      JSON.stringify({ reference, paymentUrl: null, tier, amount: paymentAmount }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );
   } catch (error: any) {

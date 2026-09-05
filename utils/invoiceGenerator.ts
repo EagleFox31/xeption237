@@ -1,8 +1,31 @@
 
-import { Order, CartItem } from '../types';
+import { Order } from '../types';
+import { SHOP_PHONE_DISPLAY } from '../constants/contact';
+import { getPaymentMethodLabel } from './paymentMethods';
 
-export const generateInvoiceHTML = (order: Order): string => {
-  const { id, customerName, customerEmail, customerPhone, customerCity, items, total, date, deliveryMode, paymentMethod } = order;
+export type InvoiceDocumentType = 'facture';
+
+export const generateInvoiceHTML = (
+  order: Order,
+  _options?: { documentType?: InvoiceDocumentType }
+): string => {
+  const { id, customerName, customerEmail, customerPhone, customerCity, items, total, date, deliveryMode, paymentMethod, status, discountAmount } = order;
+  const documentTitle = 'Facture';
+  const statusNote =
+    status === 'delivered'
+      ? 'Commande livrée'
+      : status === 'confirmed' || status === 'shipped' || status === 'ready'
+        ? `Statut commande : ${status.toUpperCase()}`
+        : '';
+
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const deliveryFee = deliveryMode === 'pickup' ? 0 : Math.max(0, total - subtotal);
+  const deliveryFeeLabel =
+    deliveryMode === 'pickup'
+      ? 'Gratuit'
+      : deliveryFee === 0
+        ? 'Gratuit'
+        : `${deliveryFee.toLocaleString('fr-FR')} FCFA`;
 
   // Styles de base
   const colors = {
@@ -22,7 +45,7 @@ export const generateInvoiceHTML = (order: Order): string => {
       </td>
       <td style="padding: 10px 0; color: ${colors.text}; font-family: 'Helvetica', sans-serif; text-align: center; font-weight: bold;">${item.quantity}</td>
       <td style="padding: 10px 0; color: ${colors.text}; font-family: 'Helvetica', sans-serif; text-align: right; font-weight: bold;">
-        ${item.price.toLocaleString('fr-FR')} FCFA
+        ${(item.price * item.quantity).toLocaleString('fr-FR')} FCFA
       </td>
     </tr>
   `).join('');
@@ -60,9 +83,10 @@ export const generateInvoiceHTML = (order: Order): string => {
           <div style="font-size: 24px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">XEPTION</div>
         </td>
         <td align="right" valign="top">
-          <div style="font-size: 18px; font-weight: 900; text-transform: uppercase; color: ${colors.goldDark}; margin-bottom: 5px;">Facture</div>
+          <div style="font-size: 18px; font-weight: 900; text-transform: uppercase; color: ${colors.goldDark}; margin-bottom: 5px;">${documentTitle}</div>
           <div style="font-size: 14px; font-weight: bold;">#${id}</div>
           <div style="font-size: 12px; color: ${colors.textMuted}; margin-top: 5px;">${date}</div>
+          ${statusNote ? `<div style="font-size: 10px; color: ${colors.textMuted}; margin-top: 4px; text-transform: uppercase;">${statusNote}</div>` : ''}
         </td>
       </tr>
     </table>
@@ -75,7 +99,7 @@ export const generateInvoiceHTML = (order: Order): string => {
           <div style="font-weight: bold;">Xeption</div>
           <div style="font-size: 12px; color: ${colors.textMuted};">Mfoundi Mall, Boutique 2063</div>
           <div style="font-size: 12px; color: ${colors.textMuted};">Yaoundé, Cameroun</div>
-          <div style="font-size: 12px; color: ${colors.textMuted};">+237 699 00 00 00</div>
+          <div style="font-size: 12px; color: ${colors.textMuted};">${SHOP_PHONE_DISPLAY}</div>
         </td>
         <td width="50%" valign="top" style="padding-left: 20px;">
           <div style="font-size: 10px; color: ${colors.textMuted}; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 2px;">Client</div>
@@ -113,7 +137,19 @@ export const generateInvoiceHTML = (order: Order): string => {
             </tr>
             <tr>
               <td style="padding: 5px 0; color: ${colors.textMuted}; font-size: 12px;" align="right">Paiement :</td>
-              <td style="padding: 5px 0 5px 15px; font-weight: bold; font-size: 12px;" align="right">${paymentMethod}</td>
+              <td style="padding: 5px 0 5px 15px; font-weight: bold; font-size: 12px;" align="right">${getPaymentMethodLabel(paymentMethod)}</td>
+            </tr>
+            ${(discountAmount ?? 0) > 0 ? `<tr>
+              <td style="padding: 5px 0; color: ${colors.textMuted}; font-size: 12px;" align="right">Remise :</td>
+              <td style="padding: 5px 0 5px 15px; font-weight: bold; font-size: 12px; color: #B45309;" align="right">−${Number(discountAmount).toLocaleString('fr-FR')} FCFA</td>
+            </tr>` : ''}
+            <tr>
+              <td style="padding: 8px 0 5px; color: ${colors.textMuted}; font-size: 12px;" align="right">Sous-total :</td>
+              <td style="padding: 8px 0 5px 15px; font-weight: bold; font-size: 12px;" align="right">${subtotal.toLocaleString('fr-FR')} FCFA</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; color: ${colors.textMuted}; font-size: 12px;" align="right">${deliveryMode === 'pickup' ? 'Retrait :' : 'Livraison :'}</td>
+              <td style="padding: 5px 0 5px 15px; font-weight: bold; font-size: 12px;" align="right">${deliveryFeeLabel}</td>
             </tr>
             <tr>
               <td colspan="2" style="border-top: 2px solid ${colors.gold}; padding-top: 10px; margin-top: 10px;"></td>

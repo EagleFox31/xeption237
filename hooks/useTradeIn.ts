@@ -2,18 +2,27 @@ import { useState, useRef } from 'react';
 import {
   checkImei,
   evaluateDevice,
+  precheckTooOld,
+  findCatalogModel,
   lookupImeiFromHistory,
   saveTradeInRequest,
   upsertSession,
+  upsertTrocIntake,
   createPayment,
   getPaymentStatus,
   PhotoRetakeRequiredError,
+  DeviceMismatchError,
   type ImeiDeviceInfo,
 } from '../services/trocEvaluationService';
 import { uploadFiles } from '../services/uploadService';
+import { preflightDevicePhotos } from '../services/trocPhotoPreflight';
 import { validateTrocForm } from '../utils/trocFormValidation';
-import type { TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
+import type { Product, TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
+import { TROC_TUNNEL_TIER, type TrocTier } from '../utils/trocPricing';
+import { TROC_MESSAGES } from '../utils/trocMessages';
 import { supabase } from '../services/supabaseClient';
+import { getTrocSessionKey } from '../utils/trocSessionKey';
+import { getProductDisplayName } from '../utils/productDisplay';
 
 export type TrocStep = 'form' | 'photos' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
 export type ImeiMatchState = 'unknown' | 'match' | 'mismatch' | 'not_verified';
@@ -66,12 +75,7 @@ const isSoftMatch = (expected?: string, detected?: string) => {
 };
 
 // Clé de session générée une fois par visite, persistée dans sessionStorage.
-const getSessionKey = (): string => {
-  const KEY = 'troc_session_key';
-  let key = sessionStorage.getItem(KEY);
-  if (!key) { key = crypto.randomUUID(); sessionStorage.setItem(KEY, key); }
-  return key;
-};
+const getSessionKey = getTrocSessionKey;
 
 export const useTradeIn = () => {
   const sessionKey = getSessionKey();
@@ -90,8 +94,16 @@ export const useTradeIn = () => {
   const [imeiEvidenceCount, setImeiEvidenceCount] = useState(0);
   const [imeiMatchState, setImeiMatchState] = useState<ImeiMatchState>('unknown');
   const [result, setResult] = useState<TrocEvaluationResult | null>(null);
-  const [savedRequest, setSavedRequest] = useState<Pick<TradeInRequest, 'id' | 'voucher_reference'> | null>(null);
+  const [savedRequest, setSavedRequest] = useState<{
+    id: string;
+    voucher_reference: string;
+    voucher_expires_at?: string | null;
+    created_at?: string | null;
+    target_product_id?: string | null;
+    target_product_name?: string | null;
+  } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCheckingPhotos, setIsCheckingPhotos] = useState(false);
   const [isCheckingImei, setIsCheckingImei] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,6 +113,8 @@ export const useTradeIn = () => {
   // ─── Paiement ─────────────────────────────────────────────────────────────
   const [paymentState, setPaymentState] = useState<PaymentState>('idle');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [selectedTier, setSelectedTier] = useState<TrocTier>(TROC_TUNNEL_TIER);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const pollTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -129,34 +143,123 @@ export const useTradeIn = () => {
     setError(null);
   };
 
-  const goToPhotos = () => {
+  const goToImei = () => {
     const errors = validateTrocForm(form);
     if (errors.length > 0) {
       setError(errors[0]);
       return;
     }
     setError(null);
+    setStep('imei');
+    upsertSession(sessionKey, 'form', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+  };
+
+  const goToPhotosQuick = async () => {
+    if (imeiStatus !== 'valid') {
+      setError("Vérifiez votre IMEI avant de continuer.");
+      return;
+    }
+    // Match catalogue (auto IMEI OU modèle tapé) → prix exact + id avant le pré-check.
+    const matchedBasePrice = (await applyCatalogMatch(form.deviceBrand, form.deviceModel)) || basePrice;
+    // Pré-check âge AVANT photos/paiement → on prévient le client trop tôt (anti « payé puis refusé »).
+    const tooOld = await precheckTooOld(form, matchedBasePrice);
+    if (tooOld) { setResult(tooOld); setStep('result'); return; }
+    setError(null);
     setStep('photos');
     upsertSession(sessionKey, 'form', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
   };
 
-  const goToImei = async () => {
+  const goToPhotos = async () => {
+    if (imeiStatus !== 'valid') {
+      setError("L'IMEI n'a pas pu être confirmé. Vérifiez-le avant d'ajouter vos photos.");
+      return;
+    }
+    if (imeiMatchState !== 'match' && imeiMatchState !== 'not_verified') {
+      setError("L'IMEI doit être confirmé avant d'ajouter vos photos.");
+      return;
+    }
+    // Pré-check âge AVANT photos/paiement → on prévient le client trop tôt (anti « payé puis refusé »).
+    const tooOld = await precheckTooOld(form, basePrice);
+    if (tooOld) { setResult(tooOld); setStep('result'); return; }
+    setError(null);
+    setStep('photos');
+    upsertSession(sessionKey, 'imei', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+  };
+
+  const continueFromPhotos = async () => {
+    if (isUploading || isCheckingPhotos) return;
+    if (imeiStatus !== 'valid') {
+      setError("L'IMEI n'a pas pu être confirmé. Revenez à l'étape précédente.");
+      return;
+    }
     if (photos.length === 0) {
       setError('Ajoutez au moins une photo de votre appareil pour continuer.');
       return;
     }
     setIsUploading(true);
     setError(null);
+    setPhotoIssueIndices([]);
     try {
       const urls = await uploadFiles(photos);
+      setIsUploading(false);
+      setIsCheckingPhotos(true);
+      await preflightDevicePhotos(form, urls, photos);
       setPhotoUrls(urls);
-      setStep('imei');
-      upsertSession(sessionKey, 'photos', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
-    } catch {
-      setError("L'envoi des photos a échoué. Vérifiez votre connexion et réessayez.");
+
+      const intake = await upsertTrocIntake(sessionKey, form, urls, {
+        imeiStatus,
+        imeiBlacklistStatus,
+        imeiAssuranceLevel,
+      });
+
+      upsertSession(sessionKey, 'photos', {
+        deviceBrand: form.deviceBrand,
+        deviceModel: form.deviceModel,
+        tradeInId: intake?.id,
+      });
+      setPaymentState('idle');
+      setPaymentReference(null);
+      setSelectedTier(TROC_TUNNEL_TIER);
+      setError(null);
+      setStep('payment');
+    } catch (err) {
+      if (err instanceof PhotoRetakeRequiredError) {
+        setPhotoIssueIndices(err.issueIndices);
+        setError(
+          err.issueIndices.length > 0
+            ? "Ces photos ne montrent pas un smartphone (montre, autre objet ou capture d'écran). Remplacez celles signalées en rouge."
+            : 'Certaines photos ne sont pas exploitables. Remplacez-les avant de continuer.',
+        );
+        return;
+      }
+      if (err instanceof DeviceMismatchError) {
+        setPhotoIssueIndices(photos.map((_, i) => i + 1));
+        setError(
+          err.detail ||
+            "Les photos ne correspondent pas au téléphone déclaré. Remplacez-les par des photos nettes de l'appareil indiqué dans le formulaire.",
+        );
+        return;
+      }
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "L'envoi ou la vérification des photos a échoué. Vérifiez votre connexion et réessayez.",
+      );
     } finally {
       setIsUploading(false);
+      setIsCheckingPhotos(false);
     }
+  };
+
+  // Auto-match catalogue : le QuickForm hérite du prix exact (base_price + tradeInModelId)
+  // sans sélection manuelle, comme une sélection Wizard. Renvoie le base_price trouvé (0 sinon)
+  // pour usage synchrone (le setBasePrice d'état n'est pas encore propagé au moment de l'appel).
+  const applyCatalogMatch = async (brand?: string | null, model?: string | null): Promise<number> => {
+    const match = await findCatalogModel(brand ?? '', model ?? '');
+    if (!match) return 0;
+    setBasePrice(match.basePrice);
+    setForm((prev) => ({ ...prev, tradeInModelId: match.id }));
+    return match.basePrice;
   };
 
   const doCheckImei = async () => {
@@ -170,7 +273,7 @@ export const useTradeIn = () => {
     setError(null);
 
     try {
-      const { status, blacklistStatus, assuranceLevel, reason, deviceInfo } = await checkImei(form.imei);
+      const { status, blacklistStatus, assuranceLevel, reason, deviceInfo } = await checkImei(form.imei, sessionKey);
       setImeiStatus(status);
       setImeiBlacklistStatus(blacklistStatus);
       setImeiAssuranceLevel(assuranceLevel);
@@ -181,6 +284,7 @@ export const useTradeIn = () => {
           setImeiDeviceInfo(deviceInfo);
           setImeiDeviceSource('provider');
           setImeiEvidenceCount(0);
+          void applyCatalogMatch(deviceInfo.brand, deviceInfo.model);
           const brandMatch = isSoftMatch(form.deviceBrand, deviceInfo.brand);
           const modelMatch = isSoftMatch(form.deviceModel, deviceInfo.model);
           if (brandMatch && modelMatch) {
@@ -197,6 +301,7 @@ export const useTradeIn = () => {
             setImeiDeviceInfo({ brand: history.brand, model: history.model });
             setImeiDeviceSource('historical');
             setImeiEvidenceCount(history.count);
+            void applyCatalogMatch(history.brand, history.model);
             const brandMatch = isSoftMatch(form.deviceBrand, history.brand);
             const modelMatch = isSoftMatch(form.deviceModel, history.model);
             if (brandMatch && modelMatch && history.count >= 3) {
@@ -233,6 +338,8 @@ export const useTradeIn = () => {
         const normalizedReason = (reason || '').toLowerCase();
         if (normalizedReason.includes('401') || normalizedReason.includes('unauthorized')) {
           setError("Vérification IMEI temporairement indisponible. Apportez l'appareil en boutique.");
+        } else if (normalizedReason.includes('rate_limited')) {
+          setError(TROC_MESSAGES.ai_rate_limited);
         } else if (normalizedReason.includes('invalid_imei_checksum')) {
           setError('Ce numéro IMEI semble incorrect. Vérifiez les 15 chiffres en composant *#06# sur votre téléphone.');
         } else {
@@ -278,16 +385,30 @@ export const useTradeIn = () => {
 
     setPaymentState('idle');
     setPaymentReference(null);
+    setSelectedTier(TROC_TUNNEL_TIER);
     setError(null);
     setStep('payment');
   };
 
   const initiatePayment = async (phone: string) => {
+    const tier = TROC_TUNNEL_TIER;
     setPaymentState('initiating');
+    setSelectedTier(tier);
     setError(null);
     try {
-      const { reference } = await createPayment(sessionKey, phone, form.customerName || undefined, form.customerEmail || undefined);
+      upsertSession(sessionKey, 'payment', {
+        deviceBrand: form.deviceBrand,
+        deviceModel: form.deviceModel,
+      });
+
+      const { reference, amount } = await createPayment(sessionKey, phone, {
+        tier,
+        customerName:  form.customerName || undefined,
+        customerPhone: form.customerPhone || undefined,
+        customerEmail: form.customerEmail || undefined,
+      });
       setPaymentReference(reference);
+      setPaymentAmount(amount);
       setPaymentState('pending');
 
       // Démarrage polling
@@ -357,6 +478,20 @@ export const useTradeIn = () => {
       setResult(evaluation);
       setStep('result');
       upsertSession(sessionKey, 'result', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+
+      // Refus APRÈS paiement → tracer le dossier (sinon paiement orphelin invisible en admin).
+      // L'évaluation a lieu après paiement : tout refus ici = client qui a payé puis refusé.
+      if (evaluation.tradeInGrade === 'refuse') {
+        saveTradeInRequest(form, photoUrls, evaluation, sessionKey)
+          .then((saved) =>
+            setSavedRequest({
+              id: saved.id,
+              voucher_reference: saved.voucherReference || saved.id,
+              voucher_expires_at: saved.voucherExpiresAt,
+              created_at: saved.createdAt,
+            }))
+          .catch((e) => console.warn('[troc] save dossier refusé échoué', e));
+      }
     } catch (err: any) {
       // Photos non conformes (cas le plus fréquent) — ton neutre, pas accusateur.
       if (err instanceof PhotoRetakeRequiredError) {
@@ -365,6 +500,15 @@ export const useTradeIn = () => {
           err.issueIndices.length > 0
             ? "Une ou plusieurs photos ne montrent pas clairement votre téléphone. Remplacez celles signalées en rouge pour relancer l'estimation."
             : "Certaines photos ne sont pas exploitables. Remplacez-les pour relancer l'estimation.",
+        );
+        setStep('photos');
+        return;
+      }
+      if (err instanceof DeviceMismatchError) {
+        setPhotoIssueIndices(photoUrls.map((_, i) => i + 1));
+        setError(
+          err.detail ||
+            "Les photos ne correspondent pas au téléphone déclaré. Remplacez-les par des photos nettes de l'appareil indiqué dans le formulaire.",
         );
         setStep('photos');
         return;
@@ -383,7 +527,8 @@ export const useTradeIn = () => {
     }
   };
 
-  const persist = async () => {
+  // targetProduct : appareil cible du troc (Smart Troc). Optionnel → sans cible = bon générique.
+  const persist = async (targetProduct?: Product | null) => {
     if (!result) return;
     setIsSubmitting(true);
     setError(null);
@@ -393,10 +538,14 @@ export const useTradeIn = () => {
         supabase.auth.signInWithOtp({ email: form.customerEmail.trim() }).catch(console.error);
       }
 
-      const saved = await saveTradeInRequest(form, photoUrls, result);
+      const saved = await saveTradeInRequest(form, photoUrls, result, sessionKey, targetProduct);
       setSavedRequest({
         id: saved.id,
-        voucher_reference: saved.voucherReference,
+        voucher_reference: saved.voucherReference || saved.id,
+        voucher_expires_at: saved.voucherExpiresAt,
+        created_at: saved.createdAt,
+        target_product_id: targetProduct?.id ?? null,
+        target_product_name: targetProduct ? getProductDisplayName(targetProduct) : null,
       });
       setStep('voucher');
       upsertSession(sessionKey, 'voucher', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel, tradeInId: saved.id });
@@ -407,7 +556,7 @@ export const useTradeIn = () => {
     }
   };
 
-  const acceptOffer = () => persist();
+  const acceptOffer = (targetProduct?: Product | null) => persist(targetProduct);
 
   const refuse = () => {
     setResult(null);
@@ -433,6 +582,8 @@ export const useTradeIn = () => {
     setBasePrice(DEFAULT_BASE_PRICE);
     setPaymentState('idle');
     setPaymentReference(null);
+    setSelectedTier(TROC_TUNNEL_TIER);
+    setPaymentAmount(0);
   };
 
   return {
@@ -452,17 +603,23 @@ export const useTradeIn = () => {
     savedRequest,
     basePrice,
     isUploading,
+    isCheckingPhotos,
     isCheckingImei,
     isEvaluating,
     isSubmitting,
     error,
     paymentState,
     paymentReference,
+    paymentAmount,
+    selectedTier,
+    setSelectedTier,
     onCallbackPaid,
     updateForm,
     updatePhotos,
-    goToPhotos,
     goToImei,
+    goToPhotos,
+    goToPhotosQuick,
+    continueFromPhotos,
     doCheckImei,
     skipImei,
     goToPayment,

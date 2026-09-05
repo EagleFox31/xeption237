@@ -1,0 +1,66 @@
+{
+  "mode": "applied",
+  "at": "2026-06-12T17:15:47.210Z",
+  "log": [
+    {
+      "group": "iPhone 13 Pro 128 Go",
+      "status": "deleted",
+      "delete": {
+        "id": "343a9b95-a93e-41dc-893d-68f57ed952aa",
+        "name": "iPhone 13 Pro 128Go "
+      },
+      "keep": {
+        "id": "4b02ee83-07df-4432-94fd-1dba289b8ecb",
+        "name": "iPhone 13 Pro 128Go "
+      }
+    },
+    {
+      "group": "iPhone 13 Pro 128 Go",
+      "status": "deleted",
+      "delete": {
+        "id": "4909d09a-e0f9-4d2e-82db-a9cc383aefd6",
+        "name": "IPhone 13 Pro 128Go "
+      },
+      "keep": {
+        "id": "4b02ee83-07df-4432-94fd-1dba289b8ecb",
+        "name": "iPhone 13 Pro 128Go "
+      }
+    },
+    {
+      "group": "iPhone XR 128 Go",
+      "status": "deleted",
+      "delete": {
+        "id": "0bf132dd-8c21-462d-a09c-b4e510a465dd",
+        "name": "IPhone XR 128 Go "
+      },
+      "keep": {
+        "id": "7e20b3d0-a101-4dd0-9b2a-ada508b4ad05",
+        "name": "IPhone XR 128 Go "
+      }
+    },
+    {
+      "group": "Galaxy Z Fold4 256 Go",
+      "status": "deleted",
+      "delete": {
+        "id": "30ffea76-f4f7-4653-9a7f-d356f9f331f8",
+        "name": "Galaxie Z fold4 256 Go"
+      },
+      "keep": {
+        "id": "fd104e00-eca5-44d8-b897-aa7143f8c2e1",
+        "name": "Galaxie Z fold4 256 Go"
+      }
+    },
+    {
+      "group": "Galaxy S21 256 Go",
+      "status": "deleted",
+      "delete": {
+        "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9",
+        "name": "Samsung S21 256Go"
+      },
+      "keep": {
+        "id": "0814e79c-2674-4c92-81c5-c86a76517aa8",
+        "name": "S21  256Go "
+      }
+    }
+  ]
+}

@@ -2,8 +2,9 @@ import React from 'react';
 import { ChevronDown, AlertTriangle } from 'lucide-react';
 import type { TrocDeviceForm } from '../../types';
 import { SCREEN_CONDITIONS, BODY_CONDITIONS, CAMERA_CONDITIONS, REPAIR_OPTIONS, CONDITION_LABELS } from '../../constants/trocConditions';
-import { BRANDS_WITH_OTHER, STORAGES, RAMS, isKnownBrand } from '../../constants/trocCatalog';
-import { fetchArgusModels, type TradeInModel } from '../../services/trocEvaluationService';
+import { KNOWN_BRANDS, STORAGES, RAMS } from '../../constants/trocCatalog';
+import { fetchArgusModels, fetchArgusBrands, type TradeInModel } from '../../services/trocEvaluationService';
+import { AutocompleteInput } from '../common/AutocompleteInput';
 
 const ACQUISITION_OPTIONS = [
   { value: 'used', label: "Occasion à l'achat" },
@@ -25,6 +26,10 @@ const isValidPurchaseDate = (value: string): boolean => {
   return d <= new Date();
 };
 
+const isPurchaseDateOk = (form: TrocDeviceForm): boolean =>
+  !!form.purchaseDateUnknown ||
+  (!!form.purchaseDate.trim() && isValidPurchaseDate(form.purchaseDate));
+
 const isFormValid = (form: TrocDeviceForm): boolean =>
   !!(
     form.customerName.trim() &&
@@ -33,8 +38,7 @@ const isFormValid = (form: TrocDeviceForm): boolean =>
     form.deviceBrand.trim() &&
     form.deviceModel.trim() &&
     form.acquisitionCondition &&
-    form.purchaseDate.trim() &&
-    isValidPurchaseDate(form.purchaseDate) &&
+    isPurchaseDateOk(form) &&
     form.screenCondition.trim() &&
     form.bodyCondition.trim()
   );
@@ -45,8 +49,10 @@ const getHint = (form: TrocDeviceForm): string | null => {
   if (!isValidCamPhone(form.customerPhone)) return 'Téléphone invalide (ex : 677123456).';
   if (!form.deviceBrand.trim()) return "Marque de l'appareil requise.";
   if (!form.deviceModel.trim()) return "Modèle de l'appareil requis.";
-  if (!form.purchaseDate.trim()) return "Date d'achat requise.";
-  if (!isValidPurchaseDate(form.purchaseDate)) return "Date d'achat invalide (pas dans le futur).";
+  if (!form.purchaseDateUnknown && !form.purchaseDate.trim()) return "Date d'achat requise.";
+  if (!form.purchaseDateUnknown && form.purchaseDate.trim() && !isValidPurchaseDate(form.purchaseDate)) {
+    return "Date d'achat invalide (pas dans le futur).";
+  }
   if (!form.screenCondition.trim()) return "État de l'écran requis.";
   if (!form.bodyCondition.trim()) return 'État du boîtier requis.';
   return null;
@@ -85,7 +91,7 @@ const YesNoToggle: React.FC<{
 }> = ({ label, hint, value, yesLabel = 'Oui', noLabel = 'Non', onChange }) => (
   <div className="flex flex-col gap-1.5">
     <span className={labelClass}>{label}</span>
-    {hint && <span className="text-[10px] text-gray-600 font-sans -mt-1">{hint}</span>}
+    {hint && <span className="text-[10px] text-white/50 font-sans -mt-1">{hint}</span>}
     <div className="flex gap-2">
       <button
         type="button"
@@ -93,7 +99,7 @@ const YesNoToggle: React.FC<{
         className={`flex-1 py-2.5 text-xs font-tech font-bold uppercase tracking-wider transition-all rounded-sm border ${
           value
             ? 'bg-xeption-gold text-black border-xeption-gold'
-            : 'bg-transparent text-gray-500 border-white/10 hover:border-white/20'
+            : 'bg-transparent text-white/60 border-white/20 hover:border-white/20'
         }`}
       >
         {yesLabel}
@@ -104,7 +110,7 @@ const YesNoToggle: React.FC<{
         className={`flex-1 py-2.5 text-xs font-tech font-bold uppercase tracking-wider transition-all rounded-sm border ${
           !value
             ? 'bg-white/10 text-white border-white/20'
-            : 'bg-transparent text-gray-500 border-white/10 hover:border-white/20'
+            : 'bg-transparent text-white/60 border-white/20 hover:border-white/20'
         }`}
       >
         {noLabel}
@@ -114,18 +120,18 @@ const YesNoToggle: React.FC<{
 );
 
 const inputClass =
-  'w-full bg-black/40 border border-white/10 text-white px-4 py-3 text-sm font-sans placeholder-gray-600 focus:border-xeption-gold/60 focus:bg-black/60 outline-none transition-all rounded-sm';
+  'w-full bg-[#1c1c16]/90 border border-white/20 text-white px-4 py-3 text-sm font-sans placeholder-gray-600 focus:border-xeption-gold/60 focus:bg-black/60 outline-none transition-all rounded-sm';
 const selectClass =
-  'w-full bg-black/40 border border-white/10 text-white px-4 py-3 pr-9 text-sm font-sans focus:border-xeption-gold/60 outline-none transition-all rounded-sm appearance-none cursor-pointer';
+  'w-full bg-[#1c1c16]/90 border border-white/20 text-white px-4 py-3 pr-9 text-sm font-sans focus:border-xeption-gold/60 outline-none transition-all rounded-sm appearance-none cursor-pointer';
 const labelClass =
-  'block text-[10px] font-tech font-bold uppercase tracking-widest text-gray-500 mb-1.5';
+  'block text-[10px] font-tech font-bold uppercase tracking-widest text-white/60 mb-1.5';
 
 const SelectField: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = ({ children, ...props }) => (
   <div className="relative">
     <select {...props} className={selectClass}>
       {children}
     </select>
-    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60 pointer-events-none" />
   </div>
 );
 
@@ -137,15 +143,26 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
   const update = (field: keyof TrocDeviceForm, value: string | number | boolean) =>
     onChange({ ...form, [field]: value });
 
-  const [showCustomBrand, setShowCustomBrand] = React.useState(
-    form.deviceBrand !== '' && !isKnownBrand(form.deviceBrand)
-  );
+  const [argusBrands, setArgusBrands] = React.useState<string[]>([]);
   const [argusModels, setArgusModels] = React.useState<TradeInModel[]>([]);
   const [showModelSuggestions, setShowModelSuggestions] = React.useState(false);
 
+  // Charge la liste des marques connues une fois au montage (fusion DB Argus + fallback hardcodé).
   React.useEffect(() => {
     let active = true;
-    if (form.deviceBrand && form.deviceBrand !== 'Autre') {
+    fetchArgusBrands().then((brands) => {
+      if (!active) return;
+      // Fusion DB + constants : assure que les marques courantes sont là même si DB vide.
+      const merged = new Set<string>(brands);
+      for (const b of KNOWN_BRANDS) merged.add(b);
+      setArgusBrands(Array.from(merged).sort((a, b) => a.localeCompare(b, 'fr')));
+    });
+    return () => { active = false; };
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    if (form.deviceBrand) {
       fetchArgusModels(form.deviceBrand).then((models) => {
         if (active) setArgusModels(models);
       });
@@ -156,25 +173,26 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
   }, [form.deviceBrand]);
 
   const handleBrandChange = (value: string) => {
-    if (value === 'Autre') {
-      setShowCustomBrand(true);
-      onChange({ ...form, deviceBrand: '', deviceModel: '' });
-      return;
+    // Si la marque change, on reset le modèle (le précédent peut ne plus exister chez la nouvelle marque).
+    if (value !== form.deviceBrand) {
+      onChange({ ...form, deviceBrand: value, deviceModel: '' });
+      if (setBasePrice) setBasePrice(0);
+    } else {
+      onChange({ ...form, deviceBrand: value });
     }
-    setShowCustomBrand(false);
-    onChange({ ...form, deviceBrand: value, deviceModel: '' });
-    if (setBasePrice) setBasePrice(0);
   };
 
   const handleModelSelect = (m: TradeInModel) => {
-    update('deviceModel', m.model_name);
+    // On garde l'id catalogue → le serveur lit le base_price par id (exact), pas par nom.
+    onChange({ ...form, deviceModel: m.model_name, tradeInModelId: m.id });
     setShowModelSuggestions(false);
     if (setBasePrice) setBasePrice(m.base_price);
   };
 
   const handleModelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    update('deviceModel', e.target.value);
-    if (setBasePrice) setBasePrice(0); // reset base price if typed manually, will fallback to market intel
+    // Saisie manuelle → plus de modèle catalogue → reset id + base price (fallback market intel).
+    onChange({ ...form, deviceModel: e.target.value, tradeInModelId: undefined });
+    if (setBasePrice) setBasePrice(0);
     setShowModelSuggestions(true);
   };
 
@@ -188,7 +206,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
     <div className="flex flex-col gap-5 p-6">
       <div>
         <h2 className="text-xl font-tech font-bold uppercase text-white tracking-wider">Ton appareil</h2>
-        <p className="text-xs text-gray-500 mt-1 font-sans">Remplis les infos pour lancer l evaluation IA</p>
+        <p className="text-xs text-white/60 mt-1 font-sans">Remplis les infos pour lancer le scan visuel IA</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -236,7 +254,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
         </div>
         
         {form.customerEmail && form.customerEmail.trim().length > 0 && (
-          <label className="flex items-center gap-3 cursor-pointer group p-3 bg-black/40 border border-white/10 rounded-sm hover:border-xeption-gold/30 transition-all">
+          <label className="flex items-center gap-3 cursor-pointer group p-3 bg-[#1c1c16]/90 border border-white/20 rounded-sm hover:border-xeption-gold/30 transition-all">
             <div className={`w-5 h-5 border flex items-center justify-center transition-all ${form.createAccount ? 'bg-xeption-gold border-xeption-gold' : 'border-white/20 group-hover:border-xeption-gold/50'}`}>
               {form.createAccount && <div className="w-2.5 h-2.5 bg-black" />}
             </div>
@@ -248,7 +266,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
             />
             <div>
               <p className="text-sm text-white font-sans font-medium">Créer un compte pour sauvegarder mon estimation</p>
-              <p className="text-[10px] text-gray-500 font-sans mt-0.5">Un lien de connexion magique vous sera envoyé par e-mail.</p>
+              <p className="text-[10px] text-white/60 font-sans mt-0.5">Un lien de connexion magique vous sera envoyé par e-mail.</p>
             </div>
           </label>
         )}
@@ -259,29 +277,14 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
           <label htmlFor="deviceBrand" className={labelClass}>
             Marque
           </label>
-          <SelectField
+          <AutocompleteInput
             id="deviceBrand"
-            value={showCustomBrand ? 'Autre' : form.deviceBrand}
-            onChange={(e) => handleBrandChange(e.target.value)}
-          >
-            <option value="">Marque de l'appareil</option>
-            {BRANDS_WITH_OTHER.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </SelectField>
-          {showCustomBrand && (
-            <input
-              id="deviceBrandCustom"
-              type="text"
-              placeholder="Précise la marque"
-              autoFocus
-              value={form.deviceBrand}
-              onChange={(e) => update('deviceBrand', e.target.value)}
-              className={`${inputClass} mt-2`}
-            />
-          )}
+            value={form.deviceBrand}
+            onChange={handleBrandChange}
+            suggestions={argusBrands}
+            placeholder="Tapez la marque (ex : Samsung)"
+            freeTextHint="Marque non listée — pas de souci, on valide en boutique."
+          />
         </div>
         <div className="relative">
           <label htmlFor="deviceModel" className={labelClass}>
@@ -304,7 +307,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
                 <li
                   key={m.id}
                   onMouseDown={(e) => { e.preventDefault(); handleModelSelect(m); }}
-                  className="px-4 py-2.5 text-sm text-gray-200 hover:bg-xeption-gold/20 hover:text-xeption-gold cursor-pointer transition-colors border-b border-white/5 last:border-0"
+                  className="px-4 py-2.5 text-sm text-white/90 hover:bg-xeption-gold/20 hover:text-xeption-gold cursor-pointer transition-colors border-b border-white/5 last:border-0"
                 >
                   {m.model_name}
                 </li>
@@ -357,15 +360,32 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
           </SelectField>
         </div>
         <div>
-          <label htmlFor="purchaseDate" className={labelClass}>Date d'achat</label>
+          <label htmlFor="purchaseDate" className={labelClass}>Date d&apos;achat</label>
           <input
             id="purchaseDate"
             type="date"
-            value={form.purchaseDate}
+            value={form.purchaseDateUnknown ? '' : form.purchaseDate}
             onChange={(e) => update('purchaseDate', e.target.value)}
-            className={`${inputClass} [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70`}
+            disabled={!!form.purchaseDateUnknown}
+            className={`${inputClass} [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70 disabled:opacity-40`}
             max={new Date().toISOString().slice(0, 10)}
           />
+          <label className="flex items-center gap-2 mt-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={!!form.purchaseDateUnknown}
+              onChange={(e) => {
+                const unknown = e.target.checked;
+                onChange({
+                  ...form,
+                  purchaseDateUnknown: unknown,
+                  purchaseDate: unknown ? '' : form.purchaseDate,
+                });
+              }}
+              className="w-4 h-4 rounded border-white/20 bg-[#1c1c16]/90 text-xeption-gold focus:ring-xeption-gold"
+            />
+            <span className="text-[11px] text-white/70 font-sans group-hover:text-white/80">Je ne sais pas</span>
+          </label>
         </div>
       </div>
 
@@ -396,7 +416,7 @@ export const SmartTrocForm: React.FC<SmartTrocFormProps> = ({ form, onChange, on
             onChange={(e) => update('batteryHealth', Number(e.target.value))}
             className="w-full accent-xeption-gold cursor-pointer"
           />
-          <div className="flex justify-between text-[9px] text-gray-600 font-tech mt-1">
+          <div className="flex justify-between text-[9px] text-white/50 font-tech mt-1">
             <span>0%</span>
             <span>50%</span>
             <span>100%</span>

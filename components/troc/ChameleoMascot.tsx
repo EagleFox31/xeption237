@@ -1,0 +1,427 @@
+import React, { useState, useEffect, useRef } from 'react';
+import type { ChameleoState } from '../../utils/trocCoach';
+
+export type { ChameleoState };
+
+interface ChameleoMascotProps {
+  state?: ChameleoState;
+  message?: string;
+  className?: string;
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  /** Bulle au-dessus du composant. Désactiver si le parent affiche déjà le texte. */
+  showSpeechBubble?: boolean;
+  /** Suivi du curseur (3D Tilt & regard vers la souris). */
+  trackPointer?: boolean;
+  /** Activer le mode danse rythmé gauche-droite. */
+  isDancing?: boolean;
+  /** Pose du personnage : waving, pointing, shopping, inspector, delivery ou engineer (tournevis & puce SAV). */
+  pose?: 'waving' | 'pointing' | 'shopping' | 'inspector' | 'delivery' | 'engineer';
+  /** vertical = bulle au-dessus · horizontal = bulle à gauche, mascotte à droite */
+  layout?: 'vertical' | 'horizontal';
+  /** Charger le PNG en priorité (hero). Sinon lazy + SVG immédiat. */
+  priority?: boolean;
+  onClick?: () => void;
+}
+
+interface Sparkle {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  delay: number;
+}
+
+/**
+ * Composant Mascotte Officielle Xepti (La lettre 'X' 237) pour Xeption Smart Troc, Shop, Tracking & SAV.
+ * - Poses multiples 3D : Salutation, Pointage, Shopping, Inspecteur, Livreur, Ingénieur SAV
+ * - Double Sprite 3D : Bouche fermée & Bouche ouverte en haute définition (Lip-sync)
+ * - Suivi du regard et 3D Tilt vers la souris en temps réel
+ * - Danse et flottement avec rebond physique
+ */
+export const ChameleoMascot: React.FC<ChameleoMascotProps> = ({
+  state = 'idle',
+  message,
+  className = '',
+  size = 'md',
+  showSpeechBubble = true,
+  trackPointer = true,
+  isDancing = true,
+  pose = 'waving',
+  layout = 'vertical',
+  priority = false,
+  onClick
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, scale: 1 });
+  const [isJumping, setIsJumping] = useState(false);
+  const [clickSparkles, setClickSparkles] = useState<Sparkle[]>([]);
+  const [isOpenMouth, setIsOpenMouth] = useState(false);
+  const loadedImagesRef = useRef<Set<string>>(new Set());
+  const [loadedTick, setLoadedTick] = useState(0);
+  const [imgError, setImgError] = useState(false);
+
+  // Messages par défaut par état
+  const defaultMessages: Record<ChameleoState, string> = {
+    idle: pose === 'engineer'
+      ? 'Nos techniciens certifiés réparent ton matos au top ! 🛠️⚡'
+      : pose === 'delivery'
+        ? 'Ton colis est préparé et tracé en direct ! 📦🚀'
+        : pose === 'shopping' 
+          ? 'Trouve les meilleures pépites tech du 237 ! 🛍️✨' 
+          : pose === 'pointing' 
+            ? 'Sélectionne ton appareil juste en bas ! 👇' 
+            : pose === 'inspector'
+              ? 'Analyse IA & diagnostic en direct... 🧐🔍'
+              : 'Salut ! Je suis Xepti. Ton ancien phone vaut de l’or !',
+    thinking: 'Je regarde ce que tu m’as donné... 🧐',
+    scanning: 'Scan IA & vérification en cours... ✨',
+    happy: 'Waoooh ! Offre calculée au top ! 🎉⚡',
+    warning: 'Attention, cet appareil nécessite une vérification.',
+  };
+
+  const activeMessage = message || defaultMessages[state];
+
+  // 1. Animation de Parole (Alterne bouche ouverte/fermée naturellement pendant 3.5s quand le message s'affiche)
+  useEffect(() => {
+    if (!showSpeechBubble || !activeMessage || pose === 'pointing') {
+      setIsOpenMouth(false);
+      return;
+    }
+
+    let count = 0;
+    const maxToggles = 12; // ~3.5 secondes de parole rythmée
+
+    const interval = setInterval(() => {
+      setIsOpenMouth(prev => !prev);
+      count++;
+      if (count >= maxToggles) {
+        clearInterval(interval);
+        setIsOpenMouth(false);
+      }
+    }, 280);
+
+    return () => clearInterval(interval);
+  }, [showSpeechBubble, activeMessage, state, pose]);
+
+  // 2. Suivi 3D de la souris (Regard et inclinaison vers le curseur en temps réel)
+  useEffect(() => {
+    if (!trackPointer) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      // Calcul de l'angle vers la souris (regard et inclinaison)
+      const deltaX = (e.clientX - centerX) / (window.innerWidth / 2);
+      const deltaY = (e.clientY - centerY) / (window.innerHeight / 2);
+
+      const rotateY = Math.max(Math.min(deltaX * 16, 16), -16);
+      const rotateX = Math.max(Math.min(-deltaY * 16, 16), -16);
+
+      setTilt({ rotateX, rotateY, scale: 1.02 });
+    };
+
+    const handleMouseLeave = () => {
+      setTilt({ rotateX: 0, rotateY: 0, scale: 1 });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [trackPointer]);
+
+  // 3. Réaction au Clic (Super Rebond + Explosion d'étoiles)
+  const handleClick = () => {
+    setIsJumping(true);
+    setIsOpenMouth(true);
+
+    const newSparkles: Sparkle[] = Array.from({ length: 8 }).map((_, i) => ({
+      id: Date.now() + i,
+      x: (Math.random() - 0.5) * 90,
+      y: (Math.random() - 0.5) * 90 - 25,
+      size: Math.random() * 10 + 8,
+      delay: i * 40
+    }));
+    setClickSparkles(newSparkles);
+
+    setTimeout(() => {
+      setIsJumping(false);
+      setIsOpenMouth(false);
+    }, 650);
+    setTimeout(() => setClickSparkles([]), 1000);
+
+    if (onClick) onClick();
+  };
+
+  // Dimensions selon taille
+  const sizeClasses = {
+    xs: 'w-16 h-16',
+    sm: 'w-24 h-24',
+    md: 'w-44 h-44',
+    lg: 'w-64 h-64'
+  }[size];
+
+  // Image courante selon la pose et l'état de parole
+  const baseImage = (() => {
+    if (pose === 'engineer') return '/mascot/xepti_engineer_transparent.png';
+    if (pose === 'delivery') return '/mascot/xepti_delivery_transparent.png';
+    if (pose === 'inspector') return '/mascot/xepti_inspector_transparent.png';
+    if (pose === 'shopping') return '/mascot/xepti_shopping_transparent.png';
+    if (pose === 'pointing') return '/mascot/xepti_pointing_transparent.png';
+    return '/mascot/xepti_transparent.png';
+  })();
+  const openMouthImage = '/mascot/xepti_open_transparent.png';
+  const currentImage =
+    pose === 'waving' && isOpenMouth && loadedImagesRef.current.has(openMouthImage)
+      ? openMouthImage
+      : baseImage;
+
+  const markImageLoaded = (src: string) => {
+    if (loadedImagesRef.current.has(src)) return;
+    loadedImagesRef.current.add(src);
+    setLoadedTick((n) => n + 1);
+  };
+
+  const isCurrentLoaded = loadedImagesRef.current.has(currentImage);
+  const showSvgFallback = !isCurrentLoaded && !imgError;
+
+  useEffect(() => {
+    const preload = new Image();
+    preload.src = baseImage;
+    preload.onload = () => markImageLoaded(baseImage);
+    preload.onerror = () => setImgError(true);
+  }, [baseImage]);
+
+  // Animation selon la pose
+  const danceSpeed = state === 'happy' ? '1.4s' : '2.4s';
+  const animationStyle = pose === 'engineer'
+    ? 'engineerWrench 2.4s ease-in-out infinite'
+    : pose === 'delivery'
+      ? 'deliveryFly 2.2s ease-in-out infinite'
+      : pose === 'inspector'
+        ? 'inspectorScan 2.6s ease-in-out infinite'
+        : pose === 'shopping'
+          ? 'shoppingFloat 3.2s ease-in-out infinite'
+          : pose === 'pointing'
+            ? 'pointDown 3s ease-in-out infinite'
+            : isDancing && !isJumping
+              ? `dance ${danceSpeed} ease-in-out infinite`
+              : undefined;
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`relative select-none [perspective:800px] ${
+        layout === 'horizontal'
+          ? 'inline-flex flex-row items-center gap-3 sm:gap-4'
+          : 'inline-flex flex-col items-center'
+      } ${className}`}
+    >
+      {/* Bulle de Dialogue Réactive */}
+      {showSpeechBubble && activeMessage && (
+        <div
+          className={`${
+            layout === 'horizontal' ? 'mb-0 mr-0 max-w-[min(100%,280px)]' : 'mb-3 max-w-xs'
+          } px-4 py-2.5 bg-black/90 border border-xeption-gold/50 text-white rounded-2xl shadow-[0_0_20px_rgba(255,215,0,0.25)] text-xs font-tech tracking-wide ${
+            layout === 'horizontal' ? 'text-left' : 'text-center'
+          } relative animate-fade-in backdrop-blur-xl z-20 transition-transform duration-300 shrink-0 min-w-0`}
+        >
+          <span className="text-white/95">{activeMessage}</span>
+          {layout === 'horizontal' ? (
+            <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-black/90" />
+          ) : (
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-black/90" />
+          )}
+        </div>
+      )}
+
+      {/* Conteneur Pivot 3D vers la souris */}
+      <div 
+        onClick={handleClick}
+        className={`relative shrink-0 cursor-pointer ${sizeClasses} ${
+          isJumping ? 'animate-[jump_0.65s_ease-out]' : ''
+        }`}
+        style={{
+          transform: isJumping 
+            ? undefined 
+            : `rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale(${tilt.scale})`,
+          transition: isJumping ? 'none' : 'transform 0.15s ease-out'
+        }}
+      >
+        {/* Halo doré lumineux réactif */}
+        <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-xeption-gold/30 to-amber-500/20 blur-2xl animate-pulse pointer-events-none" />
+
+        {/* Mascotte Xepti (Waving ou Pointing avec animation fluide) */}
+        <div 
+          className="w-full h-full relative"
+          style={{
+            animation: animationStyle
+          }}
+        >
+          {showSvgFallback && (
+            <svg
+              viewBox="0 0 200 240"
+              className="absolute inset-0 w-full h-full drop-shadow-[0_15px_30px_rgba(255,215,0,0.25)]"
+              aria-hidden
+            >
+              <defs>
+                <linearGradient id="xeptiBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#34d399" />
+                  <stop offset="55%" stopColor="#059669" />
+                  <stop offset="100%" stopColor="#047857" />
+                </linearGradient>
+                <linearGradient id="xeptiGold" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#fde68a" />
+                  <stop offset="50%" stopColor="#ffd700" />
+                  <stop offset="100%" stopColor="#f59e0b" />
+                </linearGradient>
+              </defs>
+              <ellipse cx="100" cy="188" rx="58" ry="14" fill="rgba(255,215,0,0.18)" />
+              <path
+                d="M58 118c8-44 36-62 42-62s34 18 42 62c6 34-8 58-42 58s-48-24-42-58z"
+                fill="url(#xeptiBody)"
+                stroke="#ffd700"
+                strokeWidth="3"
+              />
+              <circle cx="100" cy="72" r="34" fill="url(#xeptiBody)" stroke="#ffd700" strokeWidth="3" />
+              <circle cx="88" cy="68" r="6" fill="#111827" />
+              <circle cx="112" cy="68" r="6" fill="#111827" />
+              <circle cx="90" cy="66" r="2" fill="#fff" />
+              <circle cx="114" cy="66" r="2" fill="#fff" />
+              <path d="M92 82 Q100 90 108 82" fill="none" stroke="#064e3b" strokeWidth="3" strokeLinecap="round" />
+              <path d="M66 52 L82 62" stroke="url(#xeptiGold)" strokeWidth="8" strokeLinecap="round" />
+              <path d="M134 52 L118 62" stroke="url(#xeptiGold)" strokeWidth="8" strokeLinecap="round" />
+              <text
+                x="100"
+                y="138"
+                textAnchor="middle"
+                fontSize="34"
+                fontWeight="700"
+                fill="url(#xeptiGold)"
+                fontFamily="monospace"
+              >
+                X
+              </text>
+            </svg>
+          )}
+          {!imgError && (
+            <img
+              src={currentImage}
+              alt="Xepti - Mascotte Xeption"
+              className={`w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(255,215,0,0.25)] pointer-events-auto transition-opacity duration-300 ${
+                isCurrentLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              loading={priority ? 'eager' : 'lazy'}
+              decoding="async"
+              onLoad={() => markImageLoaded(currentImage)}
+              onError={() => setImgError(true)}
+            />
+          )}
+        </div>
+
+        {/* Particules d'étoiles dorées au clic */}
+        {clickSparkles.map((s) => (
+          <span
+            key={s.id}
+            className="absolute left-1/2 top-1/2 pointer-events-none animate-ping text-xeption-gold font-bold select-none"
+            style={{
+              transform: `translate(${s.x}px, ${s.y}px)`,
+              fontSize: `${s.size}px`,
+              animationDuration: '0.8s'
+            }}
+          >
+            ✨
+          </span>
+        ))}
+      </div>
+
+      {/* Style CSS pour les animations */}
+      <style>{`
+        @keyframes dance {
+          0% {
+            transform: translateX(0px) translateY(0px) rotate(0deg) scale(1);
+          }
+          25% {
+            transform: translateX(-12px) translateY(-6px) rotate(-6deg) scale(1.03, 0.97);
+          }
+          50% {
+            transform: translateX(0px) translateY(-1px) rotate(0deg) scale(0.98, 1.02);
+          }
+          75% {
+            transform: translateX(12px) translateY(-6px) rotate(6deg) scale(1.03, 0.97);
+          }
+          100% {
+            transform: translateX(0px) translateY(0px) rotate(0deg) scale(1);
+          }
+        }
+        @keyframes engineerWrench {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg) scale(1);
+          }
+          30% {
+            transform: translateY(-5px) rotate(-4deg) scale(1.02);
+          }
+          60% {
+            transform: translateY(-2px) rotate(3deg) scale(1.01);
+          }
+        }
+        @keyframes deliveryFly {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg) scale(1);
+          }
+          25% {
+            transform: translateY(-8px) rotate(-3deg) scale(1.03);
+          }
+          50% {
+            transform: translateY(-2px) rotate(1deg) scale(0.99);
+          }
+          75% {
+            transform: translateY(-10px) rotate(3deg) scale(1.04);
+          }
+        }
+        @keyframes inspectorScan {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg) scale(1);
+          }
+          30% {
+            transform: translateY(-4px) rotate(3deg) scale(1.03);
+          }
+          70% {
+            transform: translateY(-2px) rotate(-3deg) scale(1.02);
+          }
+        }
+        @keyframes shoppingFloat {
+          0%, 100% {
+            transform: translateY(0px) rotate(-2deg);
+          }
+          50% {
+            transform: translateY(-9px) rotate(2deg) scale(1.02);
+          }
+        }
+        @keyframes pointDown {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(8px) rotate(2deg);
+          }
+        }
+        @keyframes jump {
+          0%   { transform: scale(1, 1) translateY(0); }
+          20%  { transform: scale(1.18, 0.82) translateY(0); }
+          50%  { transform: scale(0.88, 1.12) translateY(-28px); }
+          75%  { transform: scale(1.06, 0.94) translateY(0); }
+          100% { transform: scale(1, 1) translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default ChameleoMascot;

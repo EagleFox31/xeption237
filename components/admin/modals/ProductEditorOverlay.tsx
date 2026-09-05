@@ -1,31 +1,64 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Product, Category, Brand, ProductRange } from '../../../types';
-import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star, Smartphone, RefreshCw, MessageCircle } from 'lucide-react';
+import { findBestDuplicateMatch, validateProductForSave } from '../../../utils/productDuplicate';
+import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star, RefreshCw, MessageCircle } from 'lucide-react';
 import { uploadImageToCloudinary, uploadVideoToCloudinary } from '../../../services/uploadService';
-import { generateProductDetails } from '../../../services/geminiService';
-import { generateProductReviews } from '../../../services/reviewGenerator';
+import { generateProductDetails } from '../../../services/aiProductDetailsService';
+import type { ProductEnricherField } from '../../../services/personas/productEnricher';
+import { isWeakProductDescription } from '../../../utils/productDescription';
+import { CATEGORY_SLUGS } from '../../../constants/dbSchema';
+import { brandsForCategory, catalogBrandFromId, normalizeCatalogBrandKey, resolveCatalogBrandId } from '../../../utils/catalogStructure';
+import { isUuid, resolveBrandKeyToDbId } from '../../../utils/productBrand';
+import CatalogRangeCombobox from '../shared/CatalogRangeCombobox';
+import ProductRangeCreateModal from './ProductRangeCreateModal';
+import type { AdminAlertFn } from '../shared/adminAlert';
 
 interface ProductEditorOverlayProps {
     product: Product;
+    allProducts?: Product[];
     categories: Category[];
     brands?: Brand[];
     ranges?: ProductRange[];
+    onCreateRange?: (params: { name: string; brandId: string; category: string }) => Promise<ProductRange>;
+    showAlert: AdminAlertFn;
     onClose: () => void;
     onSave: (e: React.FormEvent) => void;
     onChange: (updates: Partial<Product>) => void;
 }
 
-const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, categories, brands = [], ranges = [], onClose, onSave, onChange }) => {
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [isGeneratingReviews, setIsGeneratingReviews] = useState(false);
+const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
+    product,
+    allProducts = [],
+    categories,
+    brands = [],
+    ranges = [],
+    onCreateRange,
+    showAlert,
+    onClose,
+    onSave,
+    onChange,
+}) => {
+    const [generatingField, setGeneratingField] = useState<ProductEnricherField | 'all' | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
     const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [rangeModalOpen, setRangeModalOpen] = useState(false);
+    const [rangeDraftName, setRangeDraftName] = useState('');
 
     const mainImageInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
+
+    const isNew = product.id.startsWith('new');
+    const excludeId = isNew ? undefined : product.id;
+
+    const duplicateMatch = useMemo(
+        () => findBestDuplicateMatch(allProducts, product, excludeId),
+        [allProducts, product, excludeId]
+    );
+
+    const validationIssues = useMemo(() => validateProductForSave(product), [product]);
 
     // --- HELPER FORMATAGE PRIX ---
     const formatPriceDisplay = (value: number | undefined) => {
@@ -46,9 +79,102 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
             .map((line) => line.trim())
             .filter(Boolean);
 
-    // --- LOGIC MARQUE / GAMME ---
-    const isTechProduct = ['smartphones', 'phones', 'laptops', 'ordinateurs', 'tablettes'].some(slug => product.category.toLowerCase().includes(slug));
-    const availableRanges = ranges.filter(r => r.brand_id === product.brand);
+    // --- LOGIC MARQUE / GAMME (phones, tablettes, ordinateurs, accessoires) ---
+    const catalogBrandRangeSlugs = new Set<string>([
+        CATEGORY_SLUGS.PHONES,
+        CATEGORY_SLUGS.TABLETTES,
+        CATEGORY_SLUGS.ORDINATEURS,
+        CATEGORY_SLUGS.ACCESSORIES,
+        'smartphones',
+        'laptops',
+        'ordinateurs',
+        'accessoires',
+    ]);
+    const showBrandRangeFields = catalogBrandRangeSlugs.has(product.category.toLowerCase());
+
+    const brandRefs = useMemo(
+        () => brands.map((b) => ({ id: b.id, name: b.name, slug: b.slug })),
+        [brands],
+    );
+
+    const resolvedBrandId = useMemo(() => {
+        return (
+            resolveBrandKeyToDbId(product.brand, brandRefs) ??
+            resolveCatalogBrandId(product, brands)
+        );
+    }, [product.brand, product.name, brandRefs, brands]);
+
+    useEffect(() => {
+        if (!resolvedBrandId || !isUuid(resolvedBrandId)) return;
+        if (product.brand === resolvedBrandId) return;
+        onChange({ brand: resolvedBrandId });
+    }, [resolvedBrandId, product.brand, onChange]);
+
+    const effectiveBrandId = isUuid(resolvedBrandId ?? '') ? resolvedBrandId! : product.brand || '';
+    const brandKeyForRange =
+        effectiveBrandId || product.brand || resolvedBrandId || '';
+
+    const availableBrands = useMemo(() => {
+        if (!product.category) return [];
+        const inCategory = brandsForCategory(product.category, brands, ranges, allProducts);
+        if (product.brand && !inCategory.some((b) => b.id === product.brand)) {
+            return [...inCategory, catalogBrandFromId(product.brand, brands)].sort((a, b) =>
+                a.name.localeCompare(b.name, 'fr'),
+            );
+        }
+        return inCategory;
+    }, [product.category, product.brand, brands, ranges, allProducts]);
+
+    const availableRanges = useMemo(() => {
+        if (!brandKeyForRange || !product.category) return [];
+        const canonicalBrand = normalizeCatalogBrandKey(brandKeyForRange, brands);
+        return ranges.filter((r) => {
+            if (r.category && r.category !== product.category) return false;
+            return normalizeCatalogBrandKey(r.brand_id, brands) === canonicalBrand;
+        });
+    }, [ranges, brandKeyForRange, product.category, brands]);
+
+    const selectedCategoryLabel =
+        categories.find((c) => c.slug === product.category)?.name ?? product.category;
+    const selectedBrandLabel = effectiveBrandId
+        ? catalogBrandFromId(effectiveBrandId, brands).name
+        : '';
+
+    const openRangeCreateModal = (draftName: string) => {
+        if (!brandKeyForRange) {
+            showAlert(
+                'Marque requise',
+                'Choisissez une marque dans la liste, ou créez-la dans Structure catalogue.',
+                'danger',
+            );
+            return;
+        }
+        if (!product.category) {
+            showAlert('Type requis', 'Choisissez d’abord un type de produit.', 'danger');
+            return;
+        }
+        if (!onCreateRange) {
+            showAlert('Indisponible', 'Création de gamme indisponible — rechargez l’admin.', 'danger');
+            return;
+        }
+        setRangeDraftName(draftName);
+        setRangeModalOpen(true);
+    };
+
+    const handleConfirmCreateRange = async (name: string) => {
+        if (!onCreateRange || !product.category) return;
+        if (!brandKeyForRange) {
+            throw new Error(
+                'Marque obligatoire — sélectionnez-la dans la liste ou créez-la dans Structure catalogue.',
+            );
+        }
+        const created = await onCreateRange({
+            name,
+            brandId: brandKeyForRange,
+            category: product.category,
+        });
+        onChange({ productRange: created.id, brand: created.brand_id });
+    };
 
     // --- HANDLERS MEDIA ---
     const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,41 +214,61 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
         } finally { setUploadingVideo(false); }
     };
 
-    // --- AI HANDLER ---
-    const handleAiGeneration = async () => {
-        if (!product.name) return;
-        setIsGenerating(true);
-        try {
-            const details = await generateProductDetails(product.name, product.category);
-            onChange({
-                ...details,
-                pros: details.pros || [],
-                cons: details.cons || [],
-                specs: details.specs || [],
-                manualChecks: details.manualChecks || []
-            });
-        } finally { setIsGenerating(false); }
-    };
+    const isAiBusy = generatingField !== null;
 
-    // --- AI REVIEWS HANDLER ---
-    const handleReviewsGeneration = async () => {
-        if (!product.name || !product.description) {
-            alert("Ajoutez un nom et une description avant de générer des avis.");
+    const handleAiFieldGeneration = async (field: ProductEnricherField | 'all') => {
+        if (!product.name?.trim()) {
+            showAlert('Nom manquant', 'Ajoutez un nom commercial avant l’auto-fill IA.', 'info');
             return;
         }
-        setIsGeneratingReviews(true);
+        setGeneratingField(field);
         try {
-            const reviews = await generateProductReviews(product.name, product.category, product.description);
-
-            // Calculer la nouvelle note moyenne
-            const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
-            const avgRating = reviews.length > 0 ? parseFloat((totalRating / reviews.length).toFixed(1)) : 5;
-
-            onChange({ reviews, rating: avgRating });
+            const description = product.description?.trim();
+            const hasRealDescription =
+                description && !isWeakProductDescription(description, product.name);
+            const context = hasRealDescription ? { description } : undefined;
+            // Description réelle déjà saisie → on enrichit le reste sans la réécrire
+            const fieldsToGenerate =
+                field === 'all' && hasRealDescription
+                    ? (['reviewShort', 'pros', 'cons', 'specs', 'manualChecks'] as ProductEnricherField[])
+                    : field;
+            const details = await generateProductDetails(
+                product.name,
+                product.category,
+                fieldsToGenerate,
+                context
+            );
+            onChange(details);
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+            showAlert('Auto-fill IA', msg, 'danger');
         } finally {
-            setIsGeneratingReviews(false);
+            setGeneratingField(null);
         }
     };
+
+    const AiFieldButton = ({
+        field,
+        label,
+        className = '',
+    }: {
+        field: ProductEnricherField | 'all';
+        label: string;
+        className?: string;
+    }) => (
+        <button
+            type="button"
+            onClick={() => handleAiFieldGeneration(field)}
+            disabled={isAiBusy}
+            className={`text-[10px] border px-2 py-1 rounded-sm uppercase font-bold flex items-center gap-1.5 transition-all disabled:opacity-50 ${className}`}
+        >
+            {generatingField === field
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <Sparkles className="w-3 h-3" />}
+            {label}
+        </button>
+    );
+
 
     return (
         <div className="animate-in fade-in slide-in-from-right-5 duration-300 w-full pb-20">
@@ -150,6 +296,31 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                     </button>
                 </div>
             </div>
+
+            {duplicateMatch && (
+                <div className="mb-6 p-4 border border-amber-500/40 bg-amber-500/10 rounded-sm text-amber-200 text-sm">
+                    <p className="font-bold uppercase text-xs tracking-widest mb-1">Doublon probable</p>
+                    <p>
+                        « {duplicateMatch.product.name} » existe déjà (stock {duplicateMatch.product.stock ?? 0}).
+                        {duplicateMatch.level === 'name-only' && ' Même nom — marque ou gamme peuvent différer.'}
+                        {duplicateMatch.level === 'name-brand' && ' Même nom et marque — gamme différente.'}
+                    </p>
+                    <p className="text-xs text-amber-300/80 mt-1">
+                        À la sauvegarde, vous pourrez ajouter le stock au produit existant plutôt que créer un doublon.
+                    </p>
+                </div>
+            )}
+
+            {validationIssues.length > 0 && (
+                <div className="mb-6 p-4 border border-red-500/40 bg-red-500/10 rounded-sm text-red-200 text-sm">
+                    <p className="font-bold uppercase text-xs tracking-widest mb-1">Champs obligatoires manquants</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                        {validationIssues.map((issue) => (
+                            <li key={issue}>{issue}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             <form className="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
@@ -197,7 +368,13 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                                     <select
                                         className="w-full bg-black/40 border border-white/10 p-4 text-white focus:border-xeption-gold outline-none transition-all rounded-sm"
                                         value={product.category}
-                                        onChange={e => onChange({ category: e.target.value })}
+                                        onChange={e =>
+                                            onChange({
+                                                category: e.target.value,
+                                                brand: '',
+                                                productRange: '',
+                                            })
+                                        }
                                     >
                                         <option value="">-- Choisir un type --</option>
                                         {categories.map(c => (
@@ -218,20 +395,24 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                             </div>
 
                             {/* --- SELECTEURS MARQUE & GAMME (Conditionnels) --- */}
-                            {isTechProduct && (
+                            {showBrandRangeFields && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 bg-white/5 p-4 rounded border border-white/5">
                                     <div>
                                         <label className="text-[10px] uppercase font-bold text-xeption-gold mb-1.5 flex items-center gap-1 tracking-widest">
-                                            <Smartphone className="w-3 h-3" /> Marque (Obligatoire)
+                                            <Tag className="w-3 h-3" /> Marque (Obligatoire)
                                         </label>
                                         <select
                                             className="w-full bg-black/40 border border-white/10 p-3 text-white focus:border-xeption-gold outline-none transition-all rounded-sm text-sm"
-                                            value={product.brand || ''}
-                                            onChange={e => onChange({ brand: e.target.value, productRange: '' })} // Reset range on brand change
+                                            value={
+                                                brandKeyForRange
+                                                    ? normalizeCatalogBrandKey(brandKeyForRange, brands)
+                                                    : ''
+                                            }
+                                            onChange={e => onChange({ brand: e.target.value, productRange: '' })}
                                             required
                                         >
                                             <option value="">-- Sélectionner Marque --</option>
-                                            {brands.map(b => (
+                                            {availableBrands.map((b) => (
                                                 <option key={b.id} value={b.id}>{b.name}</option>
                                             ))}
                                         </select>
@@ -240,18 +421,18 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                                         <label className="text-[10px] uppercase font-bold text-xeption-gold mb-1.5 flex items-center gap-1 tracking-widest">
                                             <Tag className="w-3 h-3" /> Gamme / Série (Obligatoire)
                                         </label>
-                                        <select
-                                            className="w-full bg-black/40 border border-white/10 p-3 text-white focus:border-xeption-gold outline-none transition-all rounded-sm text-sm disabled:opacity-50"
-                                            value={product.productRange || ''}
-                                            onChange={e => onChange({ productRange: e.target.value })}
-                                            disabled={!product.brand}
-                                            required
-                                        >
-                                            <option value="">-- Sélectionner Gamme --</option>
-                                            {availableRanges.map(r => (
-                                                <option key={r.id} value={r.id}>{r.name}</option>
-                                            ))}
-                                        </select>
+                                        <CatalogRangeCombobox
+                                            ranges={availableRanges}
+                                            valueId={product.productRange || ''}
+                                            onSelect={(rangeId) => onChange({ productRange: rangeId })}
+                                            onRequestCreate={openRangeCreateModal}
+                                            disabled={!brandKeyForRange || !onCreateRange}
+                                            placeholder={
+                                                brandKeyForRange
+                                                    ? 'Rechercher ou créer une gamme…'
+                                                    : 'Choisissez une marque d’abord'
+                                            }
+                                        />
                                     </div>
                                 </div>
                             )}
@@ -279,16 +460,20 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                             </div>
 
                             <div>
-                                <div className="flex justify-between items-center mb-1.5">
+                                <div className="flex flex-wrap justify-between items-center gap-2 mb-1.5">
                                     <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Description Marketing</label>
-                                    <button
-                                        type="button"
-                                        onClick={handleAiGeneration}
-                                        disabled={isGenerating}
-                                        className="text-[10px] text-xeption-gold border border-xeption-gold/30 px-3 py-1 rounded-sm uppercase font-bold flex items-center gap-2 hover:bg-xeption-gold hover:text-black transition-all"
-                                    >
-                                        {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Auto-Fill IA
-                                    </button>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        <AiFieldButton
+                                            field="description"
+                                            label="IA Description"
+                                            className="text-xeption-gold border-xeption-gold/30 hover:bg-xeption-gold hover:text-black"
+                                        />
+                                        <AiFieldButton
+                                            field="all"
+                                            label="Tout remplir"
+                                            className="text-gray-400 border-white/20 hover:bg-white/10 hover:text-white"
+                                        />
+                                    </div>
                                 </div>
                                 <textarea
                                     className="w-full bg-black/40 border border-white/10 p-4 h-32 text-white text-sm focus:border-xeption-gold outline-none transition-all rounded-sm resize-none"
@@ -304,22 +489,16 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                     <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-white font-tech font-bold uppercase text-sm flex items-center gap-2">
-                                <MessageCircle className="w-4 h-4 text-purple-400" /> Avis Clients (IA Social Proof)
+                                <MessageCircle className="w-4 h-4 text-purple-400" /> Avis clients
                             </h3>
-                            <button
-                                type="button"
-                                onClick={handleReviewsGeneration}
-                                disabled={isGeneratingReviews}
-                                className="bg-purple-500/10 hover:bg-purple-500 hover:text-white text-purple-400 border border-purple-500/30 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"
-                            >
-                                {isGeneratingReviews ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Générer Avis
-                            </button>
+
                         </div>
 
                         <div className="space-y-3">
                             {(product.reviews || []).length === 0 ? (
                                 <div className="text-center py-6 text-gray-500 text-xs italic border border-dashed border-white/10 rounded-sm">
-                                    Aucun avis généré. Cliquez sur le bouton pour simuler des avis locaux.
+                                    Aucun avis. Les avis viennent des clients, via le lien envoyé par
+                                    WhatsApp après l'achat — la génération automatique a été retirée.
                                 </div>
                             ) : (
                                 <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
@@ -351,9 +530,16 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                     {/* BLOC : POINTS FORTS / FAIBLES */}
                     <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <h3 className="text-green-500 font-tech font-bold uppercase mb-4 text-xs flex items-center gap-2">
-                                <Check className="w-4 h-4" /> Points Forts (Pros)
-                            </h3>
+                            <div className="flex justify-between items-center mb-4 gap-2">
+                                <h3 className="text-green-500 font-tech font-bold uppercase text-xs flex items-center gap-2">
+                                    <Check className="w-4 h-4" /> Points Forts (Pros)
+                                </h3>
+                                <AiFieldButton
+                                    field="pros"
+                                    label="IA"
+                                    className="text-green-500 border-green-500/30 hover:bg-green-500 hover:text-black"
+                                />
+                            </div>
                             <textarea
                                 className="w-full bg-black/40 border border-white/10 p-3 h-24 text-white text-xs focus:border-green-500 outline-none transition-all rounded-sm resize-none"
                                 placeholder="Un point par ligne..."
@@ -362,9 +548,16 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                             />
                         </div>
                         <div>
-                            <h3 className="text-red-500 font-tech font-bold uppercase mb-4 text-xs flex items-center gap-2">
-                                <X className="w-4 h-4" /> Points Faibles (Cons)
-                            </h3>
+                            <div className="flex justify-between items-center mb-4 gap-2">
+                                <h3 className="text-red-500 font-tech font-bold uppercase text-xs flex items-center gap-2">
+                                    <X className="w-4 h-4" /> Points Faibles (Cons)
+                                </h3>
+                                <AiFieldButton
+                                    field="cons"
+                                    label="IA"
+                                    className="text-red-400 border-red-500/30 hover:bg-red-500 hover:text-white"
+                                />
+                            </div>
                             <textarea
                                 className="w-full bg-black/40 border border-white/10 p-3 h-24 text-white text-xs focus:border-red-500 outline-none transition-all rounded-sm resize-none"
                                 placeholder="Un point par ligne..."
@@ -376,9 +569,16 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
 
                     {/* BLOC : SPECS TECHNIQUES */}
                     <div className="bg-black/40 backdrop-blur-md p-6 border border-white/10 rounded-sm">
-                        <h3 className="text-white font-tech font-bold uppercase mb-4 text-sm flex items-center gap-2">
-                            <Cpu className="w-4 h-4 text-blue-400" /> Fiche Technique (Specs)
-                        </h3>
+                        <div className="flex justify-between items-center gap-2 mb-4">
+                            <h3 className="text-white font-tech font-bold uppercase text-sm flex items-center gap-2">
+                                <Cpu className="w-4 h-4 text-blue-400" /> Fiche Technique (Specs)
+                            </h3>
+                            <AiFieldButton
+                                field="specs"
+                                label="IA Specs"
+                                className="text-blue-400 border-blue-400/30 hover:bg-blue-500 hover:text-white"
+                            />
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {(product.specs || []).map((spec, idx) => (
                                 <div key={idx} className="flex gap-2">
@@ -424,7 +624,14 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                             <h3 className="text-white font-tech font-bold uppercase text-sm flex items-center gap-2">
                                 <Check className="w-4 h-4 text-amber-400" /> Points de vérification manuelle
                             </h3>
-                            <span className="text-[10px] uppercase font-bold text-gray-500">{(product.manualChecks || []).length} point{(product.manualChecks || []).length > 1 ? 's' : ''}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] uppercase font-bold text-gray-500">{(product.manualChecks || []).length} point{(product.manualChecks || []).length > 1 ? 's' : ''}</span>
+                                <AiFieldButton
+                                    field="manualChecks"
+                                    label="IA"
+                                    className="text-amber-400 border-amber-400/30 hover:bg-amber-500 hover:text-black"
+                                />
+                            </div>
                         </div>
                         <p className="text-[11px] text-gray-500 mb-3">
                             Un point par ligne. Sert à signaler ce que l’équipe doit contrôler avant publication.
@@ -600,6 +807,17 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({ product, ca
                     </div>
                 </div>
             </form>
+
+            <ProductRangeCreateModal
+                isOpen={rangeModalOpen}
+                draftName={rangeDraftName}
+                categoryLabel={selectedCategoryLabel}
+                categorySlug={product.category}
+                brandLabel={selectedBrandLabel}
+                brandId={effectiveBrandId}
+                onClose={() => setRangeModalOpen(false)}
+                onConfirm={handleConfirmCreateRange}
+            />
         </div>
     );
 };

@@ -1,7 +1,18 @@
 import { supabase } from './supabaseClient';
-import { computeOfferV2, PRICING_RULE_VERSION } from '../utils/trocPricing';
+import { getTrocSessionKey } from '../utils/trocSessionKey';
+import { fetchMarketReferencePrice } from './marketReferencePrice';
+import { computeOfferV2, PRICING_RULE_VERSION, MAX_DEVICE_AGE_YEARS, type TrocTier } from '../utils/trocPricing';
 import { TROC_MESSAGES } from '../utils/trocMessages';
-import type { TrocDeviceForm, TrocEvaluationMode, TrocEvaluationResult, TradeInRequest, TrocPayment } from '../types';
+import { isTrocPhotosCredibilityVerified } from '../utils/trocPhotoCredibilitySession';
+import { normalizeModelKey } from '../utils/modelKey';
+import { getProductDisplayName } from '../utils/productDisplay';
+import { computeVoucherExpiry } from '../utils/voucherValidity';
+import {
+  sanitizeImei,
+  isValidImei as isValidImeiStrict,
+  isTrivialTestImei,
+} from '../utils/imeiValidation';
+import type { Product, TrocDeviceForm, TrocEvaluationMode, TrocEvaluationResult, TradeInRequest, TrocPayment, MarketTrend } from '../types';
 
 const TROC_SESSION_TRACKING_PREFIX = 'troc_session_initialized:';
 
@@ -26,6 +37,16 @@ export class PhotoRetakeRequiredError extends Error {
   }
 }
 
+/** Photos d’un autre appareil que celui déclaré (ex. montre vs téléphone). */
+export class DeviceMismatchError extends Error {
+  readonly detail: string;
+  constructor(detail?: string) {
+    super('DEVICE_MISMATCH');
+    this.name = 'DeviceMismatchError';
+    this.detail = detail?.trim() ?? '';
+  }
+}
+
 export type TradeInModel = {
   id: string;
   brand: string;
@@ -35,23 +56,8 @@ export type TradeInModel = {
 };
 
 const normalize = (value?: string) => (value || '').trim().toLowerCase();
-const sanitizeImei = (value?: string): string => (value || '').replace(/\D/g, '').trim();
 
 const ALLOWED_IMEI_CHECK_STATUSES = new Set(['valid', 'invalid', 'check_failed']);
-
-const isValidImei = (imei: string): boolean => {
-  if (!/^\d{15}$/.test(imei)) return false;
-  let sum = 0;
-  for (let i = 0; i < 14; i++) {
-    let digit = parseInt(imei[i], 10);
-    if (i % 2 === 1) {
-      digit *= 2;
-      if (digit > 9) digit -= 9;
-    }
-    sum += digit;
-  }
-  return (10 - (sum % 10)) % 10 === parseInt(imei[14], 10);
-};
 
 // La heuristique locale génère uniquement la justification textuelle.
 // Le score d'état est maintenant produit par computeOfferV2 (arbre de décision).
@@ -168,11 +174,46 @@ export const fetchArgusModels = async (brand?: string): Promise<TradeInModel[]> 
   }
 };
 
+/**
+ * Liste des marques uniques connues dans la table Argus.
+ * Retourne une liste triée alphabétiquement, dédupliquée (normalisation casse).
+ * Utilisée par l'autocomplete marque du formulaire Smart Troc.
+ */
+export const fetchArgusBrands = async (): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('trade_in_models')
+      .select('brand')
+      .order('brand', { ascending: true });
+    if (error || !data) return [];
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const row of data as Array<{ brand: string }>) {
+      const trimmed = (row.brand || '').trim();
+      if (!trimmed) continue;
+      const key = trimmed.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(trimmed);
+    }
+    return result;
+  } catch {
+    return [];
+  }
+};
+
 const resolveBasePrice = async (
   form: TrocDeviceForm,
   currentBasePrice: number
 ): Promise<number> => {
   if (Number.isFinite(currentBasePrice) && currentBasePrice > 0) return currentBasePrice;
+
+  // Un prix constaté en boutique passe AVANT market-price-intel : il est local,
+  // daté, attribué à quelqu'un, et il porte sur de l'OCCASION — alors que les
+  // sources en ligne vendent du neuf. C'est la seule source qui ne dépend
+  // d'aucun concurrent.
+  const observed = await fetchMarketReferencePrice(form.deviceBrand, form.deviceModel);
+  if (observed) return observed.priceXaf;
 
   try {
     const { data, error } = await supabase.functions.invoke('market-price-intel', {
@@ -196,16 +237,23 @@ const resolveBasePrice = async (
 
 export const checkImei = async (
   imei: string,
+  sessionKey?: string,
 ): Promise<CheckImeiResponse> => {
   const normalizedImei = sanitizeImei(imei);
 
-  if (!isValidImei(normalizedImei)) {
+  if (!isValidImeiStrict(normalizedImei)) {
+    if (isTrivialTestImei(normalizedImei)) {
+      return { status: 'check_failed', blacklistStatus: 'unknown', assuranceLevel: 'basic', reason: 'trivial_test_imei' };
+    }
     throw new Error(TROC_MESSAGES.imei_invalid_luhn);
   }
 
   try {
     const { data, error } = await supabase.functions.invoke('check-imei', {
-      body: { imei: normalizedImei },
+      body: {
+        imei: normalizedImei,
+        sessionKey: sessionKey ?? getTrocSessionKey(),
+      },
     });
 
     if (error || !data) {
@@ -215,7 +263,7 @@ export const checkImei = async (
       else if (httpStatus === 503 || httpStatus === 502) reason = 'provider_unavailable';
       else if (httpStatus >= 500)                      reason = 'check_failed';
       else                                             reason = (error as any)?.message || 'invoke_error';
-      return { status: 'check_failed', reason };
+      return { status: 'check_failed', blacklistStatus: 'unknown', assuranceLevel: 'basic', reason };
     }
 
     if (!ALLOWED_IMEI_CHECK_STATUSES.has(data.status)) {
@@ -316,6 +364,111 @@ export const lookupImeiFromHistory = async (imei: string): Promise<ImeiHistoryIn
   }
 };
 
+/**
+ * Récupère la cote du marché pour un modèle (pipeline cascade Wayback → Bing → fallback âge).
+ * Non-bloquant : renvoie null en cas d'erreur pour ne pas faire échouer l'évaluation.
+ */
+export const getMarketTrend = async (
+  brand: string,
+  model: string,
+): Promise<MarketTrend | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('get-market-trend', {
+      body: { brand, model },
+    });
+    if (error || !data || typeof data !== 'object') return null;
+    if (!('label' in data)) return null;
+    return data as MarketTrend;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Année de sortie du modèle depuis la table de référence `phone_releases`.
+ * Renvoie null si inconnu → on NE bloque PAS sur l'âge (jamais refuser sur donnée manquante).
+ * Table seedée + remplie via scripts/import-phone-releases.mjs (Wikidata).
+ */
+export const getReleaseYear = async (brand: string, model: string): Promise<number | null> => {
+  const modelKey = normalizeModelKey(brand, model);
+  if (!modelKey) return null;
+  try {
+    const { data, error } = await supabase
+      .from('phone_releases')
+      .select('release_year')
+      .eq('model_key', modelKey)
+      .maybeSingle();
+    if (error || !data) return null;
+    const year = Number(data.release_year);
+    return Number.isFinite(year) ? year : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Pré-check âge AVANT paiement : si l'appareil HORS-catalogue dépasse 8 ans,
+ * renvoie un résultat refusé "trop ancien" (sinon null). Évite l'enchaînement
+ * « payé → puis refusé » (sentiment d'arnaque) : on prévient dès l'étape IMEI.
+ */
+export const precheckTooOld = async (
+  form: TrocDeviceForm,
+  basePrice: number,
+): Promise<TrocEvaluationResult | null> => {
+  const isCatalogModel = Number.isFinite(basePrice) && basePrice > 0;
+  if (isCatalogModel) return null; // catalogue → accepté quel que soit l'âge
+  const releaseYear = await getReleaseYear(form.deviceBrand, form.deviceModel);
+  if (releaseYear == null || new Date().getFullYear() - releaseYear <= MAX_DEVICE_AGE_YEARS) {
+    return null;
+  }
+  const offer = computeOfferV2(form, 0, releaseYear, false); // → blocker 'too_old'
+  return {
+    score: 0,
+    scoreColor: 'red',
+    justification: '',
+    tradeInValue: 0,
+    tradeInValueCredit: 0,
+    tradeInValueCash: 0,
+    tradeInGrade: offer.tradeInGrade,
+    evaluationMode: 'local_heuristic',
+    pricingRuleVersion: PRICING_RULE_VERSION,
+    blockerReason: offer.blockerReason ?? 'too_old',
+    marketTrend: null,
+  };
+};
+
+/**
+ * Cherche le modèle catalogue (`trade_in_models`) correspondant à brand+model, avec
+ * normalisation (espaces/casse/accents) → "Xiaomi 14T" ↔ "Xiaomi 14 T".
+ * Permet au QuickForm (auto-détection IMEI, sans sélection manuelle) d'obtenir le
+ * prix EXACT + l'id catalogue, comme une sélection Wizard. Renvoie null si hors-catalogue.
+ */
+export const findCatalogModel = async (
+  brand: string,
+  model: string,
+): Promise<{ id: string; basePrice: number } | null> => {
+  const norm = (s: string) =>
+    (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
+  const targetKey = norm(`${brand} ${model}`);
+  if (targetKey.length < 4) return null;
+  try {
+    const { data, error } = await supabase
+      .from('trade_in_models')
+      .select('id, brand, model_name, base_price');
+    if (error || !Array.isArray(data)) return null;
+    const scored = data
+      .map((m: any) => ({ m, catKey: norm(`${m.brand} ${m.model_name}`) }))
+      .filter((x) => x.catKey.length >= 4);
+    const hit =
+      scored.find((x) => x.catKey === targetKey) ||
+      scored.find((x) => x.catKey.includes(targetKey) || targetKey.includes(x.catKey));
+    if (!hit || !hit.m.base_price) return null;
+    return { id: hit.m.id as string, basePrice: Number(hit.m.base_price) || 0 };
+  } catch {
+    return null;
+  }
+};
+
 export const evaluateDevice = async (
   form: TrocDeviceForm,
   photoUrls: string[],
@@ -328,35 +481,58 @@ export const evaluateDevice = async (
       scoreColor: 'red',
       justification: TROC_MESSAGES.imei_blacklisted,
       tradeInValue: 0,
+      tradeInValueCredit: 0,
+      tradeInValueCash: 0,
       tradeInGrade: 'refuse',
       evaluationMode: 'local_heuristic',
       pricingRuleVersion: PRICING_RULE_VERSION,
     };
   }
 
-  const aiEnabled =
+  const aiExplicitlyDisabled =
     typeof import.meta !== 'undefined' &&
-    (import.meta as any)?.env?.VITE_ENABLE_TROC_AI === 'true';
+    (import.meta as any)?.env?.VITE_ENABLE_TROC_AI === 'false';
+  const photosCredibilityVerified =
+    photoUrls.length > 0 && isTrocPhotosCredibilityVerified(photoUrls);
+  const shouldRunVision =
+    photoUrls.length > 0 && !aiExplicitlyDisabled && !photosCredibilityVerified;
+
+  // Modèle catalogue = un base_price > 0 a été fourni en entrée (sélection dans trade_in_models).
+  // Le catalogue prime sur l'âge → inutile de résoudre l'année de sortie dans ce cas.
+  const isCatalogModel = Number.isFinite(basePrice) && basePrice > 0;
 
   // Étape 1 — Prix de base marché (argus → market-intel → catalogue hardcodé)
-  const resolvedBasePrice = await resolveBasePrice(form, basePrice);
+  //           + cote du marché en parallèle (non-bloquant)
+  //           + année de sortie UNIQUEMENT pour le hors-catalogue (règle des 8 ans)
+  const [resolvedBasePrice, marketTrend, releaseYear] = await Promise.all([
+    resolveBasePrice(form, basePrice),
+    getMarketTrend(form.deviceBrand, form.deviceModel),
+    isCatalogModel ? Promise.resolve(null) : getReleaseYear(form.deviceBrand, form.deviceModel),
+  ]);
 
   // Étape 2 — Arbre de décision v2 : score d'état + offre monétaire
-  const offer = computeOfferV2(form, resolvedBasePrice);
+  //           (catalogue → accepté quel que soit l'âge ; hors-catalogue > 8 ans → refus)
+  const offer = computeOfferV2(form, resolvedBasePrice, releaseYear, isCatalogModel);
 
   // Étape 3 — Justification textuelle
-  //   • Si Gemini est activé : il fournit le texte basé sur les photos
-  //     (détection fraude incluse — si fraude, on surclasse l'offre en refus)
-  //   • Sinon : texte généré depuis les champs du formulaire
+  //   • Photos déjà validées (pré-paiement) : message crédibilité, pas de 2e appel Gemini
+  //   • Sinon vision complète si activée, ou heuristique formulaire
 
-  let justification = localHeuristicJustification(form, offer.conditionScore, photoUrls.length);
-  let evaluationMode: TrocEvaluationMode = 'local_heuristic';
+  let justification = photosCredibilityVerified
+    ? TROC_MESSAGES.credibilityVerified(form.batteryHealth || 80)
+    : shouldRunVision
+      ? 'Analyse visuelle en cours de consolidation — confirmation en boutique.'
+      : localHeuristicJustification(form, offer.conditionScore, photoUrls.length);
+  let evaluationMode: TrocEvaluationMode = photosCredibilityVerified
+    ? 'credibility_verified'
+    : 'local_heuristic';
   let finalOffer = offer;
 
-  if (aiEnabled && photoUrls.length > 0) {
+  if (shouldRunVision) {
     try {
       const { data, error } = await supabase.functions.invoke('evaluate-device', {
         body: {
+          sessionKey: getTrocSessionKey(),
           photoUrls,
           deviceInfo: {
             brand:           form.deviceBrand,
@@ -371,9 +547,10 @@ export const evaluateDevice = async (
         },
       });
       if (error || !data) throw new Error(error?.message ?? 'evaluate-device failed');
+      if (data.code === 'rate_limited') {
+        throw new Error(TROC_MESSAGES.ai_rate_limited);
+      }
 
-      // Photos non conformes (au moins une) — on demande gentiment au client de remplacer.
-      // Pas de fraude : c'est une erreur de manipulation dans 99% des cas.
       const photoIssues: Array<{ index: number; reason?: string }> = Array.isArray(data.photoIssues)
         ? data.photoIssues
         : [];
@@ -381,22 +558,44 @@ export const evaluateDevice = async (
         const indices = photoIssues
           .map((p) => Number(p?.index))
           .filter((i) => Number.isFinite(i) && i >= 1);
-        throw new PhotoRetakeRequiredError(indices);
+        throw new PhotoRetakeRequiredError(indices.length > 0 ? indices : photoUrls.map((_, i) => i + 1));
       }
 
-      // Fraude explicite détectée par Gemini (cas extrême : preuves de montage).
+      if (data.analysisDecision === 'mismatch') {
+        throw new DeviceMismatchError(
+          data.justification ||
+            'Les photos ne correspondent pas au téléphone déclaré. Envoyez des photos nettes du bon appareil.',
+        );
+      }
+
+      if (data.analysisDecision === 'fraud_suspected') {
+        throw new Error(
+          `FRAUD_DETECTED:${data.justification || "Les photos ne permettent pas de confirmer l'appareil déclaré."}`,
+        );
+      }
+
       const geminiScore = Number(data.score ?? 0);
       if (data.fraudDetected || geminiScore === 0) {
-        throw new Error(`FRAUD_DETECTED:${data.justification || "Veuillez mettre des photos claires d'un vrai téléphone correspondant au modèle déclaré."}`);
+        throw new Error(
+          `FRAUD_DETECTED:${data.justification || "Veuillez mettre des photos claires d'un vrai téléphone correspondant au modèle déclaré."}`,
+        );
       }
 
-      // Gemini fournit le texte visuel — on garde notre score décision
       justification = data.justification || justification;
       evaluationMode = 'vision_ai';
-    } catch {
-      justification = TROC_MESSAGES.heuristic_ai_fallback(justification);
+    } catch (err) {
+      if (err instanceof PhotoRetakeRequiredError) throw err;
+      if (err instanceof DeviceMismatchError) throw err;
+      if (err instanceof Error && err.message.startsWith('FRAUD_DETECTED:')) throw err;
+
+      justification = TROC_MESSAGES.heuristic_ai_fallback(
+        'Estimation basée sur vos déclarations. L’état réel et vos photos seront vérifiés lors du dépôt en boutique.',
+      );
       evaluationMode = 'local_heuristic_fallback';
     }
+  } else if (photoUrls.length > 0) {
+    justification =
+      'Estimation basée sur vos déclarations et votre IMEI. L’état réel de l’appareil et vos photos seront vérifiés lors du dépôt en boutique.';
   }
 
   return {
@@ -404,10 +603,13 @@ export const evaluateDevice = async (
     scoreColor: finalOffer.scoreColor,
     justification,
     tradeInValue: finalOffer.tradeInValue,
+    tradeInValueCredit: finalOffer.tradeInValueCredit,
+    tradeInValueCash:   finalOffer.tradeInValueCash,
     tradeInGrade: finalOffer.tradeInGrade,
     evaluationMode,
     pricingRuleVersion: PRICING_RULE_VERSION,
     blockerReason: finalOffer.blockerReason ?? null,
+    marketTrend: marketTrend ?? null,
   };
 };
 
@@ -485,17 +687,89 @@ export const upsertSession = async (
   });
 };
 
+// ─── Dossier partiel (photos uploadées) ───────────────────────────────────────
+
+export const upsertTrocIntake = async (
+  sessionKey: string,
+  form: TrocDeviceForm,
+  photoUrls: string[],
+  imeiMeta: {
+    imeiStatus: TradeInRequest['imei_status'];
+    imeiBlacklistStatus: TradeInRequest['imei_blacklist_status'];
+    imeiAssuranceLevel: TradeInRequest['imei_assurance_level'];
+  },
+): Promise<{ id: string; photoCount: number } | null> => {
+  const { data, error } = await supabase.functions.invoke('upsert-troc-intake', {
+    body: {
+      sessionKey,
+      customerName: form.customerName,
+      customerPhone: form.customerPhone,
+      customerEmail: form.customerEmail || null,
+      deviceBrand: form.deviceBrand,
+      deviceModel: form.deviceModel,
+      deviceStorage: form.deviceStorage || null,
+      deviceRam: form.deviceRam || null,
+      acquisitionCondition: form.acquisitionCondition,
+      ownershipRank: form.ownershipRank,
+      batteryHealth: form.batteryHealth,
+      screenCondition: form.screenCondition || null,
+      bodyCondition: form.bodyCondition || null,
+      cameraCondition: form.cameraCondition,
+      previousRepairs: form.previousRepairs,
+      powersOn: form.powersOn,
+      chargesNormally: form.chargesNormally,
+      biometricsWork: form.biometricsWork,
+      accountUnlocked: form.accountUnlocked,
+      hasWaterDamage: form.hasWaterDamage,
+      hasOriginalBox: form.hasOriginalBox,
+      hasInvoice: form.hasInvoice,
+      accessories: form.accessories ?? [],
+      imei: form.imei || null,
+      imeiStatus: imeiMeta.imeiStatus,
+      imeiBlacklistStatus: imeiMeta.imeiBlacklistStatus,
+      imeiAssuranceLevel: imeiMeta.imeiAssuranceLevel,
+      photoUrls,
+    },
+  });
+
+  if (error || !data?.id) {
+    console.warn('[troc] upsert-troc-intake failed', error ?? data);
+    return null;
+  }
+
+  return {
+    id: data.id as string,
+    photoCount: typeof data.photoCount === 'number' ? data.photoCount : photoUrls.length,
+  };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const saveTradeInRequest = async (
   form: TrocDeviceForm,
   photoUrls: string[],
   evaluation: TrocEvaluationResult,
-): Promise<{ id: string; voucherReference: string }> => {
+  sessionKey?: string,
+  /** Appareil cible du troc (Smart Troc). Lié au MÊME dossier — voucher + précommande boutique. */
+  targetProduct?: Product | null,
+): Promise<{
+  id: string;
+  voucherReference: string;
+  voucherExpiresAt: string | null;
+  createdAt: string | null;
+}> => {
   // Le score IA est transmis mais l'offre monétaire est RECALCULÉE server-side.
   // imei_status est aussi revalidé par la edge function (Luhn + check-imei).
+  // sessionKey permet à save-trade-in de retrouver le tier payé dans troc_payments.
+
+  // Échéance du bon = barème de validité indexé sur l'année de sortie du modèle repris
+  // (pas la possession, legacy). release_year récupéré ici même (idempotent, un seul dossier accepté).
+  const releaseYear = await getReleaseYear(form.deviceBrand, form.deviceModel);
+  const { expiresAt: voucherExpiresAt } = computeVoucherExpiry(releaseYear);
+
   const { data, error } = await supabase.functions.invoke('save-trade-in', {
     body: {
+      sessionKey:      sessionKey || null,
       customerName:    form.customerName,
       customerPhone:   form.customerPhone,
       customerEmail:   form.customerEmail || null,
@@ -504,7 +778,8 @@ export const saveTradeInRequest = async (
       deviceStorage:   form.deviceStorage || null,
       deviceRam:       form.deviceRam || null,
       acquisitionCondition: form.acquisitionCondition,
-      purchaseDate:    form.purchaseDate,
+      purchaseDate:    form.purchaseDateUnknown ? null : form.purchaseDate,
+      purchaseDateUnknown: !!form.purchaseDateUnknown,
       ownershipRank:   form.ownershipRank,
       batteryHealth:   form.batteryHealth,
       screenCondition: form.screenCondition,
@@ -525,12 +800,105 @@ export const saveTradeInRequest = async (
       aiJustification: evaluation.justification,
       evaluationMode:  evaluation.evaluationMode,
       pricingRuleVersion: evaluation.pricingRuleVersion,
+      // Id catalogue → le serveur lit le base_price par id (exact), pas par matching de nom.
+      tradeInModelId:  form.tradeInModelId || null,
+      // Smart Troc — appareil cible + validité du bon, sur le MÊME dossier (rien d'éparpillé).
+      targetProductId:   targetProduct?.id ?? null,
+      targetProductName: targetProduct ? getProductDisplayName(targetProduct) : null,
+      voucherExpiresAt,
     },
   });
 
   if (error || !data) throw new Error((error as any)?.message ?? 'save-trade-in failed');
 
-  return { id: data.id, voucherReference: data.voucherReference };
+  return {
+    id: data.id,
+    voucherReference: data.voucherReference || data.id,
+    voucherExpiresAt: data.voucherExpiresAt ?? null,
+    createdAt: data.createdAt ?? null,
+  };
+};
+
+// ─── Ré-évaluation d'un bon périmé (tranche 3.2b) ────────────────────────────
+
+/** Reconstruit un TrocDeviceForm depuis un dossier persisté (recalcul d'offre — état déjà déclaré). */
+const formFromDossier = (r: TradeInRequest): TrocDeviceForm =>
+  ({
+    customerName: r.customer_name,
+    customerPhone: r.customer_phone,
+    customerEmail: r.customer_email,
+    deviceBrand: r.device_brand,
+    deviceModel: r.device_model,
+    deviceStorage: r.device_storage,
+    deviceRam: r.device_ram,
+    acquisitionCondition: r.acquisition_condition,
+    batteryHealth: r.battery_health,
+    screenCondition: r.screen_condition,
+    bodyCondition: r.body_condition,
+    cameraCondition: r.camera_condition,
+    previousRepairs: r.previous_repairs,
+    powersOn: r.powers_on,
+    chargesNormally: r.charges_normally,
+    biometricsWork: r.biometrics_work,
+    accountUnlocked: r.account_unlocked,
+    hasWaterDamage: r.has_water_damage,
+    hasOriginalBox: r.has_original_box,
+    hasInvoice: r.has_invoice,
+    accessories: r.accessories ?? [],
+    tradeInModelId: r.trade_in_model_id,
+  }) as TrocDeviceForm;
+
+export interface ReevaluationResult {
+  oldCredit: number;
+  newCredit: number;
+  tradeInGrade: TradeInRequest['trade_in_grade'];
+  expiresAt: string;
+}
+
+/**
+ * Ré-évalue un bon périmé (cas `stale`, > grâce) aux conditions du JOUR et persiste le nouveau
+ * crédit + une nouvelle échéance sur le MÊME dossier. Réutilise la formule d'origine
+ * (`computeOfferV2`) avec l'état déjà déclaré + le `base_price` du jour → aucune divergence de pricing.
+ */
+export const reevaluateAndPersist = async (request: TradeInRequest): Promise<ReevaluationResult> => {
+  const form = formFromDossier(request);
+  const isCatalogModel = !!request.trade_in_model_id;
+
+  // Catalogue → base_price courant du modèle ; hors-catalogue → market-price-intel (forceRefresh).
+  let catalogBasePrice = 0;
+  if (isCatalogModel && request.trade_in_model_id) {
+    const { data } = await supabase
+      .from('trade_in_models')
+      .select('base_price')
+      .eq('id', request.trade_in_model_id)
+      .maybeSingle();
+    catalogBasePrice = Number((data as { base_price?: number } | null)?.base_price ?? 0);
+  }
+
+  const [basePrice, releaseYear] = await Promise.all([
+    resolveBasePrice(form, catalogBasePrice),
+    getReleaseYear(request.device_brand, request.device_model),
+  ]);
+
+  const offer = computeOfferV2(form, basePrice, releaseYear, isCatalogModel);
+  const newCredit = offer.tradeInValueCredit;
+  const oldCredit = Number(request.trade_in_value ?? 0);
+  const { expiresAt } = computeVoucherExpiry(releaseYear);
+
+  const { error } = await supabase
+    .from('trade_in_requests')
+    .update({
+      trade_in_value: newCredit,
+      trade_in_value_cash: offer.tradeInValueCash,
+      trade_in_grade: offer.tradeInGrade,
+      voucher_expires_at: expiresAt,
+      redemption_reason: `Ré-évaluation (bon périmé) : ${oldCredit.toLocaleString('fr-FR')} → ${newCredit.toLocaleString('fr-FR')} FCFA`,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', request.id);
+  if (error) throw error;
+
+  return { oldCredit, newCredit, tradeInGrade: offer.tradeInGrade, expiresAt };
 };
 
 // ─── Paiement Smart Troc ─────────────────────────────────────────────────────
@@ -538,18 +906,34 @@ export const saveTradeInRequest = async (
 export const createPayment = async (
   sessionKey: string,
   phone: string,
-  customerName?: string,
-  customerEmail?: string,
-): Promise<{ reference: string; paymentUrl: string | null }> => {
+  opts: {
+    tier?: TrocTier;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+  } = {},
+): Promise<{ reference: string; paymentUrl: string | null; tier: TrocTier; amount: number }> => {
   const { data, error } = await supabase.functions.invoke('create-payment', {
-    body: { sessionKey, phone, customerName, customerEmail },
+    body: {
+      sessionKey,
+      phone,
+      tier:           opts.tier ?? 'express',
+      customerName:   opts.customerName,
+      customerPhone:  opts.customerPhone,
+      customerEmail:  opts.customerEmail,
+    },
   });
 
   if (error || !data) {
     throw new Error((error as any)?.message ?? 'create-payment failed');
   }
 
-  return { reference: data.reference, paymentUrl: data.paymentUrl ?? null };
+  return {
+    reference:  data.reference,
+    paymentUrl: data.paymentUrl ?? null,
+    tier:       data.tier ?? (opts.tier ?? 'express'),
+    amount:     typeof data.amount === 'number' ? data.amount : 0,
+  };
 };
 
 export const getPaymentStatus = async (
@@ -562,4 +946,170 @@ export const getPaymentStatus = async (
 
   if (error || !data) return null;
   return { status: data.status };
+};
+
+// ─── Certificats Premium / Sûreté ────────────────────────────────────────────
+
+export interface TrocCertificate {
+  reference: string;
+  qrToken:   string;
+  pdfUrl:    string;
+  reused:    boolean;
+}
+
+export class TierNotEligibleError extends Error {
+  currentTier: string;
+  constructor(currentTier: string) {
+    super('Certificat non inclus dans votre formule');
+    this.name = 'TierNotEligibleError';
+    this.currentTier = currentTier;
+  }
+}
+
+/**
+ * Génère (ou réutilise) le certificat PDF d'une demande Smart Troc.
+ * Idempotent côté edge : appels multiples = même PDF.
+ * Lève TierNotEligibleError si le tier de la demande n'est pas Premium ou Sûreté.
+ */
+export const generateCertificate = async (
+  tradeInId: string,
+): Promise<TrocCertificate> => {
+  const { data, error } = await supabase.functions.invoke('generate-certificate', {
+    body: { tradeInId },
+  });
+
+  if (error) {
+    const ctx = (error as any)?.context;
+    if (ctx?.status === 403) {
+      const body = await ctx?.json?.().catch(() => null);
+      throw new TierNotEligibleError(body?.currentTier ?? 'express');
+    }
+    throw new Error((error as any)?.message ?? 'generate-certificate failed');
+  }
+
+  if (!data?.pdfUrl) {
+    throw new Error('Réponse invalide du générateur de certificat');
+  }
+
+  return {
+    reference: data.reference,
+    qrToken:   data.qrToken,
+    pdfUrl:    data.pdfUrl,
+    reused:    !!data.reused,
+  };
+};
+
+export interface CertificateVerifyResult {
+  reference:            string;
+  device_brand:         string;
+  device_model:         string;
+  device_storage:       string | null;
+  imei_last4:           string | null;
+  trade_in_grade:       string | null;
+  tier:                 string | null;
+  imei_assurance_level: string | null;
+  imei_blacklist_status: string | null;
+  trade_in_value:       number | null;
+  trade_in_value_cash:  number | null;
+  ai_score:             number | null;
+  created_at:           string;
+  verified_count:       number;
+}
+
+// ─── Certificats IMEI « Certifié Xeption » ───────────────────────────────────
+
+export interface ImeiCertificate {
+  reference: string;
+  qrToken:   string;
+  pdfUrl:    string;
+  reused:    boolean;
+}
+
+export interface ImeiCertificateVerifyResult {
+  reference:         string;
+  device_brand:      string | null;
+  device_model:      string | null;
+  imei_last4:        string | null;
+  imei_status:       string;
+  blacklist_status:  string;
+  created_at:        string;
+  verified_count:    number;
+}
+
+export type PublicCertificate =
+  | { kind: 'trade_in'; data: CertificateVerifyResult }
+  | { kind: 'imei'; data: ImeiCertificateVerifyResult };
+
+export const generateImeiCertificate = async (payload: {
+  sessionKey: string;
+  paymentReference: string;
+  customerName: string;
+  imei: string;
+  deviceBrand?: string;
+  deviceModel?: string;
+  imeiStatus: 'valid' | 'invalid' | 'check_failed';
+  blacklistStatus: 'unknown' | 'clear' | 'blacklisted';
+}): Promise<ImeiCertificate> => {
+  const { data, error } = await supabase.functions.invoke('generate-imei-certificate', {
+    body: payload,
+  });
+
+  if (error) {
+    throw new Error((error as any)?.message ?? 'generate-imei-certificate failed');
+  }
+
+  if (!data?.pdfUrl) {
+    throw new Error('Réponse invalide du générateur de certificat IMEI');
+  }
+
+  return {
+    reference: data.reference,
+    qrToken:   data.qrToken,
+    pdfUrl:    data.pdfUrl,
+    reused:    !!data.reused,
+  };
+};
+
+export const getImeiCertificateByToken = async (
+  token: string,
+): Promise<ImeiCertificateVerifyResult | null> => {
+  const { data, error } = await supabase.rpc('get_imei_certificate_by_token', { token });
+  if (error) {
+    console.warn('[getImeiCertificateByToken] rpc_failed', error.message);
+    return null;
+  }
+  if (!Array.isArray(data) || data.length === 0) return null;
+  return data[0] as ImeiCertificateVerifyResult;
+};
+
+/**
+ * Lit un certificat depuis son qr_token (page publique /verify/:token).
+ * Incrémente le compteur de scans côté DB.
+ * Retourne null si le token n'existe pas.
+ */
+export const getCertificateByToken = async (
+  token: string,
+): Promise<CertificateVerifyResult | null> => {
+  const { data, error } = await supabase.rpc('get_certificate_by_token', { token });
+  if (error) {
+    console.warn('[getCertificateByToken] rpc_failed', error.message);
+    return null;
+  }
+  if (!Array.isArray(data) || data.length === 0) return null;
+  return data[0] as CertificateVerifyResult;
+};
+
+/**
+ * Page publique /verify/:token — certificat IMEI ou Smart Troc.
+ */
+export const getPublicCertificateByToken = async (
+  token: string,
+): Promise<PublicCertificate | null> => {
+  const imei = await getImeiCertificateByToken(token);
+  if (imei) return { kind: 'imei', data: imei };
+
+  const troc = await getCertificateByToken(token);
+  if (troc) return { kind: 'trade_in', data: troc };
+
+  return null;
 };

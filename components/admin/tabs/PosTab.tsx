@@ -160,10 +160,21 @@ const PosTab: React.FC<PosTabProps> = ({
       );
   }
 
+  // TELEPHONE (< 640 px) : hauteur recalculee pour que la page ne deborde plus.
+  // Chrome mesure : barre haute 59 px + pt-2 8 px + bandeau dore ~52 px (sans sa
+  // description) + pb-28 112 px = 231 px. L ancien calc(100vh-140px) faisait
+  // deborder de ~130 px — d ou l impression d espace perdu en haut : on scrollait
+  // la page entiere au lieu de la seule liste d articles. `dvh` et non `vh` :
+  // au telephone `vh` ignore la barre d adresse et surestime la hauteur.
+  // Rien ne bouge des `sm` : la valeur d origine est restauree a l identique.
+  //
+  // MOBILE : gap-2 au lieu de gap-6. Repete entre l'avertissement boutique, la
+  // ligne de caisse, la file hors ligne et la bascule catalogue/panier, l'ecart
+  // de 24 px mangeait une bonne part de la hauteur utile.
   return (
-    <div className="animate-in fade-in h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] flex flex-col lg:grid lg:grid-cols-3 gap-6 relative">
+    <div className="animate-in fade-in h-[calc(100dvh-232px)] min-h-[380px] sm:h-[calc(100vh-140px)] sm:min-h-0 md:h-[calc(100vh-100px)] flex flex-col lg:grid lg:grid-cols-3 gap-2 lg:gap-6 relative">
         {!hasStore && (
-          <div className="lg:col-span-3 bg-amber-500/10 border border-amber-500/30 rounded-sm p-3 flex items-start gap-2 text-amber-200 text-sm shrink-0">
+          <div className="lg:col-span-3 bg-amber-500/10 border border-amber-500/30 rounded-sm p-2 text-xs flex items-start gap-2 text-amber-200 shrink-0 lg:p-3 lg:text-sm">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>Aucune boutique rattachée à ton compte — la vente sera refusée tant que la direction ne t&apos;a pas assigné.</span>
           </div>
@@ -288,8 +299,8 @@ const PosTab: React.FC<PosTabProps> = ({
         
         {/* MOBILE TOGGLE SWITCHER */}
         <div className="lg:hidden flex bg-black/40 p-1 rounded-sm mb-2 border border-white/10 shrink-0">
-           <button onClick={() => setMobileView('catalog')} className={`flex-1 py-3 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${mobileView === 'catalog' ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}><Grid className="w-4 h-4" /> Catalogue</button>
-           <button onClick={() => setMobileView('cart')} className={`flex-1 py-3 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${mobileView === 'cart' ? 'bg-xeption-gold text-black' : 'text-gray-400 hover:text-white'}`}><ShoppingCart className="w-4 h-4" /> Panier ({totalItems})</button>
+           <button onClick={() => setMobileView('catalog')} className={`flex-1 py-2.5 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${mobileView === 'catalog' ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}><Grid className="w-4 h-4" /> Catalogue</button>
+           <button onClick={() => setMobileView('cart')} className={`flex-1 py-2.5 text-xs font-bold uppercase flex items-center justify-center gap-2 rounded-sm transition-all ${mobileView === 'cart' ? 'bg-xeption-gold text-black' : 'text-gray-400 hover:text-white'}`}><ShoppingCart className="w-4 h-4" /> Panier ({totalItems})</button>
         </div>
 
         {/* CATALOGUE (Left) - SCROLLABLE AREA */}
@@ -560,16 +571,30 @@ const PosTab: React.FC<PosTabProps> = ({
                   </div>
                 )}
 
-                <div className="flex justify-between items-end">
-                    <span className="text-white text-xs font-bold uppercase tracking-wide">Total à payer</span>
-                    <span className="text-2xl font-bold font-mono text-white tracking-tighter">
-                        {totalAmount.toLocaleString()} <span className="text-xs text-xeption-gold align-top">FCFA</span>
-                    </span>
+                {/*
+                  MOBILE : total et validation EPINGLES en bas, le reste defile.
+                  Faire defiler tout le panier rendait les articles visibles mais
+                  eloignait le bouton — il fallait derouler pour encaisser.
+                  Epingler tout le pied reproduirait le defaut d'origine : client,
+                  paiement et remise sont plus hauts qu'un ecran. On n'epingle
+                  donc que ce qui sert a conclure.
+                */}
+                <div className="sticky bottom-0 -mx-4 mt-1 border-t border-white/10 bg-[#0c0c0e] px-4 pb-3 pt-3 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0">
+                  <div className="flex justify-between items-end">
+                      <span className="text-white text-xs font-bold uppercase tracking-wide">Total à payer</span>
+                      <span className="text-2xl font-bold font-mono text-white tracking-tighter">
+                          {totalAmount.toLocaleString()} <span className="text-xs text-xeption-gold align-top">FCFA</span>
+                      </span>
+                  </div>
+
+                  {/* Le bouton dit CE QU'IL VALIDE : un « Valider » seul, sur un
+                      ecran ou la liste a defile hors de vue, laisse un doute sur
+                      ce qu'on encaisse. */}
+                  <button onClick={onPosSubmit} disabled={!hasStore} className="mt-3 w-full bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white font-bold uppercase py-3 rounded-sm shadow-lg hover:shadow-green-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Valider la vente {totalItems > 0 ? `· ${totalItems} article${totalItems > 1 ? 's' : ''}` : ''}
+                  </button>
                 </div>
-                
-                <button onClick={onPosSubmit} disabled={!hasStore} className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white font-bold uppercase py-3 rounded-sm shadow-lg hover:shadow-green-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <CheckCircle className="w-4 h-4" /> Valider
-                </button>
                   </>
                 )}
             </div>

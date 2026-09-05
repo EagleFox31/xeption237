@@ -16,6 +16,12 @@ import { adminUi } from '../shared/adminUi';
  * dans ce bandeau mais n'en font pas partie : les masquer rendrait certaines
  * pages inutilisables.
  *
+ * TELEPHONE (< 640 px) : la description est masquee. Elle retombait sur deux a
+ * trois lignes, soit ~40 px de bandeau pour un texte purement explicatif — et
+ * dans la caisse cela poussait le panneau hors de l ecran. Le titre et les
+ * actions restent ; le texte complet revient des `sm`, et reste accessible au
+ * telephone par l infobulle du bouton de repli.
+ *
  * Stockage en `localStorage` (contrairement au mode test de la caisse, en
  * `sessionStorage`) : c'est une préférence d'affichage, pas un garde-fou. Rien
  * de fâcheux ne découle d'un bandeau replié plus longtemps que prévu.
@@ -115,13 +121,13 @@ const AdminPageHeader: React.FC<AdminPageHeaderProps> = ({
             {description && (
               <>
                 <span
-                  className="text-black/35 font-bold shrink-0 animate-in fade-in duration-300 delay-150 fill-mode-both"
+                  className="hidden sm:inline text-black/35 font-bold shrink-0 animate-in fade-in duration-300 delay-150 fill-mode-both"
                   aria-hidden
                 >
                   :
                 </span>
                 <p
-                  className={`${adminUi.pageHeaderDesc} min-w-[10rem] flex-1 animate-in fade-in slide-in-from-left-1 duration-400 delay-200 fill-mode-both`}
+                  className={`hidden sm:block ${adminUi.pageHeaderDesc} min-w-[10rem] flex-1 animate-in fade-in slide-in-from-left-1 duration-400 delay-200 fill-mode-both`}
                 >
                   {description}
                 </p>

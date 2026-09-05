@@ -237,92 +237,12 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
     }
   };
 
-  return (
-    <div className={`animate-in fade-in ${adminUi.tabViewportH} flex flex-col`}>
-      <div className={`mb-3 shrink-0 ${adminUi.hintCard}`}>
-        <p className={`${adminUi.body} leading-snug`}>{SALES_PAGE_HINT}</p>
-      </div>
-
-      <div className="flex-1 min-h-0 relative">
-        <TableShell
-          className="h-full border-t border-white/10"
-          searchValue={search}
-          onSearchChange={setSearch}
-          searchPlaceholder="Réf., client, téléphone, ville…"
-          filterOptions={FILTER_OPTIONS}
-          filterValue={filter}
-          onFilterChange={(id) => setFilter(id as OrderFilter)}
-          sortOptions={SORT_OPTIONS}
-          sortValue={sort}
-          onSortChange={(id) => setSort(id as OrderSort)}
-          resultCount={displayedOrders.length}
-          resultLabel="commande"
-        >
-          <table className="w-full text-left border-collapse min-w-[1100px]">
-            <thead className={adminUi.tableHead}>
-              <tr>
-                <th className="px-4 py-3">Réf.</th>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Client</th>
-                <th className="px-4 py-3">Livraison</th>
-                <th className="px-4 py-3">Montant</th>
-                <th className="px-4 py-3">Étape</th>
-                <th className="px-4 py-3 text-right">À faire</th>
-                <th className="px-4 py-3 text-right">Facture client</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
-              {displayedOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className={adminUi.emptyCell}>
-                    {search.trim()
-                      ? 'Aucune commande trouvée pour cette recherche.'
-                      : 'Aucune commande pour ce filtre.'}
-                  </td>
-                </tr>
-              ) : (
-                displayedOrders.map((o) => (
-                  <tr key={o.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-4 font-mono text-xs font-bold text-xeption-gold">
-                      #{o.id}
-                    </td>
-                    <td className="px-4 py-4 text-xs text-white/80 whitespace-nowrap">
-                      {o.date}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="block font-bold text-white">{o.customerName}</span>
-                      <span className="text-[10px] text-white/65">
-                        {o.customerEmail || o.customerPhone}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-xs text-white">
-                      {o.deliveryMode === 'pickup' ? 'Retrait boutique' : 'Livraison'}
-                      {o.customerCity && (
-                        <span className="block text-[10px] text-white/65">{o.customerCity}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 font-mono font-bold text-white whitespace-nowrap">
-                      {o.total.toLocaleString()} FCFA
-                    </td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${statusStyles[o.status]}`}
-                      >
-                        {getOrderStatusLabel(o.status)}
-                      </span>
-                      {o.paymentStatus === 'paid' && o.status !== 'cancelled' && (
-                        <span className="block text-[9px] text-green-400/90 mt-1 uppercase tracking-wider">
-                          Payé
-                        </span>
-                      )}
-                      {o.status !== 'delivered' && o.status !== 'cancelled' && o.status !== 'returned' && (
-                        <p className="text-[10px] text-white/70 mt-1.5 max-w-[140px] leading-tight">
-                          {getOrderActionHint(o)}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+  // Actions et facture d'une commande, extraites pour etre rendues A L'IDENTIQUE
+  // dans la ligne de tableau (>= 768 px) et dans la carte telephone. Cette
+  // cascade fait une centaine de lignes et depend de sept statuts : deux copies
+  // auraient diverge des la premiere evolution du flux de commande.
+  const renderOrderActions = (o: Order) => (
+    <div className="flex items-center justify-end gap-1.5 flex-wrap">
                         <button
                           type="button"
                           onClick={() => setViewingOrder(o)}
@@ -438,10 +358,11 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
                                 onSent={markSent}
                               />
                             ))}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-end gap-1 min-w-[88px]">
+    </div>
+  );
+
+  const renderInvoiceActions = (o: Order) => (
+    <div className="flex items-center justify-end gap-1 min-w-[88px]">
                         {canIssueInvoice(o) ? (
                           <>
                             <button
@@ -469,8 +390,165 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
                             {getInvoiceGateLabel(o.status)}
                           </span>
                         )}
-                      </div>
+    </div>
+  );
+
+  return (
+    <div className={`animate-in fade-in ${adminUi.tabViewportH} flex flex-col`}>
+      <div className={`mb-3 shrink-0 ${adminUi.hintCard}`}>
+        <p className={`${adminUi.body} leading-snug`}>{SALES_PAGE_HINT}</p>
+      </div>
+
+      <div className="flex-1 min-h-0 relative">
+        <TableShell
+          className="h-full border-t border-white/10"
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Réf., client, téléphone, ville…"
+          filterOptions={FILTER_OPTIONS}
+          filterValue={filter}
+          onFilterChange={(id) => setFilter(id as OrderFilter)}
+          sortOptions={SORT_OPTIONS}
+          sortValue={sort}
+          onSortChange={(id) => setSort(id as OrderSort)}
+          resultCount={displayedOrders.length}
+          resultLabel="commande"
+        >
+          {/*
+            TELEPHONE (< 768 px) : cartes empilees, pas le tableau.
+
+            Le tableau fait 1100 px de large. Il defile bien horizontalement,
+            mais debout en boutique on perd la colonne « Ref. » des qu'on va
+            chercher le montant a droite, et on ne sait plus quelle commande on
+            lit. La carte met la reference et le client en tete, le reste dessous.
+
+            Les boutons viennent des MEMES fonctions que la ligne de tableau :
+            un seul endroit ou faire evoluer le flux de commande.
+          */}
+          <div className="divide-y divide-white/5 md:hidden">
+            {displayedOrders.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-white/50">
+                {search.trim()
+                  ? 'Aucune commande trouvée pour cette recherche.'
+                  : 'Aucune commande pour ce filtre.'}
+              </p>
+            ) : (
+              displayedOrders.map((o) => (
+                <div key={o.id} className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs font-bold text-xeption-gold">#{o.id}</p>
+                      <p className="mt-0.5 truncate text-sm font-bold text-white">{o.customerName}</p>
+                      <p className="truncate text-[11px] text-white/65">
+                        {o.customerEmail || o.customerPhone}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span
+                        className={`inline-block rounded border px-2 py-1 text-[10px] font-bold uppercase ${statusStyles[o.status]}`}
+                      >
+                        {getOrderStatusLabel(o.status)}
+                      </span>
+                      {o.paymentStatus === 'paid' && o.status !== 'cancelled' && (
+                        <span className="mt-1 block text-[9px] uppercase tracking-wider text-green-400/90">
+                          Payé
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px] text-white/70">
+                    <span>{o.date}</span>
+                    <span aria-hidden>·</span>
+                    <span>
+                      {o.deliveryMode === 'pickup' ? 'Retrait boutique' : 'Livraison'}
+                      {o.customerCity ? ` · ${o.customerCity}` : ''}
+                    </span>
+                    <span className="ml-auto font-mono text-sm font-bold text-white">
+                      {o.total.toLocaleString()} FCFA
+                    </span>
+                  </div>
+
+                  {o.status !== 'delivered' && o.status !== 'cancelled' && o.status !== 'returned' && (
+                    <p className="mt-1.5 text-[11px] leading-tight text-white/70">
+                      {getOrderActionHint(o)}
+                    </p>
+                  )}
+
+                  <div className="mt-2 border-t border-white/10 pt-2">
+                    {renderOrderActions(o)}
+                    <div className="mt-1.5 flex justify-end">{renderInvoiceActions(o)}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <table className="hidden w-full text-left border-collapse min-w-[1100px] md:table">
+            <thead className={adminUi.tableHead}>
+              <tr>
+                <th className="px-4 py-3">Réf.</th>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Client</th>
+                <th className="px-4 py-3">Livraison</th>
+                <th className="px-4 py-3">Montant</th>
+                <th className="px-4 py-3">Étape</th>
+                <th className="px-4 py-3 text-right">À faire</th>
+                <th className="px-4 py-3 text-right">Facture client</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-gray-300 text-sm">
+              {displayedOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className={adminUi.emptyCell}>
+                    {search.trim()
+                      ? 'Aucune commande trouvée pour cette recherche.'
+                      : 'Aucune commande pour ce filtre.'}
+                  </td>
+                </tr>
+              ) : (
+                displayedOrders.map((o) => (
+                  <tr key={o.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-4 font-mono text-xs font-bold text-xeption-gold">
+                      #{o.id}
                     </td>
+                    <td className="px-4 py-4 text-xs text-white/80 whitespace-nowrap">
+                      {o.date}
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="block font-bold text-white">{o.customerName}</span>
+                      <span className="text-[10px] text-white/65">
+                        {o.customerEmail || o.customerPhone}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-xs text-white">
+                      {o.deliveryMode === 'pickup' ? 'Retrait boutique' : 'Livraison'}
+                      {o.customerCity && (
+                        <span className="block text-[10px] text-white/65">{o.customerCity}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 font-mono font-bold text-white whitespace-nowrap">
+                      {o.total.toLocaleString()} FCFA
+                    </td>
+                    <td className="px-4 py-4">
+                      <span
+                        className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${statusStyles[o.status]}`}
+                      >
+                        {getOrderStatusLabel(o.status)}
+                      </span>
+                      {o.paymentStatus === 'paid' && o.status !== 'cancelled' && (
+                        <span className="block text-[9px] text-green-400/90 mt-1 uppercase tracking-wider">
+                          Payé
+                        </span>
+                      )}
+                      {o.status !== 'delivered' && o.status !== 'cancelled' && o.status !== 'returned' && (
+                        <p className="text-[10px] text-white/70 mt-1.5 max-w-[140px] leading-tight">
+                          {getOrderActionHint(o)}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">{renderOrderActions(o)}</td>
+                    <td className="px-4 py-4">{renderInvoiceActions(o)}</td>
                   </tr>
                 ))
               )}

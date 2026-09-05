@@ -56,7 +56,7 @@ const StaffTab: React.FC<StaffTabProps> = ({
   }
 
   return (
-    <div className="animate-in fade-in h-[calc(100vh-140px)] flex flex-col gap-4">
+    <div className={`animate-in fade-in ${adminUi.tabViewportHWithActions} flex flex-col gap-4`}>
         <div className={`${adminUi.hintCard} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`}>
           <div>
             <p className="text-sm font-bold text-white">

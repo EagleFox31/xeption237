@@ -109,7 +109,7 @@ const DeliveryTab: React.FC = () => {
     };
 
     return (
-        <div className="animate-in fade-in h-[calc(100vh-140px)] flex flex-col gap-6">
+        <div className={`animate-in fade-in ${adminUi.tabViewportH} flex flex-col gap-6`}>
             <div className="shrink-0 space-y-6">
                 <div className={`${adminUi.card} p-5 md:p-6`}>
                     <h3 className={`${adminUi.cardTitle} mb-4`}>

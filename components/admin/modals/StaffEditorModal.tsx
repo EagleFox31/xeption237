@@ -12,7 +12,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { Staff, Store } from '../../../types';
+import { Staff } from '../../../types';
 import {
   STAFF_ROLES,
   StaffRoleDefinition,
@@ -20,10 +20,10 @@ import {
   normalizeStaffRole,
 } from '../../../constants/staffRoles';
 import { adminUi } from '../shared/adminUi';
+import { STAFF_DEFAULT_PASSWORD } from '../../../services/staffAuthProvisioning';
 
 interface StaffEditorModalProps {
   staff: Staff;
-  stores: Store[];
   onClose: () => void;
   onSave: (e: React.FormEvent) => Promise<void>;
   onChange: (updates: Partial<Staff>) => void;
@@ -185,7 +185,6 @@ const ProfilePreview: React.FC<{ name: string; email: string; role: StaffRoleDef
 
 const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
   staff,
-  stores,
   onClose,
   onSave,
   onChange,
@@ -283,28 +282,6 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
             </p>
           )}
         </div>
-        <div>
-          <label htmlFor="staff-store" className={`${adminUi.label} block mb-1.5`}>
-            Boutique
-          </label>
-          <select
-            id="staff-store"
-            className={adminUi.input}
-            value={staff.store_id ?? ''}
-            onChange={(e) => onChange({ store_id: e.target.value || null })}
-          >
-            <option value="">— Non assigné —</option>
-            {stores.filter((s) => s.active).map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-                {s.city ? ` (${s.city})` : ''}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1.5 text-xs text-white/55">
-            La caisse et les ventes seront rattachées à cette boutique (étape 5).
-          </p>
-        </div>
       </div>
       <ProfilePreview name={name} email={email} role={selectedDefinition} />
     </div>
@@ -320,9 +297,8 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
           Connexion automatique
         </p>
         <p className="text-sm text-white/75">
-          Compte Auth créé avec le nom <strong className="text-white">{name.trim() || '…'}</strong>. Un mot de
-          passe <strong className="text-white">unique</strong> sera généré et affiché une seule fois, à
-          l’enregistrement — note-le à ce moment-là.
+          Compte Auth créé avec le nom <strong className="text-white">{name.trim() || '…'}</strong> et le mot de
+          passe <strong className="text-white">{STAFF_DEFAULT_PASSWORD}</strong> — identique pour toute l’équipe.
         </p>
       </div>
 

@@ -1,31 +1,22 @@
 
 import { useState } from 'react';
-import { Product, CartItem, Order, Staff } from '../../types';
+import { Product, CartItem, Order } from '../../types';
 import { supabase } from '../../services/supabaseClient';
-import { applyTestOrderPrefix } from '../../utils/testMode';
-import { enqueueOfflinePosSale, isBrowserOnline } from '../../utils/offlinePosQueue';
 import { generateInvoiceHTML } from '../../utils/invoiceGenerator';
 import { assertRpcSuccess } from '../../utils/rpcResult';
-import type { PosPaymentMethod } from '../../utils/paymentMethods';
 
 interface UsePosSystemProps {
     products: Product[];
+    onUpdateProducts: (products: Product[]) => void;
     refreshData: () => void;
-    staff?: Staff | null;
-    onSaleQueued?: () => void;
 }
 
-export const usePosSystem = ({ products, refreshData, staff, onSaleQueued }: UsePosSystemProps) => {
+export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePosSystemProps) => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [search, setSearch] = useState('');
     const [customer, setCustomer] = useState({ name: '', phone: '', email: '' });
-    const [paymentMethod, setPaymentMethod] = useState<PosPaymentMethod>('CASH');
-    const [discountAmount, setDiscountAmount] = useState(0);
+    const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'OM' | 'MOMO'>('CASH');
     const [lastOrder, setLastOrder] = useState<Order | null>(null);
-
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const safeDiscount = Math.min(Math.max(0, discountAmount), subtotal);
-    const total = Math.max(0, subtotal - safeDiscount);
 
     const addToCart = (product: Product) => {
         setCart(prev => {
@@ -40,61 +31,13 @@ export const usePosSystem = ({ products, refreshData, staff, onSaleQueued }: Use
     };
 
     const submitSale = async () => {
-        if (paymentMethod === 'TROC') {
-            throw new Error('Utilise le panneau Smart Troc pour cette vente.');
-        }
         if (cart.length === 0) throw new Error("Panier vide");
         if (!customer.name) throw new Error("Nom du client requis");
-        if (!staff?.store_id) throw new Error("Aucune boutique rattachée à ton compte — demande à la direction.");
 
-        const newOrderId = applyTestOrderPrefix(`POS-${Date.now().toString().slice(-6)}`);
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
+        
         const orderDate = new Date().toISOString();
-        const rpcPayment = paymentMethod === 'CARD' ? 'CARD' : paymentMethod;
-
-        if (!isBrowserOnline()) {
-            await enqueueOfflinePosSale({
-                orderId: newOrderId,
-                customerName: customer.name,
-                customerEmail: customer.email?.trim() || null,
-                customerPhone: customer.phone || null,
-                cart: [...cart],
-                paymentMethod,
-                total,
-                subtotal,
-                discountAmount: safeDiscount,
-                storeId: staff.store_id,
-                staffId: staff.id,
-                orderDate,
-            });
-
-            const queuedOrder: Order = {
-                id: newOrderId,
-                items: [...cart],
-                total,
-                subtotal,
-                discountAmount: safeDiscount,
-                status: 'delivered',
-                paymentMethod: rpcPayment,
-                customerName: customer.name,
-                customerEmail: customer.email,
-                customerPhone: customer.phone,
-                customerCity: 'Retrait Boutique',
-                deliveryMode: 'pickup',
-                date: new Date().toLocaleDateString('fr-FR'),
-                staffId: staff.id,
-                storeId: staff.store_id,
-                queuedLocally: true,
-            };
-
-            setLastOrder(queuedOrder);
-            setCart([]);
-            setCustomer({ name: '', phone: '', email: '' });
-            setDiscountAmount(0);
-            setPaymentMethod('CASH');
-            onSaleQueued?.();
-            return;
-        }
-
         const { data: rpcData, error: rpcError } = await supabase.rpc('complete_pos_sale_atomic', {
             p_order_id: newOrderId,
             p_customer_name: customer.name,
@@ -102,14 +45,11 @@ export const usePosSystem = ({ products, refreshData, staff, onSaleQueued }: Use
             p_customer_phone: customer.phone || null,
             p_customer_city: 'Retrait Boutique (POS)',
             p_delivery_mode: 'pickup',
-            p_payment_method: rpcPayment,
+            p_payment_method: paymentMethod,
             p_total: total,
             p_items: cart,
             p_date: orderDate,
             p_status: 'delivered',
-            p_store_id: staff.store_id,
-            p_staff_id: staff.id,
-            p_discount_amount: safeDiscount,
         });
 
         if (rpcError) {
@@ -118,23 +58,26 @@ export const usePosSystem = ({ products, refreshData, staff, onSaleQueued }: Use
         }
         assertRpcSuccess(rpcData, 'Stock insuffisant ou article invalide.');
 
+        const updatedList = products.map((product) => {
+            const item = cart.find((entry) => entry.id === product.id);
+            if (!item) return product;
+            return { ...product, stock: product.stock - item.quantity };
+        });
+        onUpdateProducts(updatedList);
+
         const saleDate = new Date().toLocaleDateString('fr-FR');
         const completedOrder: Order = {
             id: newOrderId,
             items: [...cart],
             total,
-            subtotal,
-            discountAmount: safeDiscount,
             status: 'delivered',
-            paymentMethod: rpcPayment,
+            paymentMethod,
             customerName: customer.name,
             customerEmail: customer.email,
             customerPhone: customer.phone,
             customerCity: 'Retrait Boutique',
             deliveryMode: 'pickup',
             date: saleDate,
-            staffId: staff.id,
-            storeId: staff.store_id,
         };
 
         setLastOrder(completedOrder);
@@ -154,26 +97,6 @@ export const usePosSystem = ({ products, refreshData, staff, onSaleQueued }: Use
 
         setCart([]);
         setCustomer({ name: '', phone: '', email: '' });
-        setDiscountAmount(0);
-        setPaymentMethod('CASH');
-        refreshData();
-    };
-
-    const registerTrocSuccess = (orderId: string) => {
-        setLastOrder({
-            id: orderId,
-            items: [],
-            total: 0,
-            status: 'delivered',
-            paymentMethod: 'TROC',
-            customerName: 'Client Troc',
-            customerPhone: '',
-            deliveryMode: 'pickup',
-            date: new Date().toLocaleDateString('fr-FR'),
-            staffId: staff?.id,
-            storeId: staff?.store_id ?? undefined,
-        });
-        setPaymentMethod('CASH');
         refreshData();
     };
 
@@ -182,13 +105,9 @@ export const usePosSystem = ({ products, refreshData, staff, onSaleQueued }: Use
         search, setSearch,
         customer, setCustomer,
         paymentMethod, setPaymentMethod,
-        discountAmount, setDiscountAmount,
-        subtotal,
-        total,
         lastOrder, setLastOrder,
         addToCart,
         removeFromCart,
         submitSale,
-        registerTrocSuccess,
     };
 };

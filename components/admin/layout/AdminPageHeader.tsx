@@ -16,11 +16,14 @@ import { adminUi } from '../shared/adminUi';
  * dans ce bandeau mais n'en font pas partie : les masquer rendrait certaines
  * pages inutilisables.
  *
- * TELEPHONE (< 640 px) : la description est masquee. Elle retombait sur deux a
- * trois lignes, soit ~40 px de bandeau pour un texte purement explicatif — et
- * dans la caisse cela poussait le panneau hors de l ecran. Le titre et les
- * actions restent ; le texte complet revient des `sm`, et reste accessible au
- * telephone par l infobulle du bouton de repli.
+ * TELEPHONE (< 640 px) : le bandeau ne s affiche pas du tout. Titre et
+ * description y faisaient doublon avec la barre de navigation, pour ~90 px de
+ * hauteur qui poussaient le contenu hors de l ecran.
+ *
+ * Ce qui NE disparait pas : les ACTIONS. `inventory`, `stores`, `staff` et
+ * `packs` n ont pas d autre bouton de creation — les masquer rendrait ces
+ * pages inutilisables au telephone. Le conteneur survit donc sans son decor et
+ * ne porte plus que les actions ; sans action, il ne prend aucune place.
  *
  * Stockage en `localStorage` (contrairement au mode test de la caisse, en
  * `sessionStorage`) : c'est une préférence d'affichage, pas un garde-fou. Rien
@@ -78,13 +81,15 @@ const AdminPageHeader: React.FC<AdminPageHeaderProps> = ({
 
   if (collapsed) {
     return (
-      <div className="mb-3 md:mb-4 flex items-center justify-between gap-2 animate-in fade-in duration-300">
+      <div
+        className={`${actions ? 'mb-3' : 'mb-0 sm:mb-3'} md:mb-4 flex items-center justify-between gap-2 animate-in fade-in duration-300`}
+      >
         <button
           type="button"
           onClick={expand}
           aria-label={`Afficher la description : ${title}`}
           title={description ? `${title} — ${description}` : title}
-          className="flex items-center gap-2 rounded-full border border-xeption-gold/40 bg-xeption-gold/10 px-3 py-1.5 text-xs text-xeption-gold hover:bg-xeption-gold/20 hover:border-xeption-gold/70 transition-colors"
+          className="hidden sm:flex items-center gap-2 rounded-full border border-xeption-gold/40 bg-xeption-gold/10 px-3 py-1.5 text-xs text-xeption-gold hover:bg-xeption-gold/20 hover:border-xeption-gold/70 transition-colors"
         >
           <Info className="h-3.5 w-3.5 shrink-0" />
           <span className="font-tech font-bold uppercase tracking-tight">{title}</span>
@@ -97,15 +102,18 @@ const AdminPageHeader: React.FC<AdminPageHeaderProps> = ({
 
   return (
     <header
-      className={`mb-3 md:mb-4 ${adminUi.pageHeaderCard} group animate-in fade-in slide-in-from-top-2 duration-500 fill-mode-both`}
+      className={`${actions ? 'mb-3' : 'mb-0 sm:mb-3'} md:mb-4 ${adminUi.pageHeaderCard} group animate-in fade-in slide-in-from-top-2 duration-500 fill-mode-both`}
     >
       <div
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.35)_50%,transparent_65%)] -translate-x-full motion-safe:group-hover:translate-x-full transition-transform duration-[1400ms] ease-out"
+        className="hidden sm:block pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.35)_50%,transparent_65%)] -translate-x-full motion-safe:group-hover:translate-x-full transition-transform duration-[1400ms] ease-out"
         aria-hidden
       />
 
       <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
+        {/* `sr-only` et non `hidden` : sans cela la page n aurait plus aucun
+            titre pour un lecteur d ecran au telephone. Zero pixel occupe,
+            le h1 reste dans l arbre d accessibilite. */}
+        <div className="sr-only sm:not-sr-only min-w-0 sm:flex-1">
           <div className="min-w-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
             {Icon && (
               <Icon
@@ -121,13 +129,13 @@ const AdminPageHeader: React.FC<AdminPageHeaderProps> = ({
             {description && (
               <>
                 <span
-                  className="hidden sm:inline text-black/35 font-bold shrink-0 animate-in fade-in duration-300 delay-150 fill-mode-both"
+                  className="text-black/35 font-bold shrink-0 animate-in fade-in duration-300 delay-150 fill-mode-both"
                   aria-hidden
                 >
                   :
                 </span>
                 <p
-                  className={`hidden sm:block ${adminUi.pageHeaderDesc} min-w-[10rem] flex-1 animate-in fade-in slide-in-from-left-1 duration-400 delay-200 fill-mode-both`}
+                  className={`${adminUi.pageHeaderDesc} min-w-[10rem] flex-1 animate-in fade-in slide-in-from-left-1 duration-400 delay-200 fill-mode-both`}
                 >
                   {description}
                 </p>
@@ -147,7 +155,7 @@ const AdminPageHeader: React.FC<AdminPageHeaderProps> = ({
             onClick={collapse}
             aria-label="Réduire le bandeau"
             title="Réduire — réaffichable par le bouton i"
-            className="p-1.5 rounded-sm text-black/60 hover:text-black hover:bg-black/10 transition-colors shrink-0"
+            className="hidden sm:block p-1.5 rounded-sm text-black/60 hover:text-black hover:bg-black/10 transition-colors shrink-0"
           >
             <X className="h-4 w-4" />
           </button>

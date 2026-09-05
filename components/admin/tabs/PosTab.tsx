@@ -161,8 +161,10 @@ const PosTab: React.FC<PosTabProps> = ({
   }
 
   // TELEPHONE (< 640 px) : hauteur recalculee pour que la page ne deborde plus.
-  // Chrome mesure : barre haute 59 px + pt-2 8 px + bandeau dore ~52 px (sans sa
-  // description) + pb-28 112 px = 231 px. L ancien calc(100vh-140px) faisait
+  // Chrome mesure classe par classe : barre haute 77 px (pt-4 16 + Logo w-12/h-12
+  // 48 + pb-3 12 + bord 1 ; la colonne texte ne fait que 28 px, c est le logo qui
+  // commande) + pt-2 8 px + bandeau dore 0 (masque au telephone, et la caisse n a
+  // pas d actions) + pb-28 112 px = 197 px. L ancien calc(100vh-140px) faisait
   // deborder de ~130 px — d ou l impression d espace perdu en haut : on scrollait
   // la page entiere au lieu de la seule liste d articles. `dvh` et non `vh` :
   // au telephone `vh` ignore la barre d adresse et surestime la hauteur.
@@ -172,7 +174,7 @@ const PosTab: React.FC<PosTabProps> = ({
   // ligne de caisse, la file hors ligne et la bascule catalogue/panier, l'ecart
   // de 24 px mangeait une bonne part de la hauteur utile.
   return (
-    <div className="animate-in fade-in h-[calc(100dvh-232px)] min-h-[380px] sm:h-[calc(100vh-140px)] sm:min-h-0 md:h-[calc(100vh-100px)] flex flex-col lg:grid lg:grid-cols-3 gap-2 lg:gap-6 relative">
+    <div className="animate-in fade-in h-[calc(100dvh-200px)] min-h-[380px] sm:h-[calc(100vh-140px)] sm:min-h-0 md:h-[calc(100vh-100px)] flex flex-col lg:grid lg:grid-cols-3 gap-2 lg:gap-6 relative">
         {!hasStore && (
           <div className="lg:col-span-3 bg-amber-500/10 border border-amber-500/30 rounded-sm p-2 text-xs flex items-start gap-2 text-amber-200 shrink-0 lg:p-3 lg:text-sm">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />

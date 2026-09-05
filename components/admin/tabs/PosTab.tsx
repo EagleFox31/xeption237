@@ -316,7 +316,9 @@ const PosTab: React.FC<PosTabProps> = ({
                         <select 
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as any)}
-                            className="bg-black/50 border border-white/10 text-white pl-3 pr-8 py-2.5 rounded-sm text-sm focus:border-xeption-gold outline-none appearance-none font-bold uppercase cursor-pointer"
+                            /* MOBILE : ni gras ni majuscules, et moins de rembourrage — « NOM (A-Z) »
+                               mangeait la largeur du champ de recherche. Aspect d'origine des sm:. */
+                            className="bg-black/50 border border-white/10 text-white pl-2 pr-7 py-2.5 rounded-sm text-xs focus:border-xeption-gold outline-none appearance-none cursor-pointer sm:pl-3 sm:pr-8 sm:text-sm sm:font-bold sm:uppercase"
                         >
                             <option value="name">Nom (A-Z)</option>
                             <option value="price-asc">Prix (Min-Max)</option>
@@ -415,16 +417,49 @@ const PosTab: React.FC<PosTabProps> = ({
                 )}
                 </div>
             </div>
+
+            {/*
+              MOBILE : barre de confirmation, collee en bas du panneau catalogue.
+              Le compteur « Panier (4) » existe, mais il est en haut de l'ecran
+              pendant que le vendeur parcourt la grille plus bas : il ne le voit
+              jamais bouger. Rien ne confirmait donc qu'un article etait ajoute.
+              La barre apparait au premier article, se met a jour a chaque ajout,
+              et donne un chemin permanent vers le panier.
+            */}
+            {totalItems > 0 && (
+              <button
+                type="button"
+                onClick={() => setMobileView('cart')}
+                className="sticky bottom-0 z-20 flex shrink-0 items-center justify-between gap-3 border-t border-xeption-gold/40 bg-xeption-gold px-4 py-3 text-black lg:hidden"
+              >
+                <span className="flex items-center gap-2 text-sm font-bold">
+                  <ShoppingCart className="h-4 w-4" />
+                  {totalItems} article{totalItems > 1 ? 's' : ''}
+                </span>
+                <span className="flex items-center gap-2 text-sm font-bold">
+                  {subtotal.toLocaleString()} F
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </button>
+            )}
         </div>
 
         {/* PANIER (Right) - FIXED HEIGHT & SCROLLABLE ITEMS */}
-        <div className={`bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-hidden ${mobileView === 'catalog' ? 'hidden lg:flex' : 'flex'} h-full`}>
+        {/*
+          MOBILE : le panier defile d'un seul bloc.
+          En trois zones (en-tete / articles en flex-1 / pied shrink-0), le pied
+          — client, paiement, remise, total, valider — est plus haut qu'un ecran
+          de telephone. Il ecrasait donc la zone des articles a zero : le compteur
+          annoncait « 4 items » et la liste etait invisible. Sur grand ecran la
+          hauteur suffit, le decoupage d'origine y est conserve.
+        */}
+        <div className={`bg-black/40 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-col overflow-y-auto lg:overflow-hidden ${mobileView === 'catalog' ? 'hidden lg:flex' : 'flex'} h-full`}>
             <div className="p-4 border-b border-white/10 bg-[#0c0c0e] shrink-0 flex justify-between items-center">
                 <h3 className="text-white font-bold uppercase text-sm">Panier</h3>
                 <span className="bg-white/10 text-[10px] font-bold px-2 py-0.5 rounded text-white">{totalItems} items</span>
             </div>
             
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-black/20">
+            <div className="bg-black/20 lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:custom-scrollbar">
                 <div className="p-4 space-y-2">
                     {posCart.length === 0 ? (
                         <div className="py-12 flex flex-col items-center justify-center text-white/40">

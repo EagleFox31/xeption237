@@ -13,20 +13,15 @@ const ROLE_LEVEL: Record<StaffRoleId, number> = {
   super_admin: 4,
 };
 
-/** Niveau minimum requis par onglet ERP (aligné sur staffRoles.ts). */
 const TAB_MIN_ROLE: Record<AdminTabId, StaffRoleId> = {
   dashboard: 'vendeur',
   pos: 'vendeur',
-  mySales: 'vendeur',
-  targets: 'responsable',
   orders: 'vendeur',
   inventory: 'vendeur',
   productImages: 'vendeur',
   clients: 'vendeur',
   packs: 'responsable',
   delivery: 'responsable',
-  stores: 'direction',
-  stockMovements: 'responsable',
   troc: 'responsable',
   sav: 'responsable',
   catalogStructure: 'direction',
@@ -61,20 +56,12 @@ export function resolveAdminLandingTabForRole(
 ): AdminTabId {
   const normalized = normalizeStaffRole(role);
 
-  if (normalized === 'vendeur') {
-    return 'pos';
-  }
-
-  if (normalized === 'responsable') {
-    if (pendingOrderCount > 0) return 'orders';
-    return 'dashboard';
-  }
-
+  if (normalized === 'vendeur') return 'pos';
+  if (normalized === 'responsable' && pendingOrderCount > 0) return 'orders';
   if (pendingOrderCount > 0) return 'orders';
   return 'dashboard';
 }
 
-/** Première page autorisée si l’onglet courant est interdit (URL directe). */
 export function getFirstAccessibleAdminTab(
   role: string | null | undefined,
   pendingOrderCount: number,
@@ -83,9 +70,7 @@ export function getFirstAccessibleAdminTab(
   if (canAccessAdminTab(role, landing)) return landing;
 
   for (const group of filterAdminMenuGroups(role)) {
-    for (const item of group.items) {
-      return item.id;
-    }
+    for (const item of group.items) return item.id;
   }
 
   return 'dashboard';

@@ -119,7 +119,7 @@ const InventoryTab: React.FC<InventoryTabProps> = ({
   }, [products, categoryFilter, stockFilter, search, categories, brands, ranges]);
 
   return (
-    <div className="animate-in fade-in h-[calc(100vh-140px)] flex flex-col">
+    <div className={`animate-in fade-in ${adminUi.tabViewportHWithActions} flex flex-col`}>
       <div className="flex-1 min-h-0 relative">
         <TableShell
           className="h-full border-t border-white/10"

@@ -4,6 +4,7 @@ import { Order } from '../../../types';
 import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
 import { Printer, Download, Eye, FileText } from 'lucide-react';
 import TableShell from '../shared/TableShell';
+import { adminUi } from '../shared/adminUi';
 
 interface InvoicesTabProps {
   orders: Order[];
@@ -65,7 +66,7 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ orders }) => {
   };
 
   return (
-    <div className="animate-in fade-in h-[calc(100vh-140px)] flex flex-col">
+    <div className={`animate-in fade-in ${adminUi.tabViewportH} flex flex-col`}>
         <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6 shrink-0">Gestion des Factures</h2>
         
         <div className="flex-1 min-h-0 relative">

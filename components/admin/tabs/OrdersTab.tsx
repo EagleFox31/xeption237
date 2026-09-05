@@ -238,7 +238,7 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
   };
 
   return (
-    <div className="animate-in fade-in h-[calc(100vh-140px)] flex flex-col">
+    <div className={`animate-in fade-in ${adminUi.tabViewportH} flex flex-col`}>
       <div className={`mb-3 shrink-0 ${adminUi.hintCard}`}>
         <p className={`${adminUi.body} leading-snug`}>{SALES_PAGE_HINT}</p>
       </div>

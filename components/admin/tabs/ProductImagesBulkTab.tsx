@@ -216,7 +216,7 @@ const ProductImagesBulkTab: React.FC<ProductImagesBulkTabProps> = ({
   };
 
   return (
-    <div className="animate-in fade-in h-[calc(100vh-140px)] flex flex-col">
+    <div className={`animate-in fade-in ${adminUi.tabViewportH} flex flex-col`}>
       <div className={`mb-3 shrink-0 ${adminUi.hintCard}`}>
         <p className={`${adminUi.body} leading-snug`}>
           Multi-sélection à l’upload. Cliquez sur une vignette pour la définir comme photo principale

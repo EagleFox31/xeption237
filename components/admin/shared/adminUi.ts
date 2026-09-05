@@ -5,6 +5,25 @@
 
 export const adminUi = {
   page: 'min-h-screen text-white selection:bg-xeption-gold selection:text-black',
+
+  // Hauteur d'un onglet dont le panneau occupe l'ecran (tableau a defilement
+  // interne). Le decor autour n'a PAS la meme hauteur selon la largeur, d'ou
+  // trois valeurs — mesurees classe par classe, pas estimees :
+  //
+  //   < 640 px   barre haute 77 (pt-4 16 + logo 48 + pb-3 12 + bord 1)
+  //              + pt-2 8 + bandeau 0 (masque) + pb-28 112       = 197
+  //   640-767    barre haute 77 + pt-2 8 + bandeau 54 + mb-3 12
+  //              + pb-28 112                                     = 263
+  //   >= 768 px  pt-3 12 + bandeau 58 + mb-4 16 + pb-10 40       = 126 (140 tenu)
+  //
+  // `dvh` sous 768 px et non `vh` : au telephone `vh` vaut la hauteur barre
+  // d'adresse MASQUEE, donc surestime ce qui est reellement visible.
+  tabViewportH:
+    'h-[calc(100dvh-200px)] sm:h-[calc(100dvh-264px)] md:h-[calc(100vh-140px)]',
+  // Variante des onglets dont le bandeau porte un bouton d'action : au telephone
+  // ce bouton subsiste (36 px + 12 de marge) la ou le bandeau disparait.
+  tabViewportHWithActions:
+    'h-[calc(100dvh-248px)] sm:h-[calc(100dvh-264px)] md:h-[calc(100vh-140px)]',
   main: 'md:ml-64 min-h-screen relative z-10',
   content: 'max-w-[1600px] mx-auto px-4 md:px-8 pb-28 md:pb-10 pt-2 md:pt-3',
   surface:

@@ -50,8 +50,21 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
   const dailyAchieved = targetProgress?.daily?.achieved;
   const monthlyAchieved = targetProgress?.monthly?.achieved;
 
+  // TELEPHONE (< 640 px) : la page defile normalement, pas de hauteur imposee.
+  //
+  // Le montage d'origine — racine a hauteur d'ecran fixe, en-tetes en
+  // `shrink-0`, liste en `flex-1` — suppose que les en-tetes tiennent dans
+  // l'ecran. Au telephone les cartes passent sur UNE colonne (`sm:grid-cols-3`
+  // ne s'applique pas) : filtres + objectifs + 3 cartes de synthese depassent a
+  // eux seuls la hauteur disponible. La liste, seule zone extensible, etait
+  // donc ecrasee a zero, et les blocs `shrink-0` debordaient d'une racine a
+  // hauteur fixe — invisibles derriere la barre de navigation et impossibles a
+  // atteindre. D'ou « ça ne scroll plus après Remises ».
+  //
+  // A partir de 640 px les cartes se remettent en ligne, les en-tetes rentrent,
+  // et la mise en page d'origine reprend a l'identique.
   return (
-    <div className="animate-in fade-in space-y-4 h-[calc(100vh-140px)] flex flex-col">
+    <div className="animate-in fade-in space-y-4 flex flex-col sm:h-[calc(100vh-140px)]">
       {!storeName && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-sm p-3 flex items-start gap-2 text-amber-200 text-sm shrink-0">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -153,14 +166,14 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
         </div>
       </div>
 
-      <div className={`${adminUi.surface} flex-1 min-h-0 overflow-hidden flex flex-col`}>
+      <div className={`${adminUi.surface} flex flex-col sm:flex-1 sm:min-h-0 sm:overflow-hidden`}>
         <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2 shrink-0">
           <Receipt className="h-4 w-4 text-xeption-gold" />
           <h3 className={adminUi.cardTitle}>Détail des ventes</h3>
         </div>
 
         {loading ? (
-          <div className="flex-1 flex items-center justify-center text-white/50">
+          <div className="py-10 sm:py-0 flex-1 flex items-center justify-center text-white/50">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : sales.length === 0 ? (
@@ -168,7 +181,7 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
             Aucune vente enregistrée pour cette journée.
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="overflow-x-auto sm:flex-1 sm:overflow-y-auto custom-scrollbar">
             <table className="w-full text-left border-collapse min-w-[720px]">
               <thead className={adminUi.tableHead}>
                 <tr>

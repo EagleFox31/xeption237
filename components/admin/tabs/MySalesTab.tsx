@@ -59,10 +59,25 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 shrink-0">
+      {/*
+        TELEPHONE (< 640 px) : deux rangees franches plutot qu'un retour a la
+        ligne subi. Les trois elements ne tenaient sur une ligne qu'a une
+        dizaine de pixels pres ; passe ce seuil, le bouton basculait sous le
+        champ sans partager son bord gauche, et le champ de date s'arretait au
+        milieu. Resultat : un bloc en escalier.
+
+        Rangee 1 : « Jour » a gauche, le champ occupe tout le reste.
+        Rangee 2 : « Aujourd'hui » a gauche, le vendeur a droite.
+        Les deux rangees butent donc sur les memes bords.
+
+        `sm:contents` fait disparaitre la rangee 2 de la mise en page des 640 px :
+        bouton et nom redeviennent enfants directs du flex parent, et l'affichage
+        d'origine est restitue tel quel.
+      */}
+      <div className="flex flex-col gap-2 shrink-0 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
         <label className="flex items-center gap-2 text-sm text-white/80">
-          <Calendar className="h-4 w-4 text-xeption-gold" />
-          <span className="font-medium">Jour</span>
+          <Calendar className="h-4 w-4 text-xeption-gold shrink-0" />
+          <span className="font-medium shrink-0">Jour</span>
           <input
             type="date"
             value={formatDayInput(selectedDate)}
@@ -70,20 +85,22 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
               const [y, m, d] = e.target.value.split('-').map(Number);
               if (y && m && d) onDateChange(new Date(y, m - 1, d));
             }}
-            className="bg-black/50 border border-white/20 text-white px-3 py-2 rounded-sm text-sm focus:border-xeption-gold outline-none"
+            className="flex-1 min-w-0 sm:flex-initial sm:min-w-[auto] bg-black/50 border border-white/20 text-white px-3 py-2 rounded-sm text-sm focus:border-xeption-gold outline-none"
           />
         </label>
-        <button
-          type="button"
-          onClick={() => onDateChange(new Date())}
-          className={`${adminUi.btnGhost} text-xs`}
-        >
-          Aujourd&apos;hui
-        </button>
-        <span className="text-xs text-white/50 ml-auto">
-          {staffName}
-          {storeName ? ` · ${storeName}` : ''}
-        </span>
+        <div className="flex items-center justify-between gap-3 sm:contents">
+          <button
+            type="button"
+            onClick={() => onDateChange(new Date())}
+            className={`${adminUi.btnGhost} text-xs`}
+          >
+            Aujourd&apos;hui
+          </button>
+          <span className="text-xs text-white/50 sm:ml-auto">
+            {staffName}
+            {storeName ? ` · ${storeName}` : ''}
+          </span>
+        </div>
       </div>
 
       {(targetsLoading || targetProgress) && (

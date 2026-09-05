@@ -64,7 +64,7 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
   // A partir de 640 px les cartes se remettent en ligne, les en-tetes rentrent,
   // et la mise en page d'origine reprend a l'identique.
   return (
-    <div className="animate-in fade-in space-y-4 flex flex-col sm:h-[calc(100vh-140px)]">
+    <div className="animate-in fade-in space-y-4 flex flex-col sm:h-[calc(100dvh-264px)] md:h-[calc(100vh-140px)]">
       {!storeName && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-sm p-3 flex items-start gap-2 text-amber-200 text-sm shrink-0">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -182,7 +182,64 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
           </div>
         ) : (
           <div className="overflow-x-auto sm:flex-1 sm:overflow-y-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[720px]">
+            {/*
+              TELEPHONE (< 768 px) : cartes plutot que les six colonnes du
+              tableau. Le detail des articles est ce qu'on vient verifier apres
+              une vente ; en tableau il est comprime dans une colonne de 220 px
+              qu'il faut atteindre en faisant glisser.
+            */}
+            <div className="divide-y divide-white/5 md:hidden">
+              {sales.map((sale) => (
+                <div key={sale.orderId} className="p-3">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-mono text-xs font-bold text-xeption-gold">
+                      #{sale.orderId}
+                    </span>
+                    <span className="font-mono text-sm font-bold text-white">
+                      {sale.total.toLocaleString('fr-FR')} F
+                    </span>
+                  </div>
+
+                  <p className="mt-1 text-sm font-medium text-white">
+                    {sale.customerName}
+                    {sale.customerPhone && (
+                      <span className="ml-2 text-[11px] font-normal text-white/55">
+                        {sale.customerPhone}
+                      </span>
+                    )}
+                  </p>
+
+                  {sale.items.length > 0 ? (
+                    <ul className="mt-1.5 space-y-0.5 text-[11px] text-white/75">
+                      {sale.items.map((item) => (
+                        <li key={item.id} className="truncate">
+                          {item.quantity}× {item.name}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1.5 text-[11px] text-white/75">
+                      {sale.itemCount} article(s)
+                    </p>
+                  )}
+
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-white/55">
+                    <span>{formatTime(sale.saleDate)}</span>
+                    <span aria-hidden>·</span>
+                    <span>{getPaymentMethodLabel(sale.paymentMethod)}</span>
+                    <span aria-hidden>·</span>
+                    <span>{getOrderStatusLabel(sale.status as Order['status'])}</span>
+                    {sale.discountAmount > 0 && (
+                      <span className="text-amber-300">
+                        −{sale.discountAmount.toLocaleString('fr-FR')} remise
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <table className="hidden w-full text-left border-collapse min-w-[720px] md:table">
               <thead className={adminUi.tableHead}>
                 <tr>
                   <th className="px-4 py-3">Heure</th>

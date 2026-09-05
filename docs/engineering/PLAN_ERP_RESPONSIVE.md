@@ -126,3 +126,21 @@ qui compare « avant / après » en réintroduisant l'ancienne classe mesure alo
 élément sans style, et produit un résultat qui semble spectaculaire mais ne veut
 rien dire. Vérifier la présence de la règle dans `dist/assets/*.css` avant de
 tirer une conclusion d'une comparaison.
+
+### Cartes sur téléphone — appliqué le 2026-09-06
+
+Corriger la hauteur rendait les tableaux *utilisables* ; elle ne réglait pas ce
+que ce plan reprochait au défilement horizontal : sur 1100 px de large, on perd
+la colonne « Réf. » dès qu'on va chercher le montant à droite.
+
+`OrdersTab`, `MySalesTab` et `ClientsTab` reçoivent donc la vue cartes déjà en
+place dans `InventoryTab` : liste `md:hidden`, tableau `hidden md:table`.
+
+Point d'attention pour `OrdersTab` : ses boutons d'action forment une cascade de
+~140 lignes dépendant de sept statuts. Ils ont été **extraits** en
+`renderOrderActions` et `renderInvoiceActions`, appelés par la ligne de tableau
+comme par la carte. Recopier ce bloc aurait créé deux versions du flux de
+commande, qui auraient divergé à la première évolution.
+
+Vérifié dans Chrome sur le CSS produit — bascule à 768 px, aucun débordement
+horizontal de page à 360, 412, 700, 768, 900 et 1280 px.

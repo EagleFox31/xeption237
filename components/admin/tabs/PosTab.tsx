@@ -174,7 +174,7 @@ const PosTab: React.FC<PosTabProps> = ({
   // ligne de caisse, la file hors ligne et la bascule catalogue/panier, l'ecart
   // de 24 px mangeait une bonne part de la hauteur utile.
   return (
-    <div className="animate-in fade-in h-[calc(100dvh-200px)] min-h-[380px] sm:h-[calc(100vh-140px)] sm:min-h-0 md:h-[calc(100vh-100px)] flex flex-col lg:grid lg:grid-cols-3 gap-2 lg:gap-6 relative">
+    <div className="animate-in fade-in h-[calc(100dvh-200px)] min-h-[380px] sm:h-[calc(100dvh-264px)] sm:min-h-0 md:h-[calc(100vh-100px)] flex flex-col lg:grid lg:grid-cols-3 gap-2 lg:gap-6 relative">
         {!hasStore && (
           <div className="lg:col-span-3 bg-amber-500/10 border border-amber-500/30 rounded-sm p-2 text-xs flex items-start gap-2 text-amber-200 shrink-0 lg:p-3 lg:text-sm">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />

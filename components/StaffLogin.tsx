@@ -85,9 +85,21 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin, mode = 'erp' }) => {
   const captchaRef = useRef<HCaptcha>(null);
   const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isCaptchaRequired =
-    typeof window !== 'undefined' &&
-    !['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+  /*
+   * Le captcha est exige PARTOUT, y compris en local.
+   *
+   * Cette exemption pour localhost supposait que Bot Protection serait desactive
+   * en developpement. Ce n'est pas le cas : verifie le 2026-08-26, les trois
+   * points d'entree Auth de Supabase repondent 400 `captcha_failed` sans jeton.
+   *
+   * Consequence de l'exemption : en local, le widget n'etait pas affiche, aucun
+   * jeton n'etait envoye, et Supabase refusait la connexion. Impossible d'ouvrir
+   * l'ERP sur sa machine — donc impossible d'y tester quoi que ce soit.
+   *
+   * Un reglage vaut pour tout le projet : le code doit s'y conformer partout,
+   * pas parier sur un environnement ou il serait leve.
+   */
+  const isCaptchaRequired = true;
 
   const isStudio = mode === 'studio';
 
@@ -149,10 +161,9 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin, mode = 'erp' }) => {
       return 'Erreur Auth Supabase lors du chargement du compte. Vérifiez auth.users ou les hooks Auth.';
     }
     if (msg.includes('captcha')) {
-      if (!isCaptchaRequired) {
-        return 'Captcha actif côté Supabase : en local, désactivez Bot Protection ou configurez une clé de test.';
-      }
-      return 'Captcha invalide — réessayez.';
+      // Le captcha est desormais exige partout : si le widget n'a pas pu se
+      // charger, c'est le domaine qui n'est pas autorise chez hCaptcha.
+      return 'Captcha refusé. Si le problème persiste, vérifiez que ce domaine est autorisé dans le tableau de bord hCaptcha.';
     }
     if (msg.includes('email not confirmed')) return 'Email non confirmé. Validez d’abord le mail de confirmation.';
     if (msg.includes('invalid login credentials') || msg.includes('invalid_grant')) {

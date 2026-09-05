@@ -11,8 +11,12 @@ export const adminUi = {
     'bg-black/25 backdrop-blur-md border border-white/10 rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.15)]',
   surfaceHover: 'hover:border-white/20 transition-colors duration-200',
   card: 'bg-black/25 backdrop-blur-md border border-white/10 rounded-lg p-5 md:p-6',
+  // La carte doree n'existe qu'a partir de 640 px. Au telephone elle ne portait
+  // plus qu'un titre deja lu dans la barre de navigation, et volait de la
+  // hauteur a la page. Le conteneur reste (il abrite les actions), son decor
+  // part. Seul AdminPageHeader consomme ce jeton.
   pageHeaderCard:
-    'relative overflow-hidden bg-xeption-gold border border-black/15 rounded-lg px-4 py-2 md:px-5 md:py-2.5 shadow-[0_4px_28px_rgba(255,215,0,0.28)]',
+    'relative overflow-hidden rounded-lg sm:bg-xeption-gold sm:border sm:border-black/15 sm:px-4 sm:py-2 md:px-5 md:py-2.5 sm:shadow-[0_4px_28px_rgba(255,215,0,0.28)]',
   pageHeaderTitle: 'text-black font-tech font-bold uppercase tracking-tight',
   pageHeaderDesc: 'text-sm text-black/75',
   btnOnGold:

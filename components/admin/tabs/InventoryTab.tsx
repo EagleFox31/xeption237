@@ -154,7 +154,103 @@ const InventoryTab: React.FC<InventoryTabProps> = ({
             </>
           }
         >
-          <table className="w-full text-left border-collapse min-w-[800px]">
+          {/*
+            MOBILE : une carte par produit, empilee.
+            Le tableau fait min-w-[800px] : sur un ecran de 412 px il deborde, et
+            un commercial debout devant un client perd la colonne de gauche des
+            qu'il glisse vers la droite. Les deux rendus lisent le meme tableau
+            d'objets, donc rien ne peut diverger entre eux.
+          */}
+          <div className="flex flex-col gap-2 md:hidden">
+            {displayedProducts.length === 0 ? (
+              <p className="px-2 py-8 text-center text-sm text-white/50">
+                Aucun produit pour ces filtres.
+              </p>
+            ) : (
+              displayedProducts.map((product) => {
+                const displayName = product.name?.trim() || 'Produit sans nom';
+                const incomplete = isIncompleteProduct(product);
+                return (
+                  <div
+                    key={product.id}
+                    className="rounded-lg border border-white/10 bg-white/[0.03] p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="h-12 w-12 shrink-0 rounded border border-white/10 bg-black p-1">
+                        <img
+                          src={productThumbSrc(product.image)}
+                          className="h-full w-full object-contain"
+                          alt={displayName}
+                          onError={(e) => { e.currentTarget.src = PRODUCT_THUMB_FALLBACK; }}
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-bold leading-snug ${incomplete ? 'text-amber-300' : 'text-white'}`}>
+                          {displayName}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-white/55">
+                          {labelCategory(product.category, categories)}
+                          {labelBrand(product, brands) ? ` · ${labelBrand(product, brands)}` : ''}
+                        </p>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-sm text-white">
+                            {product.price.toLocaleString()}
+                          </span>
+                          {/* Le stock est l'information qu'on vient chercher en
+                              boutique : il reste lisible d'un coup d'oeil. */}
+                          <span
+                            className={`rounded px-2 py-0.5 text-xs font-bold ${
+                              product.stock > 5
+                                ? 'bg-emerald-500/15 text-emerald-300'
+                                : product.stock > 0
+                                  ? 'bg-amber-500/15 text-amber-300'
+                                  : 'bg-red-500/15 text-red-300'
+                            }`}
+                          >
+                            {product.stock} en stock
+                          </span>
+                          {product.isFeatured && (
+                            <span className="rounded bg-xeption-gold/15 px-2 py-0.5 text-xs font-bold text-xeption-gold">
+                              A la une
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex gap-2 border-t border-white/10 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => onToggleFeatured(product)}
+                        className="flex-1 rounded-md border border-white/15 py-2 text-xs font-tech font-bold uppercase tracking-wider text-white/80"
+                      >
+                        {product.isFeatured ? 'Retirer de la une' : 'Mettre a la une'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onEditProduct(product)}
+                        className="rounded-md border border-white/15 px-4 py-2 text-xs font-tech font-bold uppercase tracking-wider text-xeption-gold"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteProduct(product.id)}
+                        aria-label="Supprimer le produit"
+                        className="rounded-md border border-red-500/30 px-3 py-2 text-xs font-bold text-red-300"
+                      >
+                        Suppr.
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <table className="hidden w-full text-left border-collapse min-w-[800px] md:table">
             <thead className={adminUi.tableHead}>
               <tr>
                 <th className="px-6 py-4">Produit</th>

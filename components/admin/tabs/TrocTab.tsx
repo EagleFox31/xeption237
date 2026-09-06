@@ -283,6 +283,88 @@ export const TrocTab: React.FC<TrocTabProps> = ({
 
   const isRefreshing = isLoadingPayments;
 
+  // Pastille de statut d'un dossier, partagee entre la ligne de tableau et la
+  // carte telephone : la cascade de couleurs par statut ne doit exister qu'ici.
+  const renderTrocStatus = (req: TradeInRequest | null) => (
+    <>
+                      {req ? (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+                          req.status === 'in_progress'
+                            ? 'bg-sky-500/20 text-sky-300'
+                            : req.status === 'pending'
+                            ? 'bg-yellow-500/20 text-yellow-400'
+                            : req.status === 'accepted'
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : req.status === 'validated'
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : req.status === 'completed'
+                                    ? 'bg-neutral-500/20 text-neutral-400'
+                                    : 'bg-red-500/20 text-red-400'
+                          }`}
+                        >
+                          {STATUS_LABELS[req.status] ?? req.status}
+                        </span>
+                        {(req.status === 'pending' || req.status === 'accepted' || req.status === 'validated') && (
+                          <VoucherExpiryBadge request={req} />
+                        )}
+                        </div>
+                      ) : (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300">
+                          Bon non émis
+                        </span>
+                      )}
+    </>
+  );
+
+  // Actions d'un dossier troc, extraites pour etre rendues A L'IDENTIQUE dans la
+  // ligne de tableau (>= 768 px) et dans la carte telephone. Elles dependent du
+  // statut du dossier : deux copies auraient diverge.
+  const renderTrocActions = (req: TradeInRequest | null) => (
+    <>
+                      {req ? (
+                        <div className="flex items-center justify-end gap-1">
+                          {(req.status === 'pending' || req.status === 'accepted') && (
+                            <button
+                              type="button"
+                              onClick={() => runTransition(req.id, 'validated')}
+                              title="Valider l'échange"
+                              aria-label="Valider l'échange"
+                              className="p-1.5 rounded border border-green-600/30 bg-green-600/20 text-green-400 hover:bg-green-600/40 transition-all"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                          )}
+                          {req.status === 'validated' && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRequest(req)}
+                              title="Terminer l'échange"
+                              aria-label="Terminer l'échange"
+                              className="p-1.5 rounded border border-blue-600/30 bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-all"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {(req.status === 'pending' || req.status === 'accepted') && (
+                            <button
+                              type="button"
+                              onClick={() => runTransition(req.id, 'refused')}
+                              title="Refuser l'échange"
+                              aria-label="Refuser l'échange"
+                              className="p-1.5 rounded border border-red-600/30 bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-all"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-white/30 text-xs">—</span>
+                      )}
+    </>
+  );
+
   return (
     <div className="animate-in fade-in h-full min-h-0 flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3 shrink-0 text-xs text-white">
@@ -390,7 +472,134 @@ export const TrocTab: React.FC<TrocTabProps> = ({
             </div>
           }
         >
-          <table className="w-full text-left border-collapse min-w-[1280px]">
+          {/*
+            TELEPHONE (< 768 px) : cartes. Ce tableau compte QUATORZE colonnes et
+            fait 1280 px — le plus large du projet. Le faire glisser du pouce
+            revient a perdre la reference et le client des qu'on regarde le reste
+            a payer, c'est-a-dire au moment precis ou l'on parle au client.
+
+            La carte remonte ce qu'on vient chercher : reference, client,
+            appareil, valeur de reprise et reste a payer. Le reste — palier,
+            frais de service, canal, score, qualite — passe en pied de carte.
+
+            Statut et boutons viennent des MEMES fonctions que la ligne de
+            tableau.
+          */}
+          <div className="divide-y divide-white/5 md:hidden">
+            {filtered.length === 0 && (
+              <p className="px-4 py-10 text-center text-sm text-white/50">
+                Aucun dossier trouvé.
+              </p>
+            )}
+            {filtered.map((row) => {
+              const req = row.request;
+              const pay = row.payment;
+              const session = row.session;
+
+              const displayName = req?.customer_name ?? pay?.customer_name ?? '—';
+              const formPhone = req?.customer_phone ?? pay?.customer_phone;
+              const payPhone = pay?.phone;
+              const showPayPhone = payPhone && formPhone && !phonesMatch(payPhone, formPhone);
+
+              return (
+                <div
+                  key={row.id}
+                  onClick={req ? () => setSelectedRequest(req) : undefined}
+                  className={`p-3 ${req ? 'cursor-pointer active:bg-white/10' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-white/60">
+                        {req?.voucher_reference ?? req?.id?.slice(0, 8) ?? '—'}
+                      </p>
+                      <p className="mt-0.5 truncate text-sm font-medium text-white">{displayName}</p>
+                      {formPhone && <p className="text-[11px] text-white/50">{formPhone}</p>}
+                      {showPayPhone && (
+                        <p className="text-[10px] text-white/40">Numéro payeur : {payPhone}</p>
+                      )}
+                      {!formPhone && payPhone && (
+                        <p className="text-[11px] text-white/50">{payPhone}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right">{renderTrocStatus(req)}</div>
+                  </div>
+
+                  <div className="mt-2 text-[12px] leading-snug">
+                    {req ? (
+                      <>
+                        <p className="text-white">{req.device_brand} {req.device_model}</p>
+                        {(req.device_storage || req.device_ram) && (
+                          <p className="text-[11px] text-white/50">
+                            {[req.device_storage, req.device_ram].filter(Boolean).join(' / ')}
+                          </p>
+                        )}
+                        {req.target_product_name && (
+                          <p className="mt-0.5 text-[11px] text-xeption-gold/90">
+                            <span className="text-white/40">échange contre</span>{' '}
+                            {req.target_product_name}
+                          </p>
+                        )}
+                      </>
+                    ) : session?.device_brand && session?.device_model ? (
+                      <p className="text-white">{session.device_brand} {session.device_model}</p>
+                    ) : (
+                      <p className="text-white/40">Appareil non renseigné</p>
+                    )}
+                  </div>
+
+                  {/* Les deux chiffres de la conversation avec le client. */}
+                  <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
+                    <span className="text-white/50">
+                      Reprise{' '}
+                      <span className="font-medium tabular-nums text-xeption-gold">
+                        {req ? formatFCFA(req.trade_in_value) : '—'}
+                      </span>
+                    </span>
+                    <span className="text-white/50">
+                      Reste à payer <span className="tabular-nums">{renderResteAPayer(req)}</span>
+                    </span>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-white/50">
+                    <TierBadge tier={row.tier} />
+                    {pay && (
+                      <>
+                        <span className="tabular-nums text-white/70">
+                          {formatXaf(Number(pay.amount))} {pay.currency}
+                        </span>
+                        <PaymentStatusBadge status={pay.status} />
+                        <PaymentChannelBadge channel={pay.channel} />
+                      </>
+                    )}
+                    {req?.ai_score != null && (
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold ${SCORE_COLOR_CLASSES[req.ai_score_color ?? 'red']}`}
+                      >
+                        {req.ai_score}/100
+                      </span>
+                    )}
+                    {req?.trade_in_grade && (
+                      <span>{TRADE_IN_GRADE_LABELS[req.trade_in_grade] ?? req.trade_in_grade}</span>
+                    )}
+                    <span className="ml-auto">
+                      {req ? formatDate(req.created_at) : formatDate(pay?.created_at ?? '')}
+                    </span>
+                  </div>
+
+                  {req && (
+                    <div
+                      className="mt-2 flex items-center justify-end gap-1 border-t border-white/10 pt-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {renderTrocActions(req)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <table className="hidden w-full text-left border-collapse min-w-[1280px] md:table">
             <thead className="sticky top-0 z-20 bg-[#0c0c0e] text-white/60 text-xs uppercase tracking-wider shadow-md">
               <tr>
                 <th className="px-4 py-3">Référence</th>
@@ -546,75 +755,10 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                       {req ? formatDate(req.created_at) : formatDate(pay?.created_at ?? '')}
                     </td>
                     <td className="px-4 py-3">
-                      {req ? (
-                        <div className="flex flex-wrap items-center gap-1.5">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
-                          req.status === 'in_progress'
-                            ? 'bg-sky-500/20 text-sky-300'
-                            : req.status === 'pending'
-                            ? 'bg-yellow-500/20 text-yellow-400'
-                            : req.status === 'accepted'
-                                ? 'bg-blue-500/20 text-blue-400'
-                                : req.status === 'validated'
-                                  ? 'bg-green-500/20 text-green-400'
-                                  : req.status === 'completed'
-                                    ? 'bg-neutral-500/20 text-neutral-400'
-                                    : 'bg-red-500/20 text-red-400'
-                          }`}
-                        >
-                          {STATUS_LABELS[req.status] ?? req.status}
-                        </span>
-                        {(req.status === 'pending' || req.status === 'accepted' || req.status === 'validated') && (
-                          <VoucherExpiryBadge request={req} />
-                        )}
-                        </div>
-                      ) : (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300">
-                          Bon non émis
-                        </span>
-                      )}
+                      {renderTrocStatus(req)}
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      {req ? (
-                        <div className="flex items-center justify-end gap-1">
-                          {(req.status === 'pending' || req.status === 'accepted') && (
-                            <button
-                              type="button"
-                              onClick={() => runTransition(req.id, 'validated')}
-                              title="Valider l'échange"
-                              aria-label="Valider l'échange"
-                              className="p-1.5 rounded border border-green-600/30 bg-green-600/20 text-green-400 hover:bg-green-600/40 transition-all"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                          )}
-                          {req.status === 'validated' && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedRequest(req)}
-                              title="Terminer l'échange"
-                              aria-label="Terminer l'échange"
-                              className="p-1.5 rounded border border-blue-600/30 bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-all"
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
-                          )}
-                          {(req.status === 'pending' || req.status === 'accepted') && (
-                            <button
-                              type="button"
-                              onClick={() => runTransition(req.id, 'refused')}
-                              title="Refuser l'échange"
-                              aria-label="Refuser l'échange"
-                              className="p-1.5 rounded border border-red-600/30 bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-all"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-white/30 text-xs">—</span>
-                      )}
+                      {renderTrocActions(req)}
                     </td>
                   </tr>
                 );

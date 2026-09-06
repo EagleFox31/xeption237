@@ -144,3 +144,32 @@ commande, qui auraient divergé à la première évolution.
 
 Vérifié dans Chrome sur le CSS produit — bascule à 768 px, aucun débordement
 horizontal de page à 360, 412, 700, 768, 900 et 1280 px.
+
+### Troc — 2026-09-06
+
+`TrocTab` avait le pire cas du projet : **quatorze colonnes, 1280 px**. Vue cartes
+ajoutée sur le même motif. Deux extractions plutôt qu'une, parce que la ligne
+portait deux blocs à logique :
+
+- `renderTrocActions` — boutons valider / terminer / refuser, selon le statut ;
+- `renderTrocStatus` — la pastille et sa cascade de couleurs par statut, plus le
+  badge d'expiration de bon.
+
+La carte remonte ce qu'on vient chercher devant un client — référence, client,
+appareil, **valeur de reprise et reste à payer** — et renvoie en pied le palier,
+les frais de service, le canal, le score et la qualité.
+
+`TrocWorkspaceTab` porte la hauteur (TrocTab est en `h-full`). Sa valeur bureau
+propre est `-132px` et non `-140` : conservée telle quelle au-dessus de 768 px.
+
+### État des lieux des 16 onglets à tableau
+
+| onglet | cartes mobile | hauteur |
+|---|---|---|
+| ClientsTab, InventoryTab, MySalesTab, OrdersTab, TrocTab | oui | corrigée |
+| DeliveryTab, InvoicesTab, StaffTab | non | corrigée |
+| ArgusTab, BrandsTab, CategoriesTab, DashboardTab, MarketReferenceTab, QaRecetteTab, StockMovementsTab, StoresTab | non | flux normal, pas de hauteur imposée |
+
+Les huit derniers n'ont pas de hauteur fixe : leurs tableaux défilent dans
+`TableShell` ou dans leur propre `overflow-x-auto`, sans blocage. Aucun n'est
+visible par un commercial (`TAB_MIN_ROLE`). À traiter si l'usage le demande.

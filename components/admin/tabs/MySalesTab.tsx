@@ -135,9 +135,18 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
           ) : targetProgress ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <TargetProgressCard title="Objectif du jour" slice={targetProgress.daily} />
-              <TargetProgressCard title="Objectif du mois" slice={targetProgress.monthly} />
+            /* Seules les periodes reellement fixees sont affichees : un vendeur
+               suivi au mois n'a pas a lire deux cartes vides sur son telephone. */
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {targetProgress.daily && (
+                <TargetProgressCard title="Objectif du jour" slice={targetProgress.daily} />
+              )}
+              {targetProgress.weekly && (
+                <TargetProgressCard title="Objectif de la semaine" slice={targetProgress.weekly} />
+              )}
+              {targetProgress.monthly && (
+                <TargetProgressCard title="Objectif du mois" slice={targetProgress.monthly} />
+              )}
             </div>
           ) : null}
         </div>

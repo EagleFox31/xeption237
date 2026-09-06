@@ -34,18 +34,20 @@ export const VoucherExpiryBadge: React.FC<{
       cls: 'bg-green-500/15 text-green-300 border-green-500/30',
     },
     grace: {
-      // graceLeft == 0 : dernier jour de tolerance. « encore 0 j » se lisait
-      // comme « plus rien » alors que le bon est encore honorable aujourd’hui.
+      // Ce badge dit l'ACTION et son delai, pas l'etat. « Expiré, encore 4 j »
+      // se contredisait : expire de quoi, encore quoi ? Ce que le vendeur doit
+      // savoir tient en une phrase — le bon est en retard, il peut encore etre
+      // honore, et voici jusqu'a quand.
       label:
         graceLeft === 0
-          ? 'Expiré, dernier jour'
-          : `Expiré, encore ${graceLeft} j`,
-      titre: `Échéance dépassée, mais le bon reste honoré ${graceLeft} jour(s) — la clôture exigera un motif`,
+          ? 'À honorer aujourd’hui'
+          : `À honorer sous ${graceLeft} j`,
+      titre: `Bon en retard : sa date est passée, mais il reste honoré encore ${graceLeft} jour(s). Au-delà, le crédit devra être réévalué. La clôture demandera un motif.`,
       cls: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
     },
     stale: {
-      label: 'Expiré',
-      titre: 'Délai de grâce écoulé : le crédit doit être réévalué avant toute clôture',
+      label: 'Expiré — à réévaluer',
+      titre: 'Délai de grâce écoulé : ce bon ne peut plus être honoré tel quel, le crédit doit être réévalué avant toute clôture',
       cls: 'bg-red-500/15 text-red-300 border-red-500/30',
     },
   };

@@ -77,7 +77,10 @@ const TableShell: React.FC<TableShellProps> = ({
       <div className="shrink-0 border-b border-white/10 bg-black/30 backdrop-blur-sm px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           {hasSearch && (
-            <div className="relative flex-1 min-w-[10rem] max-w-md">
+            /* `basis-full` au telephone : la recherche occupe sa propre rangee,
+               ce qui rend deterministe le placement des controles suivants —
+               sinon leur repartition depend de la longueur des libelles. */
+            <div className="relative basis-full flex-1 min-w-[10rem] max-w-md md:basis-auto">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none"
                 aria-hidden

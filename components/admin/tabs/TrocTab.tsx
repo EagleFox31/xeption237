@@ -422,14 +422,20 @@ export const TrocTab: React.FC<TrocTabProps> = ({
           <button
             type="button"
             onClick={() => setShowFunnel((v) => !v)}
-            className="col-span-2 justify-self-end text-[10px] font-tech uppercase tracking-widest text-white/70 hover:text-white transition-colors md:col-span-1 md:ml-0"
+            className="hidden text-[10px] font-tech uppercase tracking-widest text-white/70 transition-colors hover:text-white md:block md:ml-0"
           >
             Funnel {showFunnel ? '▲' : '▼'}
           </button>
         )}
       </div>
 
-      {showFunnel && <FunnelStrip sessions={sessions} />}
+      {/* Funnel : bureau seulement. C'est une lecture d'analyse sur 30 jours, pas
+          un geste de boutique, et sa ligne coutait une rangee au telephone. */}
+      {showFunnel && (
+        <div className="hidden md:block">
+          <FunnelStrip sessions={sessions} />
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 relative">
         <TableShell
@@ -443,11 +449,15 @@ export const TrocTab: React.FC<TrocTabProps> = ({
           resultCount={filtered.length}
           resultLabel="dossier"
           toolbarAddon={
-            <div className="flex items-center gap-2 flex-wrap">
+            /* TELEPHONE : `contents` — les trois controles deviennent enfants
+               directs de la barre d'outils, et peuvent donc s'appairer avec le
+               filtre de statut et le compteur au lieu d'occuper leurs propres
+               rangees. Des 768 px le conteneur reprend sa forme d'origine. */
+            <div className="contents md:flex md:flex-wrap md:items-center md:gap-2">
               <select
                 value={paymentFilter}
                 onChange={(e) => setPaymentFilter(e.target.value as PaymentFilterValue)}
-                className="bg-black/60 border border-white/25 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm outline-none focus:border-xeption-gold cursor-pointer"
+                className="basis-[calc(50%-0.25rem)] min-w-0 md:basis-auto bg-black/60 border border-white/25 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm outline-none focus:border-xeption-gold cursor-pointer"
                 aria-label="Filtrer par statut paiement"
               >
                 {paymentFilterOptions.map((opt) => (
@@ -457,7 +467,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
               <select
                 value={tierFilter}
                 onChange={(e) => setTierFilter(e.target.value as TierFilterValue)}
-                className="bg-black/60 border border-white/25 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm outline-none focus:border-xeption-gold cursor-pointer"
+                className="basis-[calc(50%-0.25rem)] min-w-0 md:basis-auto bg-black/60 border border-white/25 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm outline-none focus:border-xeption-gold cursor-pointer"
                 aria-label="Filtrer par palier"
               >
                 {tierFilterOptions.map((opt) => (

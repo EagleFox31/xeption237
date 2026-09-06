@@ -60,6 +60,13 @@ Elles ne sont écrites nulle part ailleurs que dans le SQL. Extraites de
 pas la consigne. C'est ce qui permet de lire « atteint » chez l'un et « reste à
 faire » chez l'autre sans changer les règles.
 
+> ⚠️ **Tous les chiffres qui suivent sont inventés.** Objectifs, seuils et
+> montants de prime n'ont été validés par personne : ils ne figurent ni dans
+> `ROADMAP_ERP.md` §7, ni dans UC-V-03 ou UC-D-04, ni ailleurs dans le dépôt.
+> Je les ai choisis pour que le jeu produise un vendeur au-dessus de son objectif
+> et un autre en dessous. Ils servent à vérifier que **le mécanisme** marche —
+> pas à être repris en production. Voir « Ce qu'il reste à demander au boss ».
+
 | portée | période | cible |
 |---|---|---|
 | chaque vendeur | jour | 300 000 F |
@@ -215,6 +222,25 @@ l'ordre inverse des règles en base et deux règles au même seuil.
 L'écran de la direction dit désormais le montant : « Prime 30 000 · Dépassement »
 en tête de fiche, et le palier franchi mais non versé apparaît **barré** plutôt
 qu'en vert. C'est ce vert-là qui laissait croire au cumul.
+
+## Ce qu'il reste à demander au boss
+
+Le mécanisme est vérifié ; les valeurs, non. Quatre questions, dans l'ordre où
+elles bloquent :
+
+1. **Les objectifs.** Combien par vendeur et par jour, combien par mois ? Les
+   mêmes pour tout le monde, ou par boutique et par ancienneté ? (Ici : 300 000
+   par jour et 1 000 000 par mois, choisis au hasard.)
+2. **Les seuils de prime.** Trois paliers à 100 / 120 / 150 %, ou un seul à
+   100 % ? Trois paliers créent une marche de 15 000 F entre 119 % et 120 %, ce
+   qui pousse à décaler une vente d'un jour sur l'autre.
+3. **Les montants.** C'est de l'argent réel versé chaque mois — la question la
+   plus lourde des quatre, et la seule sur laquelle je n'ai aucune base.
+4. **Objectif de boutique : à quoi sert-il ?** Le système le calcule mais aucune
+   prime n'y est rattachée : les primes se lisent sur l'objectif du vendeur
+   uniquement. Est-ce un simple indicateur, ou faut-il une prime d'équipe ?
+
+Tant qu'elles ne sont pas tranchées, le jeu d'essai reste un jeu d'essai.
 
 ## Ce que ce test ne couvre pas
 - **Les objectifs de boutique quand plusieurs vendeurs y travaillent.** Ici un

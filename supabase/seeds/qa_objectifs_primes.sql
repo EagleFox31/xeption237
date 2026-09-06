@@ -7,6 +7,19 @@
 -- IDENTIFIANTS FIXES : rejouable a volonte, et le nettoyage
 -- (qa_objectifs_primes_rollback.sql) ne touche que ces lignes.
 --
+-- =============================================================================
+-- ⚠ TOUS LES CHIFFRES DE CE FICHIER SONT INVENTES
+--
+-- Objectifs (300 000 / 1 000 000 / 350 000 / 1 200 000), seuils de prime
+-- (100 / 120 / 150 %) et montants (15 000 / 30 000 / 60 000) n'ont ete valides
+-- par PERSONNE. Ils ne figurent ni dans ROADMAP_ERP.md §7, ni dans UC-V-03 ou
+-- UC-D-04, ni ailleurs : je les ai choisis pour que le jeu d'essai produise un
+-- vendeur au-dessus de son objectif et un autre en dessous.
+--
+-- Ils servent a verifier que LE MECANISME fonctionne. Ne pas les recopier en
+-- production : les vraies valeurs doivent venir de la direction.
+-- =============================================================================
+--
 -- ATTENTION — ces commandes entrent dans le VRAI chiffre d'affaires : elles
 -- apparaitront au tableau de bord et dans « Mes ventes » tant qu'elles sont la.
 --
@@ -57,6 +70,7 @@ ON CONFLICT (id) DO UPDATE
   SET name = EXCLUDED.name, email = EXCLUDED.email, role = EXCLUDED.role, store_id = EXCLUDED.store_id;
 
 -- ── 3. Objectifs ─────────────────────────────────────────────────────────────
+-- Montants INVENTES (voir le bandeau en tete du fichier).
 -- Volontairement asymetriques dans le RESULTAT, pas dans la consigne : les deux
 -- vendeurs ont la meme cible, seul leur chiffre differe. C'est ce qui permet de
 -- lire « atteint » chez l'un et « reste a faire » chez l'autre.
@@ -71,6 +85,8 @@ INSERT INTO public.sales_targets (id, scope_type, staff_id, store_id, period_kin
   ('00000000-0000-4000-c000-000000000c08','store',NULL,'00000000-0000-4000-a000-000000000a02','monthly', 1200000, true);
 
 -- ── 4. Primes ────────────────────────────────────────────────────────────────
+-- Seuils et montants INVENTES (voir le bandeau en tete du fichier). La regle de
+-- calcul, elle, est arbitree : pas de cumul.
 -- A savoir, verifie dans le code et non suppose :
 --   * les primes se calculent sur l'objectif MENSUEL uniquement
 --     (`monthly_bonuses`). Depasser l'objectif du jour n'en declenche aucune ;

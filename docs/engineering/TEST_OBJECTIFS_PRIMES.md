@@ -35,10 +35,10 @@ Elles ne sont écrites nulle part ailleurs que dans le SQL. Extraites de
    `failed`, et **tout identifiant commençant par `TEST-`** (mode essai caisse).
 3. **Les primes se calculent sur l'objectif MENSUEL uniquement.** Dépasser
    l'objectif du jour n'en déclenche aucune.
-4. **Chaque palier est évalué indépendamment** : à 130 %, les paliers 100 % et
-   120 % sont tous deux marqués « acquis » et s'affichent en vert. En revanche
-   **rien n'additionne les primes** — voir la section « Le montant dû n'existe
-   pas » plus bas.
+4. **Les paliers ne se cumulent pas.** La base marque chaque règle « atteinte
+   ou non » et s'arrête là ; c'est `awardedBonus` (`utils/salesTargets.ts`) qui
+   tranche : **seul le palier le plus haut atteint est versé**. À 130 %,
+   30 000 F et non 45 000.
 5. **Un `vendeur` ne voit que ses propres chiffres** : la fonction force
    `p_staff_id` sur l'appelant dès que son rôle est `vendeur`. Un `responsable`
    est limité à sa boutique. Seule la `direction` voit tout.
@@ -104,11 +104,9 @@ Calculés à la main depuis le tableau ci-dessus.
 | jour | 400 000 | 300 000 | **133,3 %** | atteint, reste 0 |
 | mois | 1 300 000 | 1 000 000 | **130,0 %** | atteint, reste 0 |
 
-Primes affichées : « Objectif atteint » ✅ 15 000 · « Dépassement » ✅ 30 000 ·
-« Performance except. » ❌.
-
-Le système s'arrête là : deux pastilles vertes. Il n'affiche **aucun total** —
-ni 45 000 (cumul), ni 30 000 (palier le plus haut). Voir ci-dessous.
+Paliers franchis : « Objectif atteint » (100 %) et « Dépassement » (120 %).
+**Prime versée : 30 000 F** — le palier 100 % apparaît barré, franchi mais non
+versé. « Performance except. » (150 %) n'est pas atteint.
 
 ### Brice Talla — Bastos
 
@@ -194,24 +192,29 @@ deux vendeurs sont à supprimer à la main dans Supabase → Authentication → 
 
 ---
 
-## Le montant dû n'existe pas
+## La règle de prime : paliers exclusifs
 
-Constat vérifié dans le code, pas supposé : `get_sales_targets_progress` renvoie
-pour chaque règle un booléen `earned`, et `SalesTargetsTab` affiche une pastille
-par règle, verte si acquise. **Aucune addition nulle part** — ni en SQL, ni dans
-l'interface.
+Elle n'existait nulle part avant le 2026-09-06. Ni `ROADMAP_ERP.md` §7, ni
+UC-V-03, ni UC-D-04 ne disent ce qu'on **verse** : ils décrivent un tableau de
+bord — seuils, taux d'atteinte, voyants — et s'arrêtent là. La base, de son côté,
+se contente de marquer chaque règle « atteinte ou non ».
 
-La conséquence est une décision de gestion, pas un détail technique :
+Conséquence : deux personnes pouvaient lire le même écran et calculer deux paies
+différentes.
 
-| lecture | Awa à 130 % | quelqu'un à 150 % |
+| lecture | à 130 % | à 160 % |
 |---|---|---|
-| **cumulative** (on additionne les paliers atteints) | 45 000 F | 105 000 F |
-| **exclusive** (seul le palier le plus haut compte) | 30 000 F | 60 000 F |
+| cumulative | 45 000 F | 105 000 F |
+| **exclusive — retenue** | **30 000 F** | **60 000 F** |
 
-Le système affiche exactement la même chose dans les deux cas. Tant que la règle
-n'est pas tranchée, deux personnes peuvent lire le même écran et calculer des
-paies différentes. **À trancher avec la direction avant la première paie**, et à
-écrire ensuite — soit dans le libellé des règles, soit en affichant le total.
+**Arbitrage de la direction : exclusive.** Seul le palier le plus haut atteint
+est versé. La règle vit dans `awardedBonus` (`utils/salesTargets.ts`), en un seul
+endroit, et `scripts/qa-check-prime-palier.ts` la vérifie sur sept cas — dont
+l'ordre inverse des règles en base et deux règles au même seuil.
+
+L'écran de la direction dit désormais le montant : « Prime 30 000 · Dépassement »
+en tête de fiche, et le palier franchi mais non versé apparaît **barré** plutôt
+qu'en vert. C'est ce vert-là qui laissait croire au cumul.
 
 ## Ce que ce test ne couvre pas
 - **Les objectifs de boutique quand plusieurs vendeurs y travaillent.** Ici un

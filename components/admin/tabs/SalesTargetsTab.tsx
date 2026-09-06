@@ -14,6 +14,7 @@ import { normalizeStaffRole } from '../../../constants/staffRoles';
 import { adminUi } from '../shared/adminUi';
 import TargetProgressCard from '../targets/TargetProgressCard';
 import {
+  awardedBonus,
   formatFcfaShort,
   TARGET_REVENUE_HINT,
   type TargetPeriodKind,
@@ -379,9 +380,17 @@ const SalesTargetsTab: React.FC<SalesTargetsTabProps> = ({
                           <p className="text-[10px] text-white/50">{row.store_name}</p>
                         )}
                       </div>
-                      {row.monthly_bonuses.some((b) => b.earned) && (
-                        <span className="text-[10px] uppercase font-bold text-emerald-400">
-                          Prime débloquée
+                      {/* « Prime débloquée » ne disait pas COMBIEN, et laissait
+                          croire a un cumul quand plusieurs paliers etaient verts.
+                          On affiche le montant reellement du : un seul palier. */}
+                      {awardedBonus(row.monthly_bonuses) && (
+                        <span className="text-right">
+                          <span className="block text-[10px] uppercase font-bold text-emerald-400">
+                            Prime {formatFcfaShort(awardedBonus(row.monthly_bonuses)!.bonus_amount)}
+                          </span>
+                          <span className="block text-[10px] text-white/50">
+                            {awardedBonus(row.monthly_bonuses)!.label}
+                          </span>
                         </span>
                       )}
                     </div>
@@ -419,20 +428,37 @@ const SalesTargetsTab: React.FC<SalesTargetsTabProps> = ({
                         )}
                       </div>
                     </div>
+                    {/* Trois etats et non deux. « Atteint » sans etre verse est
+                        le cas que l'ancien affichage rendait trompeur : a 130 %,
+                        les paliers 100 % ET 120 % etaient verts, ce qui se lisait
+                        comme 45 000 F alors que 30 000 sont dus. */}
                     {row.monthly?.target_amount && row.monthly_bonuses.length > 0 && (
                       <div className="flex flex-wrap gap-2 pt-1">
-                        {row.monthly_bonuses.map((b) => (
-                          <span
-                            key={b.rule_id}
-                            className={`text-[10px] px-2 py-1 rounded-full border ${
-                              b.earned
-                                ? 'border-emerald-500/50 text-emerald-300 bg-emerald-500/10'
-                                : 'border-white/15 text-white/55'
-                            }`}
-                          >
-                            {b.label} · {formatFcfaShort(b.bonus_amount)}
-                          </span>
-                        ))}
+                        {row.monthly_bonuses.map((b) => {
+                          const verse = awardedBonus(row.monthly_bonuses)?.rule_id === b.rule_id;
+                          return (
+                            <span
+                              key={b.rule_id}
+                              title={
+                                verse
+                                  ? 'Palier le plus haut atteint — c’est celui qui est versé'
+                                  : b.earned
+                                    ? 'Seuil franchi, mais un palier supérieur l’est aussi : les paliers ne se cumulent pas'
+                                    : 'Seuil non atteint'
+                              }
+                              className={`text-[10px] px-2 py-1 rounded-full border ${
+                                verse
+                                  ? 'border-emerald-500/50 text-emerald-300 bg-emerald-500/10'
+                                  : b.earned
+                                    ? 'border-white/25 text-white/60 line-through decoration-white/30'
+                                    : 'border-white/15 text-white/55'
+                              }`}
+                            >
+                              {b.label} · {formatFcfaShort(b.bonus_amount)}
+                              {verse && ' ✓'}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

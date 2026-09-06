@@ -76,19 +76,23 @@ try {
     const pct = Math.round((veut / cible) * 1000) / 10;
     let primes = '';
     if (periode === 'monthly' && staff) {
+      // Paliers EXCLUSIFS : seul le plus haut atteint est verse (pas de cumul).
       const acquis = [
         [100, 15000],
         [120, 30000],
         [150, 60000],
       ].filter(([seuil]) => pct >= seuil);
-      primes =
-        acquis.length === 0
-          ? ' | aucune prime'
-          : ' | primes ' +
-            acquis.map(([s]) => s + '%').join(' + ') +
-            ' = ' +
-            acquis.reduce((t, [, m]) => t + m, 0) +
-            ' F';
+      const verse = acquis.length ? acquis[acquis.length - 1] : null;
+      primes = verse
+        ? ' | palier ' +
+          verse[0] +
+          '% -> ' +
+          verse[1] +
+          ' F verses' +
+          (acquis.length > 1
+            ? ' (' + (acquis.length - 1) + ' palier(s) inferieur(s) franchi(s), non cumules)'
+            : '')
+        : ' | aucune prime';
     }
     console.log(nom.padEnd(22) + String(pct).padStart(6) + ' %' + primes);
   }

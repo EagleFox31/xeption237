@@ -61,9 +61,13 @@ export const adminUi = {
     'sticky top-0 z-20 bg-black/50 backdrop-blur-md text-white/70 text-xs uppercase font-bold tracking-wider',
   tableBody: 'divide-y divide-white/5 text-white/85 text-sm',
   emptyCell: 'px-6 py-12 text-center text-white/55 text-sm',
-  segmentGroup: 'inline-flex gap-1 rounded-lg border border-white/10 bg-black/40 p-1',
+  // `max-w-full overflow-x-auto` : au telephone « Prix marche » repliait le
+  // libelle sur deux lignes et doublait la hauteur de la barre. On la fait
+  // glisser plutot que grandir.
+  segmentGroup:
+    'inline-flex max-w-full overflow-x-auto gap-1 rounded-lg border border-white/10 bg-black/40 p-1',
   segmentBtn: (active: boolean) =>
-    `inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-xeption-gold/40 ${
+    `inline-flex shrink-0 whitespace-nowrap items-center gap-2 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-xeption-gold/40 ${
       active ? 'bg-xeption-gold text-black' : 'text-white/70 hover:text-white hover:bg-white/8'
     }`,
 } as const;

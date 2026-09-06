@@ -29,6 +29,38 @@ export interface StaffBonusStatus {
   earned: boolean;
 }
 
+/**
+ * Prime effectivement due pour le mois — **un seul palier, le plus haut atteint**.
+ *
+ * Les paliers ne se cumulent PAS : à 130 % d'un objectif, les paliers 100 % et
+ * 120 % sont tous deux franchis, mais seul le second est versé (30 000 F, pas
+ * 45 000). Règle arbitrée par la direction le 2026-09-06.
+ *
+ * Elle n'était écrite nulle part : ni `ROADMAP_ERP.md` §7, ni UC-V-03, ni
+ * UC-D-04 ne disent ce qu'on VERSE — ils décrivent un tableau de bord (seuils,
+ * taux d'atteinte) et s'arrêtent là. La base, de son côté, se contente de
+ * marquer chaque règle « atteinte ou non ». Le montant dû n'existait donc nulle
+ * part, et deux personnes lisant le même écran pouvaient calculer deux paies
+ * différentes. C'est ici, et seulement ici, qu'il est désormais décidé.
+ *
+ * Départage : le seuil le plus élevé gagne ; à seuil égal, le montant le plus
+ * élevé — deux règles au même seuil sont une erreur de saisie, mais il vaut
+ * mieux un choix stable qu'un ordre dépendant de la base.
+ */
+export const awardedBonus = (
+  bonuses: StaffBonusStatus[] | null | undefined,
+): StaffBonusStatus | null => {
+  const acquis = (bonuses ?? []).filter((b) => b.earned);
+  if (acquis.length === 0) return null;
+  return acquis.reduce((meilleur, b) =>
+    b.min_achievement_percent > meilleur.min_achievement_percent ||
+    (b.min_achievement_percent === meilleur.min_achievement_percent &&
+      b.bonus_amount > meilleur.bonus_amount)
+      ? b
+      : meilleur,
+  );
+};
+
 export interface StaffTargetProgress {
   staff_id: string;
   staff_name: string;

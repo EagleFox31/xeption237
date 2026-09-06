@@ -46,7 +46,10 @@ const TrocWorkspaceTab: React.FC<TrocWorkspaceTabProps> = ({
   const [activeSection, setActiveSection] = useState<TrocWorkspaceSection>('dossiers');
 
   return (
-    <div className="flex flex-col h-[calc(100vh-132px)] min-h-0 gap-3">
+    // Meme raisonnement que adminUi.tabViewportH, mais la valeur bureau propre a
+    // cet onglet est -132px et non -140 : elle est conservee telle quelle pour ne
+    // rien changer au-dessus de 768 px.
+    <div className="flex flex-col h-[calc(100dvh-200px)] sm:h-[calc(100dvh-264px)] md:h-[calc(100vh-132px)] min-h-0 gap-3">
       <div className="flex items-center gap-3 shrink-0">
         <div className={adminUi.segmentGroup}>
           {SECTIONS.map((section) => {

@@ -96,18 +96,39 @@ const TableShell: React.FC<TableShellProps> = ({
           {toolbarAddon}
 
           {filterOptions && filterOptions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {filterOptions.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => onFilterChange?.(opt.id)}
-                  className={filterButtonClass(filterValue === opt.id)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <>
+              {/*
+                TELEPHONE (< 768 px) : liste deroulante. Le troc a sept filtres
+                de statut, qui occupaient trois rangees de boutons — un mur avant
+                d'atteindre la premiere ligne de donnees. Le tri est deja rendu
+                ainsi juste a cote, la forme est donc coherente.
+              */}
+              <select
+                value={filterValue ?? filterOptions[0].id}
+                onChange={(e) => onFilterChange?.(e.target.value)}
+                aria-label="Filtre du tableau"
+                className="md:hidden bg-black/60 border border-white/25 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-sm outline-none focus:border-xeption-gold cursor-pointer"
+              >
+                {filterOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+
+              <div className="hidden md:flex flex-wrap items-center gap-1.5">
+                {filterOptions.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => onFilterChange?.(opt.id)}
+                    className={filterButtonClass(filterValue === opt.id)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
           <div className="flex flex-wrap items-center gap-2 ml-auto shrink-0">

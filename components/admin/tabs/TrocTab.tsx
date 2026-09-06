@@ -367,34 +367,40 @@ export const TrocTab: React.FC<TrocTabProps> = ({
 
   return (
     <div className="animate-in fade-in h-full min-h-0 flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3 shrink-0 text-xs text-white">
+      {/*
+        TELEPHONE (< 768 px) : grille de deux colonnes. En `flex-wrap` les six
+        blocs tombaient chacun sur sa rangee — un ecran entier de statistiques
+        avant le premier dossier. Le detail par palier part au bureau : c'est de
+        l'analyse, pas de l'exploitation.
+      */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 shrink-0 text-xs text-white md:flex md:flex-wrap md:items-center md:gap-3">
         <span>
           <strong className="font-tech text-base">{dossierCount}</strong>
           <span className="ml-1">dossiers</span>
-          <span className="text-white/50 ml-1">/ {requests.length}</span>
+          <span className="ml-1 hidden text-white/50 md:inline">/ {requests.length}</span>
           {awaitingCount > 0 && (
             <span className="text-white/50 ml-1">· {awaitingCount} bon(s) non émis</span>
           )}
         </span>
-        <span className="text-white/30">|</span>
+        <span className="hidden text-white/30 md:inline">|</span>
         <span>
           <strong className="text-yellow-300 font-tech">{pendingCount}</strong>
           <span className="ml-1 text-white/70">en attente</span>
         </span>
-        <span className="text-white/30">|</span>
+        <span className="hidden text-white/30 md:inline">|</span>
         <span className="inline-flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
           <span className="text-[10px] font-tech uppercase tracking-widest text-white/50">
             Valeur reprise active
           </span>
           <strong className="text-xeption-gold font-mono text-sm">{formatFCFA(totalValue)}</strong>
         </span>
-        <span className="text-white/30 hidden sm:inline">|</span>
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:pl-1">
+        <span className="hidden text-white/30 md:inline">|</span>
+        <div className="flex flex-wrap items-center gap-2 md:w-auto md:pl-1">
           <span className="text-[10px] font-tech uppercase tracking-widest text-white/50">
             Frais service encaissés
           </span>
           <strong className="text-xeption-gold font-mono">{formatXaf(grandTotal)} F</strong>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="hidden flex-wrap gap-1.5 md:flex">
             {(
               [
                 ['express', 'Express', revenueByTier.express],
@@ -416,7 +422,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
           <button
             type="button"
             onClick={() => setShowFunnel((v) => !v)}
-            className="text-[10px] font-tech uppercase tracking-widest text-white/70 hover:text-white transition-colors ml-auto sm:ml-0"
+            className="col-span-2 justify-self-end text-[10px] font-tech uppercase tracking-widest text-white/70 hover:text-white transition-colors md:col-span-1 md:ml-0"
           >
             Funnel {showFunnel ? '▲' : '▼'}
           </button>

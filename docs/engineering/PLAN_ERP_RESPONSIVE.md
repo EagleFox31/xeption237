@@ -173,3 +173,30 @@ propre est `-132px` et non `-140` : conservée telle quelle au-dessus de 768 px.
 Les huit derniers n'ont pas de hauteur fixe : leurs tableaux défilent dans
 `TableShell` ou dans leur propre `overflow-x-auto`, sans blocage. Aucun n'est
 visible par un commercial (`TAB_MIN_ROLE`). À traiter si l'usage le demande.
+
+### Ce qui precede le tableau — 2026-09-06
+
+Les cartes reglaient la lecture des donnees, pas l'acces a ces donnees. Sur le
+troc au telephone, il fallait faire defiler la moitie d'un ecran avant le premier
+dossier : barre de sections dont « Prix marche » se repliait sur deux lignes,
+six rangees de statistiques, puis recherche + deux listes + **sept boutons de
+filtre sur trois rangees**.
+
+Trois correctifs, tous sous 768 px :
+
+1. **`TableShell` — filtres en liste deroulante.** Le tri etait deja rendu ainsi
+   juste a cote ; la forme est coherente et le mur de boutons disparait. Profite
+   a tous les onglets qui passent des `filterOptions` (commandes, inventaire,
+   troc, images produit, argus).
+2. **Statistiques du troc en grille de deux colonnes.** Le detail par palier
+   (Express / Premium / Sûreté) part au bureau : c'est de l'analyse, pas de
+   l'exploitation — et deux des trois paliers valent zero tant que
+   `TROC_TIER_SELECTOR_ENABLED` est `false`.
+3. **Barre de sections insecable et defilante** plutot que repliee sur deux
+   lignes.
+
+| 412 px | bandeau stats | px avant le 1er dossier |
+|---|---|---|
+| avant | 132 px | 399 |
+| apres | 70 px | 242 |
+| 900 px | 58 px, inchange | 229, inchange |

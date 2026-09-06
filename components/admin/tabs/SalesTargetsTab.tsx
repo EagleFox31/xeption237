@@ -175,6 +175,7 @@ const SalesTargetsTab: React.FC<SalesTargetsTabProps> = ({
                     className={`${adminUi.input} mt-1`}
                   >
                     <option value="daily">Journalier</option>
+                    <option value="weekly">Hebdomadaire (lundi → dimanche)</option>
                     <option value="monthly">Mensuel</option>
                   </select>
                 </label>
@@ -394,40 +395,53 @@ const SalesTargetsTab: React.FC<SalesTargetsTabProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="relative">
-                        <TargetProgressCard title="Aujourd'hui" slice={row.daily} />
-                        {canConfigure && row.daily?.target_id && (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!confirm('Retirer l\'objectif du jour pour ce vendeur ?')) return;
-                              await targetsMgr.removeTarget(row.daily!.target_id!);
-                              load();
-                            }}
-                            className="absolute top-2 right-2 text-[10px] text-red-300/80 hover:text-red-200"
-                          >
-                            Retirer
-                          </button>
-                        )}
-                      </div>
-                      <div className="relative">
-                        <TargetProgressCard title="Ce mois" slice={row.monthly} />
-                        {canConfigure && row.monthly?.target_id && (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!confirm('Retirer l\'objectif du mois pour ce vendeur ?')) return;
-                              await targetsMgr.removeTarget(row.monthly!.target_id!);
-                              load();
-                            }}
-                            className="absolute top-2 right-2 text-[10px] text-red-300/80 hover:text-red-200"
-                          >
-                            Retirer
-                          </button>
-                        )}
-                      </div>
+                    {/* Trois periodes, et seules celles REELLEMENT posees sont
+                        affichees : un vendeur pilote au mois n'a pas a lire deux
+                        cartes vides. Une carte absente se lit « pas d'objectif »
+                        sans qu'on ait a l'ecrire. */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {(
+                        [
+                          ['daily', "Aujourd'hui", 'du jour', row.daily],
+                          ['weekly', 'Cette semaine', 'de la semaine', row.weekly],
+                          ['monthly', 'Ce mois', 'du mois', row.monthly],
+                        ] as const
+                      )
+                        .filter(([, , , slice]) => slice != null)
+                        .map(([cle, titre, complement, slice]) => (
+                          <div key={cle} className="relative">
+                            <TargetProgressCard title={titre} slice={slice} />
+                            {canConfigure && slice?.target_id && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!confirm(`Retirer l'objectif ${complement} pour ce vendeur ?`)) return;
+                                  await targetsMgr.removeTarget(slice.target_id!);
+                                  load();
+                                }}
+                                className="absolute top-2 right-2 text-[10px] text-red-300/80 hover:text-red-200"
+                              >
+                                Retirer
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      {!row.daily && !row.weekly && !row.monthly && (
+                        <p className="text-xs text-white/45 sm:col-span-2 xl:col-span-3">
+                          Aucun objectif fixé pour ce vendeur.
+                        </p>
+                      )}
                     </div>
+
+                    {/* Les primes se lisent sur l'objectif MENSUEL. Un vendeur
+                        suivi uniquement a la semaine n'en declencherait donc
+                        aucune, et rien ne le dirait : on le dit. */}
+                    {row.weekly && !row.monthly && (data?.bonus_rules ?? []).length > 0 && (
+                      <p className="rounded-sm border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] leading-snug text-amber-200">
+                        Objectif hebdomadaire sans objectif mensuel : les primes se
+                        calculent sur le mois, aucune ne se déclenchera pour ce vendeur.
+                      </p>
+                    )}
                     {/* Trois etats et non deux. « Atteint » sans etre verse est
                         le cas que l'ancien affichage rendait trompeur : a 130 %,
                         les paliers 100 % ET 120 % etaient verts, ce qui se lisait
@@ -477,9 +491,13 @@ const SalesTargetsTab: React.FC<SalesTargetsTabProps> = ({
                 {data.stores.map((row) => (
                   <div key={row.store_id} className="space-y-3">
                     <p className="text-sm text-white font-medium">{row.store_name}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <TargetProgressCard title="Jour" slice={row.daily} />
-                      <TargetProgressCard title="Mois" slice={row.monthly} />
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {row.daily && <TargetProgressCard title="Jour" slice={row.daily} />}
+                      {row.weekly && <TargetProgressCard title="Semaine" slice={row.weekly} />}
+                      {row.monthly && <TargetProgressCard title="Mois" slice={row.monthly} />}
+                      {!row.daily && !row.weekly && !row.monthly && (
+                        <p className="text-xs text-white/45">Aucun objectif fixé pour cette boutique.</p>
+                      )}
                     </div>
                   </div>
                 ))}

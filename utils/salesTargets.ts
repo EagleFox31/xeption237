@@ -1,6 +1,21 @@
 import { REVENUE_DEFINITION_SHORT } from './dashboardAnalytics';
 
-export type TargetPeriodKind = 'daily' | 'monthly';
+/**
+ * Periodes d'un objectif. `weekly` ajoutee le 2026-09-06 a la demande de la
+ * direction : le pilotage se fait au mois, avec la semaine en option.
+ *
+ * Toute valeur ajoutee ici doit l'etre AUSSI dans `_period_bounds` cote base.
+ * Cette fonction refuse desormais les periodes inconnues au lieu de retomber
+ * silencieusement sur le mois — un oubli echouera bruyamment, ce qui est le
+ * comportement voulu.
+ */
+export type TargetPeriodKind = 'daily' | 'weekly' | 'monthly';
+
+export const TARGET_PERIOD_LABELS: Record<TargetPeriodKind, string> = {
+  daily: 'Jour',
+  weekly: 'Semaine',
+  monthly: 'Mois',
+};
 export type TargetScopeType = 'staff' | 'store';
 
 export interface TargetProgressSlice {
@@ -67,6 +82,7 @@ export interface StaffTargetProgress {
   store_id: string | null;
   store_name: string | null;
   daily: TargetProgressSlice | null;
+  weekly: TargetProgressSlice | null;
   monthly: TargetProgressSlice | null;
   monthly_bonuses: StaffBonusStatus[];
 }
@@ -75,6 +91,7 @@ export interface StoreTargetProgress {
   store_id: string;
   store_name: string;
   daily: TargetProgressSlice | null;
+  weekly: TargetProgressSlice | null;
   monthly: TargetProgressSlice | null;
 }
 
@@ -82,6 +99,8 @@ export interface SalesTargetsProgress {
   period: {
     day_from: string;
     day_to: string;
+    week_from: string;
+    week_to: string;
     month_from: string;
     month_to: string;
   };
@@ -116,6 +135,8 @@ export const parseSalesTargetsProgress = (data: unknown): SalesTargetsProgress =
     period: {
       day_from: period.day_from ?? '',
       day_to: period.day_to ?? '',
+      week_from: period.week_from ?? '',
+      week_to: period.week_to ?? '',
       month_from: period.month_from ?? '',
       month_to: period.month_to ?? '',
     },
@@ -133,6 +154,7 @@ export const parseSalesTargetsProgress = (data: unknown): SalesTargetsProgress =
       store_id: (s.store_id as string | null) ?? null,
       store_name: (s.store_name as string | null) ?? null,
       daily: parseSlice(s.daily),
+      weekly: parseSlice(s.weekly),
       monthly: parseSlice(s.monthly),
       monthly_bonuses: ((s.monthly_bonuses ?? []) as Record<string, unknown>[]).map((b) => ({
         rule_id: String(b.rule_id),
@@ -146,6 +168,7 @@ export const parseSalesTargetsProgress = (data: unknown): SalesTargetsProgress =
       store_id: String(s.store_id),
       store_name: String(s.store_name ?? ''),
       daily: parseSlice(s.daily),
+      weekly: parseSlice(s.weekly),
       monthly: parseSlice(s.monthly),
     })),
   };

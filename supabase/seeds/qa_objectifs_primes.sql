@@ -71,10 +71,15 @@ INSERT INTO public.sales_targets (id, scope_type, staff_id, store_id, period_kin
   ('00000000-0000-4000-c000-000000000c08','store',NULL,'00000000-0000-4000-a000-000000000a02','monthly', 1200000, true);
 
 -- ── 4. Primes ────────────────────────────────────────────────────────────────
--- A savoir : les primes se calculent sur l'objectif MENSUEL uniquement
--- (`monthly_bonuses` dans get_sales_targets_progress). Depasser l'objectif du
--- jour n'en declenche aucune. Les paliers sont cumulatifs : a 130 % les deux
--- premiers sont acquis, soit 45 000 F.
+-- A savoir, verifie dans le code et non suppose :
+--   * les primes se calculent sur l'objectif MENSUEL uniquement
+--     (`monthly_bonuses`). Depasser l'objectif du jour n'en declenche aucune ;
+--   * chaque regle est evaluee INDEPENDAMMENT : a 130 %, les paliers 100 % et
+--     120 % sont tous deux marques « acquis » ;
+--   * MAIS RIEN N'ADDITIONNE LES PRIMES. Ni le SQL ni l'interface ne calculent
+--     un montant du. Savoir si l'on verse 45 000 (cumul) ou 30 000 (palier le
+--     plus haut seul) est une decision de gestion qui n'est encodee NULLE PART.
+--     A trancher avec la direction avant la premiere paie.
 INSERT INTO public.bonus_rules (id, label, min_achievement_percent, bonus_amount, sort_order, active) VALUES
   ('00000000-0000-4000-d000-000000000d01','Objectif atteint',    100, 15000, 1, true),
   ('00000000-0000-4000-d000-000000000d02','Depassement',         120, 30000, 2, true),

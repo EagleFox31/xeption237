@@ -35,8 +35,10 @@ Elles ne sont écrites nulle part ailleurs que dans le SQL. Extraites de
    `failed`, et **tout identifiant commençant par `TEST-`** (mode essai caisse).
 3. **Les primes se calculent sur l'objectif MENSUEL uniquement.** Dépasser
    l'objectif du jour n'en déclenche aucune.
-4. **Les paliers de prime sont cumulatifs** : à 130 %, les paliers 100 % et 120 %
-   sont tous deux acquis.
+4. **Chaque palier est évalué indépendamment** : à 130 %, les paliers 100 % et
+   120 % sont tous deux marqués « acquis » et s'affichent en vert. En revanche
+   **rien n'additionne les primes** — voir la section « Le montant dû n'existe
+   pas » plus bas.
 5. **Un `vendeur` ne voit que ses propres chiffres** : la fonction force
    `p_staff_id` sur l'appelant dès que son rôle est `vendeur`. Un `responsable`
    est limité à sa boutique. Seule la `direction` voit tout.
@@ -102,8 +104,11 @@ Calculés à la main depuis le tableau ci-dessus.
 | jour | 400 000 | 300 000 | **133,3 %** | atteint, reste 0 |
 | mois | 1 300 000 | 1 000 000 | **130,0 %** | atteint, reste 0 |
 
-Primes : « Objectif atteint » ✅ 15 000 · « Dépassement » ✅ 30 000 ·
-« Performance except. » ❌ — **total 45 000 F**.
+Primes affichées : « Objectif atteint » ✅ 15 000 · « Dépassement » ✅ 30 000 ·
+« Performance except. » ❌.
+
+Le système s'arrête là : deux pastilles vertes. Il n'affiche **aucun total** —
+ni 45 000 (cumul), ni 30 000 (palier le plus haut). Voir ci-dessous.
 
 ### Brice Talla — Bastos
 
@@ -189,11 +194,26 @@ deux vendeurs sont à supprimer à la main dans Supabase → Authentication → 
 
 ---
 
-## Ce que ce test ne couvre pas
+## Le montant dû n'existe pas
 
-- **Le calcul de la prime versée.** Le système dit quels paliers sont acquis ; il
-  n'écrit nulle part un montant à payer en fin de mois. À vérifier avec le boss :
-  est-ce une lecture, ou attend-il un état récapitulatif à imprimer ?
+Constat vérifié dans le code, pas supposé : `get_sales_targets_progress` renvoie
+pour chaque règle un booléen `earned`, et `SalesTargetsTab` affiche une pastille
+par règle, verte si acquise. **Aucune addition nulle part** — ni en SQL, ni dans
+l'interface.
+
+La conséquence est une décision de gestion, pas un détail technique :
+
+| lecture | Awa à 130 % | quelqu'un à 150 % |
+|---|---|---|
+| **cumulative** (on additionne les paliers atteints) | 45 000 F | 105 000 F |
+| **exclusive** (seul le palier le plus haut compte) | 30 000 F | 60 000 F |
+
+Le système affiche exactement la même chose dans les deux cas. Tant que la règle
+n'est pas tranchée, deux personnes peuvent lire le même écran et calculer des
+paies différentes. **À trancher avec la direction avant la première paie**, et à
+écrire ensuite — soit dans le libellé des règles, soit en affichant le total.
+
+## Ce que ce test ne couvre pas
 - **Les objectifs de boutique quand plusieurs vendeurs y travaillent.** Ici un
   seul par boutique, donc chiffre boutique = chiffre vendeur. Le jour où deux
   vendeurs partagent une boutique, la somme et la répartition des primes

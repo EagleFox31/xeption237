@@ -49,6 +49,19 @@ const FILTERS: { label: string; value: FilterValue }[] = [
   { label: 'Refusé', value: 'refused' },
 ];
 
+/**
+ * « Xiaomi » + « Xiaomi 14T » s'affichait « Xiaomi Xiaomi 14T » : chez plusieurs
+ * fournisseurs le modele porte deja la marque. On ne concatene que si le modele
+ * ne commence pas deja par elle.
+ */
+const deviceLabel = (brand?: string | null, model?: string | null): string => {
+  const b = (brand ?? '').trim();
+  const m = (model ?? '').trim();
+  if (!b) return m;
+  if (!m) return b;
+  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`;
+};
+
 const SCORE_COLOR_CLASSES: Record<string, string> = {
   green: 'bg-green-500/20 text-green-400',
   orange: 'bg-orange-500/20 text-orange-400',
@@ -543,7 +556,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                   <div className="mt-2 text-[12px] leading-snug">
                     {req ? (
                       <>
-                        <p className="text-white">{req.device_brand} {req.device_model}</p>
+                        <p className="text-white">{deviceLabel(req.device_brand, req.device_model)}</p>
                         {(req.device_storage || req.device_ram) && (
                           <p className="text-[11px] text-white/50">
                             {[req.device_storage, req.device_ram].filter(Boolean).join(' / ')}
@@ -557,7 +570,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                         )}
                       </>
                     ) : session?.device_brand && session?.device_model ? (
-                      <p className="text-white">{session.device_brand} {session.device_model}</p>
+                      <p className="text-white">{deviceLabel(session.device_brand, session.device_model)}</p>
                     ) : (
                       <p className="text-white/40">Appareil non renseigné</p>
                     )}
@@ -576,16 +589,26 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                     </span>
                   </div>
 
+                  {/*
+                    Le palier ne figure pas ici : Express est le seul en vente
+                    (TROC_TIER_SELECTOR_ENABLED = false), le mentionner
+                    n'apprenait rien et ajoutait une pastille a lire.
+
+                    Les frais de service sont NOMMES et enfermes dans un meme
+                    cadre. Sans cela trois montants se suivaient — reprise,
+                    reste a payer, 150 — et la mention « payé » pouvait se lire
+                    comme portant sur n'importe lequel.
+                  */}
                   <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-white/50">
-                    <TierBadge tier={row.tier} />
                     {pay && (
-                      <>
-                        <span className="tabular-nums text-white/70">
+                      <span className="inline-flex items-center gap-1.5 rounded border border-white/15 bg-white/5 px-2 py-0.5">
+                        <span className="text-white/50">Frais service</span>
+                        <strong className="tabular-nums text-white">
                           {formatXaf(Number(pay.amount))} {pay.currency}
-                        </span>
+                        </strong>
                         <PaymentStatusBadge status={pay.status} />
                         <PaymentChannelBadge channel={pay.channel} />
-                      </>
+                      </span>
                     )}
                     {req?.ai_score != null && (
                       <span
@@ -687,7 +710,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                     <td className="px-4 py-3 align-top min-w-[220px]">
                       {req ? (
                         <>
-                          <p className="leading-snug">{req.device_brand} {req.device_model}</p>
+                          <p className="leading-snug">{deviceLabel(req.device_brand, req.device_model)}</p>
                           {(req.device_storage || req.device_ram) && (
                             <p className="text-xs text-white/50">
                               {[req.device_storage, req.device_ram].filter(Boolean).join(' / ')}
@@ -701,7 +724,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                           )}
                         </>
                       ) : session?.device_brand && session?.device_model ? (
-                        <p>{session.device_brand} {session.device_model}</p>
+                        <p>{deviceLabel(session.device_brand, session.device_model)}</p>
                       ) : (
                         <span className="text-white/40 text-xs">—</span>
                       )}

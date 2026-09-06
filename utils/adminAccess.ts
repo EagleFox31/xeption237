@@ -5,6 +5,7 @@ import {
   type AdminTabId,
 } from '../components/admin/layout/adminMenuConfig';
 import { normalizeStaffRole, type StaffRoleId } from '../constants/staffRoles';
+import { hiddenTabsFromModules } from '../constants/erpModules';
 
 const ROLE_LEVEL: Record<StaffRoleId, number> = {
   vendeur: 1,
@@ -34,7 +35,20 @@ const TAB_MIN_ROLE: Record<AdminTabId, StaffRoleId> = {
   qaRecette: 'direction',
 };
 
+/**
+ * Deux conditions, et une seule porte.
+ *
+ * 1. Le ROLE : le vendeur ne voit pas ce que voit la direction.
+ * 2. Le MODULE : un module non paye n'apparait pour PERSONNE, super-admin
+ *    compris — c'est une limite commerciale, pas une limite de droits.
+ *
+ * Tout passe par cette fonction : menu lateral, barre mobile et routeur
+ * d'onglets. Ajouter le filtre ici suffit donc a le faire respecter partout,
+ * sans avoir a se souvenir de chaque point d'affichage.
+ */
 export function canAccessAdminTab(role: string | null | undefined, tab: AdminTabId): boolean {
+  if (hiddenTabsFromModules().has(tab)) return false;
+
   const normalized = normalizeStaffRole(role);
   const minRole = TAB_MIN_ROLE[tab];
   return ROLE_LEVEL[normalized] >= ROLE_LEVEL[minRole];

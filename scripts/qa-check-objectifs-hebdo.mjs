@@ -1,7 +1,7 @@
 /**
  * Verifie la migration « objectifs hebdomadaires » SANS RIEN ECRIRE.
  *
- * Applique 20260906_030 dans une transaction, controle les bornes de semaine,
+ * Applique 20260906_001 dans une transaction, controle les bornes de semaine,
  * la disparition du repli silencieux, la contrainte de periode et la tranche
  * `weekly` renvoyee par get_sales_targets_progress — puis ANNULE.
  *
@@ -33,7 +33,7 @@ const dit = (ok, texte) => {
 try {
   await c.query('BEGIN');
 
-  await c.query(sansTx('supabase/migrations/20260906_030_objectifs_hebdomadaires.sql'));
+  await c.query(sansTx('supabase/migrations/20260906_001_objectifs_hebdomadaires.sql'));
   console.log('migration : appliquee sans erreur\n');
 
   // 1. Bornes de semaine : lundi -> lundi, en heure de Douala

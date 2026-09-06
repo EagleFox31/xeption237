@@ -48,7 +48,19 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
   }, [onRefresh, selectedDate]);
 
   const dailyAchieved = targetProgress?.daily?.achieved;
+  const weeklyAchieved = targetProgress?.weekly?.achieved;
   const monthlyAchieved = targetProgress?.monthly?.achieved;
+
+  // La direction choisit LA periode qu'elle suit, et c'est la seule que le
+  // vendeur voit. Aucun objectif pose = ce bloc n'a rien a dire : il disparait
+  // plutot que d'afficher une grille vide.
+  const aUnObjectif =
+    !!targetProgress?.daily || !!targetProgress?.weekly || !!targetProgress?.monthly;
+  const atteints = [
+    dailyAchieved && 'du jour',
+    weeklyAchieved && 'de la semaine',
+    monthlyAchieved && 'du mois',
+  ].filter(Boolean) as string[];
 
   // TELEPHONE (< 640 px) : la page defile normalement, pas de hauteur imposee.
   //
@@ -116,17 +128,15 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
         </div>
       </div>
 
-      {(targetsLoading || targetProgress) && (
+      {(targetsLoading || aUnObjectif) && (
         <div className="space-y-3 shrink-0">
-          {(dailyAchieved || monthlyAchieved) && (
+          {atteints.length > 0 && (
             <div className={`${adminUi.hintCard} border-emerald-500/40 flex items-start gap-2`}>
               <PartyPopper className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
               <p className="text-sm text-white/85 leading-snug">
-                {dailyAchieved && monthlyAchieved
-                  ? 'Objectifs du jour et du mois atteints — bravo !'
-                  : dailyAchieved
-                    ? 'Objectif du jour atteint — bravo !'
-                    : 'Objectif du mois atteint — bravo !'}
+                {atteints.length === 1
+                  ? `Objectif ${atteints[0]} atteint — bravo !`
+                  : `Objectifs ${atteints.slice(0, -1).join(', ')} et ${atteints.at(-1)} atteints — bravo !`}
               </p>
             </div>
           )}
@@ -134,7 +144,7 @@ const MySalesTab: React.FC<MySalesTabProps> = ({
             <div className="flex justify-center py-6 text-white/40">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
-          ) : targetProgress ? (
+          ) : aUnObjectif ? (
             /* Seules les periodes reellement fixees sont affichees : un vendeur
                suivi au mois n'a pas a lire deux cartes vides sur son telephone. */
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

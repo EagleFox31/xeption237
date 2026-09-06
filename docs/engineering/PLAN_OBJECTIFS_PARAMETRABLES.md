@@ -96,34 +96,29 @@ une ligne à changer, mais il faut le savoir avant.
 
 ---
 
-## Deux questions que je ne tranche pas
+## Décisions de la direction — 2026-09-06
 
-Après avoir inventé le cumul des primes puis les montants, je pose plutôt que je
-suppose.
+### Les primes restent mensuelles ✅ tranché
 
-### 1. Les primes restent-elles mensuelles ?
+Elles se calculent sur l'objectif du mois, quelle que soit la période de
+pilotage. Conséquence conservée telle quelle : un vendeur suivi **uniquement** à
+la semaine ne déclenche aucune prime. L'onglet le signale désormais par un
+avertissement au lieu de rester muet — c'est un cas légitime, pas une erreur,
+mais il ne doit pas surprendre en fin de mois.
 
-Aujourd'hui elles se calculent sur l'objectif **mensuel** uniquement
-(`monthly_bonuses`). Conséquence directe : **si le boss ne pose que des objectifs
-hebdomadaires, aucune prime ne se déclenchera jamais** — le code cherche un
-objectif mensuel, ne le trouve pas, et renvoie « non acquis » sans rien signaler.
+### La direction choisit la période, et c'est la seule que le vendeur voit ✅ tranché
 
-Trois réponses possibles :
+Aucune carte vide : seules les périodes réellement fixées sont affichées, dans
+l'onglet direction comme dans « Mes ventes ». Si aucun objectif n'est posé, le
+bloc entier disparaît de l'écran du vendeur. Les félicitations couvrent les trois
+périodes.
 
-- **a.** Les primes restent mensuelles. Il faut alors toujours un objectif
-  mensuel, même si le pilotage se fait à la semaine.
-- **b.** Une prime hebdomadaire s'ajoute, avec ses propres paliers.
-- **c.** Les paliers s'appliquent à la période choisie, quelle qu'elle soit.
+### Semaine du lundi ou du dimanche ? ⏳ ouvert
 
-Sans réponse, j'implémente **(a)** — c'est l'existant — et j'affiche un
-avertissement dans l'onglet quand un vendeur a un objectif hebdomadaire sans
-objectif mensuel, pour que le cas ne passe pas inaperçu.
-
-### 2. Semaine du lundi ou du dimanche ?
-
-`date_trunc('week')` dit lundi. À confirmer.
-
----
+`date_trunc('week')` dit lundi, c'est ce qui est en place et vérifié
+(31/08 → 07/09). Si la semaine commerciale commence le dimanche, c'est une ligne
+de `_period_bounds` à changer — mais il faut le décider avant que des objectifs
+hebdomadaires soient posés, sinon les chiffres d'une semaine seront à cheval.
 
 ## Option B — « appliquer à toute l'équipe »
 

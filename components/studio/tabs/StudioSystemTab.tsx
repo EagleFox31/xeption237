@@ -1,6 +1,5 @@
 import React from 'react';
 import { CheckCircle2, XCircle, Terminal } from 'lucide-react';
-import { getSuperAdminEmails } from '../../../utils/superAdmin';
 
 const StudioSystemTab: React.FC = () => {
   const checks = [
@@ -15,12 +14,11 @@ const StudioSystemTab: React.FC = () => {
       detail: 'Côté serveur — secret DEEPSEEK_API_KEY sur Supabase (Edge ai-product-details)',
     },
     {
-      label: 'Super admin emails',
-      ok: getSuperAdminEmails().length > 0,
+      label: 'Accès super admin',
+      ok: true,
       detail:
-        getSuperAdminEmails().length > 0
-          ? `${getSuperAdminEmails().length} email(s) dans VITE_SUPER_ADMIN_EMAILS`
-          : 'Ajoute ton email dans .env',
+        'Par le rôle staff « super_admin ». Plus de liste d’emails côté client : ' +
+        'le préfixe VITE_ la publiait en clair dans le bundle.',
     },
     {
       label: 'Troc IA',
@@ -84,9 +82,9 @@ const StudioSystemTab: React.FC = () => {
       <div className="rounded-lg border border-white/10 bg-black/40 p-4 text-sm text-gray-400">
         <p className="font-bold text-white mb-2">Accès Studio</p>
         <p>
-          URL : <code className="text-violet-300">/studio</code> — réservée aux emails listés dans{' '}
-          <code className="text-gray-300">VITE_SUPER_ADMIN_EMAILS</code> ou au rôle staff{' '}
-          <code className="text-gray-300">Super admin (Studio)</code>.
+          URL : <code className="text-violet-300">/studio</code> — réservée au rôle staff{' '}
+          <code className="text-gray-300">Super admin (Studio)</code>, attribué depuis l’onglet
+          Personnel.
         </p>
         <p className="mt-2">
           L’ERP (<code className="text-gray-300">/admin</code>) reste pour le boss et l’équipe :

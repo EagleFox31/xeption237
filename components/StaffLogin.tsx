@@ -19,7 +19,7 @@ import HCaptcha from '@hcaptcha/react-hcaptcha';
 import Logo from './Logo';
 import { supabase } from '../services/supabaseClient';
 import { optimizeImage } from '../utils/mediaOptimization';
-import { resolveSuperAdminAccess, isSuperAdminEmail, getSuperAdminEmails } from '../utils/superAdmin';
+import { resolveSuperAdminAccess } from '../utils/superAdmin';
 import {
   getStaffRoleLabel,
   normalizeStaffRole,
@@ -167,7 +167,7 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin, mode = 'erp' }) => {
     }
     if (msg.includes('email not confirmed')) return 'Email non confirmé. Validez d’abord le mail de confirmation.';
     if (msg.includes('invalid login credentials') || msg.includes('invalid_grant')) {
-      if (isStudio && resolved && isSuperAdminEmail(resolved)) {
+      if (isStudio && resolved) {
         return 'Mot de passe incorrect ou compte absent dans Supabase Auth. Créez l’utilisateur (même email) ou utilisez « Mot de passe oublié ».';
       }
       // Il n'y a plus de mot de passe d'équipe : chaque compte a le sien.
@@ -270,11 +270,11 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin, mode = 'erp' }) => {
       if (isStudio) {
         const studioAllowed = await resolveSuperAdminAccess(resolved);
         if (!studioAllowed) {
-          const configured = getSuperAdminEmails();
+          // Ne JAMAIS renvoyer la liste des comptes autorises : ce message
+          // s'affiche a qui a tente la connexion, y compris a quelqu'un qui
+          // cherche precisement a savoir quelles adresses viser.
           throw new Error(
-            configured.length === 0
-              ? 'Studio : ajoutez VITE_SUPER_ADMIN_EMAILS=ton@email.com dans .env puis redémarrez le serveur.'
-              : `Email non autorisé pour Studio. Emails configurés : ${configured.join(', ')}`,
+            'Accès Studio réservé aux super-admins. Faites attribuer ce rôle depuis l’onglet Personnel.',
           );
         }
         setResolvedEmail(resolved);

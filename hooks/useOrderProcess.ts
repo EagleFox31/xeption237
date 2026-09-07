@@ -32,7 +32,25 @@ export const useOrderProcess = () => {
                 if (authError) throw new Error("Erreur de sécurité session.");
             }
 
-            const newOrderId = `ORD-${Date.now().toString().slice(-6)}`;
+            // Reference de commande : prefixe lisible + partie ALEATOIRE.
+            //
+            // Avant : `ORD-` + les six derniers chiffres de l'horodatage. Elle
+            // se devinait — qui connait l'heure d'une commande trouve sa
+            // reference en essayant quelques numeros autour.
+            //
+            // Maintenant : 8 caracteres tires au hasard dans un alphabet sans
+            // caracteres ambigus (ni 0/O, ni 1/I/L), comme le font les grandes
+            // enseignes pour que la reference se dicte au telephone sans
+            // confusion. 32^8 = 1 100 milliards de valeurs.
+            //
+            // Elle n'est pas un secret pour autant : le suivi exige aussi le
+            // telephone (RPC track_order). C'est une protection de plus, pas la
+            // seule.
+            const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+            const alea = new Uint32Array(8);
+            crypto.getRandomValues(alea);
+            const suffixe = Array.from(alea, (n) => ALPHABET[n % ALPHABET.length]).join('');
+            const newOrderId = `ORD-${suffixe.slice(0, 4)}-${suffixe.slice(4)}`;
             const dbDate = new Date().toISOString();
             const displayDate = new Date().toLocaleDateString('fr-FR', {
                 day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'

@@ -157,3 +157,45 @@
 - **Résolution** : ce qui a corrigé, précisément.
 - **Comment ne plus la refaire** : la règle/réflexe à retenir.
 ```
+
+---
+
+## 2026-09-07 — Le tunnel de commande public est cassé, et personne ne l'a vu
+
+**Symptôme** : aucune commande ne peut être passée depuis le site. `orders`,
+`order_items` et `stock_reservations` sont à **0 ligne**.
+
+**Cause** : dans `create_order_atomic`, la réservation de stock est faite AVANT
+la création de la commande :
+
+```
+ligne 25  PERFORM public._store_reserve_line(store_id, product_id, qty, p_order_id, ...)
+ligne 28  INSERT INTO orders (...)
+```
+
+`stock_reservations.order_id` référence `orders(id)` par une clé étrangère
+**non différée** — vérifiée immédiatement. La réservation échoue donc toujours,
+le bloc `EXCEPTION` de la fonction avale l'erreur et renvoie
+`{success:false, error:"...violates foreign key constraint..."}`.
+
+**Ce qui l'a rendu invisible** : la fonction ne lève pas, elle *retourne* un
+échec. Aucune trace côté base, aucune alerte. Et `orders` à zéro se lisait
+comme « boutique récente » plutôt que comme « rien ne passe » — d'autant qu'une
+migration de purge existe (`20260824_002_purge_test_orders_before_launch`), ce
+qui fournissait une explication plausible et fausse.
+
+**Comment il a été trouvé** : en refusant un test creux. J'avais « vérifié » que
+le checkout marchait en lisant le drapeau `SECURITY DEFINER` dans le catalogue —
+ce qui ne prouve rien. Le user a demandé un vrai test. Passer une vraie commande
+en tant que visiteur anonyme, dans une transaction annulée, a montré l'échec en
+une seconde.
+
+**Comment ne plus la refaire** : ne jamais conclure qu'un chemin fonctionne en
+lisant sa configuration. Un chemin critique se teste en le parcourant. Et quand
+une table centrale est vide, chercher pourquoi avant d'accepter la première
+explication qui arrange.
+
+**Correction vérifiée** (transaction annulée) : déplacer `INSERT INTO orders`
+avant la boucle de réservation. Résultat : `{"success":true}`, 1 commande,
+1 article, 1 réservation de stock.
+

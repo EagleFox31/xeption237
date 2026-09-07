@@ -629,53 +629,32 @@ export const upsertSession = async (
     updated_at: new Date().toISOString(),
   };
   const trackingKey = `${TROC_SESSION_TRACKING_PREFIX}${sessionKey}`;
-  const sessionAlreadyCreated = sessionStorage.getItem(trackingKey) === '1';
 
-  const runUpdate = async () => {
-    const { error: updateError } = await supabase
-      .from('troc_sessions')
-      .update({
-        last_step: step,
-        device_brand: opts.deviceBrand ?? null,
-        device_model: opts.deviceModel ?? null,
-        trade_in_id: opts.tradeInId ?? null,
-        updated_at: payload.updated_at,
-      })
-      .eq('session_key', sessionKey);
+  // Un seul appel : la RPC cree la session ou la met a jour, selon que la cle
+  // existe deja. Plus besoin de tenter un insert puis de rattraper le doublon.
+  //
+  // Elle remplace l'ecriture directe dans `troc_sessions`, qui etait ouverte a
+  // tout le monde : une requete sans filtre modifiait les 18 sessions d'un
+  // coup. La RPC ne touche que la session dont on passe la cle.
+  const { data, error } = await supabase.rpc('troc_session_upsert', {
+    p_session_key: sessionKey,
+    p_last_step: step,
+    p_device_brand: opts.deviceBrand ?? null,
+    p_device_model: opts.deviceModel ?? null,
+    p_trade_in_id: opts.tradeInId ?? null,
+  });
 
-    if (!updateError) return null;
-
-    console.warn('[troc] session tracking skipped', {
-      code: updateError.code,
-      message: updateError.message,
-      sessionKey,
-      step,
-      phase: 'update',
-    });
-    return updateError;
-  };
-
-  if (sessionAlreadyCreated) {
-    await runUpdate();
-    return;
-  }
-
-  const { error: insertError } = await supabase
-    .from('troc_sessions')
-    .insert(payload);
-
-  if (!insertError) {
+  if (!error && data === true) {
     sessionStorage.setItem(trackingKey, '1');
     return;
   }
 
-  // PostgREST + RLS peut refuser le chemin ON CONFLICT/UPSERT sur une ligne existante.
-  // On bascule donc sur un insert initial puis un update explicite en cas de doublon.
-  if (insertError.code === '23505') {
-    sessionStorage.setItem(trackingKey, '1');
-    await runUpdate();
-    return;
-  }
+  console.warn('[troc] session tracking skipped', {
+    code: error?.code,
+    message: error?.message ?? (data === false ? 'refuse par la validation' : 'inconnu'),
+    sessionKey,
+    step,
+  });
 
   // Non-bloquant intentionnellement — un échec de tracking ne doit pas bloquer le flow.
   console.warn('[troc] session tracking skipped', {

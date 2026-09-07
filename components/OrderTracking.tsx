@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Truck, CheckCircle, XCircle, Store, ArrowLeft } from 'lucide-react';
+import { Search, Truck, CheckCircle, XCircle, Store, ArrowLeft, Phone } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { Order } from '../types';
 import { ChameleoMascot } from './troc/ChameleoMascot';
@@ -15,6 +15,7 @@ const bentoLaser =
 
 const OrderTracking: React.FC = () => {
   const [trackingId, setTrackingId] = useState('');
+  const [trackingPhone, setTrackingPhone] = useState('');
   const [trackingType, setTrackingType] = useState<'order' | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
@@ -24,14 +25,15 @@ const OrderTracking: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const idFromUrl = params.get('id');
 
+    // On pre-remplit la reference, mais on ne lance PAS la recherche : il faut
+    // maintenant le telephone. Un lien seul ne doit plus ouvrir une commande.
     if (idFromUrl) {
       setTrackingId(idFromUrl);
-      fetchTrackingInfo(idFromUrl);
     }
   }, []);
 
-  const fetchTrackingInfo = async (id: string) => {
-    if (!id.trim()) return;
+  const fetchTrackingInfo = async (id: string, phone: string) => {
+    if (!id.trim() || !phone.trim()) return;
     setLoading(true);
     setError('');
     setOrder(null);
@@ -45,11 +47,13 @@ const OrderTracking: React.FC = () => {
     }
 
     try {
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', id.trim())
-        .maybeSingle();
+      // Reference ET telephone. La table `orders` n'est plus lisible
+      // publiquement : la reference vient de l'heure de commande, elle se
+      // devine. Le telephone est le second element que seul le client a.
+      const { data: orderData } = await supabase.rpc('track_order', {
+        p_reference: id.trim(),
+        p_phone: phone.trim(),
+      });
 
       if (orderData) {
         setTrackingType('order');
@@ -60,7 +64,10 @@ const OrderTracking: React.FC = () => {
           status: orderData.status,
           paymentMethod: orderData.payment_method,
           customerName: orderData.customer_name,
-          customerPhone: orderData.customer_phone,
+          // La RPC ne renvoie pas le telephone — c'est voulu, il n'a rien a
+          // faire dans une reponse publique. On reprend celui que le client
+          // vient de saisir : c'est le sien.
+          customerPhone: phone.trim(),
           customerCity: orderData.customer_city,
           deliveryMode: orderData.delivery_mode,
           date: orderData.date,
@@ -68,7 +75,7 @@ const OrderTracking: React.FC = () => {
         return;
       }
 
-      throw new Error('Numéro introuvable. Vérifiez votre ID de commande.');
+      throw new Error('Aucune commande ne correspond. Vérifie la référence et le numéro de téléphone utilisé lors de la commande.');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Recherche impossible.');
     } finally {
@@ -78,7 +85,7 @@ const OrderTracking: React.FC = () => {
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetchTrackingInfo(trackingId);
+    await fetchTrackingInfo(trackingId, trackingPhone);
   };
 
   const getOrderStepStatus = (stepIndex: number, currentStatus: Order['status']) => {
@@ -155,20 +162,31 @@ const OrderTracking: React.FC = () => {
                 </div>
               </div>
 
-              <form onSubmit={handleTrack} className="flex flex-col sm:flex-row gap-3">
+              <form onSubmit={handleTrack} className="flex flex-col gap-3 sm:flex-row">
                 <div className="relative flex-1">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
                   <input
                     type="text"
                     value={trackingId}
                     onChange={(e) => setTrackingId(e.target.value)}
-                    placeholder="ID de commande..."
+                    placeholder="Référence (ORD-...)"
+                    className="w-full bg-black/50 border border-white/20 text-white pl-12 pr-4 py-3.5 sm:py-4 rounded-xl focus:border-xeption-gold outline-none font-mono tracking-wider transition-all placeholder-gray-600"
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    value={trackingPhone}
+                    onChange={(e) => setTrackingPhone(e.target.value)}
+                    placeholder="Téléphone de la commande"
                     className="w-full bg-black/50 border border-white/20 text-white pl-12 pr-4 py-3.5 sm:py-4 rounded-xl focus:border-xeption-gold outline-none font-mono tracking-wider transition-all placeholder-gray-600"
                   />
                 </div>
                 <button
                   type="submit"
-                  disabled={loading || !trackingId}
+                  disabled={loading || !trackingId || !trackingPhone}
                   className="bg-xeption-gold text-black font-bold font-tech uppercase px-8 py-3.5 sm:py-4 rounded-xl hover:bg-white transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                 >
                   {loading ? 'Recherche...' : 'Tracer'}

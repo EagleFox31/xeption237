@@ -113,12 +113,16 @@ l'onglet direction comme dans « Mes ventes ». Si aucun objectif n'est posé, l
 bloc entier disparaît de l'écran du vendeur. Les félicitations couvrent les trois
 périodes.
 
-### Semaine du lundi ou du dimanche ? ⏳ ouvert
+### La semaine commence le LUNDI ✅ tranché
 
-`date_trunc('week')` dit lundi, c'est ce qui est en place et vérifié
-(31/08 → 07/09). Si la semaine commerciale commence le dimanche, c'est une ligne
-de `_period_bounds` à changer — mais il faut le décider avant que des objectifs
-hebdomadaires soient posés, sinon les chiffres d'une semaine seront à cheval.
+Conforme à ce qui est déjà en place : `date_trunc('week')` en Postgres commence
+le lundi, vérifié en production (31/08 lundi → 07/09 lundi, 7 jours pleins).
+Aucun changement à faire.
+
+### Objectifs de boutique ET de vendeur ✅ confirmé
+
+Les deux portées coexistent, elles existaient déjà (`scope_type` `store` et
+`staff`) et l'affichage rend désormais les trois périodes pour chacune.
 
 ## Option B — « appliquer à toute l'équipe »
 

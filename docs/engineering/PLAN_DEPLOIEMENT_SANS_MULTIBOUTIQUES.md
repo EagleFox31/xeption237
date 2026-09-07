@@ -87,10 +87,15 @@ réel.
 | `pos`, `orders`, `inventory`, `clients`, `mySales`, `dashboard` | non | fonctionnent en mono-boutique, relèvent de l'ERP de base |
 | `troc`, `sav`, `delivery`, `packs`, `staff` | non | modules distincts |
 
-**Question ouverte** : `targets` est-il vendu avec le multi-boutiques, ou
-séparément ? La feuille de route le place à l'étape 7 du multi-boutiques, mais
-un objectif par vendeur a du sens même avec une seule boutique. Un mot de ta part
-et je déplace la ligne — c'est une entrée de tableau à changer.
+**`targets` reste dans le module.** Réponse de la direction : il y a des
+objectifs de **boutique** et des objectifs de **vendeur**. Un objectif de
+boutique n'a de sens qu'avec un référentiel de boutiques — donc l'onglet suit le
+multi-boutiques.
+
+Le revers assumé : tant que le module est coupé, les objectifs par vendeur sont
+inaccessibles eux aussi, alors qu'ils fonctionneraient en mono-boutique. Si le
+boss veut piloter ses vendeurs avant d'acheter le multi-boutiques, il suffit de
+retirer `targets` de la liste dans `constants/erpModules.ts` — une ligne.
 
 ---
 

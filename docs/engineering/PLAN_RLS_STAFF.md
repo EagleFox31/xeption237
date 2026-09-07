@@ -164,3 +164,52 @@ L'audit `AUDIT_BD_SECURITE_2026-08-21.md` liste d'autres tables ouvertes, dont
 `products` sans RLS. Ce plan ne traite que `staff`. Les autres méritent le même
 traitement, une table à la fois — c'est la façon d'avancer sans casser
 l'authentification d'un coup.
+
+---
+
+## Fait — 2026-09-07
+
+Applique en trois paliers, avec verification a chacun.
+
+| | avant | apres |
+|---|---|---|
+| `GET /staff` avec la cle publique | **200, 4 lignes** | **200, 0 ligne** |
+| `staff_login_hint('Jennifer')` | n'existait pas | 1 ligne |
+| `staff_login_hint('%')` | — | **0 ligne** (aucune injection de motif) |
+| session anonyme : lecture | 4 lignes | **0** |
+| session anonyme : promotion en `direction` | **1 ligne modifiee** | **0** |
+| session anonyme : suppression d'un membre | **1 ligne supprimee** | **0** |
+| direction : liste, sa fiche, ecriture | ok | **ok** |
+| super-admin : idem | ok | **ok** |
+| responsable : liste et sa fiche | ok | **ok**, ecriture refusee |
+
+### La recursion, et pourquoi elle n'etait pas evitable par la lecture
+
+Le premier jet ecrivait la policy ainsi :
+
+```sql
+CREATE POLICY ... ON public.staff FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.staff s WHERE ...));
+```
+
+Postgres : « infinite recursion detected in policy for relation "staff" ».
+Evaluer la policy demande de lire la table, ce qui evalue la policy.
+
+Le piege est que **ce motif exact fonctionne ailleurs dans ce depot** — la
+migration 025 l'emploie sur `sales_targets` — parce que la policy y porte sur une
+autre table que celle interrogee. Copier un motif qui marche ne suffit pas : il
+faut regarder ce qu'il interroge.
+
+Corrige par deux fonctions `SECURITY DEFINER`, `is_staff_member()` et
+`is_direction_staff()`, qui lisent la table avec les droits du proprietaire —
+verifie au prealable que `relforcerowsecurity` vaut `false`, sans quoi le detour
+n'aurait rien change.
+
+### Ce qui reste ouvert
+
+- **Enumeration unitaire** : `staff_login_hint` confirme qu'un nom existe, un a
+  la fois. Assume — c'est le prix de l'accueil « Bonjour Jennifer », arbitre par
+  la direction. Aucune limitation de debit sur cette RPC ; a ajouter si l'equipe
+  grandit.
+- **Les autres tables** de `AUDIT_BD_SECURITE_2026-08-21.md`, dont `products`
+  sans RLS. Une table a la fois.

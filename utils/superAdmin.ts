@@ -1,5 +1,5 @@
 import { isSuperAdminStaffRole } from '../constants/staffRoles';
-import { supabase } from '../services/supabaseClient';
+import { fetchStaffLoginHint } from '../services/staffLoginHint';
 
 /**
  * Le super-admin se reconnait a son ROLE dans `staff`, et a rien d'autre.
@@ -19,12 +19,9 @@ export async function resolveSuperAdminAccess(email: string): Promise<boolean> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return false;
 
-  const { data, error } = await supabase
-    .from('staff')
-    .select('role')
-    .eq('email', normalized)
-    .maybeSingle();
-
-  if (error || !data?.role) return false;
-  return isSuperAdminStaffRole(String(data.role));
+  // Ce controle a lieu AVANT la saisie du mot de passe : il doit fonctionner
+  // sans session, d'ou la RPC plutot qu'une lecture directe de la table.
+  const hint = await fetchStaffLoginHint(normalized);
+  if (!hint?.role) return false;
+  return isSuperAdminStaffRole(hint.role);
 }

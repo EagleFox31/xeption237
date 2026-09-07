@@ -20,6 +20,7 @@ import Logo from './Logo';
 import { supabase } from '../services/supabaseClient';
 import { optimizeImage } from '../utils/mediaOptimization';
 import { resolveSuperAdminAccess } from '../utils/superAdmin';
+import { fetchStaffLoginHint } from '../services/staffLoginHint';
 import {
   getStaffRoleLabel,
   normalizeStaffRole,
@@ -187,36 +188,21 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin, mode = 'erp' }) => {
       return rawIdentifier.toLowerCase();
     }
 
-    const { data, error: lookupError } = await supabase
-      .from('staff')
-      .select('email')
-      .ilike('name', rawIdentifier)
-      .maybeSingle();
-
-    if (lookupError) {
-      console.error('Identifier resolution error:', lookupError);
-      throw new Error('Impossible de vérifier l’identifiant pour le moment.');
-    }
-
-    return data?.email?.toLowerCase() || null;
+    // Plus de lecture directe de `staff` : la RPC repond sans ouvrir la table.
+    const hint = await fetchStaffLoginHint(rawIdentifier);
+    return hint?.email?.toLowerCase() || null;
   };
 
   const fetchStaffPreview = async (identifier: string): Promise<StaffPreview | null> => {
-    const resolved = await resolveEmailFromIdentifier(identifier);
-    if (!resolved) return null;
-
-    const { data, error: staffError } = await supabase
-      .from('staff')
-      .select('name, email, role')
-      .eq('email', resolved)
-      .maybeSingle();
-
-    if (staffError || !data) return null;
+    // Un seul aller-retour : la RPC accepte deja le nom comme l'email, la
+    // resolution prealable faisait donc deux appels pour la meme reponse.
+    const hint = await fetchStaffLoginHint(identifier);
+    if (!hint) return null;
 
     return {
-      name: data.name,
-      email: data.email,
-      role: normalizeStaffRole(data.role),
+      name: hint.name,
+      email: hint.email,
+      role: normalizeStaffRole(hint.role),
     };
   };
 

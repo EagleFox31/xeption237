@@ -1,6 +1,6 @@
 # Registre des policies RLS — Xeption Supabase
 
-> Généré le 2026-09-07 depuis la base **live** (`npm run db:policies-export`).
+> Généré le 2026-09-08 depuis la base **live** (`npm run db:policies-export`).
 > JSON machine : `docs/engineering/policies-registry.json`
 
 ## Règles avant d’ajouter une policy
@@ -59,7 +59,7 @@ Légende : 🟢 active · ⚫ RLS off · 🔵 bypass (edge/RPC) · 🟡 doublon 
 | `order_payments` | `order_payments_staff_all` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 | `orders` | `orders_staff_write` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 | `packs` | `Packs sont publics` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
-| `packs` | `Staff peut tout gérer` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `packs` | `packs_staff_write` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 | `phone_releases` | `phone_releases_public_read` | SELECT | {anon,authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 | `product_ranges` | `Public read ranges` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
 | `product_ranges` | `product_ranges_staff_write` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
@@ -443,7 +443,7 @@ _Aucun_
 | Policy | CMD | Rôles | Impact | Note |
 |---|---|---|---|---|
 | `Packs sont publics` | SELECT | {public} | 🟢 `active` | Active — contrôle un flux client réel |
-| `Staff peut tout gérer` | ALL | {public} | 🟢 `active` | Active — contrôle un flux client réel |
+| `packs_staff_write` | ALL | {authenticated} | 🟢 `active` | Active — contrôle un flux client réel |
 
 ### `phone_releases` (1 policy)
 
@@ -819,7 +819,7 @@ pg_cron (lundi 3h)
 
 | Date | Action |
 |---|---|
-| 2026-09-07 | Inventaire initial 61 policies + registre |
-| 2026-09-07 | Migration `20260823_002_market_price_cache_fix.sql` |
-| 2026-09-07 | Colonne **impact réel** par policy (classif. automatique) |
+| 2026-09-08 | Inventaire initial 61 policies + registre |
+| 2026-09-08 | Migration `20260823_002_market_price_cache_fix.sql` |
+| 2026-09-08 | Colonne **impact réel** par policy (classif. automatique) |
 

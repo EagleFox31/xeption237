@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-07T18:34:32.565Z",
+  "generated_at": "2026-09-08T23:51:22.234Z",
   "policy_count": 54,
   "tables_without_rls": [],
   "duplicate_groups": [],
@@ -233,10 +233,11 @@
       "policy": "imei_certif_records_staff_read",
       "cmd": "SELECT",
       "roles": "{authenticated}",
-      "qual": "true",
+      "qual": "is_staff_member()",
       "with_check": null,
       "migration_sources": [
-        "20260720_001_imei_certif_records.sql"
+        "20260720_001_imei_certif_records.sql",
+        "20260908_001_rls_tables_vides_et_defense_en_profondeur.sql"
       ],
       "code_callers": [
         "supabase\\functions\\generate-imei-certificate\\index.ts"
@@ -252,10 +253,11 @@
       "policy": "imei_premium_calls_admin_read",
       "cmd": "SELECT",
       "roles": "{authenticated}",
-      "qual": "true",
+      "qual": "is_staff_member()",
       "with_check": null,
       "migration_sources": [
-        "20260516_001_troc_tier_columns.sql"
+        "20260516_001_troc_tier_columns.sql",
+        "20260908_001_rls_tables_vides_et_defense_en_profondeur.sql"
       ],
       "code_callers": [
         "supabase\\functions\\check-imei\\index.ts"
@@ -271,10 +273,11 @@
       "policy": "market_demand_signals_staff_read",
       "cmd": "SELECT",
       "roles": "{authenticated}",
-      "qual": "true",
+      "qual": "is_staff_member()",
       "with_check": null,
       "migration_sources": [
-        "20260516_005_market_trend_tables.sql"
+        "20260516_005_market_trend_tables.sql",
+        "20260908_001_rls_tables_vides_et_defense_en_profondeur.sql"
       ],
       "code_callers": [
         "supabase\\functions\\get-market-trend\\index.ts"
@@ -309,10 +312,11 @@
       "policy": "market_price_snapshots_staff_read",
       "cmd": "SELECT",
       "roles": "{authenticated}",
-      "qual": "true",
+      "qual": "is_staff_member()",
       "with_check": null,
       "migration_sources": [
-        "20260516_005_market_trend_tables.sql"
+        "20260516_005_market_trend_tables.sql",
+        "20260908_001_rls_tables_vides_et_defense_en_profondeur.sql"
       ],
       "code_callers": [
         "supabase\\functions\\get-market-trend\\index.ts",
@@ -367,10 +371,11 @@
       "policy": "market_trend_cache_staff_read",
       "cmd": "SELECT",
       "roles": "{authenticated}",
-      "qual": "true",
+      "qual": "is_staff_member()",
       "with_check": null,
       "migration_sources": [
-        "20260516_005_market_trend_tables.sql"
+        "20260516_005_market_trend_tables.sql",
+        "20260908_001_rls_tables_vides_et_defense_en_profondeur.sql"
       ],
       "code_callers": [
         "supabase\\functions\\get-market-trend\\index.ts"
@@ -484,12 +489,14 @@
     },
     {
       "table": "packs",
-      "policy": "Staff peut tout gérer",
+      "policy": "packs_staff_write",
       "cmd": "ALL",
-      "roles": "{public}",
-      "qual": "(auth.role() = 'authenticated'::text)",
-      "with_check": null,
-      "migration_sources": [],
+      "roles": "{authenticated}",
+      "qual": "is_staff_member()",
+      "with_check": "is_staff_member()",
+      "migration_sources": [
+        "20260908_001_rls_tables_vides_et_defense_en_profondeur.sql"
+      ],
       "code_callers": [
         "hooks\\admin\\usePacksManager.ts"
       ],
@@ -1082,10 +1089,11 @@
       "policy": "troc_certificates_staff_read",
       "cmd": "SELECT",
       "roles": "{authenticated}",
-      "qual": "true",
+      "qual": "is_staff_member()",
       "with_check": null,
       "migration_sources": [
-        "20260516_004_troc_certificates.sql"
+        "20260516_004_troc_certificates.sql",
+        "20260908_001_rls_tables_vides_et_defense_en_profondeur.sql"
       ],
       "code_callers": [
         "supabase\\functions\\generate-certificate\\index.ts"
@@ -1421,7 +1429,7 @@
           "impact": "active"
         },
         {
-          "policy": "Staff peut tout gérer",
+          "policy": "packs_staff_write",
           "impact": "active"
         }
       ]

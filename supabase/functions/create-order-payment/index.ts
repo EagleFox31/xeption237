@@ -121,24 +121,16 @@ Deno.serve(async (req: Request) => {
     }
 
     if (order.payment_status === 'paid') {
-      return new Response(JSON.stringify({ error: 'Commande déjà payée', alreadyPaid: true }), {
+      return new Response(JSON.stringify({ error: 'Cette commande est déjà enregistrée comme payée.', alreadyPaid: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 409,
       });
     }
 
-    const method = String(order.payment_method ?? '').toUpperCase();
-    if (method === 'CASH') {
-      return new Response(JSON.stringify({ error: 'Utilisez « Espèces reçues » pour cette commande' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
-    }
-
-    const allowedStatuses = ['confirmed', 'shipped', 'ready'];
+    const allowedStatuses = ['confirmed', 'shipped', 'ready', 'delivered'];
     if (!allowedStatuses.includes(order.status)) {
       return new Response(JSON.stringify({
-        error: 'Encaissement disponible après validation de la commande (confirmée / expédiée / prête)',
+        error: 'Encaissement disponible après confirmation de la commande (confirmée / expédiée / prête / livrée)',
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

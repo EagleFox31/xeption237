@@ -1,5 +1,6 @@
 import type { Brand, CartItem, Category, Product } from '../types';
 import type { PosPaymentMethod } from './paymentMethods';
+import { safeRandomUUID } from './uuid';
 
 const DB_NAME = 'xeption-offline-pos';
 const DB_VERSION = 1;
@@ -147,7 +148,7 @@ export async function listOfflinePosSales(): Promise<OfflinePosSaleRecord[]> {
 
 export async function enqueueOfflinePosSale(payload: OfflinePosSalePayload): Promise<OfflinePosSaleRecord> {
   const record: OfflinePosSaleRecord = {
-    localId: crypto.randomUUID(),
+    localId: safeRandomUUID(),
     createdAt: new Date().toISOString(),
     status: 'pending',
     payload,

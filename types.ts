@@ -103,6 +103,15 @@ export interface Order {
   total: number;
   subtotal?: number;
   discountAmount?: number;
+  discountReason?: string;
+  trocVoucher?: {
+    ref: string;
+    device_brand?: string;
+    device_model?: string;
+    device_storage?: string;
+    imei?: string;
+    trade_in_value?: number;
+  };
   status: 'pending' | 'confirmed' | 'shipped' | 'ready' | 'delivered' | 'cancelled' | 'refused' | 'returned';
   paymentMethod: 'OM' | 'MOMO' | 'CASH' | 'CARD' | 'TROC';
   paymentStatus?: OrderPaymentStatus;

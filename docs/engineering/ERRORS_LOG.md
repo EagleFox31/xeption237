@@ -199,3 +199,13 @@ explication qui arrange.
 avant la boucle de réservation. Résultat : `{"success":true}`, 1 commande,
 1 article, 1 réservation de stock.
 
+---
+
+## 2026-09-09 — RPC `market_reference_price` : 401 Unauthorized pour les utilisateurs anonymes (Smart Troc)
+
+- **Symptôme** : dans la console navigateur lors de l'évaluation du Smart Troc : `POST https://...supabase.co/rest/v1/rpc/market_reference_price 401 (Unauthorized)` suivi de `[marketReference] lecture impossible : permission denied for function market_reference_price`.
+- **Cause racine** : la migration initiale `20260825_001_market_used_and_reference_prices.sql` déclarait `REVOKE ALL ON FUNCTION public.market_reference_price(...) FROM anon` et uniquement `GRANT EXECUTE ... TO authenticated`. Or, les visiteurs du tunnel Smart Troc naviguent avec le rôle public `anon`. La fonction est pourtant `SECURITY DEFINER` et conçue spécifiquement pour exposer une médiane agrégée sans donner accès à la table privée `market_reference_prices`.
+- **Résolution** : migration `20260909_002_grant_market_reference_price_anon.sql` appliquée : `GRANT EXECUTE ON FUNCTION public.market_reference_price(TEXT, TEXT, TEXT) TO anon;`. Test direct avec la clé publique validé (`error: null`).
+- **Comment ne plus la refaire** : lorsqu'une fonction `SECURITY DEFINER` agrégée est créée pour être consommée par le front public (tunnel troc, boutique), s'assurer que `anon` possède le droit `EXECUTE` si les visiteurs non connectés doivent la consommer.
+
+

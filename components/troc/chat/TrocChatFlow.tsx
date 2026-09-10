@@ -60,7 +60,7 @@ const BOT_MESSAGES: Record<StepId, string> = {
   screen:    "Comment tu décrirais l'état de l'écran ?",
   body:      "Et le boîtier — le dos et les côtés, ils ont l'air de quoi ?",
   condition: "La batterie tient à combien ? Il se charge normalement, et la biométrie marche ?",
-  photos:    "Maintenant j'ai besoin de photos de l'appareil. Au moins une de l'écran, du dos et des côtés — plus c'est net, mieux c'est pour l'estimation.",
+  photos:    "Maintenant j'ai besoin de 3 photos au minimum : l'écran allumé, le dos et les tranches/angles. Plus c'est net, plus l'estimation est précise !",
   imei:      "Dernière étape. Compose *#06# sur le clavier d'appel, l'IMEI s'affiche tout seul. Envoie-moi les 15 chiffres.",
 };
 
@@ -422,7 +422,7 @@ export const TrocChatFlow: React.FC<TrocChatFlowProps> = ({
           onPhotosChange([...photos, ...newFiles].slice(0, 6));
         };
         const removePhoto = (i: number) => onPhotosChange(photos.filter((_, idx) => idx !== i));
-        const canSubmit = photos.length >= 1 && !isUploading;
+        const canSubmit = photos.length >= 3 && !isUploading;
         return (
           <div className="mt-3 flex flex-col gap-3">
             {photos.length > 0 && (
@@ -440,11 +440,11 @@ export const TrocChatFlow: React.FC<TrocChatFlowProps> = ({
             )}
             <label className="flex items-center gap-2 cursor-pointer px-4 py-3 border border-dashed border-white/20 hover:border-xeption-gold/40 text-gray-400 hover:text-white transition-all text-sm font-sans">
               <Camera className="w-4 h-4" />
-              {photos.length === 0 ? 'Ajouter des photos' : 'Ajouter d\'autres photos'}
+              {photos.length === 0 ? 'Ajouter des photos (3 min.)' : `Ajouter d'autres photos (${photos.length}/6)`}
               <input type="file" accept="image/*" multiple className="hidden"
                 onChange={e => handleFiles(e.target.files)} />
             </label>
-            <p className="text-[10px] text-gray-500 font-sans">Écran · dos · côtés — au moins 1 photo.</p>
+            <p className="text-[10px] text-gray-400 font-sans">Écran allumé · dos · tranches/angles — 3 photos minimum obligatoires.</p>
             <button type="button" disabled={!canSubmit}
               onClick={() => {
                 const id  = currentStepId;
@@ -457,7 +457,7 @@ export const TrocChatFlow: React.FC<TrocChatFlowProps> = ({
                 setTimeout(() => setIsTyping(false), 800);
               }}
               className={`self-end ${btnGoldDisabled}`}>
-              {isUploading ? 'Envoi en cours…' : <>Envoyer les photos <ArrowRight className="w-3.5 h-3.5" /></>}
+              {isUploading ? 'Envoi en cours…' : photos.length < 3 ? `3 photos min. (${photos.length}/3)` : <>Envoyer les photos <ArrowRight className="w-3.5 h-3.5" /></>}
             </button>
           </div>
         );

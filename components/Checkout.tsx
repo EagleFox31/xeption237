@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { CartItem, PaymentMethod } from '../types';
 import { PAYMENT_DETAILS } from '../constants';
@@ -8,12 +9,17 @@ import { useOrderProcess } from '../hooks/useOrderProcess';
 import {
   X, Smartphone, CheckCircle, ShieldCheck, Minus, Plus, ShoppingBag,
   ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, FileText, Copy, Radar,
-  User, Phone, Zap, Circle, Unlock
+  User, Phone, Zap, Circle, Unlock, Printer, MessageCircle, Sparkles, RefreshCw
 } from 'lucide-react';
+import { downloadInvoicePDF, printInvoiceHTML } from '../utils/invoiceGenerator';
+import { copyToClipboard } from '../utils/clipboard';
 import { useDeliveryZones } from './delivery/deliveryZoneUi';
 import { DeliveryLocationSelect } from './delivery/DeliveryLocationSelect';
 import { FREE_DELIVERY_THRESHOLD_XAF } from '../constants/delivery';
 import { HCAPTCHA_SITE_KEY } from '../constants/hCaptcha';
+import { buildOrderConfirmationWhatsAppMessage, buildWhatsAppUrl } from '../utils/whatsappShare';
+import { lookupTrocVoucher } from '../services/trocVoucherLookupService';
+import { normalizeVoucherLookupRef } from '../utils/trocVoucherRef';
 
 type PlayfulFieldProps = {
   step: number;
@@ -126,6 +132,79 @@ const Checkout: React.FC<CheckoutProps> = ({
   // Local UI State
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedMerchantCode, setCopiedMerchantCode] = useState<'om' | 'momo' | null>(null);
+
+  // Verrouiller le scroll d'arrière-plan quand le checkout est ouvert & gestion Échap
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  // État pour le bon Smart Troc dans le panier
+  const [showVoucherInput, setShowVoucherInput] = useState(false);
+  const [voucherInputRef, setVoucherInputRef] = useState('');
+  const [voucherPhoneSuffix, setVoucherPhoneSuffix] = useState('');
+  const [isVerifyingVoucher, setIsVerifyingVoucher] = useState(false);
+  const [voucherError, setVoucherError] = useState('');
+  const [orderWhatsAppUrl, setOrderWhatsAppUrl] = useState<string | null>(null);
+
+  // Pré-remplir les 4 derniers chiffres du téléphone pour le bon si déjà saisis
+  useEffect(() => {
+    if (form.formData.phone && !voucherPhoneSuffix) {
+      const digits = form.formData.phone.replace(/\D/g, '');
+      if (digits.length >= 4) {
+        setVoucherPhoneSuffix(digits.slice(-4));
+      }
+    }
+  }, [form.formData.phone, voucherPhoneSuffix]);
+
+  const handleApplyVoucher = async () => {
+    const ref = normalizeVoucherLookupRef(voucherInputRef);
+    const suffix = voucherPhoneSuffix.replace(/\D/g, '').slice(-4);
+    if (!ref || suffix.length !== 4) {
+      setVoucherError('Indique la référence du bon (TRC-...) et les 4 derniers chiffres.');
+      return;
+    }
+    setIsVerifyingVoucher(true);
+    setVoucherError('');
+    try {
+      const voucher = await lookupTrocVoucher(ref, suffix);
+      if (!voucher || !voucher.trade_in_value) {
+        throw new Error("Ce bon n'a aucune valeur de reprise valide.");
+      }
+      form.applyTrocVoucher({
+        ref: voucher.voucher_reference || ref,
+        credit: voucher.trade_in_value,
+        brand: voucher.device_brand,
+        model: voucher.device_model,
+        imei: voucher.imei ?? undefined,
+      });
+      setShowVoucherInput(false);
+      setVoucherInputRef('');
+    } catch (e: any) {
+      setVoucherError(e.message || 'Bon introuvable ou coordonnées incorrectes.');
+    } finally {
+      setIsVerifyingVoucher(false);
+    }
+  };
+
+  // Par défaut sur Cash à la livraison tant que OM et MoMo sont en cours de déploiement
+  useEffect(() => {
+    if (form.step === 'payment' && (!form.selectedPayment || form.selectedPayment === PaymentMethod.OM || form.selectedPayment === PaymentMethod.MOMO)) {
+      form.setSelectedPayment(PaymentMethod.CASH);
+    }
+  }, [form.step, form.selectedPayment]);
   
   // Captcha State
   const captchaRef = useRef<any>(null);
@@ -184,13 +263,144 @@ const Checkout: React.FC<CheckoutProps> = ({
     );
   };
 
+  // Composant léger pour le bon Smart Troc
+  const TrocVoucherApplyBlock: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
+    if (form.trocVoucher) {
+      return (
+        <div className="rounded-xl border border-xeption-gold/40 bg-xeption-gold/10 p-3 sm:p-4 transition-all">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="w-4 h-4 text-xeption-gold shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-tech font-bold text-white uppercase tracking-wider truncate">
+                  Bon Smart Troc {form.trocVoucher.ref}
+                </p>
+                <p className="text-[10px] text-xeption-gold/90 font-mono">
+                  - {form.trocDiscount.toLocaleString('fr-FR')} FCFA déduits
+                  {form.trocVoucher.brand ? ` (${form.trocVoucher.brand} ${form.trocVoucher.model || ''})` : ''}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={form.removeTrocVoucher}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/50 hover:text-red-400 text-xs transition-colors shrink-0"
+              title="Retirer ce bon"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-xl border border-white/10 bg-black/30 p-3 sm:p-4 transition-all">
+        {!showVoucherInput ? (
+          <button
+            type="button"
+            onClick={() => setShowVoucherInput(true)}
+            className="w-full flex items-center justify-between gap-2 text-left text-xs text-white/80 hover:text-xeption-gold font-tech uppercase tracking-wider transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-xeption-gold" />
+              Tu as un bon Smart Troc ?
+            </span>
+            <span className="text-[10px] font-bold text-xeption-gold underline">Déduire</span>
+          </button>
+        ) : (
+          <div className="flex flex-col gap-3 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="text-[11px] font-tech uppercase tracking-wider text-xeption-gold font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" /> Appliquer un bon Smart Troc
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVoucherInput(false);
+                  setVoucherError('');
+                }}
+                className="text-[10px] text-white/50 hover:text-white uppercase font-tech transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Champ 1 : Référence du bon */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-tech uppercase tracking-widest text-white/80 font-bold mb-1 flex items-center justify-between">
+                  <span>Référence du bon</span>
+                  <span className="text-xeption-gold font-mono text-[9px] font-normal">ex: TRC-178...</span>
+                </label>
+                <input
+                  type="text"
+                  value={voucherInputRef}
+                  onChange={(e) => setVoucherInputRef(e.target.value.toUpperCase())}
+                  placeholder="Ex : TRC-1787741068"
+                  className="w-full bg-black/50 border border-white/15 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-xeption-gold uppercase placeholder-gray-600 transition-colors"
+                />
+                <p className="text-[9px] text-gray-500 mt-1 leading-tight">
+                  Code unique figurant sur ton bon de troc.
+                </p>
+              </div>
+
+              {/* Champ 2 : 4 derniers chiffres du téléphone */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-tech uppercase tracking-widest text-white/80 font-bold mb-1 flex items-center justify-between">
+                  <span>4 chiffres tél. du bon</span>
+                  <span className="text-xeption-gold font-mono text-[9px] font-normal">Sécurité</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={voucherPhoneSuffix}
+                  onChange={(e) => setVoucherPhoneSuffix(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="Ex : 7859"
+                  className="w-full bg-black/50 border border-white/15 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-xeption-gold text-center tracking-widest placeholder-gray-600 transition-colors"
+                />
+                <p className="text-[9px] text-gray-500 mt-1 leading-tight">
+                  Numéro WhatsApp du bon de troc (ex: 69912<strong className="text-gray-300">7859</strong> → <strong className="text-xeption-gold">7859</strong>).
+                </p>
+              </div>
+            </div>
+
+            {voucherError && (
+              <p className="text-[10px] text-red-400 font-sans leading-tight bg-red-500/10 border border-red-500/20 rounded-lg p-2">
+                {voucherError}
+              </p>
+            )}
+
+            <button
+              type="button"
+              disabled={isVerifyingVoucher || !voucherInputRef.trim()}
+              onClick={handleApplyVoucher}
+              className="w-full inline-flex items-center justify-center gap-1.5 bg-xeption-gold/20 hover:bg-xeption-gold text-xeption-gold hover:text-black border border-xeption-gold/40 py-2.5 rounded-lg text-xs font-tech font-bold uppercase tracking-wider transition-all disabled:opacity-40 cursor-pointer"
+            >
+              {isVerifyingVoucher ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Vérification du bon...
+                </>
+              ) : (
+                'Appliquer la déduction'
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // --- Actions ---
 
   const handleProcessOrder = async () => {
       try {
-          await order.submitOrder({
+          const result = await order.submitOrder({
               cart,
               total: form.total,
+              subtotal: form.subtotal,
+              deliveryFee: form.deliveryFee,
+              trocVoucher: form.trocVoucher,
               formData: form.formData,
               deliveryMode: form.deliveryMode,
               paymentMethod: form.selectedPayment,
@@ -201,6 +411,37 @@ const Checkout: React.FC<CheckoutProps> = ({
           setCaptchaToken(null);
           form.clearDraft();
           form.setStep('success');
+
+          // Construction du message WhatsApp et ouverture automatique (Option A)
+          if (result?.orderId) {
+              const whatsappMsg = buildOrderConfirmationWhatsAppMessage({
+                  orderId: result.orderId,
+                  customerName: form.formData.name,
+                  customerPhone: form.formData.phone,
+                  customerCity: form.deliveryMode === 'pickup'
+                    ? 'Retrait Boutique'
+                    : (form.formData.city || form.formData.neighborhood || ''),
+                  deliveryMode: form.deliveryMode,
+                  items: cart.map((item) => ({
+                      name: item.name,
+                      quantity: item.quantity,
+                      price: item.price,
+                  })),
+                  subtotal: form.subtotal,
+                  deliveryFee: form.deliveryFee,
+                  trocVoucherDiscount: form.trocVoucher ? { ref: form.trocVoucher.ref, amount: form.trocDiscount } : null,
+                  total: form.total,
+              });
+              const url = buildWhatsAppUrl(whatsappMsg);
+              setOrderWhatsAppUrl(url);
+
+              // Ouverture automatique vers WhatsApp
+              try {
+                  window.open(url, '_blank');
+              } catch (openErr) {
+                  console.warn('Ouverture automatique WhatsApp bloquée par le navigateur:', openErr);
+              }
+          }
       } catch (err: any) {
           alert(err.message || "Une erreur est survenue.");
       }
@@ -304,40 +545,19 @@ const Checkout: React.FC<CheckoutProps> = ({
     if (!order.lastOrderHtml) return;
     setIsPdfGenerating(true);
     try {
-        const html2pdfModule = await import('html2pdf.js');
-        const html2pdf = html2pdfModule.default;
-
-        const element = document.createElement('div');
-        element.innerHTML = order.lastOrderHtml;
-        element.style.width = '700px'; 
-        element.style.padding = '20px';
-        element.style.background = 'white';
-
-        const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.left = '-10000px';
-        container.style.top = '0';
-        container.appendChild(element);
-        document.body.appendChild(container);
-
-        const safeName = form.formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'client';
-        await html2pdf().set({
-            margin: 10, filename: `Facture_Xeption_${safeName}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(element).save();
-        document.body.removeChild(container);
+      const safeName = form.formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'client';
+      const filename = `Facture_Xeption_${order.createdOrderId || safeName}.pdf`;
+      await downloadInvoicePDF(order.lastOrderHtml, filename);
     } catch (err) {
-        console.error("PDF Gen Error:", err);
-        const blob = new Blob([order.lastOrderHtml], { type: 'text/html' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `Facture.html`;
-        link.click();
+      console.error("PDF Download Error:", err);
     } finally {
-        setIsPdfGenerating(false);
+      setIsPdfGenerating(false);
     }
+  };
+
+  const handlePrintInvoice = () => {
+    if (!order.lastOrderHtml) return;
+    printInvoiceHTML(order.lastOrderHtml);
   };
 
   const handleGoToTracking = () => {
@@ -369,13 +589,19 @@ const Checkout: React.FC<CheckoutProps> = ({
         const isDone = activeStepIndex > index;
         return (
           <React.Fragment key={stepItem.key}>
-            <div className="flex flex-col items-center gap-2 min-w-[56px]">
+            <button
+              type="button"
+              onClick={() => form.goToStep(stepItem.key)}
+              disabled={!isDone && !isActive}
+              className="flex flex-col items-center gap-2 min-w-[56px] group transition-all disabled:cursor-default"
+              title={isDone ? `Revenir à l'étape ${stepItem.label}` : stepItem.label}
+            >
               <div
                 className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center font-tech font-bold text-sm transition-all duration-300 ${
                   isActive
                     ? 'border-xeption-gold bg-xeption-gold/15 text-xeption-gold shadow-[0_0_20px_rgba(255,215,0,0.35)] scale-110'
                     : isDone
-                      ? 'border-xeption-gold/60 bg-xeption-gold/5 text-xeption-gold/80'
+                      ? 'border-xeption-gold/60 bg-xeption-gold/5 text-xeption-gold/80 group-hover:border-xeption-gold group-hover:text-xeption-gold cursor-pointer'
                       : 'border-white/15 bg-black/40 text-gray-500'
                 }`}
               >
@@ -383,12 +609,12 @@ const Checkout: React.FC<CheckoutProps> = ({
               </div>
               <span
                 className={`text-[10px] font-tech uppercase tracking-widest transition-colors ${
-                  isActive ? 'text-xeption-gold font-bold' : isDone ? 'text-gray-400' : 'text-gray-600'
+                  isActive ? 'text-xeption-gold font-bold' : isDone ? 'text-gray-400 group-hover:text-white' : 'text-gray-600'
                 }`}
               >
                 {stepItem.label}
               </span>
-            </div>
+            </button>
             {index < checkoutSteps.length - 1 && (
               <div
                 className={`h-0.5 w-8 sm:w-16 mb-5 rounded-full transition-colors duration-500 ${
@@ -463,12 +689,19 @@ const Checkout: React.FC<CheckoutProps> = ({
                   {form.qualifiesForFreeDelivery ? 'Offerte' : 'Selon ville'}
                 </span>
               </div>
+              {form.trocVoucher && (
+                <div className="flex justify-between text-amber-400 font-bold">
+                  <span>Bon Smart Troc</span>
+                  <span className="font-mono">- {form.trocDiscount.toLocaleString('fr-FR')} FCFA</span>
+                </div>
+              )}
               <FreeDeliveryHint />
+              <TrocVoucherApplyBlock />
               <div className="border-t border-dashed border-white/20 pt-4 mt-4">
                 <div className="flex justify-between items-end">
                   <span className="text-white font-bold uppercase tracking-wider">Total Est.</span>
                   <div className="text-right">
-                    <span className="block text-3xl font-bold text-white font-tech">{form.subtotal.toLocaleString('fr-FR')}</span>
+                    <span className="block text-3xl font-bold text-white font-tech">{form.total.toLocaleString('fr-FR')}</span>
                     <span className="text-xeption-gold text-xs font-bold">FCFA</span>
                   </div>
                 </div>
@@ -821,48 +1054,69 @@ const Checkout: React.FC<CheckoutProps> = ({
       <h3 className="text-3xl font-bold text-white font-tech uppercase mb-8 text-center drop-shadow-md">Règlement</h3>
       <div className="space-y-3">
         {Object.values(PaymentMethod).map((method) => {
+          const isComingSoon = method === PaymentMethod.OM || method === PaymentMethod.MOMO;
           const isSelected = form.selectedPayment === method;
           return (
             <button
               key={method}
               type="button"
-              onClick={() => form.setSelectedPayment(method)}
-              className={`w-full p-4 sm:p-5 border cursor-pointer transition-all flex items-center gap-3 sm:gap-4 group relative text-left rounded-lg ${
-                isSelected
-                  ? 'border-xeption-gold bg-xeption-gold/10 shadow-[0_0_20px_rgba(255,215,0,0.08)]'
-                  : 'border-white/15 bg-black/40 hover:border-white/35 hover:bg-black/60'
+              disabled={isComingSoon}
+              onClick={() => {
+                if (!isComingSoon) {
+                  form.setSelectedPayment(method);
+                }
+              }}
+              className={`w-full p-4 sm:p-5 border transition-all flex items-center gap-3 sm:gap-4 group relative text-left rounded-lg ${
+                isComingSoon
+                  ? 'opacity-40 bg-black/20 border-white/5 cursor-not-allowed select-none'
+                  : isSelected
+                    ? 'border-xeption-gold bg-xeption-gold/10 shadow-[0_0_20px_rgba(255,215,0,0.08)] cursor-pointer'
+                    : 'border-white/15 bg-black/40 hover:border-white/35 hover:bg-black/60 cursor-pointer'
               }`}
             >
               <div
                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                  isSelected
-                    ? 'border-xeption-gold bg-xeption-gold/20 shadow-[0_0_12px_rgba(255,215,0,0.4)]'
-                    : 'border-white/55 bg-black/60'
+                  isComingSoon
+                    ? 'border-white/20 bg-black/40'
+                    : isSelected
+                      ? 'border-xeption-gold bg-xeption-gold/20 shadow-[0_0_12px_rgba(255,215,0,0.4)]'
+                      : 'border-white/55 bg-black/60'
                 }`}
                 aria-hidden
               >
-                {isSelected ? (
+                {isSelected && !isComingSoon ? (
                   <div className="w-3 h-3 rounded-full bg-xeption-gold shadow-[0_0_8px_#FFD700]" />
                 ) : null}
               </div>
               <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 relative z-10">
                 {method.includes('Orange') && (
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 bg-orange-600 flex items-center justify-center text-white font-bold rounded-sm shadow-lg shrink-0">OM</div>
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 bg-orange-600/70 grayscale-[30%] flex items-center justify-center text-white font-bold rounded-sm shadow shrink-0">OM</div>
                 )}
                 {method.includes('MTN') && (
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 bg-yellow-400 flex items-center justify-center text-black font-bold rounded-sm shadow-lg shrink-0">MoMo</div>
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 bg-yellow-500/70 grayscale-[30%] flex items-center justify-center text-black font-bold rounded-sm shadow shrink-0">MoMo</div>
                 )}
                 {method.includes('Cash') && (
                   <div className="w-11 h-11 sm:w-12 sm:h-12 bg-green-700 flex items-center justify-center text-white font-bold rounded-sm shadow-lg shrink-0">$$</div>
                 )}
-                <div className="min-w-0">
-                  <span className="block text-white font-tech font-bold uppercase tracking-wide text-sm sm:text-lg group-hover:text-xeption-gold transition-colors leading-tight">
-                    {method}
-                  </span>
-                  <span className="text-[11px] sm:text-xs text-gray-500 leading-snug mt-0.5">
-                    {method.includes('Cash')
-                      ? 'Paiement au retrait ou à la livraison'
-                      : 'Instructions de règlement communiquées par la boutique'}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className={`block font-tech font-bold uppercase tracking-wide text-sm sm:text-lg leading-tight ${
+                      isComingSoon ? 'text-gray-400' : 'text-white group-hover:text-xeption-gold transition-colors'
+                    }`}>
+                      {method}
+                    </span>
+                    {isComingSoon && (
+                      <span className="inline-flex items-center text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-white/10 text-xeption-gold border border-xeption-gold/30">
+                        Bientôt
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] sm:text-xs text-gray-500 leading-snug mt-0.5 block">
+                    {isComingSoon
+                      ? 'Paiement direct bientôt disponible'
+                      : method.includes('Cash')
+                        ? 'Paiement au retrait ou à la livraison'
+                        : 'Instructions de règlement communiquées par la boutique'}
                   </span>
                 </div>
               </div>
@@ -872,42 +1126,131 @@ const Checkout: React.FC<CheckoutProps> = ({
       </div>
 
       {form.selectedPayment === PaymentMethod.OM && (
-        <div className="mt-4 bg-orange-900/20 border border-orange-500/30 p-6 rounded relative overflow-hidden backdrop-blur-sm transition-all duration-300">
-          <div className="absolute -right-4 -top-4 text-orange-500/10"><Smartphone size={100} /></div>
-          <p className="text-orange-500 text-xs font-bold mb-4 uppercase tracking-widest relative z-10">Indications Orange Money</p>
+        <div className="mt-4 bg-orange-900/20 border border-orange-500/30 p-5 rounded relative overflow-hidden backdrop-blur-sm transition-all duration-300">
+          <p className="text-orange-500 text-xs font-bold mb-3 uppercase tracking-widest relative z-10">Indications Orange Money</p>
           <div className="space-y-3 font-mono text-sm text-gray-300 relative z-10">
             <div className="flex justify-between border-b border-orange-500/10 pb-2"><span>Code USSD</span> <span className="text-white font-bold">#150*47#</span></div>
-            <div className="flex justify-between border-b border-orange-500/10 pb-2"><span>Code Marchand</span> <span className="text-white font-bold">{PAYMENT_DETAILS.OM.merchantCode}</span></div>
-            <div className="flex justify-between"><span>Montant à payer</span> <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span></div>
+            <div className="flex items-center justify-between border-b border-orange-500/10 pb-2">
+              <span>Code Marchand</span>
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold tracking-wider">{PAYMENT_DETAILS.OM.merchantCode}</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await copyToClipboard(PAYMENT_DETAILS.OM.merchantCode);
+                    setCopiedMerchantCode('om');
+                    setTimeout(() => setCopiedMerchantCode(null), 2000);
+                  }}
+                  className="px-2 py-1 rounded bg-orange-500/15 hover:bg-orange-500/30 text-orange-400 hover:text-white transition-colors flex items-center gap-1 text-[11px] font-sans border border-orange-500/25"
+                  title="Copier le code marchand"
+                >
+                  {copiedMerchantCode === 'om' ? (
+                    <>
+                      <CheckCircle className="w-3 h-3 text-green-400" />
+                      <span className="text-green-400 font-bold">Copié</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copier</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-between">
+              <span>Montant à payer</span>
+              <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span>
+            </div>
           </div>
-          <p className="text-gray-400 text-xs mt-4 relative z-10">
+          <p className="text-gray-400 text-xs mt-3 relative z-10">
             La commande est enregistrée et le stock réservé. Le règlement Orange Money se fait à la livraison ou au retrait en boutique — notre équipe t&apos;appelle pour confirmer.
           </p>
         </div>
       )}
+
       {form.selectedPayment === PaymentMethod.MOMO && (
-        <div className="mt-4 bg-yellow-900/20 border border-yellow-500/30 p-6 rounded relative overflow-hidden backdrop-blur-sm transition-all duration-300">
-          <div className="absolute -right-4 -top-4 text-yellow-500/10"><Smartphone size={100} /></div>
-          <p className="text-yellow-500 text-xs font-bold mb-4 uppercase tracking-widest relative z-10">Indications MTN MoMo</p>
+        <div className="mt-4 bg-yellow-900/20 border border-yellow-500/30 p-5 rounded relative overflow-hidden backdrop-blur-sm transition-all duration-300">
+          <p className="text-yellow-500 text-xs font-bold mb-3 uppercase tracking-widest relative z-10">Indications MTN MoMo</p>
           <div className="space-y-3 font-mono text-sm text-gray-300 relative z-10">
             <div className="flex justify-between border-b border-yellow-500/10 pb-2"><span>Code USSD</span> <span className="text-white font-bold">*126#</span></div>
-            <div className="flex justify-between border-b border-yellow-500/10 pb-2"><span>Code Marchand</span> <span className="text-white font-bold">{PAYMENT_DETAILS.MOMO.merchantCode}</span></div>
+            <div className="flex items-center justify-between border-b border-yellow-500/10 pb-2">
+              <span>Code Marchand</span>
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold tracking-wider">{PAYMENT_DETAILS.MOMO.merchantCode}</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await copyToClipboard(PAYMENT_DETAILS.MOMO.merchantCode);
+                    setCopiedMerchantCode('momo');
+                    setTimeout(() => setCopiedMerchantCode(null), 2000);
+                  }}
+                  className="px-2 py-1 rounded bg-yellow-500/15 hover:bg-yellow-500/30 text-yellow-400 hover:text-white transition-colors flex items-center gap-1 text-[11px] font-sans border border-yellow-500/25"
+                  title="Copier le code marchand"
+                >
+                  {copiedMerchantCode === 'momo' ? (
+                    <>
+                      <CheckCircle className="w-3 h-3 text-green-400" />
+                      <span className="text-green-400 font-bold">Copié</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copier</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-between">
+              <span>Montant à payer</span>
+              <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span>
+            </div>
           </div>
-          <p className="text-gray-400 text-xs mt-4 relative z-10">
+          <p className="text-gray-400 text-xs mt-3 relative z-10">
             La commande est enregistrée et le stock réservé. Le règlement MTN MoMo se fait à la livraison ou au retrait — notre équipe te contacte avant l&apos;encaissement.
           </p>
         </div>
       )}
 
+      {form.selectedPayment === PaymentMethod.CASH && (
+        <div className="mt-4 bg-emerald-950/20 border border-emerald-500/30 p-5 rounded relative overflow-hidden backdrop-blur-sm transition-all duration-300">
+          <p className="text-emerald-400 text-xs font-bold mb-3 uppercase tracking-widest relative z-10">Règlement au retrait ou à la livraison</p>
+          <div className="space-y-2 font-mono text-sm text-gray-300 relative z-10">
+            <div className="flex justify-between border-b border-emerald-500/10 pb-2">
+              <span>Mode de réception</span>
+              <span className="text-white font-bold">{form.deliveryMode === 'pickup' ? 'Retrait boutique' : 'Livraison à domicile'}</span>
+            </div>
+            {form.trocVoucher && (
+              <div className="flex justify-between text-amber-400 font-bold border-b border-emerald-500/10 pb-2">
+                <span>Bon Smart Troc ({form.trocVoucher.ref})</span>
+                <span className="font-mono">- {form.trocDiscount.toLocaleString('fr-FR')} FCFA</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>Montant à régler</span>
+              <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span>
+            </div>
+          </div>
+          <p className="text-gray-400 text-xs mt-3 relative z-10">
+            Paiement direct en espèces lors de la réception en main propre de ton colis.
+          </p>
+        </div>
+      )}
+
+      <div className="mt-4">
+        <TrocVoucherApplyBlock />
+      </div>
+
       <div className="mt-5 flex flex-col items-center gap-2">
         <p className="text-[10px] font-tech uppercase tracking-widest text-gray-500 font-bold">
           Vérification anti-robot
         </p>
-        <div className="rounded-lg border border-white/15 bg-white p-3 shadow-lg">
+        <div className="rounded-lg border border-white/15 bg-black/60 p-2 shadow-lg backdrop-blur-sm">
           <HCaptcha
             ref={captchaRef}
             sitekey={HCAPTCHA_SITE_KEY}
-            theme="light"
+            theme="dark"
             onVerify={(token) => setCaptchaToken(token)}
             onExpire={() => setCaptchaToken(null)}
             onError={() => setCaptchaToken(null)}
@@ -925,27 +1268,45 @@ const Checkout: React.FC<CheckoutProps> = ({
   );
 
   const renderSuccess = () => (
-    <div className="max-w-xl mx-auto w-full bg-black/50 backdrop-blur-xl border border-white/10 p-12 text-center animate-in fade-in zoom-in duration-500 shadow-2xl relative overflow-hidden rounded-sm">
+    <div className="max-w-xl mx-auto w-full bg-black/50 backdrop-blur-xl border border-white/10 p-8 sm:p-12 text-center animate-in fade-in zoom-in duration-500 shadow-2xl relative overflow-hidden rounded-sm">
       <div className="absolute inset-0 bg-green-500/5"></div>
       <div className="relative z-10">
-        <div className="w-28 h-28 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-green-500/30 shadow-[0_0_50px_rgba(34,197,94,0.2)]">
-          <CheckCircle className="h-12 w-12 text-green-500" />
+        <div className="w-24 h-24 sm:w-28 sm:h-28 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-green-500/30 shadow-[0_0_50px_rgba(34,197,94,0.2)]">
+          <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-500" />
         </div>
-        <h3 className="text-4xl font-bold text-white font-tech uppercase mb-4 drop-shadow-lg">C'est Validé !</h3>
-        <p className="text-gray-300 text-lg mb-6 leading-relaxed">
+        <h3 className="text-3xl sm:text-4xl font-bold text-white font-tech uppercase mb-3 drop-shadow-lg">C'est Validé !</h3>
+        <p className="text-gray-300 text-base sm:text-lg mb-6 leading-relaxed">
           Respect <span className="text-xeption-gold font-bold">{form.formData.name}</span>.<br />
           Ta commande est enregistrée. Notre équipe t'appelle au <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded">{form.formData.phone}</span>.
         </p>
 
-        <div className="bg-[#18181b] border border-xeption-gold/30 p-6 rounded-lg mb-8 relative overflow-hidden group">
+        {/* Bouton direct WhatsApp (Option A) */}
+        {orderWhatsAppUrl && (
+          <div className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-center">
+            <a
+              href={orderWhatsAppUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2.5 bg-green-600 hover:bg-green-500 text-white font-tech font-bold uppercase tracking-wider py-4 px-6 rounded-lg text-xs sm:text-sm shadow-[0_0_25px_rgba(34,197,94,0.35)] transition-all font-semibold"
+            >
+              <MessageCircle className="w-5 h-5 shrink-0" />
+              <span>Envoyer ma commande sur WhatsApp</span>
+            </a>
+            <p className="text-[11px] text-gray-400 mt-2 font-sans">
+              La discussion WhatsApp s&apos;ouvre automatiquement. Si elle a été bloquée par ton navigateur, clique sur le bouton vert ci-dessus.
+            </p>
+          </div>
+        )}
+
+        <div className="bg-[#18181b] border border-xeption-gold/30 p-5 sm:p-6 rounded-lg mb-6 sm:mb-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-16 h-16 bg-xeption-gold/10 rounded-full blur-xl group-hover:bg-xeption-gold/20 transition-all"></div>
             <div className="relative z-10">
-                <h4 className="text-xeption-gold font-bold uppercase text-sm mb-2 flex items-center justify-center gap-2"><Radar className="w-4 h-4 animate-pulse" /> Suivi Live</h4>
+                <h4 className="text-xeption-gold font-bold uppercase text-xs sm:text-sm mb-2 flex items-center justify-center gap-2"><Radar className="w-4 h-4 animate-pulse" /> Suivi Live</h4>
                 <p className="text-gray-400 text-xs mb-4">Copie ton numéro de commande pour suivre ton colis en temps réel.</p>
                 {order.createdOrderId && (
                     <div className="flex items-center justify-center gap-2 mb-4">
-                         <code className="bg-black/50 border border-white/10 px-4 py-2 rounded text-white font-mono font-bold tracking-widest text-lg">{order.createdOrderId}</code>
-                         <button onClick={() => { navigator.clipboard.writeText(order.createdOrderId || ''); setCopiedId(true); setTimeout(() => setCopiedId(false), 2000); }} className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-400 hover:text-white transition-colors" title="Copier">
+                         <code className="bg-black/50 border border-white/10 px-3 sm:px-4 py-2 rounded text-white font-mono font-bold tracking-widest text-base sm:text-lg break-all">{order.createdOrderId}</code>
+                         <button onClick={async () => { await copyToClipboard(order.createdOrderId || ''); setCopiedId(true); setTimeout(() => setCopiedId(false), 2000); }} className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-400 hover:text-white transition-colors" title="Copier">
                              {copiedId ? <CheckCircle className="w-5 h-5 text-green-500"/> : <Copy className="w-5 h-5"/>}
                          </button>
                     </div>
@@ -962,9 +1323,24 @@ const Checkout: React.FC<CheckoutProps> = ({
             </div>
           )}
           {order.lastOrderHtml && (
-            <button onClick={handleDownloadInvoice} disabled={isPdfGenerating} className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-xeption-gold hover:text-white transition-colors py-2 border border-xeption-gold/30 hover:bg-xeption-gold hover:text-black rounded-sm p-3 mt-4 disabled:opacity-50 disabled:cursor-not-allowed">
-              {isPdfGenerating ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4" />} {isPdfGenerating ? 'Génération PDF...' : 'Télécharger la facture (PDF)'}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
+              <button
+                onClick={handleDownloadInvoice}
+                disabled={isPdfGenerating}
+                className="flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-xeption-gold hover:text-black hover:bg-xeption-gold transition-all py-3 px-4 border border-xeption-gold/40 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                {isPdfGenerating ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4" />}
+                {isPdfGenerating ? 'Génération...' : 'Télécharger la facture (PDF)'}
+              </button>
+              <button
+                onClick={handlePrintInvoice}
+                className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/10 transition-all py-3 px-4 border border-white/20 rounded-sm"
+                title="Imprimer ou enregistrer au format PDF via le navigateur"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimer</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -973,34 +1349,41 @@ const Checkout: React.FC<CheckoutProps> = ({
     </div>
   );
 
-  return (
-    <div className="fixed inset-0 z-[200] overflow-y-auto overflow-x-hidden bg-black/40 backdrop-blur-md">
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.02),transparent_70%)]"></div>
-      <div className="min-h-screen flex flex-col items-center justify-start pt-4 sm:pt-5 pb-8 px-4 sm:px-6">
-        <div className={`w-full max-w-7xl flex justify-between items-center relative z-20 ${
-          isCompactCheckoutStep ? 'mb-3' : 'mb-6'
-        }`}>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-1 bg-xeption-gold shadow-[0_0_10px_#FFD700]"></div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white font-tech uppercase tracking-wider drop-shadow-lg">
-              Finaliser <span className="text-xeption-gold">la commande</span>
-            </h1>
+  return typeof document !== 'undefined'
+    ? createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-y-auto overflow-x-hidden bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.02),transparent_70%)]"></div>
+          <div className="min-h-screen flex flex-col items-center justify-start pt-4 sm:pt-5 pb-8 px-4 sm:px-6">
+            <div className={`w-full max-w-7xl flex justify-between items-center relative z-20 ${
+              isCompactCheckoutStep ? 'mb-3' : 'mb-6'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1 bg-xeption-gold shadow-[0_0_10px_#FFD700]"></div>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white font-tech uppercase tracking-wider drop-shadow-lg">
+                  Finaliser <span className="text-xeption-gold">la commande</span>
+                </h1>
+              </div>
+              <button onClick={onClose} className="group flex items-center gap-2 text-gray-300 hover:text-white transition-colors bg-black/20 p-2 rounded-full backdrop-blur-sm border border-white/5 hover:border-white/20">
+                <span className="text-xs font-bold uppercase tracking-widest hidden sm:block px-2">Fermer</span>
+                <div className="border border-gray-500 rounded-full p-1 group-hover:border-white transition-colors"><X className="h-4 w-4" /></div>
+              </button>
+            </div>
+            {form.step !== 'success' && <StepIndicator />}
+            <div className="w-full relative z-10 animate-in slide-in-from-bottom-10 duration-500">
+              {form.step === 'cart' && renderCart()}
+              {form.step === 'details' && renderDetails()}
+              {form.step === 'payment' && renderPayment()}
+              {form.step === 'success' && renderSuccess()}
+            </div>
           </div>
-          <button onClick={onClose} className="group flex items-center gap-2 text-gray-300 hover:text-white transition-colors bg-black/20 p-2 rounded-full backdrop-blur-sm border border-white/5 hover:border-white/20">
-            <span className="text-xs font-bold uppercase tracking-widest hidden sm:block px-2">Fermer</span>
-            <div className="border border-gray-500 rounded-full p-1 group-hover:border-white transition-colors"><X className="h-4 w-4" /></div>
-          </button>
-        </div>
-        {form.step !== 'success' && <StepIndicator />}
-        <div className="w-full relative z-10 animate-in slide-in-from-bottom-10 duration-500">
-          {form.step === 'cart' && renderCart()}
-          {form.step === 'details' && renderDetails()}
-          {form.step === 'payment' && renderPayment()}
-          {form.step === 'success' && renderSuccess()}
-        </div>
-      </div>
-    </div>
-  );
+        </div>,
+        document.body,
+      )
+    : null;
 };
 
 export default Checkout;

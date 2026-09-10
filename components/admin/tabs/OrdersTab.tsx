@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Order } from '../../../types';
-import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
+import { generateInvoiceHTML, generateInvoiceHTMLAsync, downloadInvoicePDF, printInvoiceHTML } from '../../../utils/invoiceGenerator';
 import {
   canIssueInvoice,
   canCancelOrder,
@@ -34,6 +34,7 @@ interface OrdersTabProps {
   onCloseCollectPayment: () => void;
   onInitiateCampay: (phone: string) => Promise<void>;
   onMarkCashPaid: () => Promise<void>;
+  onResetPaymentError?: () => void;
 }
 
 const statusStyles: Record<Order['status'], string> = {
@@ -117,6 +118,7 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
   onCloseCollectPayment,
   onInitiateCampay,
   onMarkCashPaid,
+  onResetPaymentError,
 }) => {
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const { invites: dueInvites, refresh: refreshInvites, markSent } = useDueFeedbackInvites();
@@ -187,53 +189,18 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
     }, 400);
   };
 
-  const handlePrint = (order: Order) => {
-    const html = generateInvoiceHTML(order);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-      }, 500);
-    }
+  const handlePrint = async (order: Order) => {
+    const html = await generateInvoiceHTMLAsync(order);
+    printInvoiceHTML(html);
   };
 
   const handleDownloadPDF = async (order: Order) => {
-    const html = generateInvoiceHTML(order);
-    const element = document.createElement('div');
-    element.innerHTML = html;
-    element.style.width = '700px';
-    element.style.background = 'white';
-
-    const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.left = '-10000px';
-    container.style.top = '0';
-    container.appendChild(element);
-    document.body.appendChild(container);
-
-    const safeName = order.customerName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-
+    const html = await generateInvoiceHTMLAsync(order);
+    const safeName = (order.customerName || 'client').replace(/[^a-z0-9]/gi, '_').toLowerCase();
     try {
-      const html2pdfModule = await import('html2pdf.js');
-      const html2pdf = html2pdfModule.default;
-      await html2pdf()
-        .set({
-          margin: 0,
-          filename: `Facture_${order.id}_${safeName}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        })
-        .from(element)
-        .save();
+      await downloadInvoicePDF(html, `Facture_${order.id}_${safeName}.pdf`);
     } catch {
       alert('Impossible de générer le PDF pour le moment.');
-    } finally {
-      document.body.removeChild(container);
     }
   };
 
@@ -273,23 +240,25 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
                         )}
                         {o.status === 'shipped' && (
                           <>
-                            {needsPayment(o) && (
+                            {needsPayment(o) ? (
                               <button
                                 type="button"
                                 onClick={() => onCollectPayment(o)}
-                                className="text-[10px] bg-xeption-gold hover:bg-white text-black px-2.5 py-1.5 rounded uppercase font-bold flex items-center gap-1"
+                                className="text-[10px] bg-xeption-gold hover:bg-white text-black px-2.5 py-1.5 rounded uppercase font-bold flex items-center gap-1 shadow-sm"
+                                title="Encaisser le règlement et clôturer la commande"
                               >
                                 <CreditCard className="w-3 h-3" />
                                 Encaisser
                               </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleComplete(o)}
+                                className="text-[10px] bg-green-600 hover:bg-green-500 text-white px-2.5 py-1.5 rounded uppercase font-bold"
+                              >
+                                Terminer
+                              </button>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => handleComplete(o)}
-                              className="text-[10px] bg-green-600 hover:bg-green-500 text-white px-2.5 py-1.5 rounded uppercase font-bold"
-                            >
-                              Terminer
-                            </button>
                             <button
                               type="button"
                               onClick={() => onUpdateStatus(o.id, 'refused')}
@@ -301,23 +270,25 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
                         )}
                         {o.status === 'ready' && (
                           <>
-                            {needsPayment(o) && (
+                            {needsPayment(o) ? (
                               <button
                                 type="button"
                                 onClick={() => onCollectPayment(o)}
-                                className="text-[10px] bg-xeption-gold hover:bg-white text-black px-2.5 py-1.5 rounded uppercase font-bold flex items-center gap-1"
+                                className="text-[10px] bg-xeption-gold hover:bg-white text-black px-2.5 py-1.5 rounded uppercase font-bold flex items-center gap-1 shadow-sm"
+                                title="Encaisser le règlement au comptoir et clôturer la commande"
                               >
                                 <CreditCard className="w-3 h-3" />
                                 Encaisser
                               </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleComplete(o)}
+                                className="text-[10px] bg-green-600 hover:bg-green-500 text-white px-2.5 py-1.5 rounded uppercase font-bold"
+                              >
+                                Terminer
+                              </button>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => handleComplete(o)}
-                              className="text-[10px] bg-green-600 hover:bg-green-500 text-white px-2.5 py-1.5 rounded uppercase font-bold"
-                            >
-                              Terminer
-                            </button>
                           </>
                         )}
                         {o.status === 'refused' && (
@@ -569,6 +540,7 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
           onClose={onCloseCollectPayment}
           onInitiateCampay={onInitiateCampay}
           onMarkCashPaid={onMarkCashPaid}
+          onResetError={onResetPaymentError}
         />
       )}
     </div>

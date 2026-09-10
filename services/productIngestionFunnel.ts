@@ -13,6 +13,7 @@ import {
 import { findDuplicateProduct } from '../utils/productDuplicate';
 import { isWeakProductDescription } from '../utils/productDescription';
 import { productNeedsAiEnrichment } from '../utils/productIngestionNeeds';
+import { safeRandomUUID } from '../utils/uuid';
 
 export type IngestionProgress = {
   step: 'upsert' | 'enrich';
@@ -190,7 +191,7 @@ export async function runProductIngestionFunnel(
       }
 
       const candidate: Product = {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         name: draft.name,
         description: draft.description || '',
         price: draft.price,

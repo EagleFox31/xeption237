@@ -8,6 +8,7 @@ import {
     validateProductForSave,
 } from '../../utils/productDuplicate';
 import { assertRpcSuccess } from '../../utils/rpcResult';
+import { safeRandomUUID } from '../../utils/uuid';
 
 interface UseInventoryManagerProps {
     products: Product[];
@@ -161,7 +162,7 @@ export const useInventoryManager = ({
             );
         }
 
-        const productData = { ...candidate, id: isNew ? crypto.randomUUID() : candidate.id };
+        const productData = { ...candidate, id: isNew ? safeRandomUUID() : candidate.id };
 
         const dbPayload = {
             [DB_SCHEMA.PRODUCTS.ID]: productData.id,

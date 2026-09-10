@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Upload, ImagePlus, Loader2, X, AlertTriangle } from 'lucide-react';
 
+const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 8;
 
 interface PhotoUploaderProps {
@@ -35,10 +36,37 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   return (
     <div className="flex flex-col gap-5 p-6 lg:p-8">
       <div className="w-full text-left border-b border-white/20 pb-4">
-        <h2 className="text-xl font-tech font-bold uppercase text-white tracking-wider">Photos</h2>
-        <p className="text-xs text-white/80 mt-1 font-sans leading-relaxed">
-          {photos.length}/{MAX_PHOTOS} fichiers — ajoute des photos nettes de ton appareil sous tous les angles.
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xl font-tech font-bold uppercase text-white tracking-wider">Photos</h2>
+          <span className={`text-[11px] font-tech uppercase px-2.5 py-0.5 rounded border tracking-wider ${
+            photos.length >= MIN_PHOTOS
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+              : 'bg-xeption-gold/15 border-xeption-gold/30 text-xeption-gold'
+          }`}>
+            {photos.length >= MIN_PHOTOS
+              ? `${photos.length}/${MAX_PHOTOS} photos (Requis validé)`
+              : `${photos.length}/${MIN_PHOTOS} min. requises`}
+          </span>
+        </div>
+        <p className="text-xs text-white/80 mt-1.5 font-sans leading-relaxed">
+          <strong className="text-xeption-gold">3 photos nettes minimum obligatoires</strong> pour l'estimation IA : écran allumé, face arrière et tranches/angles.
         </p>
+      </div>
+
+      {/* Guide visuel des 3 angles indispensables */}
+      <div className="grid grid-cols-3 gap-2 bg-white/[0.03] border border-white/10 rounded-sm p-2.5 text-center">
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="text-[10px] font-tech font-bold uppercase tracking-wider text-white">1. Écran allumé</span>
+          <span className="text-[9px] text-white/60 font-sans">Dalle fonctionnelle</span>
+        </div>
+        <div className="flex flex-col items-center gap-0.5 border-x border-white/10 px-1">
+          <span className="text-[10px] font-tech font-bold uppercase tracking-wider text-white">2. Face arrière</span>
+          <span className="text-[9px] text-white/60 font-sans">Coque & lentilles</span>
+        </div>
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="text-[10px] font-tech font-bold uppercase tracking-wider text-white">3. Tranches</span>
+          <span className="text-[9px] text-white/60 font-sans">Angles & châssis</span>
+        </div>
       </div>
 
       {visionLoading && (
@@ -117,9 +145,16 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
         {/* Previews — colonne droite sur laptop */}
         <div className="flex flex-col gap-4">
-          <p className="hidden lg:block text-[10px] font-tech uppercase tracking-widest text-white/70 text-left">
-            Aperçu ({photos.length}/{MAX_PHOTOS})
-          </p>
+          <div className="hidden lg:flex items-center justify-between text-[10px] font-tech uppercase tracking-widest text-white/70 text-left">
+            <span>Aperçu ({photos.length}/{MAX_PHOTOS})</span>
+            {photos.length < MIN_PHOTOS ? (
+              <span className="text-amber-400">
+                {MIN_PHOTOS - photos.length} photo{MIN_PHOTOS - photos.length > 1 ? 's' : ''} manquante{MIN_PHOTOS - photos.length > 1 ? 's' : ''}
+              </span>
+            ) : (
+              <span className="text-emerald-400">Nombre suffisant ({photos.length})</span>
+            )}
+          </div>
           {photos.length > 0 ? (
             <div className="grid grid-cols-4 lg:grid-cols-3 gap-2">
               {photos.map((file, i) => {
@@ -180,10 +215,16 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       {onNext && (
         <button
           onClick={onNext}
-          disabled={photos.length === 0 || isBusy || !visionReady || visionLoading}
+          disabled={photos.length < MIN_PHOTOS || isBusy || !visionReady || visionLoading}
           className="w-full bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest py-4 text-sm shadow-[0_0_20px_rgba(255,215,0,0.25)] transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none"
         >
-          {isCheckingPhotos ? 'Contrôle IA en cours…' : isUploading ? 'Envoi…' : 'Continuer'}
+          {isCheckingPhotos
+            ? 'Contrôle IA en cours…'
+            : isUploading
+            ? 'Envoi…'
+            : photos.length < MIN_PHOTOS
+            ? `Ajoutez au moins 3 photos (${photos.length}/${MIN_PHOTOS})`
+            : 'Continuer'}
         </button>
       )}
     </div>

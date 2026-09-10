@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   checkImei,
   evaluateDevice,
@@ -21,8 +21,9 @@ import type { Product, TrocDeviceForm, TrocEvaluationResult, TradeInRequest } fr
 import { TROC_TUNNEL_TIER, type TrocTier } from '../utils/trocPricing';
 import { TROC_MESSAGES } from '../utils/trocMessages';
 import { supabase } from '../services/supabaseClient';
-import { getTrocSessionKey } from '../utils/trocSessionKey';
+import { getTrocSessionKey, resetTrocSessionKey } from '../utils/trocSessionKey';
 import { getProductDisplayName } from '../utils/productDisplay';
+import { loadTrocDraft, saveTrocDraft, clearTrocDraft } from '../utils/trocStorage';
 
 export type TrocStep = 'form' | 'photos' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
 export type ImeiMatchState = 'unknown' | 'match' | 'mismatch' | 'not_verified';
@@ -74,26 +75,29 @@ const isSoftMatch = (expected?: string, detected?: string) => {
   return a === b || a.includes(b) || b.includes(a);
 };
 
-// Clé de session générée une fois par visite, persistée dans sessionStorage.
-const getSessionKey = getTrocSessionKey;
-
 export const useTradeIn = () => {
-  const sessionKey = getSessionKey();
-  const [step, setStep] = useState<TrocStep>('form');
-  const [form, setForm] = useState<TrocDeviceForm>(initialForm);
+  const [sessionKey, setSessionKey] = useState<string>(() => getTrocSessionKey());
+  const initialDraftRef = useRef<ReturnType<typeof loadTrocDraft>>(null);
+  if (initialDraftRef.current === null) {
+    initialDraftRef.current = loadTrocDraft();
+  }
+  const initialDraft = initialDraftRef.current;
+
+  const [step, setStep] = useState<TrocStep>(() => initialDraft?.step ?? 'form');
+  const [form, setForm] = useState<TrocDeviceForm>(() => initialDraft?.form ?? initialForm);
   const [photos, setPhotos] = useState<File[]>([]);
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<string[]>(() => initialDraft?.photoUrls ?? []);
   // Index 1-based des photos signalées non conformes par Gemini Vision.
   // Reset dès que l'utilisateur modifie sa sélection.
   const [photoIssueIndices, setPhotoIssueIndices] = useState<number[]>([]);
-  const [imeiStatus, setImeiStatus] = useState<TradeInRequest['imei_status']>('not_checked');
-  const [imeiBlacklistStatus, setImeiBlacklistStatus] = useState<TradeInRequest['imei_blacklist_status']>('unknown');
-  const [imeiAssuranceLevel, setImeiAssuranceLevel] = useState<TradeInRequest['imei_assurance_level']>('basic');
-  const [imeiDeviceInfo, setImeiDeviceInfo] = useState<ImeiDeviceInfo | null>(null);
-  const [imeiDeviceSource, setImeiDeviceSource] = useState<'provider' | 'historical' | 'declared' | null>(null);
-  const [imeiEvidenceCount, setImeiEvidenceCount] = useState(0);
-  const [imeiMatchState, setImeiMatchState] = useState<ImeiMatchState>('unknown');
-  const [result, setResult] = useState<TrocEvaluationResult | null>(null);
+  const [imeiStatus, setImeiStatus] = useState<TradeInRequest['imei_status']>(() => initialDraft?.imeiStatus ?? 'not_checked');
+  const [imeiBlacklistStatus, setImeiBlacklistStatus] = useState<TradeInRequest['imei_blacklist_status']>(() => initialDraft?.imeiBlacklistStatus ?? 'unknown');
+  const [imeiAssuranceLevel, setImeiAssuranceLevel] = useState<TradeInRequest['imei_assurance_level']>(() => initialDraft?.imeiAssuranceLevel ?? 'basic');
+  const [imeiDeviceInfo, setImeiDeviceInfo] = useState<ImeiDeviceInfo | null>(() => initialDraft?.imeiDeviceInfo ?? null);
+  const [imeiDeviceSource, setImeiDeviceSource] = useState<'provider' | 'historical' | 'declared' | null>(() => initialDraft?.imeiDeviceSource ?? null);
+  const [imeiEvidenceCount, setImeiEvidenceCount] = useState<number>(() => initialDraft?.imeiEvidenceCount ?? 0);
+  const [imeiMatchState, setImeiMatchState] = useState<ImeiMatchState>(() => initialDraft?.imeiMatchState ?? 'unknown');
+  const [result, setResult] = useState<TrocEvaluationResult | null>(() => initialDraft?.result ?? null);
   const [savedRequest, setSavedRequest] = useState<{
     id: string;
     voucher_reference: string;
@@ -101,7 +105,7 @@ export const useTradeIn = () => {
     created_at?: string | null;
     target_product_id?: string | null;
     target_product_name?: string | null;
-  } | null>(null);
+  } | null>(() => initialDraft?.savedRequest ?? null);
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckingPhotos, setIsCheckingPhotos] = useState(false);
   const [isCheckingImei, setIsCheckingImei] = useState(false);
@@ -112,7 +116,7 @@ export const useTradeIn = () => {
 
   // ─── Paiement ─────────────────────────────────────────────────────────────
   const [paymentState, setPaymentState] = useState<PaymentState>('idle');
-  const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [paymentReference, setPaymentReference] = useState<string | null>(() => initialDraft?.paymentReference ?? null);
   const [selectedTier, setSelectedTier] = useState<TrocTier>(TROC_TUNNEL_TIER);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const pollTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -122,6 +126,113 @@ export const useTradeIn = () => {
     if (pollTimerRef.current)    { clearInterval(pollTimerRef.current);  pollTimerRef.current = null; }
     if (timeoutTimerRef.current) { clearTimeout(timeoutTimerRef.current); timeoutTimerRef.current = null; }
   };
+
+  const startPaymentPolling = (reference: string) => {
+    clearPaymentTimers();
+    pollTimerRef.current = setInterval(async () => {
+      const poll = await getPaymentStatus(sessionKey, reference);
+      if (!poll) return;
+      if (poll.status === 'paid') {
+        clearPaymentTimers();
+        setPaymentState('paid');
+        setTimeout(() => runEvaluation(), 800);
+      } else if (poll.status === 'failed') {
+        clearPaymentTimers();
+        setPaymentState('failed');
+        setError('Le paiement a échoué. Vérifiez le solde de votre compte ou utilisez un autre numéro.');
+      } else if (poll.status === 'expired') {
+        clearPaymentTimers();
+        setPaymentState('expired');
+        setError('Le délai de paiement a expiré. Recommencez pour une nouvelle tentative.');
+      }
+    }, PAYMENT_POLL_INTERVAL_MS);
+
+    timeoutTimerRef.current = setTimeout(() => {
+      clearPaymentTimers();
+      setPaymentState('timeout');
+      setError('La confirmation de paiement a pris trop de temps. Réessayez ou contactez la boutique.');
+    }, PAYMENT_TIMEOUT_MS);
+  };
+
+  // Revalidation du paiement au montage si paymentReference existe dans le brouillon
+  useEffect(() => {
+    // Si le bon est déjà généré, aucun besoin de ré-interroger Campay
+    if (initialDraft?.savedRequest) {
+      setPaymentState('paid');
+      return;
+    }
+
+    const ref = initialDraft?.paymentReference;
+    const draftKey = initialDraft?.sessionKey || sessionKey;
+    if (ref && draftKey) {
+      setPaymentState('initiating');
+      getPaymentStatus(draftKey, ref)
+        .then((poll) => {
+          if (poll?.status === 'paid') {
+            clearPaymentTimers();
+            setPaymentState('paid');
+            if (!initialDraft?.result) {
+              runEvaluation();
+            } else {
+              setStep('result');
+            }
+          } else if (poll?.status === 'pending') {
+            setPaymentState('pending');
+            startPaymentPolling(ref);
+          } else if (poll?.status === 'failed') {
+            clearPaymentTimers();
+            setPaymentState('failed');
+            setError('Le paiement précédent a échoué. Vous pouvez réessayer.');
+          } else if (poll?.status === 'expired') {
+            clearPaymentTimers();
+            setPaymentState('expired');
+            setError('Le délai de paiement a expiré. Vous pouvez lancer une nouvelle tentative.');
+          } else {
+            setPaymentState('idle');
+          }
+        })
+        .catch((err) => {
+          console.warn('[troc] Erreur revalidation paiement au montage', err);
+          setPaymentState('pending');
+          startPaymentPolling(ref);
+        });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sauvegarde automatique du brouillon dans localStorage à chaque modification
+  useEffect(() => {
+    saveTrocDraft({
+      sessionKey,
+      step,
+      form,
+      imeiStatus,
+      imeiBlacklistStatus,
+      imeiAssuranceLevel,
+      imeiDeviceInfo,
+      imeiDeviceSource,
+      imeiEvidenceCount,
+      imeiMatchState,
+      photoUrls,
+      paymentReference,
+      result,
+      savedRequest,
+    });
+  }, [
+    sessionKey,
+    step,
+    form,
+    imeiStatus,
+    imeiBlacklistStatus,
+    imeiAssuranceLevel,
+    imeiDeviceInfo,
+    imeiDeviceSource,
+    imeiEvidenceCount,
+    imeiMatchState,
+    photoUrls,
+    paymentReference,
+    result,
+    savedRequest,
+  ]);
 
   const updateForm = (partial: Partial<TrocDeviceForm>) => {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -192,18 +303,20 @@ export const useTradeIn = () => {
       setError("L'IMEI n'a pas pu être confirmé. Revenez à l'étape précédente.");
       return;
     }
-    if (photos.length === 0) {
-      setError('Ajoutez au moins une photo de votre appareil pour continuer.');
+    if (photos.length < 3 && photoUrls.length < 3) {
+      setError('Ajoutez au moins 3 photos nettes de votre appareil (écran allumé, face arrière, tranches/angles) pour continuer.');
       return;
     }
     setIsUploading(true);
     setError(null);
     setPhotoIssueIndices([]);
     try {
-      const urls = await uploadFiles(photos);
+      const urls = photos.length >= 3 ? await uploadFiles(photos) : photoUrls;
       setIsUploading(false);
       setIsCheckingPhotos(true);
-      await preflightDevicePhotos(form, urls, photos);
+      if (photos.length >= 3) {
+        await preflightDevicePhotos(form, urls, photos);
+      }
       setPhotoUrls(urls);
 
       const intake = await upsertTrocIntake(sessionKey, form, urls, {
@@ -227,8 +340,8 @@ export const useTradeIn = () => {
         setPhotoIssueIndices(err.issueIndices);
         setError(
           err.issueIndices.length > 0
-            ? "Ces photos ne montrent pas un smartphone (montre, autre objet ou capture d'écran). Remplacez celles signalées en rouge."
-            : 'Certaines photos ne sont pas exploitables. Remplacez-les avant de continuer.',
+            ? "Ces photos ne montrent pas clairement le smartphone sous les angles attendus (ou image floue). Remplacez celles signalées en rouge (minimum 3 photos requises)."
+            : "Nombre de photos ou angles insuffisants. Ajoutez au moins 3 photos nettes (écran allumé, face arrière, tranches/angles).",
         );
         return;
       }
@@ -411,32 +524,7 @@ export const useTradeIn = () => {
       setPaymentAmount(amount);
       setPaymentState('pending');
 
-      // Démarrage polling
-      pollTimerRef.current = setInterval(async () => {
-        const poll = await getPaymentStatus(sessionKey, reference);
-        if (!poll) return;
-        if (poll.status === 'paid') {
-          clearPaymentTimers();
-          setPaymentState('paid');
-          setTimeout(() => runEvaluation(), 800);
-        } else if (poll.status === 'failed') {
-          clearPaymentTimers();
-          setPaymentState('failed');
-          setError('Le paiement a échoué. Vérifiez le solde de votre compte ou utilisez un autre numéro.');
-        } else if (poll.status === 'expired') {
-          clearPaymentTimers();
-          setPaymentState('expired');
-          setError('Le délai de paiement a expiré. Recommencez pour une nouvelle tentative.');
-        }
-      }, PAYMENT_POLL_INTERVAL_MS);
-
-      // Timeout côté client (10 min)
-      timeoutTimerRef.current = setTimeout(() => {
-        clearPaymentTimers();
-        setPaymentState('timeout');
-        setError('La confirmation de paiement a pris trop de temps. Réessayez ou contactez la boutique.');
-      }, PAYMENT_TIMEOUT_MS);
-
+      startPaymentPolling(reference);
     } catch {
       setPaymentState('failed');
       setError('Impossible d\'initier le paiement. Vérifiez votre connexion et réessayez.');
@@ -498,8 +586,8 @@ export const useTradeIn = () => {
         setPhotoIssueIndices(err.issueIndices);
         setError(
           err.issueIndices.length > 0
-            ? "Une ou plusieurs photos ne montrent pas clairement votre téléphone. Remplacez celles signalées en rouge pour relancer l'estimation."
-            : "Certaines photos ne sont pas exploitables. Remplacez-les pour relancer l'estimation.",
+            ? "Une ou plusieurs photos ne montrent pas clairement votre téléphone sous tous les angles. Remplacez celles signalées en rouge."
+            : "Nombre de photos ou angles insuffisants. Fournissez au moins 3 photos nettes (écran allumé, face arrière, tranches/angles) pour relancer l'estimation.",
         );
         setStep('photos');
         return;
@@ -566,12 +654,17 @@ export const useTradeIn = () => {
 
   const reset = () => {
     clearPaymentTimers();
+    clearTrocDraft();
+    const newKey = resetTrocSessionKey();
+    setSessionKey(newKey);
     setStep('form');
     setForm(initialForm);
     setPhotos([]);
     setPhotoUrls([]);
     setPhotoIssueIndices([]);
     setImeiStatus('not_checked');
+    setImeiBlacklistStatus('unknown');
+    setImeiAssuranceLevel('basic');
     setImeiDeviceInfo(null);
     setImeiDeviceSource(null);
     setImeiEvidenceCount(0);

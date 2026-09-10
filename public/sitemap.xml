@@ -61,7 +61,27 @@
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://www.xeptionetwork.shop/product/apple-iphone-11-64-go-us-canada-a24eb9e4-5a8a-4765-aecc-9f23ae427a2e</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.xeptionetwork.shop/product/watch-8-44-mm-95ceb23a-7b48-4f62-b969-c6f8529f2539</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.xeptionetwork.shop/product/watch-8-classic-2f0ab510-d484-4d03-9068-0d62425cede3</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.xeptionetwork.shop/product/buds-pro-4-99ee4bc7-b856-45c8-aab0-4f5a491ae815</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.xeptionetwork.shop/product/google-pixel-9a-a63f26c0-24c8-4479-aefc-7b4a34c4979f</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -72,6 +92,11 @@
   </url>
   <url>
     <loc>https://www.xeptionetwork.shop/product/redmi-a5-43f615fb-4e78-4a55-a6b1-9c02f84c7e59</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.xeptionetwork.shop/product/iphone-11-pro-256-go-70631367-c734-4d5f-bd99-67c537cbae62</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -162,11 +187,6 @@
   </url>
   <url>
     <loc>https://www.xeptionetwork.shop/product/buds-3-pro-43e6f1d9-cd90-4453-b802-bf81460e375a</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.xeptionetwork.shop/product/google-pixel-9a-a63f26c0-24c8-4479-aefc-7b4a34c4979f</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -406,11 +426,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.xeptionetwork.shop/product/apple-iphone-11-64-go-us-canada-a24eb9e4-5a8a-4765-aecc-9f23ae427a2e</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://www.xeptionetwork.shop/product/iphone-13-256-giga-510d0c25-bce0-4ec8-b157-acccdb50ec3f</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -596,17 +611,7 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.xeptionetwork.shop/product/watch-8-classic-2f0ab510-d484-4d03-9068-0d62425cede3</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://www.xeptionetwork.shop/product/samsung-galaxy-a36-256-go-8-gb-ram-scelle-2sims-b4f0dee3-fb7d-4c31-a592-1e9e00628a20</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.xeptionetwork.shop/product/watch-8-44-mm-95ceb23a-7b48-4f62-b969-c6f8529f2539</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -972,11 +977,6 @@
   </url>
   <url>
     <loc>https://www.xeptionetwork.shop/product/tablette-blackview-tab-60-pro-2f8e3691-bad5-46ec-bf3b-21784f00a407</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.xeptionetwork.shop/product/iphone-11-pro-256-go-70631367-c734-4d5f-bd99-67c537cbae62</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

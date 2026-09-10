@@ -338,11 +338,25 @@ const TrocPage: React.FC = () => {
     }).catch(() => {/* silencieux — l'utilisateur peut recommencer */});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleNewEvaluation = () => {
+    troc.reset();
+    setSelectedDeviceType(null);
+    setIntent(null);
+  };
+
   useEffect(() => {
-    if (troc.step !== 'form' || troc.paymentState !== 'idle' || troc.photos.length > 0 || troc.result) {
+    if (
+      troc.step !== 'form' ||
+      troc.paymentState !== 'idle' ||
+      troc.photos.length > 0 ||
+      troc.result ||
+      troc.photoUrls.length > 0 ||
+      Boolean(troc.form.deviceBrand)
+    ) {
       setSelectedDeviceType('phone');
+      setIntent('troc');
     }
-  }, [troc.paymentState, troc.photos.length, troc.result, troc.step]);
+  }, [troc.paymentState, troc.photos.length, troc.result, troc.step, troc.photoUrls.length, troc.form.deviceBrand]);
 
   const stepLabels = STEP_LABELS_QUICK;
   const stepIndex  = STEP_INDEX_QUICK[troc.step] ?? 0;
@@ -699,14 +713,26 @@ const TrocPage: React.FC = () => {
         <div className={`${troc.step === 'voucher' ? '' : 'lg:grid lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px] lg:gap-6 lg:items-start'}`}>
         <div className="min-w-0">
 
-        {/* Stepper */}
+        {/* Stepper + Action Nouvelle estimation */}
         {troc.step !== 'voucher' && (
-          <div className="bg-[#0a0a0c]/40 border border-white/20 px-3 mb-4 backdrop-blur-2xl rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.4)]">
-            <TrocStepper
-              currentStep={stepIndex}
-              totalSteps={stepLabels.length}
-              labels={stepLabels}
-            />
+          <div className="bg-[#0a0a0c]/40 border border-white/20 px-3 py-1.5 mb-4 backdrop-blur-2xl rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.4)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <TrocStepper
+                currentStep={stepIndex}
+                totalSteps={stepLabels.length}
+                labels={stepLabels}
+              />
+            </div>
+            {(troc.step !== 'form' || troc.form.deviceBrand) && (
+              <button
+                type="button"
+                onClick={handleNewEvaluation}
+                className="shrink-0 text-[10px] font-tech font-bold uppercase tracking-wider text-white/50 hover:text-xeption-gold transition-colors px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 self-end sm:self-auto border border-white/10"
+                title="Effacer le brouillon et recommencer à zéro"
+              >
+                Nouvelle estimation
+              </button>
+            )}
           </div>
         )}
 
@@ -880,7 +906,7 @@ const TrocPage: React.FC = () => {
               <TrocVoucher
                 request={voucherRequest}
                 onPrint={printVoucher}
-                onNewEvaluation={troc.reset}
+                onNewEvaluation={handleNewEvaluation}
               />
             )}
           </div>

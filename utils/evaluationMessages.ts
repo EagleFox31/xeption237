@@ -98,7 +98,7 @@ const MESSAGES: Record<string, EvaluationMessage> = {
   // Ton neutre, pas accusateur : on assume l'erreur de manipulation.
   photos_to_retake: {
     title: 'Photos à compléter',
-    body: "Une ou plusieurs photos ne montrent pas clairement votre téléphone. Pourriez-vous remplacer celles signalées par une photo nette de l'appareil ? On reprend l'estimation juste après.",
+    body: "Une ou plusieurs photos ne montrent pas clairement votre téléphone (autre objet, capture d'écran, image floue…). Remplacez celles signalées par des photos nettes du smartphone à faire reprendre.",
     cta: 'Remplacer mes photos',
     severity: 'warning',
     code: 'photos_to_retake',
@@ -127,6 +127,14 @@ const MESSAGES: Record<string, EvaluationMessage> = {
     cta: 'Contacter la boutique',
     severity: 'error',
     code: 'refused_water_damage',
+  },
+  // Modèle trop ancien (> 8 ans) — politique de reprise. Ton factuel, pas culpabilisant.
+  refused_too_old: {
+    title: 'Modèle trop ancien',
+    body: "Nous reprenons les appareils de moins de 8 ans. Au-delà, la valeur de revente et la disponibilité des pièces ne permettent plus une reprise. Notre boutique reste disponible pour vous conseiller un upgrade.",
+    cta: 'Voir nos téléphones',
+    severity: 'info',
+    code: 'refused_too_old',
   },
   // Pas un refus stricto sensu — modèle hors référentiel automatique. Ton positif et orienté solution.
   refused_no_base_price: {
@@ -264,6 +272,7 @@ export const resolveEvaluationMessage = (input: EvaluationMessageInput): Evaluat
   //    s'allume pas n'a pas de score, peu importe les photos).
   if (blockerReason === 'powers_off')    return MESSAGES.refused_powers_off;
   if (blockerReason === 'water_damage')  return MESSAGES.refused_water_damage;
+  if (blockerReason === 'too_old')       return MESSAGES.refused_too_old;
   if (blockerReason === 'no_base_price') return MESSAGES.refused_no_base_price;
 
   // 4. Aucune analyse visuelle — IMEI seul

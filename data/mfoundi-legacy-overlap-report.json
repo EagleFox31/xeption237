@@ -1,0 +1,3702 @@
+{
+  "generatedAt": "2026-06-12T16:35:13.464Z",
+  "totalProductsInDb": 247,
+  "legacyCount": 116,
+  "importCatalogRows": 131,
+  "importInDb": 131,
+  "probableOverlaps": 116,
+  "matches": [
+    {
+      "importName": "Apple iPhone XR 64 Go (US/Canada)",
+      "importKey": "apple::iphone xr::64::",
+      "importPrice": 82000,
+      "legacy": [
+        {
+          "score": 50,
+          "name": "iPhone Air",
+          "price": 780000,
+          "stock": 20,
+          "id": "18e69e24-6cba-4459-977e-5324c12c9d7b"
+        },
+        {
+          "score": 40,
+          "name": "iPhone XR ",
+          "price": 82000,
+          "stock": 12,
+          "id": "32ffc789-a99d-4c3e-b1f3-bd020da255ef"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone XR 128 Go (US/Canada)",
+      "importKey": "apple::iphone xr::128::",
+      "importPrice": 90000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "IPhone XR 128 Go ",
+          "price": 90000,
+          "stock": 10,
+          "id": "7e20b3d0-a101-4dd0-9b2a-ada508b4ad05"
+        },
+        {
+          "score": 60,
+          "name": "IPhone XR 128 Go ",
+          "price": 90000,
+          "stock": 10,
+          "id": "0bf132dd-8c21-462d-a09c-b4e510a465dd"
+        },
+        {
+          "score": 50,
+          "name": "iPhone Air",
+          "price": 780000,
+          "stock": 20,
+          "id": "18e69e24-6cba-4459-977e-5324c12c9d7b"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "iPhone XR ",
+          "price": 82000,
+          "stock": 12,
+          "id": "32ffc789-a99d-4c3e-b1f3-bd020da255ef"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 11 64 Go (US/Canada)",
+      "importKey": "apple::iphone 11::64::",
+      "importPrice": 98000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro Max 64Go ",
+          "price": 135000,
+          "stock": 10,
+          "id": "d8e7be4b-5ae1-45ac-8ba4-2b023446912a"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro 64 Go ",
+          "price": 120000,
+          "stock": 10,
+          "id": "dbea8ff9-cd2b-434a-a039-5a19cf6593d4"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 11 128 Go (US/Canada)",
+      "importKey": "apple::iphone 11::128::",
+      "importPrice": 105000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Iphone 11 Seconde main - 6,1'' -Blanc - 128Go/ 4Go RAM - 12MP/12MP - 2 SIM - 3110 mAh - 03 Mois de garantie",
+          "price": 110000,
+          "stock": 10,
+          "id": "94d63a2d-51f5-4ec5-ac3f-92f3faca1bce"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 11 Pro 64 Go (US/Canada)",
+      "importKey": "apple::iphone 11 pro::64::",
+      "importPrice": 120000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro Max 64Go ",
+          "price": 135000,
+          "stock": 10,
+          "id": "d8e7be4b-5ae1-45ac-8ba4-2b023446912a"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro 64 Go ",
+          "price": 120000,
+          "stock": 10,
+          "id": "dbea8ff9-cd2b-434a-a039-5a19cf6593d4"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 11 Pro 256 Go (US/Canada)",
+      "importKey": "apple::iphone 11 pro::256::",
+      "importPrice": 140000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro Max 256Go ",
+          "price": 145000,
+          "stock": 5,
+          "id": "2a34abb0-185f-4310-81b2-7c3ac5876902"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro 256 Go",
+          "price": 140000,
+          "stock": 10,
+          "id": "70631367-c734-4d5f-bd99-67c537cbae62"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 11 Pro Max 64 Go (US/Canada)",
+      "importKey": "apple::iphone 11 pro max::64::",
+      "importPrice": 135000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro Max 64Go ",
+          "price": 135000,
+          "stock": 10,
+          "id": "d8e7be4b-5ae1-45ac-8ba4-2b023446912a"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro 64 Go ",
+          "price": 120000,
+          "stock": 10,
+          "id": "dbea8ff9-cd2b-434a-a039-5a19cf6593d4"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 11 Pro Max 256 Go (US/Canada)",
+      "importKey": "apple::iphone 11 pro max::256::",
+      "importPrice": 145000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro Max 256Go ",
+          "price": 145000,
+          "stock": 5,
+          "id": "2a34abb0-185f-4310-81b2-7c3ac5876902"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 11 Pro 256 Go",
+          "price": 140000,
+          "stock": 10,
+          "id": "70631367-c734-4d5f-bd99-67c537cbae62"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 12 128 Go (US/Canada)",
+      "importKey": "apple::iphone 12::128::",
+      "importPrice": 118000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 12pro 128 Go",
+          "price": 153000,
+          "stock": 5,
+          "id": "41ba61c1-a950-4273-ab17-a2745899bc0c"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 12 128Go ",
+          "price": 118000,
+          "stock": 10,
+          "id": "19de7637-aeb9-4fa7-90a9-d5b405931538"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO",
+          "price": 165000,
+          "stock": 10,
+          "id": "43e9ddb7-a5c0-49c7-82c5-291152e492af"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO MAX",
+          "price": 240000,
+          "stock": 12,
+          "id": "ec99440d-0033-494d-a54f-50a1b1bc468e"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 12 Pro 128 Go (US/Canada)",
+      "importKey": "apple::iphone 12 pro::128::",
+      "importPrice": 153000,
+      "legacy": [
+        {
+          "score": 70,
+          "name": "iPhone 12pro 128 Go",
+          "price": 153000,
+          "stock": 5,
+          "id": "41ba61c1-a950-4273-ab17-a2745899bc0c"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 12 128Go ",
+          "price": 118000,
+          "stock": 10,
+          "id": "19de7637-aeb9-4fa7-90a9-d5b405931538"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO",
+          "price": 165000,
+          "stock": 10,
+          "id": "43e9ddb7-a5c0-49c7-82c5-291152e492af"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO MAX",
+          "price": 240000,
+          "stock": 12,
+          "id": "ec99440d-0033-494d-a54f-50a1b1bc468e"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 12 Pro 256 Go (US/Canada)",
+      "importKey": "apple::iphone 12 pro::256::",
+      "importPrice": 165000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO",
+          "price": 165000,
+          "stock": 10,
+          "id": "43e9ddb7-a5c0-49c7-82c5-291152e492af"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO MAX",
+          "price": 240000,
+          "stock": 12,
+          "id": "ec99440d-0033-494d-a54f-50a1b1bc468e"
+        },
+        {
+          "score": 40,
+          "name": "iPhone 12pro 128 Go",
+          "price": 153000,
+          "stock": 5,
+          "id": "41ba61c1-a950-4273-ab17-a2745899bc0c"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 12 Pro Max 128 Go (US/Canada)",
+      "importKey": "apple::iphone 12 pro max::128::",
+      "importPrice": 185000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 12pro 128 Go",
+          "price": 153000,
+          "stock": 5,
+          "id": "41ba61c1-a950-4273-ab17-a2745899bc0c"
+        },
+        {
+          "score": 50,
+          "name": "iPhone 12 128Go ",
+          "price": 118000,
+          "stock": 10,
+          "id": "19de7637-aeb9-4fa7-90a9-d5b405931538"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO",
+          "price": 165000,
+          "stock": 10,
+          "id": "43e9ddb7-a5c0-49c7-82c5-291152e492af"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO MAX",
+          "price": 240000,
+          "stock": 12,
+          "id": "ec99440d-0033-494d-a54f-50a1b1bc468e"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 12 Pro Max 256 Go (US/Canada)",
+      "importKey": "apple::iphone 12 pro max::256::",
+      "importPrice": 190000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO",
+          "price": 165000,
+          "stock": 10,
+          "id": "43e9ddb7-a5c0-49c7-82c5-291152e492af"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO MAX",
+          "price": 240000,
+          "stock": 12,
+          "id": "ec99440d-0033-494d-a54f-50a1b1bc468e"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 12 Pro Max 512 Go (US/Canada)",
+      "importKey": "apple::iphone 12 pro max::512::",
+      "importPrice": 208000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 12 Pro Max 512GB",
+          "price": 208000,
+          "stock": 5,
+          "id": "82ddca03-42d5-4120-abce-5476dc4015d8"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO",
+          "price": 165000,
+          "stock": 10,
+          "id": "43e9ddb7-a5c0-49c7-82c5-291152e492af"
+        },
+        {
+          "score": 40,
+          "name": "IPHONE 12 PRO MAX",
+          "price": 240000,
+          "stock": 12,
+          "id": "ec99440d-0033-494d-a54f-50a1b1bc468e"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 13 128 Go (US/Canada)",
+      "importKey": "apple::iphone 13::128::",
+      "importPrice": 170000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 13 Pro 128Go ",
+          "price": 225000,
+          "stock": 10,
+          "id": "4b02ee83-07df-4432-94fd-1dba289b8ecb"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 13 Pro 128Go ",
+          "price": 225000,
+          "stock": 10,
+          "id": "343a9b95-a93e-41dc-893d-68f57ed952aa"
+        },
+        {
+          "score": 60,
+          "name": "IPhone 13 Pro 128Go ",
+          "price": 225000,
+          "stock": 10,
+          "id": "4909d09a-e0f9-4d2e-82db-a9cc383aefd6"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13 pro Max",
+          "price": 340000,
+          "stock": 12,
+          "id": "2d7aefe3-fdfe-4735-acea-ef3ae4ed354c"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13",
+          "price": 170000,
+          "stock": 12,
+          "id": "53107c83-f7df-4b51-b7fa-24f48f0f37dc"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 13 256 Go (US/Canada)",
+      "importKey": "apple::iphone 13::256::",
+      "importPrice": 185000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 13 256 giga",
+          "price": 185000,
+          "stock": 5,
+          "id": "510d0c25-bce0-4ec8-b157-acccdb50ec3f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13 pro Max",
+          "price": 340000,
+          "stock": 12,
+          "id": "2d7aefe3-fdfe-4735-acea-ef3ae4ed354c"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13",
+          "price": 170000,
+          "stock": 12,
+          "id": "53107c83-f7df-4b51-b7fa-24f48f0f37dc"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 13 Pro 128 Go (US/Canada)",
+      "importKey": "apple::iphone 13 pro::128::",
+      "importPrice": 225000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 13 Pro 128Go ",
+          "price": 225000,
+          "stock": 10,
+          "id": "4b02ee83-07df-4432-94fd-1dba289b8ecb"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 13 Pro 128Go ",
+          "price": 225000,
+          "stock": 10,
+          "id": "343a9b95-a93e-41dc-893d-68f57ed952aa"
+        },
+        {
+          "score": 60,
+          "name": "IPhone 13 Pro 128Go ",
+          "price": 225000,
+          "stock": 10,
+          "id": "4909d09a-e0f9-4d2e-82db-a9cc383aefd6"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13 pro Max",
+          "price": 340000,
+          "stock": 12,
+          "id": "2d7aefe3-fdfe-4735-acea-ef3ae4ed354c"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13",
+          "price": 170000,
+          "stock": 12,
+          "id": "53107c83-f7df-4b51-b7fa-24f48f0f37dc"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+      "importKey": "apple::iphone 13 pro::256::",
+      "importPrice": 235000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 13 256 giga",
+          "price": 185000,
+          "stock": 5,
+          "id": "510d0c25-bce0-4ec8-b157-acccdb50ec3f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13 pro Max",
+          "price": 340000,
+          "stock": 12,
+          "id": "2d7aefe3-fdfe-4735-acea-ef3ae4ed354c"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13",
+          "price": 170000,
+          "stock": 12,
+          "id": "53107c83-f7df-4b51-b7fa-24f48f0f37dc"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 13 Pro Max 128 Go (US/Canada)",
+      "importKey": "apple::iphone 13 pro max::128::",
+      "importPrice": 250000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 13 Pro 128Go ",
+          "price": 225000,
+          "stock": 10,
+          "id": "4b02ee83-07df-4432-94fd-1dba289b8ecb"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 13 Pro 128Go ",
+          "price": 225000,
+          "stock": 10,
+          "id": "343a9b95-a93e-41dc-893d-68f57ed952aa"
+        },
+        {
+          "score": 60,
+          "name": "IPhone 13 Pro 128Go ",
+          "price": 225000,
+          "stock": 10,
+          "id": "4909d09a-e0f9-4d2e-82db-a9cc383aefd6"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13 pro Max",
+          "price": 340000,
+          "stock": 12,
+          "id": "2d7aefe3-fdfe-4735-acea-ef3ae4ed354c"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 13 Pro Max 256 Go (US/Canada)",
+      "importKey": "apple::iphone 13 pro max::256::",
+      "importPrice": 280000,
+      "legacy": [
+        {
+          "score": 50,
+          "name": "iPhone 13 256 giga",
+          "price": 185000,
+          "stock": 5,
+          "id": "510d0c25-bce0-4ec8-b157-acccdb50ec3f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Iphone 13 pro Max",
+          "price": 340000,
+          "stock": 12,
+          "id": "2d7aefe3-fdfe-4735-acea-ef3ae4ed354c"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 14 128 Go (US/Canada)",
+      "importKey": "apple::iphone 14::128::",
+      "importPrice": 195000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 14 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "cd163f3b-e75c-4b14-a293-61836ca52972"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 14 Pro 128Go",
+          "price": 280000,
+          "stock": 5,
+          "id": "89b196df-8364-4f29-9cdb-9b1d10946f10"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 14 Pro Max 128Go ",
+          "price": 310000,
+          "stock": 5,
+          "id": "7717641a-86c5-4b14-afe1-4ed7838498d4"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "IPhone 14 Pro Max",
+          "price": 345000,
+          "stock": 10,
+          "id": "ead6ec9c-f838-4290-9c16-0e7f69640dc5"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 14 Pro 128 Go (US/Canada)",
+      "importKey": "apple::iphone 14 pro::128::",
+      "importPrice": 280000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 14 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "cd163f3b-e75c-4b14-a293-61836ca52972"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 14 Pro 128Go",
+          "price": 280000,
+          "stock": 5,
+          "id": "89b196df-8364-4f29-9cdb-9b1d10946f10"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 14 Pro Max 128Go ",
+          "price": 310000,
+          "stock": 5,
+          "id": "7717641a-86c5-4b14-afe1-4ed7838498d4"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "IPhone 14 Pro Max",
+          "price": 345000,
+          "stock": 10,
+          "id": "ead6ec9c-f838-4290-9c16-0e7f69640dc5"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 14 Pro 256 Go (US/Canada)",
+      "importKey": "apple::iphone 14 pro::256::",
+      "importPrice": 300000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 14 Pro 256Go",
+          "price": 300000,
+          "stock": 5,
+          "id": "10bed18e-8e18-454b-a82e-0ddde65acf27"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "IPhone 14 Pro Max",
+          "price": 345000,
+          "stock": 10,
+          "id": "ead6ec9c-f838-4290-9c16-0e7f69640dc5"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 14 Pro Max 128 Go (US/Canada)",
+      "importKey": "apple::iphone 14 pro max::128::",
+      "importPrice": 310000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 14 Pro 128Go",
+          "price": 280000,
+          "stock": 5,
+          "id": "89b196df-8364-4f29-9cdb-9b1d10946f10"
+        },
+        {
+          "score": 60,
+          "name": "iPhone 14 Pro Max 128Go ",
+          "price": 310000,
+          "stock": 5,
+          "id": "7717641a-86c5-4b14-afe1-4ed7838498d4"
+        },
+        {
+          "score": 50,
+          "name": "iPhone 14 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "cd163f3b-e75c-4b14-a293-61836ca52972"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "IPhone 14 Pro Max",
+          "price": 345000,
+          "stock": 10,
+          "id": "ead6ec9c-f838-4290-9c16-0e7f69640dc5"
+        }
+      ]
+    },
+    {
+      "importName": "Apple iPhone 14 Pro Max 256 Go (US/Canada)",
+      "importKey": "apple::iphone 14 pro max::256::",
+      "importPrice": 345000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "iPhone 14 Pro 256Go",
+          "price": 300000,
+          "stock": 5,
+          "id": "10bed18e-8e18-454b-a82e-0ddde65acf27"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "IPhone 14 Pro Max",
+          "price": 345000,
+          "stock": 10,
+          "id": "ead6ec9c-f838-4290-9c16-0e7f69640dc5"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 6A 128 Go",
+      "importKey": "google::pixel 6a::128::",
+      "importPrice": 90000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 7 Pro 128 Go",
+      "importKey": "google::pixel 7 pro::128::",
+      "importPrice": 160000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "GOOGLE PIXEL 7 PRO 5G - 6.7",
+          "price": 230000,
+          "stock": 10,
+          "id": "78e05de1-1b35-45d8-a74b-0d1f3c029645"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S21+ 256 Go Scellé 1SIM (Korea)",
+      "importKey": "samsung::s21::256::",
+      "importPrice": 140000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 55,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "180d541c-db60-4f70-acb4-b4f5483a6ec4"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "add14d88-4dfe-40e1-995c-605affb7b2ab"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "10a1674e-1cc7-49aa-948b-d4e4dd3c46be"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S22+ 256 Go Scellé 1SIM (Korea)",
+      "importKey": "samsung::s22::256::",
+      "importPrice": 170000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S22 ",
+          "price": 170000,
+          "stock": 5,
+          "id": "db2b37c7-9d24-4ef5-b74b-e5d8e089ed62"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S22 ultra ",
+          "price": 245000,
+          "stock": 10,
+          "id": "528b2ddf-c210-4c87-add6-6c855f4b1d7e"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S21 Ultra 256 Go Scellé 1SIM (Korea)",
+      "importKey": "samsung::s21 ultra::256::",
+      "importPrice": 190000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "180d541c-db60-4f70-acb4-b4f5483a6ec4"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "add14d88-4dfe-40e1-995c-605affb7b2ab"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "10a1674e-1cc7-49aa-948b-d4e4dd3c46be"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S22 Ultra 256 Go Scellé 1SIM (Korea)",
+      "importKey": "samsung::s22 ultra::256::",
+      "importPrice": 245000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S22 ultra ",
+          "price": 245000,
+          "stock": 10,
+          "id": "528b2ddf-c210-4c87-add6-6c855f4b1d7e"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S24 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s24 ultra::256::",
+      "importPrice": 440000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S24 ultra ",
+          "price": 440000,
+          "stock": 10,
+          "id": "2358e474-5cbe-4638-af62-948370ae849f"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S23 Ultra 1024 Go Scellé SIM+eSIM (Australia)",
+      "importKey": "samsung::s23 ultra::1024::",
+      "importPrice": 365000,
+      "legacy": [
+        {
+          "score": 40,
+          "name": "Samsung S23 ultra ",
+          "price": 340000,
+          "stock": 5,
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S23 Ultra 512 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s23 ultra::512::",
+      "importPrice": 340000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ultra ",
+          "price": 340000,
+          "stock": 5,
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S23 Ultra 256 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s23 ultra::256::",
+      "importPrice": 325000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ultra ",
+          "price": 340000,
+          "stock": 5,
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S23+ 256 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s23::256::",
+      "importPrice": 255000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ultra ",
+          "price": 340000,
+          "stock": 5,
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ",
+          "price": 255000,
+          "stock": 10,
+          "id": "1d1ba87c-17e3-47fc-acdc-3b95f06838c5"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S23+ 512 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s23::512::",
+      "importPrice": 265000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 60,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ultra ",
+          "price": 340000,
+          "stock": 5,
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ",
+          "price": 255000,
+          "stock": 10,
+          "id": "1d1ba87c-17e3-47fc-acdc-3b95f06838c5"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S24+ 256 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s24::256::",
+      "importPrice": 290000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S24 ultra ",
+          "price": 440000,
+          "stock": 10,
+          "id": "2358e474-5cbe-4638-af62-948370ae849f"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S23 FE 256 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s23 fe::256::",
+      "importPrice": 195000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 35,
+          "name": "Samsung S 23 FE  256 Go",
+          "price": 195000,
+          "stock": 5,
+          "id": "836b2968-5cbb-468b-8487-c1a92627a4d3"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy Z Flip4 512 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::z flip4::512::",
+      "importPrice": 170000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        },
+        {
+          "score": 35,
+          "name": "galaxie Z flip4  ",
+          "price": 170000,
+          "stock": 5,
+          "id": "a78f0aa7-37f0-4162-88a6-237502e124b8"
+        },
+        {
+          "score": 35,
+          "name": "galaxie Z flip4  ",
+          "price": 170000,
+          "stock": 5,
+          "id": "e2f86f60-a4f5-4e58-91bb-6528ce538636"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy Z Flip6 512 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::z flip6::512::",
+      "importPrice": 310000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy Z Flip6",
+          "price": 520000,
+          "stock": 5,
+          "id": "d52fdf81-51bb-46c7-8b22-fabeb6af874e"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy Z Fold4 512 Go Scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::z fold4::512::",
+      "importPrice": 315000,
+      "legacy": [
+        {
+          "score": 55,
+          "name": "Galaxie Z fold4 512 Go",
+          "price": 315000,
+          "stock": 5,
+          "id": "66c355a4-aad7-4925-913f-a46328f475a8"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy Z Flip5 512 Go Non scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::z flip5::512::",
+      "importPrice": 190000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy Z Fold4 256 Go Non scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::z fold4::256::",
+      "importPrice": 295000,
+      "legacy": [
+        {
+          "score": 55,
+          "name": "Galaxie Z fold4 256 Go",
+          "price": 295000,
+          "stock": 5,
+          "id": "fd104e00-eca5-44d8-b897-aa7143f8c2e1"
+        },
+        {
+          "score": 55,
+          "name": "Galaxie Z fold4 256 Go",
+          "price": 295000,
+          "stock": 5,
+          "id": "30ffea76-f4f7-4653-9a7f-d356f9f331f8"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S21 128 Go Non scellé SIM+eSIM (US)",
+      "importKey": "samsung::s21::128::",
+      "importPrice": 110000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "180d541c-db60-4f70-acb4-b4f5483a6ec4"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "add14d88-4dfe-40e1-995c-605affb7b2ab"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "10a1674e-1cc7-49aa-948b-d4e4dd3c46be"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S21 256 Go Non scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s21::256::",
+      "importPrice": 120000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 55,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "180d541c-db60-4f70-acb4-b4f5483a6ec4"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "add14d88-4dfe-40e1-995c-605affb7b2ab"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S21 ultra",
+          "price": 190000,
+          "stock": 10,
+          "id": "10a1674e-1cc7-49aa-948b-d4e4dd3c46be"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S23 128 Go Non scellé SIM+eSIM (US)",
+      "importKey": "samsung::s23::128::",
+      "importPrice": 195000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ultra ",
+          "price": 340000,
+          "stock": 5,
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ",
+          "price": 255000,
+          "stock": 10,
+          "id": "1d1ba87c-17e3-47fc-acdc-3b95f06838c5"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S23 256 Go Non scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s23::256::",
+      "importPrice": 205000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ultra ",
+          "price": 340000,
+          "stock": 5,
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ",
+          "price": 255000,
+          "stock": 10,
+          "id": "1d1ba87c-17e3-47fc-acdc-3b95f06838c5"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S23 Ultra 512 Go Non scellé SIM+eSIM (US)",
+      "importKey": "samsung::s23 ultra::512::",
+      "importPrice": 330000,
+      "legacy": [
+        {
+          "score": 60,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S23 ultra ",
+          "price": 340000,
+          "stock": 5,
+          "id": "dc911f26-c8e7-4d28-8013-212421da0d10"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S25 Edge 256 Go Non scellé SIM+eSIM (Korea)",
+      "importKey": "samsung::s25 edge::256::",
+      "importPrice": 365000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S10 5G 512 Go Non scellé 1SIM (Korea)",
+      "importKey": "samsung::s10 5g::512::",
+      "importPrice": 130000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S10 5G 256 Go Non scellé 1SIM (Korea)",
+      "importKey": "samsung::s10 5g::256::",
+      "importPrice": 115000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S22 256 Go Non scellé 1SIM (Korea)",
+      "importKey": "samsung::s22::256::",
+      "importPrice": 150000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S22 ",
+          "price": 170000,
+          "stock": 5,
+          "id": "db2b37c7-9d24-4ef5-b74b-e5d8e089ed62"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung S22 ultra ",
+          "price": 245000,
+          "stock": 10,
+          "id": "528b2ddf-c210-4c87-add6-6c855f4b1d7e"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy S20 Ultra 256 Go Non scellé 1SIM (Korea)",
+      "importKey": "samsung::s20 ultra::256::",
+      "importPrice": 145000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy Note10+ 512 Go Non scellé 1SIM (Korea)",
+      "importKey": "samsung::note10::512::",
+      "importPrice": 150000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy Note20 256 Go Non scellé 1SIM (Korea)",
+      "importKey": "samsung::note20::256::",
+      "importPrice": 115000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A56 256 Go 8 GB RAM Scellé 2SIMS",
+      "importKey": "samsung::a56::256::8",
+      "importPrice": 235000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A56 128 Go 8 GB RAM Scellé 2SIMS",
+      "importKey": "samsung::a56::128::8",
+      "importPrice": 220000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A36 256 Go 8 GB RAM Scellé 2SIMS",
+      "importKey": "samsung::a36::256::8",
+      "importPrice": 200000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A36 128 Go 8 GB RAM Scellé 2SIMS",
+      "importKey": "samsung::a36::128::8",
+      "importPrice": 190000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A26 256 Go 8 GB RAM Scellé 2SIMS",
+      "importKey": "samsung::a26::256::8",
+      "importPrice": 155000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A26 5G",
+          "price": 150000,
+          "stock": 5,
+          "id": "ef00a589-d154-414e-b594-57fd51006c24"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A26 128 Go 6 GB RAM Scellé 2SIMS",
+      "importKey": "samsung::a26::128::6",
+      "importPrice": 140000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A26 5G",
+          "price": 150000,
+          "stock": 5,
+          "id": "ef00a589-d154-414e-b594-57fd51006c24"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A16 256 Go 8 GB RAM Scellé 2SIMS",
+      "importKey": "samsung::a16::256::8",
+      "importPrice": 135000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A17 128 Go 4 GB RAM Scellé 2SIMS",
+      "importKey": "samsung::a17::128::4",
+      "importPrice": 110000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A17",
+          "price": 90000,
+          "stock": 100,
+          "id": "ad115d02-90b7-435b-afe9-0f52141afd6d"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A17 256 Go 8 GB RAM Scellé 2SIMS",
+      "importKey": "samsung::a17::256::8",
+      "importPrice": 140000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A17",
+          "price": 90000,
+          "stock": 100,
+          "id": "ad115d02-90b7-435b-afe9-0f52141afd6d"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A55 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+      "importKey": "samsung::a55::128::8",
+      "importPrice": 150000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A32 128 Go 4 GB RAM Scellé 1SIM (Korea)",
+      "importKey": "samsung::a32::128::4",
+      "importPrice": 80000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A53 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+      "importKey": "samsung::a53::128::6",
+      "importPrice": 100000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy M53 128 Go 8 GB RAM Scellé 1SIM (Korea)",
+      "importKey": "samsung::m53::128::8",
+      "importPrice": 95000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy M33 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+      "importKey": "samsung::m33::128::6",
+      "importPrice": 90000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy M44 128 Go 6 GB RAM Scellé 1SIM (Korea)",
+      "importKey": "samsung::m44::128::6",
+      "importPrice": 90000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A25 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+      "importKey": "samsung::a25::128::6",
+      "importPrice": 95000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A54 128 Go 8 GB RAM Non scellé 1SIM (Korea)",
+      "importKey": "samsung::a54::128::8",
+      "importPrice": 120000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A24 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+      "importKey": "samsung::a24::128::4",
+      "importPrice": 80000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A33 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+      "importKey": "samsung::a33::128::6",
+      "importPrice": 90000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A23 128 Go 4 GB RAM Non scellé 1SIM (Korea)",
+      "importKey": "samsung::a23::128::4",
+      "importPrice": 70000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A82 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+      "importKey": "samsung::a82::128::6",
+      "importPrice": 90000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy M44 128 Go 6 GB RAM Non scellé 1SIM (Korea)",
+      "importKey": "samsung::m44::128::6",
+      "importPrice": 80000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 7a 128 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 7a::128::",
+      "importPrice": 100000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 7 128 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 7::128::",
+      "importPrice": 110000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "GOOGLE PIXEL 7 PRO 5G - 6.7",
+          "price": 230000,
+          "stock": 10,
+          "id": "78e05de1-1b35-45d8-a74b-0d1f3c029645"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 7 256 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 7::256::",
+      "importPrice": 120000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "GOOGLE PIXEL 7 PRO 5G - 6.7",
+          "price": 230000,
+          "stock": 10,
+          "id": "78e05de1-1b35-45d8-a74b-0d1f3c029645"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 8 128 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 8::128::",
+      "importPrice": 165000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Google Pixel 8 5G",
+          "price": 285000,
+          "stock": 3,
+          "id": "acdc2d20-1f08-4740-962d-d8185968f975"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 6 Pro 128 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 6 pro::128::",
+      "importPrice": 140000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 6 Pro 256 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 6 pro::256::",
+      "importPrice": 155000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 6 pro::512::",
+      "importPrice": 165000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S23 512 Go",
+          "price": 290000,
+          "stock": 10,
+          "id": "2bba87e2-6da7-49a9-8bad-382ab8f8c9ab"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 ultra 512Go ",
+          "price": 330000,
+          "stock": 5,
+          "id": "d38f3d72-9a18-4655-be69-a28d47f15af0"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 7 Pro 128 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 7 pro::128::",
+      "importPrice": 160000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "GOOGLE PIXEL 7 PRO 5G - 6.7",
+          "price": 230000,
+          "stock": 10,
+          "id": "78e05de1-1b35-45d8-a74b-0d1f3c029645"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 7 Pro 256 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 7 pro::256::",
+      "importPrice": 180000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "GOOGLE PIXEL 7 PRO 5G - 6.7",
+          "price": 230000,
+          "stock": 10,
+          "id": "78e05de1-1b35-45d8-a74b-0d1f3c029645"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 8 Pro 128 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 8 pro::128::",
+      "importPrice": 205000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 8 Pro 256 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 8 pro::256::",
+      "importPrice": 240000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 9 256 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 9::256::",
+      "importPrice": 295000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Google Pixel 9 Pro XL ",
+          "price": 540000,
+          "stock": 5,
+          "id": "77ca9a6a-b910-4780-8d1a-3235e97231d5"
+        },
+        {
+          "score": 40,
+          "name": "Google Pixel 9a ",
+          "price": 295000,
+          "stock": 10,
+          "id": "a63f26c0-24c8-4479-aefc-7b4a34c4979f"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 9 Pro 256 Go Non scellé (US/Japan)",
+      "importKey": "google::pixel 9 pro::256::",
+      "importPrice": 375000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Google Pixel 9 Pro XL ",
+          "price": 540000,
+          "stock": 5,
+          "id": "77ca9a6a-b910-4780-8d1a-3235e97231d5"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 8a 128 Go Scellé (US/Japan)",
+      "importKey": "google::pixel 8a::128::",
+      "importPrice": 175000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 8 Pro 128 Go Scellé (US/Japan)",
+      "importKey": "google::pixel 8 pro::128::",
+      "importPrice": 260000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 8 Pro 256 Go Scellé (US/Japan)",
+      "importKey": "google::pixel 8 pro::256::",
+      "importPrice": 280000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Google Pixel 9 Pro XL 128 Go Scellé (US/Japan)",
+      "importKey": "google::pixel 9 pro xl::128::",
+      "importPrice": 380000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Google Pixel 9 Pro XL ",
+          "price": 540000,
+          "stock": 5,
+          "id": "77ca9a6a-b910-4780-8d1a-3235e97231d5"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A07 64 Go",
+      "importKey": "samsung::a07::64::",
+      "importPrice": 65000,
+      "legacy": [
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A07",
+          "price": 65000,
+          "stock": 5,
+          "id": "4635203c-d2d6-47a7-b29c-b8cff1edeea0"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A07",
+          "price": 65000,
+          "stock": 5,
+          "id": "cf4dc8c7-d88c-434f-a6f3-4b809e1cd923"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A07 128 Go",
+      "importKey": "samsung::a07::128::",
+      "importPrice": 73000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A07",
+          "price": 65000,
+          "stock": 5,
+          "id": "4635203c-d2d6-47a7-b29c-b8cff1edeea0"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A07",
+          "price": 65000,
+          "stock": 5,
+          "id": "cf4dc8c7-d88c-434f-a6f3-4b809e1cd923"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A16 128 Go",
+      "importKey": "samsung::a16::128::",
+      "importPrice": 90000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A17 128 Go",
+      "importKey": "samsung::a17::128::",
+      "importPrice": 100000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A17",
+          "price": 90000,
+          "stock": 100,
+          "id": "ad115d02-90b7-435b-afe9-0f52141afd6d"
+        }
+      ]
+    },
+    {
+      "importName": "Samsung Galaxy A17 256 Go",
+      "importKey": "samsung::a17::256::",
+      "importPrice": 130000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Samsung Galaxy A17",
+          "price": 90000,
+          "stock": 100,
+          "id": "ad115d02-90b7-435b-afe9-0f52141afd6d"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi A5 64 Go",
+      "importKey": "xiaomi::redmi a5::64::",
+      "importPrice": 57000,
+      "legacy": [
+        {
+          "score": 35,
+          "name": "Redmi A5",
+          "price": 55000,
+          "stock": 100,
+          "id": "43f615fb-4e78-4a55-a6b1-9c02f84c7e59"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi A5 128 Go",
+      "importKey": "xiaomi::redmi a5::128::",
+      "importPrice": 63000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 35,
+          "name": "Redmi A5",
+          "price": 55000,
+          "stock": 100,
+          "id": "43f615fb-4e78-4a55-a6b1-9c02f84c7e59"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi 13 256 Go",
+      "importKey": "xiaomi::redmi 13::256::",
+      "importPrice": 90000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi 15 256 Go",
+      "importKey": "xiaomi::redmi 15::256::",
+      "importPrice": 100000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 40,
+          "name": "Xiaomi Redmi 15",
+          "price": 100000,
+          "stock": 12,
+          "id": "e33f2648-5a20-4d9b-aff3-eb4f113cfe2d"
+        },
+        {
+          "score": 35,
+          "name": "Redmi 15C ",
+          "price": 75000,
+          "stock": 100,
+          "id": "26cbf2d3-c0e8-42b3-979b-30f313f60a8d"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi Note 9 Pro 128 Go",
+      "importKey": "xiaomi::redmi note 9 pro::128::",
+      "importPrice": 65000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi 14C 256 Go",
+      "importKey": "xiaomi::redmi 14c::256::",
+      "importPrice": 75000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi 15C 128 Go",
+      "importKey": "xiaomi::redmi 15c::128::",
+      "importPrice": 75000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 35,
+          "name": "Redmi 15C ",
+          "price": 75000,
+          "stock": 100,
+          "id": "26cbf2d3-c0e8-42b3-979b-30f313f60a8d"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi 15C 256 Go",
+      "importKey": "xiaomi::redmi 15c::256::",
+      "importPrice": 87000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 35,
+          "name": "Redmi 15C ",
+          "price": 75000,
+          "stock": 100,
+          "id": "26cbf2d3-c0e8-42b3-979b-30f313f60a8d"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi Note 14 256 Go",
+      "importKey": "xiaomi::redmi note 14::256::",
+      "importPrice": 120000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        },
+        {
+          "score": 35,
+          "name": "Redmi Note 14 pro+",
+          "price": 150000,
+          "stock": 1,
+          "id": "dc54dd8f-b46b-4c29-a89e-067dba38ddeb"
+        }
+      ]
+    },
+    {
+      "importName": "Xiaomi Redmi Note 15 256 Go",
+      "importKey": "xiaomi::redmi note 15::256::",
+      "importPrice": 132000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Infinix Smart 10 128 Go",
+      "importKey": "infinix::smart 10::128::",
+      "importPrice": 70000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Infinix Hot 60i 128 Go",
+      "importKey": "infinix::hot 60i::128::",
+      "importPrice": 75000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Infinix Hot 60i",
+          "price": 67000,
+          "stock": 8,
+          "id": "add64d68-88e7-452f-bb2c-38630bcd9c3e"
+        }
+      ]
+    },
+    {
+      "importName": "Infinix Hot 60i 256 Go",
+      "importKey": "infinix::hot 60i::256::",
+      "importPrice": 90000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Infinix Hot 60i",
+          "price": 67000,
+          "stock": 8,
+          "id": "add64d68-88e7-452f-bb2c-38630bcd9c3e"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    },
+    {
+      "importName": "Infinix Hot 50 Pro+ 128 Go",
+      "importKey": "infinix::hot 50 pro::128::",
+      "importPrice": 135000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        }
+      ]
+    },
+    {
+      "importName": "Tecno Spark 40 128 Go",
+      "importKey": "tecno::spark 40::128::",
+      "importPrice": 80000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 128 Go",
+          "price": 110000,
+          "stock": 10,
+          "id": "d3584aa4-2be7-45df-b7bd-80e2da7f0c2f"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 128Go",
+          "price": 195000,
+          "stock": 10,
+          "id": "94b45c6b-3f95-4c9b-a4ae-097e55818b29"
+        },
+        {
+          "score": 40,
+          "name": "Tecno Spark 40",
+          "price": 75000,
+          "stock": 10,
+          "id": "2a04173a-5091-4403-b6e7-972f8b69a00d"
+        }
+      ]
+    },
+    {
+      "importName": "Tecno Spark 40 256 Go",
+      "importKey": "tecno::spark 40::256::",
+      "importPrice": 100000,
+      "legacy": [
+        {
+          "score": 45,
+          "name": "Samsung S21 256Go",
+          "price": 120000,
+          "stock": 5,
+          "id": "7063526c-09e9-4ea7-a50f-7b8f8c3e45e9"
+        },
+        {
+          "score": 45,
+          "name": "Samsung S23 256 Go",
+          "price": 205000,
+          "stock": 10,
+          "id": "87a6f71c-432b-43b1-a6ad-06d7a1c906ad"
+        },
+        {
+          "score": 40,
+          "name": "Tecno Spark 40",
+          "price": 75000,
+          "stock": 10,
+          "id": "2a04173a-5091-4403-b6e7-972f8b69a00d"
+        },
+        {
+          "score": 40,
+          "name": "S21  256Go ",
+          "price": 140000,
+          "stock": 5,
+          "id": "0814e79c-2674-4c92-81c5-c86a76517aa8"
+        }
+      ]
+    }
+  ],
+  "importOnlyNoLegacyMatch": [
+    "Samsung Galaxy Watch4 (Korea)",
+    "Samsung Galaxy Watch5 (Korea)",
+    "Samsung Galaxy Watch6 (Korea)",
+    "Samsung Galaxy Watch7 (Korea)",
+    "Samsung Galaxy Watch4 Classic (Korea)",
+    "Samsung Galaxy Watch5 Pro (Korea)",
+    "Samsung Galaxy Watch6 Classic (Korea)",
+    "Samsung Galaxy Watch7 Scellé",
+    "Samsung Galaxy Watch Ultra Scellé",
+    "Samsung Galaxy Watch8 Scellé",
+    "Samsung Galaxy Watch8 Classic Scellé",
+    "Samsung Galaxy Watch FIT 3 Scellé",
+    "Samsung Galaxy Buds Core Scellé",
+    "Infinix Smart 10 HD 64 Go",
+    "Tecno Pop 10 64 Go"
+  ]
+}

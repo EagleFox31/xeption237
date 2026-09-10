@@ -6,14 +6,17 @@ import { Brand, ProductRange, Category } from '../../../types';
 interface BrandsTabProps {
   brands: Brand[];
   ranges: ProductRange[];
-  categories: Category[]; // Nouvelle prop pour la liste des catégories
-  brandMgr: any; // Hook manager
+  categories: Category[];
+  brandMgr: any;
+  embedded?: boolean;
 }
 
-const BrandsTab: React.FC<BrandsTabProps> = ({ brands, ranges, categories, brandMgr }) => {
+const BrandsTab: React.FC<BrandsTabProps> = ({ brands, ranges, categories, brandMgr, embedded = false }) => {
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-5">
-        <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Gestion Marques & Gammes</h2>
+    <div className={embedded ? '' : 'animate-in fade-in slide-in-from-bottom-5'}>
+        {!embedded && (
+          <h2 className="text-3xl font-tech font-bold uppercase text-white mb-6">Gestion Marques & Gammes</h2>
+        )}
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             

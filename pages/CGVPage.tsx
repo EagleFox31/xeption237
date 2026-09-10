@@ -5,6 +5,21 @@ import {
   Scale, FileText, Package, CreditCard, Truck, Undo2, ShieldCheck,
   RefreshCw, Wrench, Gavel, ChevronRight, Mail,
 } from 'lucide-react';
+import { formatTrocFee, TROC_TIER_PRICES, TROC_TUNNEL_TIER } from '../utils/trocPricing';
+import {
+  INSTITUTIONAL_FOOTER_LINK_CLASS,
+  INSTITUTIONAL_FOOTER_NOTE_CLASS,
+  INSTITUTIONAL_HEADER_BADGE_CLASS,
+  INSTITUTIONAL_PAGE_HEADER_CLASS,
+  INSTITUTIONAL_PAGE_LEAD_CLASS,
+  INSTITUTIONAL_PAGE_TITLE_CLASS,
+  INSTITUTIONAL_SECTION_BODY_CLASS,
+  INSTITUTIONAL_SECTION_CLASS,
+  INSTITUTIONAL_SECTION_DIVIDER_CLASS,
+  INSTITUTIONAL_SECTION_HEADING_CLASS,
+  INSTITUTIONAL_TOC_CLASS,
+  INSTITUTIONAL_TOC_LINK_IDLE,
+} from '../constants/institutionalPageStyles';
 
 /**
  * Conditions Générales de Vente — ETS XEPTION
@@ -21,9 +36,9 @@ const Section: React.FC<{
 }> = ({ id, number, icon, title, children }) => (
   <section
     id={id}
-    className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 md:p-8 hover:border-xeption-gold/20 transition-all duration-300 scroll-mt-32 snap-start"
+    className={INSTITUTIONAL_SECTION_CLASS}
   >
-    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
+    <div className={`flex items-center gap-3 mb-6 pb-4 ${INSTITUTIONAL_SECTION_DIVIDER_CLASS}`}>
       <div className="w-10 h-10 bg-xeption-gold/10 rounded-lg flex items-center justify-center text-xeption-gold shrink-0">
         {icon}
       </div>
@@ -31,32 +46,32 @@ const Section: React.FC<{
         <span className="text-[10px] font-tech text-xeption-gold/70 uppercase tracking-widest">
           Article {number}
         </span>
-        <h2 className="text-lg md:text-xl font-bold text-white font-tech uppercase tracking-wider">
+        <h2 className={INSTITUTIONAL_SECTION_HEADING_CLASS}>
           {title}
         </h2>
       </div>
     </div>
-    <div className="space-y-3 text-gray-300 text-sm leading-relaxed">
+    <div className={INSTITUTIONAL_SECTION_BODY_CLASS}>
       {children}
     </div>
   </section>
 );
 
 const TOC: React.FC<{ items: { id: string; label: string }[], activeId: string }> = ({ items, activeId }) => (
-  <nav className="fixed top-24 right-4 w-[min(20rem,calc(100vw-2rem))] max-h-[calc(100vh-7rem)] overflow-auto bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-xl z-40" aria-label="Sommaire">
-    <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest mb-4">Sommaire</p>
-    <ol className="flex flex-col gap-2 text-sm">
+  <nav className={INSTITUTIONAL_TOC_CLASS} aria-label="Sommaire">
+    <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest mb-3 xl:mb-4">Sommaire</p>
+    <ol className="flex gap-2 overflow-x-auto no-scrollbar text-sm xl:flex-col xl:overflow-visible">
       {items.map((item, idx) => {
         const isActive = activeId === item.id;
         return (
-          <li key={item.id}>
+          <li key={item.id} className="shrink-0 xl:shrink">
             <a
               href={`#${item.id}`}
-              className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 group ${
-                isActive ? 'bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 group whitespace-nowrap ${
+                isActive ? 'bg-xeption-gold/10 border border-xeption-gold/20 text-xeption-gold' : INSTITUTIONAL_TOC_LINK_IDLE
               }`}
             >
-              <ChevronRight className={`w-3 h-3 transition-transform duration-300 shrink-0 ${isActive ? 'text-xeption-gold translate-x-1' : 'text-gray-600 group-hover:text-xeption-gold group-hover:translate-x-0.5'}`} />
+              <ChevronRight className={`w-3 h-3 transition-transform duration-300 shrink-0 ${isActive ? 'text-xeption-gold translate-x-1' : 'text-white/60 group-hover:text-xeption-gold group-hover:translate-x-0.5'}`} />
               <span className={`font-mono text-xs w-5 shrink-0 ${isActive ? 'text-xeption-gold' : 'text-xeption-gold/50'}`}>
                 {String(idx + 1).padStart(2, '0')}
               </span>
@@ -118,24 +133,22 @@ const CGVPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen pt-28 pb-20 px-4 relative">
-        {/* Overlay sombre pour lisibilité sur fond vidéo */}
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-0 pointer-events-none" />
         <div className="max-w-4xl mx-auto relative z-10">
           <TOC items={SECTIONS} activeId={activeSection} />
 
           {/* Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-xeption-gold/10 border border-xeption-gold/30 rounded-full px-4 py-2 text-xeption-gold text-xs font-bold uppercase tracking-widest mb-6">
+          <div className={`${INSTITUTIONAL_PAGE_HEADER_CLASS} mb-16`}>
+            <div className={INSTITUTIONAL_HEADER_BADGE_CLASS}>
               <Scale className="w-3.5 h-3.5" />
               Conditions de vente
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-lg mb-4">
+            <h1 className={INSTITUTIONAL_PAGE_TITLE_CLASS}>
               Conditions <span className="text-xeption-gold">Générales</span> de Vente
             </h1>
-            <p className="text-gray-400 max-w-xl mx-auto text-sm">
+            <p className={INSTITUTIONAL_PAGE_LEAD_CLASS}>
               Les présentes CGV régissent l'ensemble des ventes conclues sur xeptionetwork.shop entre ETS XEPTION et ses clients.
             </p>
-            <div className="flex items-center justify-center gap-2 mt-4 text-gray-600 text-xs">
+            <div className="flex items-center justify-center gap-2 mt-4 text-white/75 text-xs">
               <RefreshCw className="w-3 h-3" />
               Dernière mise à jour : {lastUpdated}
             </div>
@@ -159,41 +172,41 @@ const CGVPage: React.FC = () => {
             {/* 2. Vendeur */}
             <Section id="vendeur" number="02" icon={<ShieldCheck className="w-5 h-5" />} title="Identité du vendeur">
               <p>Les ventes sont effectuées par :</p>
-              <div className="bg-white/5 border border-white/10 rounded-lg p-4 mt-2 space-y-2">
+              <div className="bg-black/40 border border-white/10 rounded-lg p-4 mt-2 space-y-2">
                 <div className="flex flex-col sm:flex-row sm:gap-4">
-                  <span className="text-gray-500 text-xs uppercase tracking-widest sm:w-40 shrink-0">Raison sociale</span>
+                  <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">Raison sociale</span>
                   <span className="text-white font-medium">ETS XEPTION</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-4">
-                  <span className="text-gray-500 text-xs uppercase tracking-widest sm:w-40 shrink-0">Forme juridique</span>
+                  <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">Forme juridique</span>
                   <span className="text-white">Entreprise Individuelle (EI)</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-4">
-                  <span className="text-gray-500 text-xs uppercase tracking-widest sm:w-40 shrink-0">Responsable</span>
+                  <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">Responsable</span>
                   <span className="text-white">KUETE Ladzou Jordan</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-4">
-                  <span className="text-gray-500 text-xs uppercase tracking-widest sm:w-40 shrink-0">Adresse</span>
+                  <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">Adresse</span>
                   <span className="text-white">Mfoundi Mall, Boutique 2063, Avenue Mgr Vogt, Marché Mfoundi, Centre-ville, Yaoundé, Cameroun</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-4">
-                  <span className="text-gray-500 text-xs uppercase tracking-widest sm:w-40 shrink-0">Téléphone</span>
-                  <a href="tel:+237697686684" className="text-xeption-gold hover:underline">+237 697 686 684</a>
+                  <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">Téléphone</span>
+                  <a href="tel:+237641891031" className="text-xeption-gold hover:underline">+237 641 891 031</a>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-4">
-                  <span className="text-gray-500 text-xs uppercase tracking-widest sm:w-40 shrink-0">Email</span>
+                  <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">Email</span>
                   <a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline">support@xeptionetwork.shop</a>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-4">
-                  <span className="text-gray-500 text-xs uppercase tracking-widest sm:w-40 shrink-0">RCCM</span>
+                  <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">RCCM</span>
                   <span className="text-white font-mono text-xs">CM-NSI-01-2025-A10-01892</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-4">
-                  <span className="text-gray-500 text-xs uppercase tracking-widest sm:w-40 shrink-0">NIU</span>
+                  <span className="text-white/75 text-xs uppercase tracking-widest sm:w-40 shrink-0">NIU</span>
                   <span className="text-white font-mono text-xs">P039916777543H</span>
                 </div>
               </div>
-              <p className="text-gray-500 text-xs italic mt-3">
+              <p className="text-white text-xs italic mt-3">
                 Informations complémentaires (hébergeur, registraire) :{' '}
                 <Link to="/mentions-legales" className="text-xeption-gold hover:underline">
                   Mentions légales
@@ -220,7 +233,7 @@ const CGVPage: React.FC = () => {
             {/* 4. Commande */}
             <Section id="commande" number="04" icon={<FileText className="w-5 h-5" />} title="Processus de commande">
               <p>Le Client passe commande en suivant les étapes suivantes :</p>
-              <ol className="list-decimal list-inside space-y-1.5 pl-2 text-gray-400">
+              <ol className="list-decimal list-inside space-y-1.5 pl-2 text-white/90">
                 <li>Sélection des produits et ajout au panier</li>
                 <li>Vérification du panier et des frais de livraison</li>
                 <li>Saisie des informations de livraison et de contact</li>
@@ -241,7 +254,7 @@ const CGVPage: React.FC = () => {
             {/* 5. Paiement */}
             <Section id="paiement" number="05" icon={<CreditCard className="w-5 h-5" />} title="Modalités de paiement">
               <p>Les modes de paiement acceptés sont :</p>
-              <ul className="list-disc list-inside space-y-1.5 pl-2 text-gray-400">
+              <ul className="list-disc list-inside space-y-1.5 pl-2 text-white/90">
                 <li><strong className="text-white">Orange Money (OM)</strong> — règlement Mobile Money selon les indications communiquées au Client</li>
                 <li><strong className="text-white">MTN Mobile Money (MoMo)</strong> — règlement Mobile Money selon les indications communiquées au Client</li>
                 <li><strong className="text-white">Espèces</strong> — uniquement à la livraison ou au retrait en boutique</li>
@@ -262,7 +275,7 @@ const CGVPage: React.FC = () => {
               <p>
                 Les délais de livraison indicatifs sont :
               </p>
-              <ul className="list-disc list-inside space-y-1.5 pl-2 text-gray-400">
+              <ul className="list-disc list-inside space-y-1.5 pl-2 text-white/90">
                 <li><strong className="text-white">Yaoundé</strong> — 24 à 48 heures ouvrées</li>
                 <li><strong className="text-white">Douala</strong> — 48 à 72 heures ouvrées</li>
                 <li><strong className="text-white">Autres villes</strong> — 3 à 7 jours ouvrés selon la destination</li>
@@ -284,7 +297,7 @@ const CGVPage: React.FC = () => {
                 Conformément à la <strong className="text-white">loi N°2010/021 du 21 décembre 2010</strong> régissant le commerce électronique au Cameroun, le Client dispose d'un délai de <strong className="text-white">quinze (15) jours</strong> à compter du lendemain de la réception du produit pour exercer son droit de rétractation, sans avoir à justifier de motifs ni à payer de pénalités.
               </p>
               <p>Pour exercer ce droit, le Client doit :</p>
-              <ol className="list-decimal list-inside space-y-1.5 pl-2 text-gray-400">
+              <ol className="list-decimal list-inside space-y-1.5 pl-2 text-white/90">
                 <li>Notifier sa décision par email à <a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline">support@xeptionetwork.shop</a></li>
                 <li>Retourner le produit dans son état d'origine, complet et non utilisé</li>
                 <li>Joindre la facture d'achat ou la confirmation de commande</li>
@@ -292,7 +305,7 @@ const CGVPage: React.FC = () => {
               <p>
                 Les <strong className="text-white">frais de retour sont à la charge du Client</strong>, sauf en cas de défaut de conformité ou de vice caché. Le remboursement intervient dans un délai de <strong className="text-white">quinze (15) jours</strong> à compter de la réception du produit retourné ou de la notification de rétractation pour un service.
               </p>
-              <p className="text-gray-500 text-xs italic">
+              <p className="text-white text-xs italic">
                 Le droit de rétractation ne s'applique pas aux produits descellés ne pouvant être retournés pour des raisons d'hygiène (écouteurs intra-auriculaires par exemple), ni aux logiciels descellés ou aux biens personnalisés à la demande du Client.
               </p>
             </Section>
@@ -308,7 +321,7 @@ const CGVPage: React.FC = () => {
               <p>
                 En cas de défaut, panne ou non-conformité, le Client peut faire intervenir notre service après-vente :
               </p>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white/5 border border-white/10 rounded-lg px-4 py-3 mt-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-black/40 border border-white/10 rounded-lg px-4 py-3 mt-2">
                 <Wrench className="w-5 h-5 text-xeption-gold shrink-0" />
                 <div className="flex flex-col gap-0.5 text-sm">
                   <span className="text-white">Service Après-Vente Xeption</span>
@@ -317,7 +330,7 @@ const CGVPage: React.FC = () => {
                   </Link>
                 </div>
               </div>
-              <p className="text-gray-500 text-xs italic">
+              <p className="text-white text-xs italic">
                 Les pannes liées à un usage anormal, une chute, un dégât d'eau ou une intervention non autorisée ne sont pas couvertes par la garantie.
               </p>
             </Section>
@@ -325,13 +338,20 @@ const CGVPage: React.FC = () => {
             {/* 9. Smart Troc */}
             <Section id="smart-troc" number="09" icon={<RefreshCw className="w-5 h-5" />} title="Service Smart Troc — Reprise d'appareils">
               <p>
-                Le service <strong className="text-white">Smart Troc</strong> permet au Client de soumettre un appareil mobile en vue de sa reprise par ETS XEPTION, en échange d'une valeur de reprise sous la forme d'un bon d'achat applicable sur l'achat d'un autre produit en boutique.
+                La rubrique <strong className="text-white">Smart Troc</strong> propose deux services distincts en ligne : la reprise d’un appareil mobile (bon d’achat en boutique) et la certification IMEI (certificat pour un acheteur). Le Client choisit son besoin et le tarif correspondant dès l’entrée du parcours sur{' '}
+                <Link to="/troc" className="text-xeption-gold hover:underline">/troc</Link>.
               </p>
               <p>
-                Le processus comprend une <strong className="text-white">estimation à distance</strong> basée sur les déclarations du Client, les photographies fournies et l'analyse automatisée par intelligence artificielle. Cette estimation est <strong className="text-white">indicative</strong> ; la valeur définitive de reprise est confirmée lors du dépôt physique de l'appareil en boutique.
+                Pour la reprise, le processus comprend une <strong className="text-white">estimation à distance</strong> basée sur les déclarations du Client, les photographies fournies et l'analyse automatisée par intelligence artificielle. Cette estimation est <strong className="text-white">indicative</strong> ; la valeur définitive de reprise est confirmée lors du dépôt physique de l'appareil en boutique.
               </p>
               <p>
-                Un <strong className="text-white">frais de service de 150 XAF</strong> est demandé pour accéder à l'estimation. Ce montant est non remboursable mais s'applique en déduction du crédit boutique en cas de reprise effective.
+                Un <strong className="text-white">frais de service forfaitaire</strong> est demandé avant l’accès au résultat ou au certificat :{' '}
+                {formatTrocFee(TROC_TIER_PRICES[TROC_TUNNEL_TIER])} pour « Troquer mon appareil »,{' '}
+                {formatTrocFee(TROC_TIER_PRICES.certif)} pour « Certifier mon appareil ». Le détail figure dans les{' '}
+                <Link to="/cgv-smart-troc" className="text-xeption-gold hover:underline">
+                  conditions Smart Troc
+                </Link>
+                . Ce montant est non remboursable ; pour une reprise effective, il s&apos;applique en déduction du crédit boutique.
               </p>
               <p>
                 Le bon de reprise généré est valable <strong className="text-white">trente (30) jours</strong> à compter de son émission, sous réserve de présentation de l'appareil dans son état déclaré.
@@ -339,14 +359,14 @@ const CGVPage: React.FC = () => {
               <p>
                 ETS XEPTION se réserve le droit de refuser ou de réviser la reprise dans les cas suivants :
               </p>
-              <ul className="list-disc list-inside space-y-1.5 pl-2 text-gray-400">
+              <ul className="list-disc list-inside space-y-1.5 pl-2 text-white/90">
                 <li>Appareil ne s'allumant pas</li>
                 <li>Dégâts d'eau avérés</li>
                 <li>Compte iCloud ou Google verrouillé non levé en boutique</li>
                 <li>IMEI signalé volé ou bloqué</li>
                 <li>État physique sensiblement différent de la déclaration et des photos fournies</li>
               </ul>
-              <p className="text-gray-500 text-xs italic">
+              <p className="text-white text-xs italic">
                 Les photographies transmises dans le cadre du Smart Troc sont utilisées exclusivement pour l'évaluation de l'appareil et ne sont jamais cédées à des tiers.
               </p>
             </Section>
@@ -359,7 +379,7 @@ const CGVPage: React.FC = () => {
               <p>
                 En cas de litige, le Client est invité à contacter en priorité le service client d'ETS XEPTION afin de rechercher une solution amiable :
               </p>
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-4 py-3 mt-2">
+              <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-lg px-4 py-3 mt-2">
                 <Mail className="w-4 h-4 text-xeption-gold" />
                 <a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline font-mono text-sm">
                   support@xeptionetwork.shop
@@ -371,11 +391,11 @@ const CGVPage: React.FC = () => {
             </Section>
 
             {/* Footer note */}
-            <div className="text-center text-gray-600 text-xs pt-8 pb-8 mt-8 border-t border-white/10">
+            <div className={INSTITUTIONAL_FOOTER_NOTE_CLASS}>
               <p>© {new Date().getFullYear()} ETS XEPTION — Tous droits réservés.</p>
               <p className="mt-1">
                 Pour toute question, contactez-nous à{' '}
-                <a href="mailto:support@xeptionetwork.shop" className="text-gray-500 hover:text-xeption-gold transition-colors">
+                <a href="mailto:support@xeptionetwork.shop" className={INSTITUTIONAL_FOOTER_LINK_CLASS}>
                   support@xeptionetwork.shop
                 </a>
               </p>

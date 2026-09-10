@@ -1,6 +1,9 @@
 // @ts-ignore
 const Deno = globalThis.Deno;
 
+import { isTrivialTestImei, sanitizeImei } from '../_shared/imeiValidation.ts';
+import { assertAiRateLimit, rateLimitJsonResponse } from '../_shared/rateLimit.ts';
+
 export {};
 
 const corsHeaders = {
@@ -135,7 +138,6 @@ const normalizeBrand = (raw: string): string => {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 };
 
-const sanitizeImei = (value?: string): string => (value || '').replace(/\D/g, '').trim();
 const is15Digits = (value: string): boolean => /^\d{15}$/.test(value);
 
 // Same algorithm as front-end: compute check digit from first 14 digits.
@@ -236,6 +238,15 @@ const dbTacRead = async (
 };
 
 // Écrit dans tac_cache après un lookup réussi (non-bloquant).
+// Un fournisseur externe peut repondre avec assurance sur un TAC inexistant :
+// « Apple iPhone 15 » a ete renvoye pour 00000000 avec 92 % de confiance, puis
+// mis en cache. On refuse d'ecrire ce qu'on sait impossible.
+// Attention : le prefixe « 00 » ne disqualifie PAS un TAC. 00499901 est un vrai
+// CHUWI CW-Vi7, present dans la base osmocom. On ne refuse que l'impossible :
+// huit fois le meme chiffre.
+const isCacheableTac = (tac: string): boolean =>
+  /^[0-9]{8}$/.test(tac) && new Set(tac).size > 1;
+
 const dbTacWrite = (
   tac: string,
   deviceInfo: DeviceInfo,
@@ -244,6 +255,12 @@ const dbTacWrite = (
   supabaseUrl: string,
   serviceKey: string,
 ): void => {
+  // Filtre place ICI et non aux trois points d'appel : aucun ne peut l'oublier.
+  if (!isCacheableTac(tac)) {
+    console.warn('[check-imei] cache refuse pour un TAC impossible', { tac, source });
+    return;
+  }
+
   fetchWithTimeout(
     `${supabaseUrl}/rest/v1/tac_cache`,
     {
@@ -472,6 +489,24 @@ const checkBasic = async (
   serviceKey: string,
   imeiInfoKey: string | null,
 ): Promise<BasicResult> => {
+  // Avant Luhn, car Luhn accepte le tout-zero : somme 0, donc divisible par 10.
+  // Sans ce filtre la cascade interroge le fournisseur, qui repond « Apple
+  // iPhone 15 » avec 92 % de confiance sur un TAC inexistant, et on met en cache.
+  if (isTrivialTestImei(imei)) {
+    return {
+      status: 'check_failed',
+      reason: 'trivial_test_imei',
+      provider: 'structure',
+      imeiValidity: 'invalid',
+      blacklistStatus: 'unknown',
+      assuranceLevel: 'basic',
+      deviceInfo: null,
+      deviceInfoSource: null,
+      deviceInfoConfidence: null,
+      deviceInfoEvidenceCount: 0,
+    };
+  }
+
   if (!luhnCheck(imei)) {
     return {
       status: 'check_failed',
@@ -641,6 +676,41 @@ const checkWithImeiCheckNet = async (imei: string, apiKey: string) => {
   };
 };
 
+// Loggue un appel premium imeicheck.net pour audit coût (non-bloquant).
+const logPremiumCall = (
+  args: {
+    sessionKey: string | null;
+    tac: string;
+    succeeded: boolean;
+    httpStatus: number | null;
+    blacklisted: boolean | null;
+  },
+  supabaseUrl: string,
+  serviceKey: string,
+): void => {
+  fetchWithTimeout(
+    `${supabaseUrl}/rest/v1/imei_premium_calls`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        session_key: args.sessionKey,
+        imei_tac:    args.tac,
+        tier:        'safety',
+        provider:    'imeicheck.net',
+        http_status: args.httpStatus,
+        succeeded:   args.succeeded,
+        blacklisted: args.blacklisted,
+      }),
+    },
+  ).catch(() => { /* audit non-bloquant */ });
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -649,6 +719,10 @@ Deno.serve(async (req: Request) => {
   try {
     const payload = await req.json();
     const normalizedImei = sanitizeImei(payload?.imei);
+    // Tier demandé : 'basic' (par défaut) ou 'premium' (palier safety).
+    // Le palier 'premium' déclenche l'appel imeicheck.net pour vrai check blacklist.
+    const requestedTier: Tier = payload?.tier === 'premium' ? 'premium' : 'basic';
+    const sessionKey = typeof payload?.sessionKey === 'string' ? payload.sessionKey : null;
 
     if (!is15Digits(normalizedImei)) {
       return new Response(
@@ -674,24 +748,120 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const keyImeiInfo = Deno.env.get('IMEI_INFO_API_KEY') ?? null;
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-
-    try {
-      const result = await checkBasic(normalizedImei, supabaseUrl, serviceKey, keyImeiInfo);
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    } catch (err: any) {
-      console.error('[check-imei] check_failed', err?.message ?? err);
+    if (isTrivialTestImei(normalizedImei)) {
+      return new Response(
+        JSON.stringify({
+          status: 'check_failed',
+          reason: 'trivial_test_imei',
+          provider: 'luhn',
+          imeiValidity: 'invalid',
+          blacklistStatus: 'unknown',
+          deviceInfo: null,
+          deviceInfoSource: null,
+          deviceInfoConfidence: null,
+          deviceInfoEvidenceCount: 0,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
     }
 
-    return new Response(
-      JSON.stringify({ status: 'check_failed', reason: 'no_provider_available' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-    );
+    const rateLimit = await assertAiRateLimit(req, 'check-imei', sessionKey);
+    if (!rateLimit.allowed) {
+      return rateLimitJsonResponse(rateLimit, corsHeaders);
+    }
+
+    const keyImeiInfo  = Deno.env.get('IMEI_INFO_API_KEY') ?? null;
+    const keyPremium   = Deno.env.get('IMEI_PREMIUM_API_KEY') ?? null;
+    const supabaseUrl  = Deno.env.get('SUPABASE_URL') ?? '';
+    const serviceKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+    // ─── Cascade basic (toujours) ────────────────────────────────────────────
+    let basic: BasicResult;
+    try {
+      basic = await checkBasic(normalizedImei, supabaseUrl, serviceKey, keyImeiInfo);
+    } catch (err: any) {
+      console.error('[check-imei] basic_cascade_failed', err?.message ?? err);
+      return new Response(
+        JSON.stringify({ status: 'check_failed', reason: 'no_provider_available' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    }
+
+    // ─── Premium gating : tier=premium + clé configurée ──────────────────────
+    // Si l'utilisateur a payé le palier Sûreté, on vérifie la blacklist mondiale
+    // via imeicheck.net même si la cascade basic a réussi.
+    const shouldRunPremium =
+      requestedTier === 'premium' &&
+      !!keyPremium &&
+      basic.imeiValidity === 'valid';
+
+    if (shouldRunPremium) {
+      const tac = normalizedImei.slice(0, 8);
+      try {
+        const premium = await checkWithImeiCheckNet(normalizedImei, keyPremium);
+
+        // Cache TAC si le premium a retourné un deviceInfo
+        if (premium.deviceInfo && premium.deviceInfo.brand) {
+          dbTacWrite(tac, premium.deviceInfo, 'imeicheck', 0.98, supabaseUrl, serviceKey);
+        }
+
+        logPremiumCall(
+          {
+            sessionKey,
+            tac,
+            succeeded: true,
+            httpStatus: 200,
+            blacklisted: premium.blacklistStatus === 'blacklisted',
+          },
+          supabaseUrl, serviceKey,
+        );
+
+        // Fusion : on garde le deviceInfo le plus riche, on prend la blacklist du premium
+        const merged: BasicResult = {
+          ...basic,
+          status:          premium.status,
+          provider:        premium.provider,
+          blacklistStatus: premium.blacklistStatus,
+          assuranceLevel:  'premium',
+          deviceInfo:      premium.deviceInfo || basic.deviceInfo,
+          deviceInfoSource:  premium.deviceInfo ? premium.deviceInfoSource : basic.deviceInfoSource,
+          deviceInfoConfidence: premium.deviceInfo ? premium.deviceInfoConfidence : basic.deviceInfoConfidence,
+          deviceInfoEvidenceCount: premium.deviceInfo ? premium.deviceInfoEvidenceCount : basic.deviceInfoEvidenceCount,
+          message: premium.blacklistStatus === 'blacklisted'
+            ? 'IMEI blacklisté — rachat refusé.'
+            : 'IMEI valide — vérification blacklist mondiale OK.',
+        };
+
+        return new Response(JSON.stringify(merged), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      } catch (err: any) {
+        console.warn('[check-imei] premium_failed_fallback_basic', err?.message ?? err);
+        const httpMatch = /imeicheck_net_http_(\d+)/.exec(err?.message ?? '');
+        logPremiumCall(
+          {
+            sessionKey,
+            tac,
+            succeeded: false,
+            httpStatus: httpMatch ? Number(httpMatch[1]) : null,
+            blacklisted: null,
+          },
+          supabaseUrl, serviceKey,
+        );
+        // Fallback gracieux : on retourne le basic en signalant que le premium a échoué.
+        return new Response(
+          JSON.stringify({ ...basic, premiumAttempted: true, premiumFailed: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+        );
+      }
+    }
+
+    // ─── Cas standard (tier basic ou pas de clé premium) ─────────────────────
+    return new Response(JSON.stringify(basic), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
   } catch (error: any) {
     console.error('[check-imei] fatal', error);
     return new Response(

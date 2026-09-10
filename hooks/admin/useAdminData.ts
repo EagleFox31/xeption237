@@ -3,8 +3,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Order, Staff, Customer, Category, Brand, ProductRange, AdminNotification, TrocSession } from '../../types';
 import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
+import { normalizeStaffRole } from '../../constants/staffRoles';
+import { safeRandomUUID } from '../../utils/uuid';
 
-export const useAdminData = (addNotification: (n: AdminNotification) => void) => {
+export const useAdminData = (addNotification?: (n: AdminNotification) => void) => {
+    const notify = addNotification ?? (() => {});
     const [orders, setOrders] = useState<Order[]>([]);
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -17,19 +20,52 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
     const fetchOrders = useCallback(async () => {
         const { data } = await supabase.from(DB_TABLES.ORDERS).select('*').order(DB_SCHEMA.ORDERS.DATE, { ascending: false });
         if (data) {
-            const formattedOrders = data.map((o: any) => ({
-                id: o[DB_SCHEMA.ORDERS.ID],
-                items: o[DB_SCHEMA.ORDERS.ITEMS],
-                total: o[DB_SCHEMA.ORDERS.TOTAL],
-                status: o[DB_SCHEMA.ORDERS.STATUS],
-                paymentMethod: o[DB_SCHEMA.ORDERS.PAYMENT_METHOD], 
-                customerName: o[DB_SCHEMA.ORDERS.CUSTOMER_NAME],
-                customerEmail: o[DB_SCHEMA.ORDERS.CUSTOMER_EMAIL],
-                customerPhone: o[DB_SCHEMA.ORDERS.CUSTOMER_PHONE],
-                customerCity: o[DB_SCHEMA.ORDERS.CUSTOMER_CITY],
-                deliveryMode: o[DB_SCHEMA.ORDERS.DELIVERY_MODE] || 'delivery',
-                date: new Date(o[DB_SCHEMA.ORDERS.DATE]).toLocaleDateString('fr-FR')
-            }));
+            const orderIds = data.map((o: any) => o[DB_SCHEMA.ORDERS.ID]).filter(Boolean);
+            let trocDict: Record<string, any> = {};
+            if (orderIds.length > 0) {
+                try {
+                    const { data: vouchers } = await supabase.rpc('get_orders_troc_vouchers', { p_order_ids: orderIds });
+                    if (vouchers && typeof vouchers === 'object') {
+                        trocDict = vouchers;
+                    }
+                } catch (err) {
+                    console.warn('Erreur chargement troc vouchers ERP:', err);
+                }
+            }
+
+            const formattedOrders = data.map((o: any) => {
+                const orderId = o[DB_SCHEMA.ORDERS.ID];
+                const discount = Number(o[DB_SCHEMA.ORDERS.DISCOUNT_AMOUNT] ?? 0);
+                const linkedTroc = trocDict[orderId] || undefined;
+
+                return {
+                    id: orderId,
+                    items: Array.isArray(o[DB_SCHEMA.ORDERS.ITEMS]) ? o[DB_SCHEMA.ORDERS.ITEMS] : [],
+                    total: o[DB_SCHEMA.ORDERS.TOTAL],
+                    status: o[DB_SCHEMA.ORDERS.STATUS],
+                    paymentMethod: o[DB_SCHEMA.ORDERS.PAYMENT_METHOD],
+                    paymentStatus: o[DB_SCHEMA.ORDERS.PAYMENT_STATUS] ?? 'pending',
+                    discountAmount: discount,
+                    discountReason: linkedTroc?.ref ? `Bon Smart Troc ${linkedTroc.ref}` : undefined,
+                    staffId: o[DB_SCHEMA.ORDERS.STAFF_ID] ?? undefined,
+                    storeId: o[DB_SCHEMA.ORDERS.STORE_ID] ?? undefined,
+                    customerName: o[DB_SCHEMA.ORDERS.CUSTOMER_NAME],
+                    customerEmail: o[DB_SCHEMA.ORDERS.CUSTOMER_EMAIL],
+                    customerPhone: o[DB_SCHEMA.ORDERS.CUSTOMER_PHONE],
+                    customerCity: o[DB_SCHEMA.ORDERS.CUSTOMER_CITY],
+                    deliveryMode: o[DB_SCHEMA.ORDERS.DELIVERY_MODE] || 'delivery',
+                    createdAt: o[DB_SCHEMA.ORDERS.DATE],
+                    date: new Date(o[DB_SCHEMA.ORDERS.DATE]).toLocaleDateString('fr-FR'),
+                    trocVoucher: linkedTroc ? {
+                        ref: linkedTroc.ref,
+                        device_brand: linkedTroc.device_brand,
+                        device_model: linkedTroc.device_model,
+                        device_storage: linkedTroc.device_storage,
+                        imei: linkedTroc.imei,
+                        trade_in_value: linkedTroc.trade_in_value,
+                    } : undefined,
+                };
+            });
             setOrders(formattedOrders);
         }
     }, []);
@@ -37,9 +73,16 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
     const fetchStaff = useCallback(async () => {
         const { data } = await supabase
             .from(DB_TABLES.STAFF)
-            .select('id,name,email,role,phone,avatar,created_at')
+            .select('id,name,email,role,phone,avatar,store_id,created_at')
             .order(DB_SCHEMA.STAFF.CREATED_AT, { ascending: false });
-        if (data) setStaffMembers(data as Staff[]);
+        if (data) {
+            setStaffMembers(
+                data.map((row) => ({
+                    ...row,
+                    role: normalizeStaffRole(row.role),
+                })) as Staff[],
+            );
+        }
     }, []);
 
     const fetchCustomers = useCallback(async () => {
@@ -57,7 +100,17 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         if (brandsData) setBrands(brandsData as Brand[]);
 
         const { data: rangesData } = await supabase.from(DB_TABLES.PRODUCT_RANGES).select('*').order(DB_SCHEMA.PRODUCT_RANGES.NAME, { ascending: true });
-        if (rangesData) setRanges(rangesData as ProductRange[]);
+        if (rangesData) {
+            setRanges(
+                rangesData.map((r: Record<string, unknown>) => ({
+                    id: r[DB_SCHEMA.PRODUCT_RANGES.ID] as string,
+                    name: r[DB_SCHEMA.PRODUCT_RANGES.NAME] as string,
+                    slug: r[DB_SCHEMA.PRODUCT_RANGES.SLUG] as string,
+                    brand_id: r[DB_SCHEMA.PRODUCT_RANGES.BRAND_ID] as string,
+                    category: r[DB_SCHEMA.PRODUCT_RANGES.CATEGORY] as string | undefined,
+                })),
+            );
+        }
     }, []);
 
     const fetchTrocSessions = useCallback(async () => {
@@ -85,8 +138,8 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         const channel = supabase.channel('admin-db-changes')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: DB_TABLES.ORDERS }, (payload) => {
             const newOrder = payload.new as any;
-            addNotification({
-                id: crypto.randomUUID(),
+            notify({
+                id: safeRandomUUID(),
                 type: 'order',
                 title: 'Nouvelle Commande !',
                 message: `Commande #${newOrder[DB_SCHEMA.ORDERS.ID] || '???'} reçue. Montant: ${(newOrder[DB_SCHEMA.ORDERS.TOTAL] || 0).toLocaleString()} FCFA`,
@@ -98,8 +151,8 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: DB_TABLES.REPAIR_TICKETS }, (payload) => {
             const newTicket = payload.new as any;
-            addNotification({
-                id: crypto.randomUUID(),
+            notify({
+                id: safeRandomUUID(),
                 type: 'ticket',
                 title: 'Nouveau Ticket SAV',
                 message: `Ticket #${newTicket[DB_SCHEMA.REPAIR_TICKETS.ID]} créé pour ${newTicket[DB_SCHEMA.REPAIR_TICKETS.PRODUCT_NAME]}.`,
@@ -110,8 +163,8 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trade_in_requests' }, (payload) => {
             const req = payload.new as any;
-            addNotification({
-                id: crypto.randomUUID(),
+            notify({
+                id: safeRandomUUID(),
                 type: 'order',
                 title: 'Nouvelle Demande Troc !',
                 message: `${req.customer_name ?? 'Client'} soumet son ${req.device_brand ?? ''} ${req.device_model ?? ''} pour évaluation.`,
@@ -125,7 +178,7 @@ export const useAdminData = (addNotification: (n: AdminNotification) => void) =>
         return () => { 
             supabase.removeChannel(channel); 
         };
-    }, [addNotification, fetchOrders, refreshAll]);
+    }, [notify, fetchOrders, refreshAll]);
 
     return {
         orders, setOrders,

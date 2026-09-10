@@ -1,21 +1,31 @@
 
 import { useState } from 'react';
-import { Product, CartItem, Order } from '../../types';
+import { Product, CartItem, Order, Staff } from '../../types';
 import { supabase } from '../../services/supabaseClient';
-import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
+import { applyTestOrderPrefix } from '../../utils/testMode';
+import { enqueueOfflinePosSale, isBrowserOnline } from '../../utils/offlinePosQueue';
+import { generateInvoiceHTML } from '../../utils/invoiceGenerator';
+import { assertRpcSuccess } from '../../utils/rpcResult';
+import type { PosPaymentMethod } from '../../utils/paymentMethods';
 
 interface UsePosSystemProps {
     products: Product[];
-    onUpdateProducts: (products: Product[]) => void;
     refreshData: () => void;
+    staff?: Staff | null;
+    onSaleQueued?: () => void;
 }
 
-export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePosSystemProps) => {
+export const usePosSystem = ({ products, refreshData, staff, onSaleQueued }: UsePosSystemProps) => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [search, setSearch] = useState('');
     const [customer, setCustomer] = useState({ name: '', phone: '', email: '' });
-    const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'OM' | 'MOMO'>('CASH');
+    const [paymentMethod, setPaymentMethod] = useState<PosPaymentMethod>('CASH');
+    const [discountAmount, setDiscountAmount] = useState(0);
     const [lastOrder, setLastOrder] = useState<Order | null>(null);
+
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const safeDiscount = Math.min(Math.max(0, discountAmount), subtotal);
+    const total = Math.max(0, subtotal - safeDiscount);
 
     const addToCart = (product: Product) => {
         setCart(prev => {
@@ -25,63 +35,145 @@ export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePos
         });
     };
 
+    const removeFromCart = (productId: string) => {
+        setCart((prev) => prev.filter((item) => item.id !== productId));
+    };
+
     const submitSale = async () => {
+        if (paymentMethod === 'TROC') {
+            throw new Error('Utilise le panneau Smart Troc pour cette vente.');
+        }
         if (cart.length === 0) throw new Error("Panier vide");
         if (!customer.name) throw new Error("Nom du client requis");
+        if (!staff?.store_id) throw new Error("Aucune boutique rattachée à ton compte — demande à la direction.");
 
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const newOrderId = `POS-${Date.now().toString().slice(-6)}`;
-        
-        // Mapping strict avec DB_SCHEMA
-        const orderPayload = {
-            [DB_SCHEMA.ORDERS.ID]: newOrderId,
-            [DB_SCHEMA.ORDERS.CUSTOMER_NAME]: customer.name,
-            [DB_SCHEMA.ORDERS.CUSTOMER_EMAIL]: customer.email,
-            [DB_SCHEMA.ORDERS.CUSTOMER_PHONE]: customer.phone,
-            [DB_SCHEMA.ORDERS.CUSTOMER_CITY]: 'Retrait Boutique (POS)',
-            [DB_SCHEMA.ORDERS.DELIVERY_MODE]: 'pickup',
-            [DB_SCHEMA.ORDERS.TOTAL]: total,
-            [DB_SCHEMA.ORDERS.STATUS]: 'delivered',
-            [DB_SCHEMA.ORDERS.PAYMENT_METHOD]: paymentMethod,
-            [DB_SCHEMA.ORDERS.ITEMS]: cart,
-            [DB_SCHEMA.ORDERS.DATE]: new Date().toISOString()
-        };
+        const newOrderId = applyTestOrderPrefix(`POS-${Date.now().toString().slice(-6)}`);
+        const orderDate = new Date().toISOString();
+        const rpcPayment = paymentMethod === 'CARD' ? 'CARD' : paymentMethod;
 
-        const { error } = await supabase.from(DB_TABLES.ORDERS).insert([orderPayload]);
+        if (!isBrowserOnline()) {
+            await enqueueOfflinePosSale({
+                orderId: newOrderId,
+                customerName: customer.name,
+                customerEmail: customer.email?.trim() || null,
+                customerPhone: customer.phone || null,
+                cart: [...cart],
+                paymentMethod,
+                total,
+                subtotal,
+                discountAmount: safeDiscount,
+                storeId: staff.store_id,
+                staffId: staff.id,
+                orderDate,
+            });
 
-        if (error) {
-            console.error("POS Order Error:", error);
-            throw error;
+            const queuedOrder: Order = {
+                id: newOrderId,
+                items: [...cart],
+                total,
+                subtotal,
+                discountAmount: safeDiscount,
+                status: 'delivered',
+                paymentMethod: rpcPayment,
+                customerName: customer.name,
+                customerEmail: customer.email,
+                customerPhone: customer.phone,
+                customerCity: 'Retrait Boutique',
+                deliveryMode: 'pickup',
+                date: new Date().toLocaleDateString('fr-FR'),
+                staffId: staff.id,
+                storeId: staff.store_id,
+                queuedLocally: true,
+            };
+
+            setLastOrder(queuedOrder);
+            setCart([]);
+            setCustomer({ name: '', phone: '', email: '' });
+            setDiscountAmount(0);
+            setPaymentMethod('CASH');
+            onSaleQueued?.();
+            return;
         }
 
-        // Stock Update
-        for (const item of cart) {
-            const product = products.find(p => p.id === item.id);
-            if (product) {
-                const newStock = Math.max(0, product.stock - item.quantity);
-                await supabase.from(DB_TABLES.PRODUCTS).update({ [DB_SCHEMA.PRODUCTS.STOCK]: newStock }).eq('id', item.id);
-                // Optimistic
-                const updatedList = products.map(p => p.id === item.id ? { ...p, stock: newStock } : p);
-                onUpdateProducts(updatedList);
-            }
-        }
+        const { data: rpcData, error: rpcError } = await supabase.rpc('complete_pos_sale_atomic', {
+            p_order_id: newOrderId,
+            p_customer_name: customer.name,
+            p_customer_email: customer.email || null,
+            p_customer_phone: customer.phone || null,
+            p_customer_city: 'Retrait Boutique (POS)',
+            p_delivery_mode: 'pickup',
+            p_payment_method: rpcPayment,
+            p_total: total,
+            p_items: cart,
+            p_date: orderDate,
+            p_status: 'delivered',
+            p_store_id: staff.store_id,
+            p_staff_id: staff.id,
+            p_discount_amount: safeDiscount,
+        });
 
-        setLastOrder({
+        if (rpcError) {
+            console.error('POS Order Error:', rpcError);
+            throw new Error(rpcError.message || 'Erreur lors de la vente POS.');
+        }
+        assertRpcSuccess(rpcData, 'Stock insuffisant ou article invalide.');
+
+        const saleDate = new Date().toLocaleDateString('fr-FR');
+        const completedOrder: Order = {
             id: newOrderId,
             items: [...cart],
-            total: total,
+            total,
+            subtotal,
+            discountAmount: safeDiscount,
             status: 'delivered',
-            paymentMethod: paymentMethod,
+            paymentMethod: rpcPayment,
             customerName: customer.name,
             customerEmail: customer.email,
             customerPhone: customer.phone,
             customerCity: 'Retrait Boutique',
             deliveryMode: 'pickup',
-            date: new Date().toLocaleDateString('fr-FR')
-        });
-        
+            date: saleDate,
+            staffId: staff.id,
+            storeId: staff.store_id,
+        };
+
+        setLastOrder(completedOrder);
+
+        const customerEmail = customer.email?.trim();
+        if (customerEmail) {
+            const html = generateInvoiceHTML(completedOrder);
+            supabase.functions.invoke('send-invoice', {
+                body: {
+                    to: customerEmail,
+                    subject: `XEPTION | Facture boutique ${newOrderId}`,
+                    html,
+                    text: `Vente ${newOrderId} — Total: ${total.toLocaleString('fr-FR')} FCFA. Merci pour votre achat à Xeption.`,
+                },
+            }).catch((err) => console.warn('POS invoice email failed', err));
+        }
+
         setCart([]);
         setCustomer({ name: '', phone: '', email: '' });
+        setDiscountAmount(0);
+        setPaymentMethod('CASH');
+        refreshData();
+    };
+
+    const registerTrocSuccess = (orderId: string) => {
+        setLastOrder({
+            id: orderId,
+            items: [],
+            total: 0,
+            status: 'delivered',
+            paymentMethod: 'TROC',
+            customerName: 'Client Troc',
+            customerPhone: '',
+            deliveryMode: 'pickup',
+            date: new Date().toLocaleDateString('fr-FR'),
+            staffId: staff?.id,
+            storeId: staff?.store_id ?? undefined,
+        });
+        setPaymentMethod('CASH');
         refreshData();
     };
 
@@ -90,7 +182,13 @@ export const usePosSystem = ({ products, onUpdateProducts, refreshData }: UsePos
         search, setSearch,
         customer, setCustomer,
         paymentMethod, setPaymentMethod,
+        discountAmount, setDiscountAmount,
+        subtotal,
+        total,
         lastOrder, setLastOrder,
-        addToCart, submitSale
+        addToCart,
+        removeFromCart,
+        submitSale,
+        registerTrocSuccess,
     };
 };

@@ -2,12 +2,23 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { RepairTicket } from '../types';
-import { Wrench, Check, Clock, XCircle, AlertTriangle, Search, Filter } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { useDueFeedbackInvites } from '../hooks/useDueFeedbackInvites';
+import OrderFeedbackInviteButton from './admin/OrderFeedbackInviteButton';
+
+const REPAIR_STATUS_LABELS: Record<RepairTicket['status'], string> = {
+    open: 'Nouveau',
+    received: 'Reçu',
+    in_progress: 'En réparation',
+    completed: 'Terminé',
+    rejected: 'Refusé',
+};
 
 const RepairTicketManagement: React.FC = () => {
     const [tickets, setTickets] = useState<RepairTicket[]>([]);
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState<'all' | 'open' | 'active'>('all');
+    const { invites: dueInvites, refresh: refreshInvites, markSent } = useDueFeedbackInvites();
 
     useEffect(() => {
         fetchTickets();
@@ -47,6 +58,11 @@ const RepairTicketManagement: React.FC = () => {
         
         if (!error) {
             setTickets(tickets.map(t => t.id === id ? { ...t, status: newStatus } : t));
+            if (newStatus === 'completed') {
+                window.setTimeout(() => {
+                    void refreshInvites();
+                }, 400);
+            }
         }
     };
 
@@ -69,23 +85,16 @@ const RepairTicketManagement: React.FC = () => {
 
     return (
         <div className="animate-in fade-in">
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                 <div>
-                    <h3 className="text-xl text-white font-tech font-bold uppercase flex items-center gap-2">
-                        <Wrench className="w-5 h-5 text-xeption-gold" />
-                        Gestion Atelier SAV
-                    </h3>
-                    <p className="text-gray-400 text-xs mt-1">Suivi des réparations et garanties.</p>
-                 </div>
-
-                 <div className="flex bg-[#18181b] border border-white/10 rounded-sm p-1">
+             <div className="flex justify-end mb-4">
+                 <div className="flex bg-black/40 border border-white/10 rounded-lg p-1">
                     {['all', 'open', 'active'].map(f => (
                         <button 
                             key={f}
+                            type="button"
                             onClick={() => setFilter(f as any)}
-                            className={`px-4 py-1.5 text-xs font-bold uppercase transition-all rounded-sm ${filter === f ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+                            className={`px-4 py-1.5 text-xs font-bold uppercase transition-all rounded-md ${filter === f ? 'bg-xeption-gold text-black' : 'text-white/70 hover:text-white hover:bg-white/8'}`}
                         >
-                            {f === 'all' ? 'Tout' : f === 'open' ? 'Nouveaux' : 'En Atelier'}
+                            {f === 'all' ? 'Tout' : f === 'open' ? 'Nouveaux' : 'En atelier'}
                         </button>
                     ))}
                  </div>
@@ -102,7 +111,7 @@ const RepairTicketManagement: React.FC = () => {
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${getStatusColor(ticket.status)}`}>
-                                        {ticket.status.replace('_', ' ')}
+                                        {REPAIR_STATUS_LABELS[ticket.status] ?? ticket.status}
                                     </span>
                                     <span className="text-xs font-mono text-gray-500">#{ticket.id}</span>
                                     {ticket.warrantyStatus === 'active' && (
@@ -141,6 +150,16 @@ const RepairTicketManagement: React.FC = () => {
                                         Rejeter
                                     </button>
                                 )}
+                                {ticket.status === 'completed' &&
+                                    dueInvites
+                                        .filter((invite) => invite.repair_ticket_id === ticket.id && invite.kind === 'sav')
+                                        .map((invite) => (
+                                            <OrderFeedbackInviteButton
+                                                key={invite.token}
+                                                invite={invite}
+                                                onSent={markSent}
+                                            />
+                                        ))}
                             </div>
 
                         </div>

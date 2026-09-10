@@ -33,7 +33,10 @@ Differentiate your store with a sophisticated trade-in system, making device exc
 
 ### 🛠️ Integrated After-Sales & Repair Services (SAV)
 
-Offer unparalleled customer support and extend product lifecycles with an integrated repair and service management system.
+### 💳 Paiement & Services Locaux
+- **Checkout Boutique :** Paiements manuels par instructions de transfert Orange Money (OM) et MTN Mobile Money (MoMo).
+- **Zone Troc (Smart Troc) :** Intégration complète via l'API **CamPay** pour le paiement automatisé (Push USSD) des frais de dossier OM/MoMo.
+- **Command Center :** Tableau de bord administrateur pour le suivi des stocks et revenus.
 
 *   **Dedicated Repair Section:** Provide a clear and accessible pathway for product repairs and support with a prominent `RepairSection`.
 *   **Efficient Repair Ticket Management:** Streamline the entire SAV process, from initial ticket creation to resolution, with `RepairTicketManagement`.

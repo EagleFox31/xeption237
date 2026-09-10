@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Download, Camera } from 'lucide-react';
 import type { TradeInRequest } from '../../../types';
+import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
 import { downloadTradeInVoucher } from '../../../utils/tradeInVoucherGenerator';
+import { redemptionState, evaluateCompletion, REDEMPTION_GRACE_DAYS } from '../../../utils/trocRedemption';
+import { completeTrocWithSale, getTargetPricing, resteAPayer, resolveTrocTargetSummary } from '../../../services/trocCheckoutService';
+import { reevaluateAndPersist } from '../../../services/trocEvaluationService';
+import { VoucherExpiryBadge } from '../shared/VoucherExpiryBadge';
+import { notifyError, notifySuccess } from '../../../utils/notify';
 
 interface TrocDetailsModalProps {
   request: TradeInRequest;
   onClose: () => void;
+  onTransition: (
+    id: string,
+    to: TradeInRequest['status'],
+    opts?: { reason?: string },
+  ) => Promise<TransitionResult>;
 }
 
 const SCORE_COLOR_CLASSES: Record<string, string> = {
@@ -17,10 +28,95 @@ const SCORE_COLOR_CLASSES: Record<string, string> = {
 const formatFCFA = (amount?: number) =>
   amount != null ? new Intl.NumberFormat('fr-FR').format(amount).replace(/\s/g, '.') + ' F' : '—';
 
+/**
+ * Provenance de l'appareil. Elle vivait dans une colonne « Historique » du
+ * tableau, retiree pour laisser respirer la colonne Appareil — mais elle
+ * n'existait nulle part ailleurs dans l'ERP. La supprimer sans la replacer
+ * aurait rendu invisible une information qui pese sur la valeur de reprise :
+ * un premier proprietaire ayant achete neuf ne vaut pas un troisieme.
+ */
+const OWNERSHIP_LABELS: Record<string, string> = {
+  first: '1er propriétaire',
+  second: '2e propriétaire',
+  third_plus: '3e propriétaire ou plus',
+  unknown: 'Propriétaire inconnu',
+};
+
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onClose }) => {
+export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onClose, onTransition }) => {
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'OM' | 'MOMO'>('CASH');
+  const [targetInfo, setTargetInfo] = useState<{ price: number; stock: number } | null>(null);
+
+  const now = new Date();
+  const expiryState = redemptionState(request, now);
+  const completion = evaluateCompletion(request, now, !!reason.trim());
+  const credit = Number(request.trade_in_value ?? 0);
+  const hasTarget = !!request.target_product_id;
+  const reste = targetInfo ? resteAPayer(targetInfo.price, credit) : null;
+
+  // Prix/stock de la cible pour afficher le reste à encaisser avant clôture.
+  useEffect(() => {
+    let alive = true;
+    if (request.status === 'validated' && request.target_product_id) {
+      getTargetPricing(request.target_product_id).then((info) => {
+        if (alive && info) setTargetInfo({ price: info.price, stock: info.stock });
+      });
+    }
+    return () => {
+      alive = false;
+    };
+  }, [request.status, request.target_product_id]);
+
+  const act = async (to: TradeInRequest['status']) => {
+    setBusy(true);
+    const res = await onTransition(request.id, to, reason.trim() ? { reason: reason.trim() } : undefined);
+    setBusy(false);
+    if (res.ok) {
+      notifySuccess('Dossier mis à jour');
+      onClose();
+    } else {
+      notifyError('Action impossible', res.error);
+    }
+  };
+
+  // Clôture AVEC vente de la cible (couplage POS) : commande + stock + lien dossier.
+  const handleCheckout = async () => {
+    setBusy(true);
+    try {
+      const res = await completeTrocWithSale(request, {
+        paymentMethod,
+        reason: reason.trim() || undefined,
+      });
+      notifySuccess('Vente enregistrée', `Commande ${res.orderId} — reste encaissé ${formatFCFA(res.reste)}`);
+      onClose();
+    } catch (e) {
+      notifyError('Clôture impossible', e instanceof Error ? e.message : undefined);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Bon périmé (> grâce) : recalcul du crédit aux conditions du jour, puis réouverture pour finaliser.
+  const handleReeval = async () => {
+    setBusy(true);
+    try {
+      const res = await reevaluateAndPersist(request);
+      notifySuccess(
+        'Crédit ré-évalué',
+        `${formatFCFA(res.oldCredit)} → ${formatFCFA(res.newCredit)}. Rouvre le dossier pour finaliser.`,
+      );
+      onClose();
+    } catch (e) {
+      notifyError('Ré-évaluation impossible', e instanceof Error ? e.message : undefined);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
       <div className="bg-[#0c0c0e] border border-white/10 rounded-sm w-full max-w-4xl flex flex-col max-h-[90vh]">
@@ -69,6 +165,21 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
                   {request.device_ram && `/ ${request.device_ram} RAM`}
                 </p>
                 {request.imei && <p className="text-[10px] font-mono text-gray-500 mt-1">IMEI: {request.imei}</p>}
+
+                {(request.ownership_rank || request.acquisition_condition) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/10 pt-2">
+                    {request.ownership_rank && (
+                      <span className="inline-block rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/70">
+                        {OWNERSHIP_LABELS[request.ownership_rank] ?? 'Propriétaire inconnu'}
+                      </span>
+                    )}
+                    {request.acquisition_condition && (
+                      <span className="inline-block rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/70">
+                        {request.acquisition_condition === 'new' ? 'Acheté neuf' : 'Acheté d’occasion'}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -99,12 +210,181 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
               </div>
             </div>
 
-            {/* Boutons d'action */}
-            <div className="flex gap-3 pt-2">
+            {/* Bon & rachat en boutique */}
+            <div className="bg-white/5 border border-white/10 p-5 rounded-sm flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-tech text-xeption-gold uppercase tracking-widest">Bon &amp; rachat boutique</p>
+                <VoucherExpiryBadge request={request} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] font-tech text-gray-500 uppercase tracking-widest mb-1">Appareil cible</p>
+                  {request.target_product_name ? (
+                    <p className="text-sm text-white font-medium">{request.target_product_name}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 italic">Bon générique (aucune cible choisie)</p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] font-tech text-gray-500 uppercase tracking-widest mb-1">Échéance du bon</p>
+                  <p className="text-sm text-white">
+                    {request.voucher_expires_at ? formatDate(request.voucher_expires_at) : '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Piste d'audit */}
+              {(request.validated_at || request.completed_at || request.redemption_reason) && (
+                <div className="text-[11px] text-gray-400 font-sans border-t border-white/10 pt-3 flex flex-col gap-0.5">
+                  {request.validated_at && <p>Validé le {formatDate(request.validated_at)}</p>}
+                  {request.completed_at && <p>Terminé le {formatDate(request.completed_at)}</p>}
+                  {request.redemption_reason && (
+                    <p className="text-orange-300">Motif : {request.redemption_reason}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Actions gardées selon le statut */}
+              {(request.status === 'pending' || request.status === 'accepted') && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => act('validated')}
+                    disabled={busy}
+                    className="flex-1 bg-green-600/20 hover:bg-green-600/40 border border-green-600/30 text-green-300 font-tech font-bold uppercase tracking-widest py-3 text-xs rounded-sm transition-all disabled:opacity-40"
+                  >
+                    Valider (appareil vérifié)
+                  </button>
+                  <button
+                    onClick={() => act('refused')}
+                    disabled={busy}
+                    className="bg-red-600/20 hover:bg-red-600/40 border border-red-600/30 text-red-300 font-tech font-bold uppercase tracking-widest px-4 py-3 text-xs rounded-sm transition-all disabled:opacity-40"
+                  >
+                    Refuser
+                  </button>
+                </div>
+              )}
+
+              {request.status === 'validated' && (
+                <div className="flex flex-col gap-3">
+                  {expiryState === 'stale' ? (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-sm p-3 flex flex-col gap-2">
+                      <p className="text-xs text-red-300">
+                        Bon périmé au-delà de la grâce de {REDEMPTION_GRACE_DAYS} j — le crédit doit être
+                        recalculé aux conditions du jour avant la clôture.
+                      </p>
+                      <button
+                        onClick={handleReeval}
+                        disabled={busy}
+                        className="self-start bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-200 font-tech font-bold uppercase tracking-widest px-4 py-2 text-xs rounded-sm transition-all disabled:opacity-40"
+                      >
+                        Ré-évaluer le crédit
+                      </button>
+                    </div>
+                  ) : expiryState === 'grace' ? (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs text-orange-300">
+                        Bon en période de grâce — saisis un motif pour forcer la clôture.
+                      </p>
+                      <input
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="Motif (ex. client présent, retard 2 j)"
+                        className="bg-[#050505] border border-white/15 rounded px-3 py-2 text-sm text-white placeholder:text-gray-600 outline-none focus:border-xeption-gold"
+                      />
+                    </div>
+                  ) : null}
+
+                  {expiryState !== 'stale' && (hasTarget ? (
+                    <div className="flex flex-col gap-3 bg-black/30 border border-white/10 rounded-sm p-3">
+                      <div className="flex items-center justify-between text-xs text-gray-400">
+                        <span>Prix {targetInfo ? formatFCFA(targetInfo.price) : '…'}</span>
+                        <span>− crédit {formatFCFA(credit)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-tech text-gray-500 uppercase tracking-widest">Reste à encaisser</span>
+                        <span className="text-2xl font-tech font-bold text-xeption-gold">
+                          {reste != null ? formatFCFA(reste) : '…'}
+                        </span>
+                      </div>
+
+                      {targetInfo && targetInfo.stock <= 0 && (
+                        <p className="text-xs text-red-300">Appareil cible en rupture de stock — vente impossible.</p>
+                      )}
+
+                      <div className="flex gap-2">
+                        {(['CASH', 'OM', 'MOMO'] as const).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setPaymentMethod(m)}
+                            className={`flex-1 py-2 text-xs font-tech font-bold uppercase tracking-wider rounded-sm border transition-all ${
+                              paymentMethod === m
+                                ? 'bg-xeption-gold/20 border-xeption-gold/50 text-xeption-gold'
+                                : 'bg-white/5 border-white/15 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            {m === 'CASH' ? 'Espèces' : m}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleCheckout}
+                          disabled={busy || !completion.allowed || !targetInfo || targetInfo.stock <= 0}
+                          className="flex-1 bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest py-3 text-xs rounded-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Encaisser &amp; terminer
+                        </button>
+                        <button
+                          onClick={() => act('cancelled')}
+                          disabled={busy}
+                          className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-tech font-bold uppercase tracking-widest px-4 py-3 text-xs rounded-sm transition-all disabled:opacity-40"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-gray-500">
+                        Crée la commande de la cible, décrémente son stock et clôture le dossier.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => act('completed')}
+                          disabled={busy || !completion.allowed}
+                          className="flex-1 bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest py-3 text-xs rounded-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Terminer l'échange
+                        </button>
+                        <button
+                          onClick={() => act('cancelled')}
+                          disabled={busy}
+                          className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-tech font-bold uppercase tracking-widest px-4 py-3 text-xs rounded-sm transition-all disabled:opacity-40"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-gray-500">
+                        Bon générique (pas de cible) — clôture le dossier ; la vente se fait au POS.
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <button
-                onClick={() => downloadTradeInVoucher(request)}
+                onClick={async () => {
+                  // Resolu au clic plutot que reutiliser `targetInfo` : celui-ci
+                  // n'est charge que pour les dossiers 'validated', or on peut
+                  // telecharger le bon a d'autres etapes.
+                  const summary = await resolveTrocTargetSummary(request);
+                  await downloadTradeInVoucher(request, summary);
+                }}
                 disabled={!request.trade_in_value}
-                className="flex-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-tech font-bold uppercase tracking-widest py-3 text-xs rounded-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-tech font-bold uppercase tracking-widest py-3 text-xs rounded-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download className="w-4 h-4" />
                 Voir le bon PDF

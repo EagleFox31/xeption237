@@ -2,12 +2,16 @@
 import { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { Order, CartItem, PaymentMethod } from '../types';
-import { generateInvoiceHTML } from '../utils/invoiceGenerator';
+import { generateInvoiceHTML, buildOrderTrackingUrl, generateTrackingQRCode } from '../utils/invoiceGenerator';
 import { DB_TABLES, DB_SCHEMA } from '../constants/dbSchema';
+import { safeRandomUUID } from '../utils/uuid';
 
 interface OrderProcessProps {
     cart: CartItem[];
     total: number;
+    subtotal?: number;
+    deliveryFee?: number;
+    trocVoucher?: { ref: string; credit: number; brand?: string; model?: string; imei?: string } | null;
     formData: { name: string; phone: string; email: string; city: string };
     deliveryMode: 'delivery' | 'pickup';
     paymentMethod: PaymentMethod | null;
@@ -19,7 +23,7 @@ export const useOrderProcess = () => {
     const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
     const [lastOrderHtml, setLastOrderHtml] = useState<string | null>(null);
 
-    const submitOrder = async ({ cart, total, formData, deliveryMode, paymentMethod, captchaToken }: OrderProcessProps) => {
+    const submitOrder = async ({ cart, total, trocVoucher, formData, deliveryMode, paymentMethod, captchaToken }: OrderProcessProps) => {
         setIsProcessing(true);
         try {
             if (!captchaToken) throw new Error("Captcha requis.");
@@ -32,7 +36,25 @@ export const useOrderProcess = () => {
                 if (authError) throw new Error("Erreur de sécurité session.");
             }
 
-            const newOrderId = `ORD-${Date.now().toString().slice(-6)}`;
+            // Reference de commande : prefixe lisible + partie ALEATOIRE.
+            //
+            // Avant : `ORD-` + les six derniers chiffres de l'horodatage. Elle
+            // se devinait — qui connait l'heure d'une commande trouve sa
+            // reference en essayant quelques numeros autour.
+            //
+            // Maintenant : 8 caracteres tires au hasard dans un alphabet sans
+            // caracteres ambigus (ni 0/O, ni 1/I/L), comme le font les grandes
+            // enseignes pour que la reference se dicte au telephone sans
+            // confusion. 32^8 = 1 100 milliards de valeurs.
+            //
+            // Elle n'est pas un secret pour autant : le suivi exige aussi le
+            // telephone (RPC track_order). C'est une protection de plus, pas la
+            // seule.
+            const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+            const alea = new Uint32Array(8);
+            crypto.getRandomValues(alea);
+            const suffixe = Array.from(alea, (n) => ALPHABET[n % ALPHABET.length]).join('');
+            const newOrderId = `ORD-${suffixe.slice(0, 4)}-${suffixe.slice(4)}`;
             const dbDate = new Date().toISOString();
             const displayDate = new Date().toLocaleDateString('fr-FR', {
                 day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -53,8 +75,18 @@ export const useOrderProcess = () => {
                 p_date: dbDate
             });
 
-            if (rpcError) throw rpcError;
-            if (rpcData && !rpcData.success) throw new Error(rpcData.error || "Erreur lors de la commande (Stock épuisé ?)");
+            if (rpcError) {
+                throw new Error(rpcError.message || 'Erreur lors de la création de la commande.');
+            }
+            if (rpcData && !rpcData.success) {
+                const rpcMessage = typeof rpcData.error === 'string' ? rpcData.error : '';
+                if (rpcMessage.includes('timestamp with time zone') && rpcMessage.includes('text')) {
+                    throw new Error(
+                        'Mise à jour serveur requise (date de commande). Applique la migration Supabase 20260611_002 puis réessaie.',
+                    );
+                }
+                throw new Error(rpcMessage || 'Erreur lors de la commande (stock épuisé ?)');
+            }
 
             setCreatedOrderId(newOrderId);
 
@@ -75,10 +107,43 @@ export const useOrderProcess = () => {
                 customerPhone: formData.phone,
                 customerCity: deliveryMode === 'pickup' ? 'Retrait Boutique' : formData.city,
                 deliveryMode,
-                date: displayDate
+                date: displayDate,
+                discountAmount: trocVoucher?.credit ?? 0,
+                discountReason: trocVoucher ? `Bon Smart Troc ${trocVoucher.ref}` : undefined,
+                trocVoucher: trocVoucher ? {
+                    ref: trocVoucher.ref,
+                    device_brand: trocVoucher.brand,
+                    device_model: trocVoucher.model,
+                    imei: trocVoucher.imei,
+                    trade_in_value: trocVoucher.credit,
+                } : undefined,
             };
 
-            const html = generateInvoiceHTML(invoiceData);
+            // Sauvegarde de la remise éventuelle sur la commande et liaison du bon Smart Troc
+            if (trocVoucher?.credit) {
+                const voucherRef = trocVoucher.ref;
+                supabase.from('orders').update({
+                    discount_amount: trocVoucher.credit,
+                }).eq('id', newOrderId).then(() => {}).catch(console.warn);
+
+                if (voucherRef) {
+                    supabase.from('trade_in_requests').update({
+                        completed_order_id: newOrderId,
+                        credit_applied: trocVoucher.credit,
+                    }).or(`voucher_reference.eq.${voucherRef},id.eq.${voucherRef}`)
+                    .then(() => {}).catch(console.warn);
+                }
+            }
+
+            const trackingUrl = buildOrderTrackingUrl(newOrderId);
+            let qrDataUrl = '';
+            try {
+                qrDataUrl = await generateTrackingQRCode(trackingUrl);
+            } catch (e) {
+                console.warn('QR Code tracking generation error:', e);
+            }
+
+            const html = generateInvoiceHTML(invoiceData, { qrDataUrl, trackingUrl });
             setLastOrderHtml(html);
 
             if (formData.email) {
@@ -120,7 +185,7 @@ export const useOrderProcess = () => {
             }).eq(DB_SCHEMA.CUSTOMERS.EMAIL, formData.email);
         } else {
             await supabase.from(DB_TABLES.CUSTOMERS).insert([{
-                [DB_SCHEMA.CUSTOMERS.ID]: crypto.randomUUID(),
+                [DB_SCHEMA.CUSTOMERS.ID]: safeRandomUUID(),
                 [DB_SCHEMA.CUSTOMERS.NAME]: formData.name,
                 [DB_SCHEMA.CUSTOMERS.EMAIL]: formData.email,
                 [DB_SCHEMA.CUSTOMERS.PHONE]: formData.phone,

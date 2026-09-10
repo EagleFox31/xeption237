@@ -5,18 +5,35 @@
  * Correspondance exacte avec le SQL fourni.
  */
 
+/** Slugs `categories.slug` — FK pour product_ranges.category et products.category */
+export const CATEGORY_SLUGS = {
+    PHONES: 'phones',
+    TABLETTES: 'tablettes',
+    ORDINATEURS: 'computer',
+    ACCESSORIES: 'accessories',
+} as const;
+
 export const DB_TABLES = {
     PRODUCTS: 'products',
     BRANDS: 'brands',
     CATEGORIES: 'categories',
     DELIVERY_ZONES: 'delivery_zones',
     ORDERS: 'orders',
+    ORDER_ITEMS: 'order_items',
+    ORDER_PAYMENTS: 'order_payments',
     PACKS: 'packs',
     PRODUCT_RANGES: 'product_ranges',
     REPAIR_TICKETS: 'repair_tickets',
     STAFF: 'staff',
+    STORES: 'stores',
+    STORE_STOCK: 'store_stock',
+    STOCK_MOVEMENTS: 'stock_movements',
+    STOCK_RESERVATIONS: 'stock_reservations',
     TRADE_IN_MODELS: 'trade_in_models',
-    CUSTOMERS: 'customers' 
+    CUSTOMERS: 'customers',
+    ORDER_FEEDBACK_INVITES: 'order_feedback_invites',
+    ORDER_FEEDBACK: 'order_feedback',
+    CATALOG_HEALTH_FINDINGS: 'catalog_health_findings',
 };
 
 export const DB_SCHEMA = {
@@ -44,7 +61,8 @@ export const DB_SCHEMA = {
         IS_FEATURED: 'is_featured',
         BRAND: 'brand',
         PRODUCT_RANGE: 'product_range',
-        CONDITION: 'condition'
+        CONDITION: 'condition',
+        RELEASE_YEAR: 'release_year',
     },
     BRANDS: {
         ID: 'id',
@@ -79,7 +97,67 @@ export const DB_SCHEMA = {
         CUSTOMER_CITY: 'customer_city',
         CUSTOMER_EMAIL: 'customer_email',
         DELIVERY_MODE: 'delivery_mode',
-        PAYMENT_METHOD: 'payment_method'
+        PAYMENT_METHOD: 'payment_method',
+        STORE_ID: 'store_id',
+        STAFF_ID: 'staff_id',
+        PAYMENT_STATUS: 'payment_status',
+        PAID_AT: 'paid_at',
+        DISCOUNT_AMOUNT: 'discount_amount',
+    },
+    ORDER_PAYMENTS: {
+        ID: 'id',
+        ORDER_ID: 'order_id',
+        REFERENCE: 'reference',
+        AMOUNT: 'amount',
+        STATUS: 'status',
+        CHANNEL: 'channel',
+        PHONE: 'phone',
+        CAMPAY_REFERENCE: 'campay_reference',
+        STAFF_ID: 'staff_id',
+        PAID_AT: 'paid_at',
+        CREATED_AT: 'created_at',
+        UPDATED_AT: 'updated_at',
+    },
+    ORDER_ITEMS: {
+        ID: 'id',
+        ORDER_ID: 'order_id',
+        LINE_INDEX: 'line_index',
+        PRODUCT_ID: 'product_id',
+        PRODUCT_NAME: 'product_name',
+        UNIT_PRICE: 'unit_price',
+        QUANTITY: 'quantity',
+        LINE_TOTAL: 'line_total',
+        CREATED_AT: 'created_at',
+    },
+    STORES: {
+        ID: 'id',
+        CODE: 'code',
+        NAME: 'name',
+        CITY: 'city',
+        ADDRESS: 'address',
+        ACTIVE: 'active',
+        IS_DEFAULT: 'is_default',
+        CREATED_AT: 'created_at',
+        UPDATED_AT: 'updated_at',
+    },
+    STORE_STOCK: {
+        STORE_ID: 'store_id',
+        PRODUCT_ID: 'product_id',
+        QUANTITY: 'quantity',
+        RESERVED: 'reserved',
+        UPDATED_AT: 'updated_at',
+    },
+    STOCK_MOVEMENTS: {
+        ID: 'id',
+        STORE_ID: 'store_id',
+        PRODUCT_ID: 'product_id',
+        DELTA: 'delta',
+        REASON: 'reason',
+        REF_TYPE: 'ref_type',
+        REF_ID: 'ref_id',
+        STAFF_ID: 'staff_id',
+        NOTE: 'note',
+        CREATED_AT: 'created_at',
     },
     PACKS: {
         ID: 'id',
@@ -123,6 +201,7 @@ export const DB_SCHEMA = {
         ROLE: 'role',
         PHONE: 'phone',
         AVATAR: 'avatar',
+        STORE_ID: 'store_id',
         CREATED_AT: 'created_at'
     },
     TRADE_IN_MODELS: {
@@ -144,5 +223,26 @@ export const DB_SCHEMA = {
         TOTAL_SPENT: 'total_spent',
         CREATED_AT: 'created_at',
         UPDATED_AT: 'updated_at'
-    }
+    },
+    ORDER_FEEDBACK_INVITES: {
+        ID: 'id',
+        ORDER_ID: 'order_id',
+        REPAIR_TICKET_ID: 'repair_ticket_id',
+        KIND: 'kind',
+        CUSTOMER_NAME: 'customer_name',
+        CUSTOMER_PHONE: 'customer_phone',
+        HEADLINE: 'headline',
+        INVITE_AT: 'invite_at',
+        SENT_AT: 'sent_at',
+        COMPLETED_AT: 'completed_at',
+        CREATED_AT: 'created_at',
+    },
+    ORDER_FEEDBACK: {
+        ID: 'id',
+        INVITE_ID: 'invite_id',
+        RATING: 'rating',
+        COMMENT: 'comment',
+        PRODUCT_RATINGS: 'product_ratings',
+        CREATED_AT: 'created_at',
+    },
 };

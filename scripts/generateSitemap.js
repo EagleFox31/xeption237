@@ -102,10 +102,16 @@ async function generateSitemap() {
     // Convert to XML
     const xml = root.end({ prettyPrint: true });
 
-    // Write to public/sitemap.xml
-    const outputPath = path.resolve(__dirname, '../public/sitemap.xml');
-    fs.writeFileSync(outputPath, xml);
-    console.log(`Sitemap generated at ${outputPath}`);
+    const publicPath = path.resolve(__dirname, '../public/sitemap.xml');
+    const distPath = path.resolve(__dirname, '../dist/sitemap.xml');
+    fs.writeFileSync(publicPath, xml);
+    console.log(`Sitemap generated at ${publicPath}`);
+    if (fs.existsSync(path.resolve(__dirname, '../dist'))) {
+        fs.writeFileSync(distPath, xml);
+        console.log(`Sitemap copied to ${distPath}`);
+    } else {
+        console.warn('dist/ not found — sitemap will be copied on next build after vite.');
+    }
 }
 
 generateSitemap();

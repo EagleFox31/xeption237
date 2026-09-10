@@ -1,0 +1,202 @@
+# Plan — ERP utilisable sur téléphone par les commerciaux
+
+**Date** : 2026-08-27
+**Contexte** : le patron a payé le site public, pas l'ERP. Le rendre utilisable
+sur téléphone est ce qui doit le convaincre — un commercial qui sort son
+téléphone devant un client, pas un laptop.
+
+---
+
+## Périmètre réel, mesuré
+
+L'ERP compte 24 onglets et 11 modales. **Un vendeur n'en voit que 7**
+(`TAB_MIN_ROLE`, `utils/adminAccess.ts`) :
+
+```
+dashboard  pos  mySales  orders  inventory  productImages  clients
+```
+
+Rendre les 24 responsive serait du travail perdu. Sur ces 7 :
+
+| onglet | tableau | défilement horizontal | verdict |
+|---|---|---|---|
+| DashboardTab | 2 | 2 | déjà géré |
+| PosTab | 0 | 1 | déjà géré |
+| ProductImagesBulkTab | 0 | 1 | déjà géré |
+| **MySalesTab** | 1 | 0 | **déborde** |
+| **OrdersTab** | 1 | 0 | **déborde** |
+| **InventoryTab** | 1 | 0 | **déborde** |
+| **ClientsTab** | 1 | 0 | **déborde** |
+
+Quatre onglets à traiter, pas vingt-quatre.
+
+La base mobile existe déjà : `BottomNav`, `AdminMenuSheet`, et
+`getMobileQuickTabsForRole` dans `adminAccess.ts`. Rien à inventer de ce côté.
+
+---
+
+## Le choix de conception
+
+**Défilement horizontal, la solution facile — et mauvaise ici.** Un tableau de
+huit colonnes qu'on fait glisser du pouce, debout dans une boutique, avec un
+client en face : on perd la colonne de gauche dès qu'on cherche à droite, et on
+ne sait plus quelle ligne on lit.
+
+**Cartes empilées sur mobile, tableau sur ordinateur.** Chaque ligne devient une
+carte : l'information principale en tête, le reste en dessous. Le pouce fait
+défiler verticalement, ce qu'il fait naturellement.
+
+Concrètement, la table reste dans le DOM en `hidden md:table`, et une liste de
+cartes en `md:hidden` la double. Deux rendus d'une même donnée, aucun risque de
+divergence puisque les deux lisent le même tableau d'objets.
+
+> Coût assumé : le balisage de chaque onglet grossit. C'est le prix d'une
+> lecture correcte sur les deux supports — un tableau réellement responsive,
+> lui, n'existe pas.
+
+---
+
+## Ordre de traitement, par réflexe métier
+
+1. **Inventaire** — « c'est en stock ? » devant un client. Le geste le plus
+   fréquent, et celui qui fait gagner une vente.
+2. **Commandes** — suivre et faire avancer une commande depuis la boutique.
+3. **Mes ventes** — le commercial suit son objectif et sa prime ; c'est ce qui
+   le fait adopter l'outil.
+4. **Clients** — consultation, moins urgent.
+
+---
+
+## Vérification
+
+Mesurer, à chaque onglet, la largeur du corps de page à 412 px de large :
+elle doit rester 412. Un débordement horizontal est le symptôme exact du
+problème qu'on corrige, et il se mesure sans interprétation.
+
+Contrôle complémentaire : aucune régression au-dessus de `md`, en comparant les
+styles calculés avant et après — comme pour le correctif mobile de la page troc.
+
+---
+
+## Reprise du 2026-09-06 — ce que l'audit a corrigé du diagnostic initial
+
+Le tableau de périmètre ci-dessus indiquait « déborde » pour quatre onglets, sur
+la foi d'une recherche de `overflow-x` dans les fichiers d'onglet. **C'était une
+erreur de méthode** : le conteneur de défilement ne vit pas dans l'onglet mais
+dans `components/admin/shared/TableShell.tsx`, que dix onglets consomment. Il
+porte `overflow-x-auto` dans ses deux branches, et l'ordre des règles dans le CSS
+produit a été vérifié (`.overflow-x-auto` est déclaré après `.overflow-hidden`,
+il l'emporte donc). **Le défilement horizontal des tableaux n'a jamais été
+cassé.**
+
+Le vrai défaut était vertical, et systématique : `h-[calc(100vh-140px)]` sur la
+racine des onglets. Les 140 px sont calibrés pour le bureau ; le décor mesuré
+vaut 197 px sous 640 px, 245 px si le bandeau porte un bouton d'action, et 263 px
+entre 640 et 768 px. Le bas du panneau — dernières lignes et barre de défilement
+horizontale — passait donc sous la barre de navigation. Et `vh` au téléphone vaut
+la hauteur **barre d'adresse masquée**, ce qui aggrave l'écart dès qu'elle est
+visible.
+
+Corrigé par deux jetons dans `adminUi` (`tabViewportH`,
+`tabViewportHWithActions`), appliqués à ClientsTab, DeliveryTab, InvoicesTab,
+OrdersTab, ProductImagesBulkTab, InventoryTab et StaffTab.
+
+`MySalesTab` est le seul cas qui demandait autre chose : ses cartes empilées sur
+une colonne dépassent à elles seules la hauteur, la liste `flex-1` était donc
+écrasée à zéro et rien ne défilait. Il passe en défilement de page sous 640 px.
+
+### Mesures (Chrome, CSS produit, écran de 800 px)
+
+| largeur | panneau | bas | limite | verdict |
+|---|---|---|---|---|
+| 412 px | 600 px | 685 | nav à 730 | dégagé, 44 px de marge |
+| 700 px | 536 px | 687 | nav à 730 | dégagé, 42 px de marge |
+| 900 px | 660 px | 746 | écran 800 | inchangé (= 800 − 140) |
+| 1280 px | 660 px | 746 | écran 800 | inchangé (= 800 − 140) |
+
+Les 44 px de marge au téléphone viennent de `pb-28` (112 px) qui sur-réserve pour
+une barre de navigation de 70 px. Volontairement conservé : la marge absorbe la
+zone sûre des téléphones à encoche, que le rendu sans appareil ne permet pas de
+mesurer ici.
+
+### Piège de méthode, à retenir
+
+Une classe Tailwind absente du code source est **purgée du CSS**. Un banc d'essai
+qui compare « avant / après » en réintroduisant l'ancienne classe mesure alors un
+élément sans style, et produit un résultat qui semble spectaculaire mais ne veut
+rien dire. Vérifier la présence de la règle dans `dist/assets/*.css` avant de
+tirer une conclusion d'une comparaison.
+
+### Cartes sur téléphone — appliqué le 2026-09-06
+
+Corriger la hauteur rendait les tableaux *utilisables* ; elle ne réglait pas ce
+que ce plan reprochait au défilement horizontal : sur 1100 px de large, on perd
+la colonne « Réf. » dès qu'on va chercher le montant à droite.
+
+`OrdersTab`, `MySalesTab` et `ClientsTab` reçoivent donc la vue cartes déjà en
+place dans `InventoryTab` : liste `md:hidden`, tableau `hidden md:table`.
+
+Point d'attention pour `OrdersTab` : ses boutons d'action forment une cascade de
+~140 lignes dépendant de sept statuts. Ils ont été **extraits** en
+`renderOrderActions` et `renderInvoiceActions`, appelés par la ligne de tableau
+comme par la carte. Recopier ce bloc aurait créé deux versions du flux de
+commande, qui auraient divergé à la première évolution.
+
+Vérifié dans Chrome sur le CSS produit — bascule à 768 px, aucun débordement
+horizontal de page à 360, 412, 700, 768, 900 et 1280 px.
+
+### Troc — 2026-09-06
+
+`TrocTab` avait le pire cas du projet : **quatorze colonnes, 1280 px**. Vue cartes
+ajoutée sur le même motif. Deux extractions plutôt qu'une, parce que la ligne
+portait deux blocs à logique :
+
+- `renderTrocActions` — boutons valider / terminer / refuser, selon le statut ;
+- `renderTrocStatus` — la pastille et sa cascade de couleurs par statut, plus le
+  badge d'expiration de bon.
+
+La carte remonte ce qu'on vient chercher devant un client — référence, client,
+appareil, **valeur de reprise et reste à payer** — et renvoie en pied le palier,
+les frais de service, le canal, le score et la qualité.
+
+`TrocWorkspaceTab` porte la hauteur (TrocTab est en `h-full`). Sa valeur bureau
+propre est `-132px` et non `-140` : conservée telle quelle au-dessus de 768 px.
+
+### État des lieux des 16 onglets à tableau
+
+| onglet | cartes mobile | hauteur |
+|---|---|---|
+| ClientsTab, InventoryTab, MySalesTab, OrdersTab, TrocTab | oui | corrigée |
+| DeliveryTab, InvoicesTab, StaffTab | non | corrigée |
+| ArgusTab, BrandsTab, CategoriesTab, DashboardTab, MarketReferenceTab, QaRecetteTab, StockMovementsTab, StoresTab | non | flux normal, pas de hauteur imposée |
+
+Les huit derniers n'ont pas de hauteur fixe : leurs tableaux défilent dans
+`TableShell` ou dans leur propre `overflow-x-auto`, sans blocage. Aucun n'est
+visible par un commercial (`TAB_MIN_ROLE`). À traiter si l'usage le demande.
+
+### Ce qui precede le tableau — 2026-09-06
+
+Les cartes reglaient la lecture des donnees, pas l'acces a ces donnees. Sur le
+troc au telephone, il fallait faire defiler la moitie d'un ecran avant le premier
+dossier : barre de sections dont « Prix marche » se repliait sur deux lignes,
+six rangees de statistiques, puis recherche + deux listes + **sept boutons de
+filtre sur trois rangees**.
+
+Trois correctifs, tous sous 768 px :
+
+1. **`TableShell` — filtres en liste deroulante.** Le tri etait deja rendu ainsi
+   juste a cote ; la forme est coherente et le mur de boutons disparait. Profite
+   a tous les onglets qui passent des `filterOptions` (commandes, inventaire,
+   troc, images produit, argus).
+2. **Statistiques du troc en grille de deux colonnes.** Le detail par palier
+   (Express / Premium / Sûreté) part au bureau : c'est de l'analyse, pas de
+   l'exploitation — et deux des trois paliers valent zero tant que
+   `TROC_TIER_SELECTOR_ENABLED` est `false`.
+3. **Barre de sections insecable et defilante** plutot que repliee sur deux
+   lignes.
+
+| 412 px | bandeau stats | px avant le 1er dossier |
+|---|---|---|
+| avant | 132 px | 399 |
+| apres | 70 px | 242 |
+| 900 px | 58 px, inchange | 229, inchange |

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Pack, PackItem, Product } from '../../types';
 import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
+import { safeRandomUUID } from '../../utils/uuid';
 
 export const usePacksManager = (products: Product[]) => {
     const [packs, setPacks] = useState<Pack[]>([]);
@@ -53,7 +54,7 @@ export const usePacksManager = (products: Product[]) => {
         if (!editingPack.name || editingPack.price <= 0) throw new Error("Nom et Prix obligatoires.");
 
         const isNew = editingPack.id.startsWith('new_');
-        const packId = isNew ? crypto.randomUUID() : editingPack.id;
+        const packId = isNew ? safeRandomUUID() : editingPack.id;
 
         // Préparation Payload DB via Schema
         const payload = {

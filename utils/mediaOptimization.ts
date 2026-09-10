@@ -4,26 +4,72 @@
  * Cible spécifiquement les connexions lentes (237) via Cloudinary
  */
 
-export const optimizeImage = (url: string | undefined, width: number = 800): string => {
-  if (!url) return 'https://via.placeholder.com/800x800?text=No+Image';
-  
+import { getBandwidthTier, type BandwidthTier } from './bandwidthDetector';
+
+const IMAGE_FALLBACK = '/icons/icon-192x192.png';
+
+const imageQualityForTier = (tier: BandwidthTier): string => {
+  if (tier === 'slow') return 'q_auto:low';
+  if (tier === 'fast') return 'q_auto:good';
+  return 'q_auto:eco';
+};
+
+const capWidthForTier = (width: number, tier: BandwidthTier): number => {
+  if (tier === 'slow') return Math.min(width, 640);
+  if (tier === 'medium') return Math.min(width, 1024);
+  return width;
+};
+
+/** Au-delà : écran Retina utile (fiche produit). En dessous : vignettes grille. */
+const DPR_AUTO_MIN_WIDTH = 800;
+
+const buildCloudinaryTransform = (
+  parts: string[],
+  transformation: string,
+): string => `${parts[0]}/upload/${transformation}/${parts[1]}`;
+
+export const optimizeImage = (
+  url: string | undefined,
+  width: number = 800,
+  options?: { dpr?: boolean },
+): string => {
+  if (!url) return IMAGE_FALLBACK;
+
   // Si ce n'est pas une image Cloudinary, on retourne l'URL telle quelle
   if (!url.includes('cloudinary.com')) return url;
 
-  // Si l'URL a déjà des paramètres, on essaie de ne pas les casser, 
-  // mais idéalement on injecte nos optimisations après "/upload/"
-  
-  // Configuration pour connexion lente :
-  // f_auto : Choisi le meilleur format (AVIF si le navigateur gère, sinon WebP)
-  // q_auto:eco : Compresse agressivement sans trop détruire la qualité visuelle
-  // w_{width} : Redimensionne à la taille exacte demandée (évite de charger du 4K sur un tel)
-  // dpr_auto : Adapte à la densité de pixel de l'écran
-  const transformation = `f_auto,q_auto:eco,w_${width},dpr_auto,c_limit`;
+  const tier = getBandwidthTier();
+  const cappedWidth = capWidthForTier(width, tier);
+  const quality = imageQualityForTier(tier);
+  const useDpr = options?.dpr ?? cappedWidth >= DPR_AUTO_MIN_WIDTH;
 
-  // Insertion de la transformation dans l'URL
+  // f_auto : format optimal (AVIF / WebP)
+  // q_auto:* : qualité selon bande passante détectée
+  // dpr_auto : uniquement grandes images (zoom fiche produit), pas les vignettes
+  const dpr = useDpr ? ',dpr_auto' : '';
+  const transformation = `f_auto,${quality},w_${cappedWidth}${dpr},c_limit`;
+
   const parts = url.split('/upload/');
   if (parts.length === 2) {
-    return `${parts[0]}/upload/${transformation}/${parts[1]}`;
+    return buildCloudinaryTransform(parts, transformation);
+  }
+
+  return url;
+};
+
+/** Vignette produit carrée (hero / grilles) — même cadre pour phones et laptops */
+export const optimizeProductThumb = (url: string | undefined, size: number = 400): string => {
+  if (!url) return IMAGE_FALLBACK;
+  if (!url.includes('cloudinary.com')) return url;
+
+  const tier = getBandwidthTier();
+  const cappedSize = capWidthForTier(size, tier);
+  const quality = imageQualityForTier(tier);
+  const transformation = `f_auto,${quality},w_${cappedSize},h_${cappedSize},c_fill,g_center`;
+
+  const parts = url.split('/upload/');
+  if (parts.length === 2) {
+    return buildCloudinaryTransform(parts, transformation);
   }
 
   return url;
@@ -33,11 +79,11 @@ export const optimizeVideo = (url: string | undefined): string => {
   if (!url) return '';
   if (!url.includes('cloudinary.com')) return url;
 
-  // Optimisation vidéo spécifique pour background
-  // vc_auto : Codec vidéo optimisé (H265/VP9)
-  // q_auto:low : Qualité réduite car c'est un background (économise énormément de data)
-  // ac_none : Supprime l'audio (économise de la bande passante si la vidéo est muted)
-  const transformation = `f_auto:video,q_auto:eco,vc_auto,ac_none,w_1280,c_limit`;
+  const tier = getBandwidthTier();
+  const quality = tier === 'slow' ? 'q_auto:low' : tier === 'fast' ? 'q_auto:eco' : 'q_auto:eco';
+  const maxWidth = tier === 'slow' ? 960 : 1280;
+
+  const transformation = `f_auto:video,${quality},vc_auto,ac_none,w_${maxWidth},c_limit`;
 
   const parts = url.split('/upload/');
   if (parts.length === 2) {

@@ -1,35 +1,25 @@
 
 import React from 'react';
 import { Pack, Product } from '../../../types';
-import { Plus, Edit, Trash2, Calendar, Package } from 'lucide-react';
+import { Edit, Trash2, Calendar, Package } from 'lucide-react';
+import { adminUi } from '../shared/adminUi';
 
 interface PacksTabProps {
   packs: Pack[];
   products: Product[];
-  onCreatePack: () => void;
   onEditPack: (pack: Pack) => void;
   onDeletePack: (id: string) => void;
   getHydratedItems: (items: any) => any[];
 }
 
-const PacksTab: React.FC<PacksTabProps> = ({ packs, products, onCreatePack, onEditPack, onDeletePack, getHydratedItems }) => {
+const PacksTab: React.FC<PacksTabProps> = ({ packs, products, onEditPack, onDeletePack, getHydratedItems }) => {
   return (
     <div className="animate-in fade-in">
-        <div className="flex justify-between items-center mb-8">
-            <div>
-                <h2 className="text-3xl font-tech font-bold uppercase text-white">Gestion des Packs</h2>
-                <p className="text-gray-400 text-sm mt-1">Créez des bundles pour augmenter le panier moyen.</p>
-            </div>
-            <button onClick={onCreatePack} className="bg-xeption-gold text-black px-6 py-3 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white rounded-sm shadow-lg transition-all">
-                <Plus className="w-4 h-4" /> Nouveau Pack
-            </button>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {packs.length === 0 ? (
-                <div className="col-span-full text-center py-20 bg-black/20 border border-white/10 rounded-sm">
-                    <Package className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400">Aucun pack actif. Créez-en un pour booster les ventes !</p>
+                <div className={`col-span-full text-center py-20 ${adminUi.surface}`}>
+                    <Package className="w-12 h-12 text-white/40 mx-auto mb-4" />
+                    <p className={adminUi.muted}>Aucun pack actif. Créez-en un pour booster les ventes.</p>
                 </div>
             ) : (
                 packs.map(pack => {
@@ -38,7 +28,7 @@ const PacksTab: React.FC<PacksTabProps> = ({ packs, products, onCreatePack, onEd
                     const discount = realValue > 0 ? Math.round(((realValue - pack.price) / realValue) * 100) : 0;
 
                     return (
-                        <div key={pack.id} className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden group hover:border-xeption-gold/50 transition-all">
+                        <div key={pack.id} className={`${adminUi.surface} overflow-hidden group hover:border-xeption-gold/40 ${adminUi.surfaceHover}`}>
                             {/* Image Header */}
                             <div className="h-40 bg-black relative overflow-hidden">
                                 {pack.image && <img src={pack.image} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />}

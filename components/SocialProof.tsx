@@ -60,22 +60,19 @@ const SocialProof: React.FC = () => {
   useEffect(() => {
     const fetchKpis = async () => {
       try {
-        // 1. Calculer les ventes des 7 derniers jours
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        
-        const { count, error: countError } = await supabase
-          .from('orders')
-          .select('*', { count: 'exact', head: true })
-          .gte('date', sevenDaysAgo.toISOString())
-          .neq('status', 'cancelled'); // On ne compte pas les annulées
-
-        // 2. Déterminer la ville "Tendance" (basé sur les 50 dernières commandes)
-        const { data: citiesData, error: cityError } = await supabase
-          .from('orders')
-          .select('customer_city')
-          .order('date', { ascending: false })
-          .limit(50);
+        // Une seule RPC au lieu de deux requetes.
+        //
+        // Avant : un comptage, puis la lecture des 50 dernieres commandes pour
+        // n'en garder qu'un nom de ville — 50 lignes completes (noms,
+        // telephones, montants) telechargees dans le navigateur pour afficher
+        // un mot. La table `orders` n'est plus lisible publiquement ; la RPC
+        // ne renvoie que les deux valeurs affichees.
+        const { data: stats, error: statsError } = await supabase.rpc('get_social_proof_stats');
+        const count = stats?.weekly_sales ?? null;
+        const topCityFromDb = stats?.top_city ?? null;
+        const countError = statsError;
+        const cityError = statsError;
+        const citiesData = null;
 
         // Mise à jour de l'état
         setStats(prev => {
@@ -89,22 +86,10 @@ const SocialProof: React.FC = () => {
              newWeekly = count + 85; 
           }
 
-          // Mise à jour Ville Tendance (Mode statistique)
-          if (!cityError && citiesData && citiesData.length > 0) {
-             const cityCounts: Record<string, number> = {};
-             citiesData.forEach((order: any) => {
-                if (order.customer_city) {
-                    // Nettoyage basique (ex: "Douala, Akwa" -> "Douala")
-                    const cleanCity = order.customer_city.split(',')[0].trim(); 
-                    cityCounts[cleanCity] = (cityCounts[cleanCity] || 0) + 1;
-                }
-             });
-             
-             // Trouver la ville max
-             const sortedCities = Object.entries(cityCounts).sort((a,b) => b[1] - a[1]);
-             if (sortedCities.length > 0) {
-                 newCity = sortedCities[0][0]; // Ex: "Douala"
-             }
+          // Ville tendance : la RPC a deja fait le calcul en base.
+          // « Douala, Akwa » -> « Douala » : on ne garde que la ville.
+          if (!cityError && topCityFromDb) {
+            newCity = String(topCityFromDb).split(',')[0].trim();
           }
 
           return { weeklySales: newWeekly, topCity: newCity };

@@ -1,0 +1,51 @@
+-- Table cache market-price-intel (absente en prod malgré baseline erronée).
+-- Idempotent : safe à rejouer. Pas de lecture publique (offers_json = données marché).
+
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.market_price_cache (
+  model_key        TEXT PRIMARY KEY,
+  country_code     TEXT NOT NULL DEFAULT 'CM',
+  brand            TEXT NOT NULL,
+  model            TEXT NOT NULL,
+  storage          TEXT,
+  ram              TEXT,
+  currency         TEXT NOT NULL DEFAULT 'XAF',
+  reference_price  INT  NOT NULL DEFAULT 0 CHECK (reference_price >= 0),
+  low_prices       INT[] NOT NULL DEFAULT '{}',
+  high_prices      INT[] NOT NULL DEFAULT '{}',
+  offers_json      JSONB NOT NULL DEFAULT '[]'::jsonb,
+  source_count     INT NOT NULL DEFAULT 0 CHECK (source_count >= 0),
+  confidence       NUMERIC(4,3) NOT NULL DEFAULT 0 CHECK (confidence >= 0 AND confidence <= 1),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at       TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_market_price_cache_expires
+  ON public.market_price_cache (expires_at);
+
+CREATE INDEX IF NOT EXISTS idx_market_price_cache_brand_model
+  ON public.market_price_cache (lower(brand), lower(model));
+
+ALTER TABLE public.market_price_cache ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "market_price_cache_read_all" ON public.market_price_cache;
+DROP POLICY IF EXISTS "market_price_cache_write_service" ON public.market_price_cache;
+DROP POLICY IF EXISTS "market_price_cache_staff_read" ON public.market_price_cache;
+
+-- Lecture staff uniquement ; écriture via service_role (edge market-price-intel, bypass RLS).
+CREATE POLICY "market_price_cache_staff_read"
+  ON public.market_price_cache
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.staff s
+      WHERE lower(s.email) = lower(auth.jwt() ->> 'email')
+    )
+  );
+
+COMMENT ON TABLE public.market_price_cache IS
+  'Cache TTL des offres marché (edge market-price-intel). Non public : offers_json sensible.';
+
+COMMIT;

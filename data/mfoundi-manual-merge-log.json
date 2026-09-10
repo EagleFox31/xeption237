@@ -1,0 +1,76 @@
+{
+  "mode": "applied",
+  "at": "2026-06-12T17:13:33.862Z",
+  "log": [
+    {
+      "action": "merge",
+      "import": "Apple iPhone 13 128 Go (US/Canada)",
+      "importId": "961aa76d-ca53-441b-8c2c-75516ddd1bd6",
+      "legacy": "Iphone 13",
+      "legacyId": "53107c83-f7df-4b51-b7fa-24f48f0f37dc",
+      "newName": "Iphone 13 128 Go",
+      "updates": {
+        "name": "Iphone 13 128 Go",
+        "price": 170000,
+        "warranty_months": 1,
+        "images": [
+          "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781117445/xeption/lcgss27ljd08vq9iieyx.jpg",
+          "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781117445/xeption/jepg0fyg453a7hxulwfk.jpg",
+          "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781117446/xeption/ciqvlfcbx9et62t4ngrg.jpg",
+          "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781117445/xeption/kmnelehdqytwtj808uwp.jpg"
+        ]
+      }
+    },
+    {
+      "action": "merge",
+      "import": "Apple iPhone XR 64 Go (US/Canada)",
+      "importId": "3a2d0113-8c7f-4a63-acf3-cede10f8531e",
+      "legacy": "iPhone XR ",
+      "legacyId": "32ffc789-a99d-4c3e-b1f3-bd020da255ef",
+      "newName": "iPhone XR 64 Go",
+      "updates": {
+        "name": "iPhone XR 64 Go",
+        "price": 82000,
+        "warranty_months": 1,
+        "images": [
+          "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781187024/xeption/zlhppsjv2ysgdffibbsi.jpg",
+          "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781187064/xeption/y8a0exk5yxaln9xlpx3y.jpg"
+        ]
+      }
+    },
+    {
+      "action": "merge",
+      "import": "Apple iPhone 12 Pro Max 128 Go (US/Canada)",
+      "importId": "bf7db513-a97f-4487-be5e-a04e5a602739",
+      "legacy": "IPHONE 12 PRO MAX",
+      "legacyId": "ec99440d-0033-494d-a54f-50a1b1bc468e",
+      "newName": "IPHONE 12 PRO MAX 128 Go",
+      "updates": {
+        "name": "IPHONE 12 PRO MAX 128 Go",
+        "price": 185000,
+        "warranty_months": 1,
+        "images": [
+          "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781097580/xeption/uiz83nbswcxkbxkgab01.jpg",
+          "https://res.cloudinary.com/dli0kdkg9/image/upload/v1781097582/xeption/lsvor5graiwrhaokqprj.jpg"
+        ]
+      }
+    },
+    {
+      "action": "delete_import",
+      "import": "Samsung Galaxy A07 64 Go",
+      "importId": "62c46b2a-1c2a-480e-8ad3-b2eafb6e1505",
+      "reason": "garder legacy A07 — import supprimé"
+    },
+    {
+      "action": "delete_import",
+      "import": "Samsung Galaxy A07 128 Go",
+      "importId": "4076b5ef-f528-4e6b-a12b-77b0ae72534d",
+      "reason": "garder legacy A07 — import supprimé"
+    },
+    {
+      "action": "keep",
+      "import": "Apple iPhone 11 64 Go",
+      "reason": "pas de legacy"
+    }
+  ]
+}

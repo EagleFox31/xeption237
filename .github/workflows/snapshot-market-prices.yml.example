@@ -1,0 +1,25 @@
+# Fallback au cron Supabase (pg_cron) — si le plan ne permet pas pg_cron.
+# Renommer en `snapshot-market-prices.yml` pour activer, et définir 2 secrets de repo :
+#   SUPABASE_FUNCTIONS_URL = https://<PROJECT_REF>.supabase.co/functions/v1
+#   CRON_SECRET            = (même valeur que le secret Supabase de la fonction)
+#
+# Déclenche le worker snapshot-market-prices chaque lundi 03:00 UTC.
+
+name: Snapshot market prices (weekly)
+
+on:
+  schedule:
+    - cron: '0 3 * * 1' # lundi 03:00 UTC
+  workflow_dispatch: {} # déclenchement manuel possible
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger snapshot worker
+        run: |
+          curl -fsS -X POST \
+            "${{ secrets.SUPABASE_FUNCTIONS_URL }}/snapshot-market-prices" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -d '{}'

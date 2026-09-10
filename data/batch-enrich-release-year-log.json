@@ -1,0 +1,127 @@
+{
+  "runs": [
+    {
+      "at": "2026-07-20T23:10:22.815Z",
+      "mode": "dry-run",
+      "category": "phones",
+      "skipAi": true,
+      "force": false,
+      "totalTargets": 20,
+      "fromPhoneReleases": 5,
+      "fromDeepSeek": 0,
+      "skipped": 15,
+      "items": [
+        {
+          "id": "a24eb9e4-5a8a-4765-aecc-9f23ae427a2e",
+          "name": "Apple iPhone 11 64 Go (US/Canada)",
+          "release_year": 2019,
+          "source": "phone_releases_fuzzy",
+          "model_key": "apple_iphone_11"
+        },
+        {
+          "id": "3e1bb074-a17b-4dd5-b934-08fb9ab09c6c",
+          "name": "Apple iPhone 12 Pro 256 Go (US/Canada)",
+          "release_year": 2020,
+          "source": "phone_releases_fuzzy",
+          "model_key": "apple_iphone_12_pro"
+        },
+        {
+          "id": "98c1e2f1-a3af-4d98-94e6-e935ae38873a",
+          "name": "Apple iPhone 12 Pro Max 256 Go (US/Canada)",
+          "release_year": 2020,
+          "source": "phone_releases_fuzzy",
+          "model_key": "apple_iphone_12_pro_max"
+        },
+        {
+          "id": "f8621f08-2ec5-4bce-878c-2222fb0502b5",
+          "name": "Apple iPhone 13 Pro 256 Go (US/Canada)",
+          "release_year": 2021,
+          "source": "phone_releases_fuzzy",
+          "model_key": "apple_iphone_13_pro"
+        },
+        {
+          "id": "90b141fb-97bd-498c-95ee-890e1447ce68",
+          "name": "Apple iPhone 14 Pro Max 256 Go (US/Canada)",
+          "release_year": 2022,
+          "source": "phone_releases_fuzzy",
+          "model_key": "apple_iphone_14_pro_max"
+        },
+        {
+          "id": "4b058400-d96f-435d-883d-b60bbb0a6b3a",
+          "name": "Galaxy Z flip 5",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "7be7a846-fbfb-49c5-ab60-eb1a0146b092",
+          "name": "Galaxy Z flip 6 ",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "02046144-d565-48fc-a9d5-8e25b8f5607d",
+          "name": "Galaxy Z flip 6 ",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "961e8784-f6d7-47b9-97f7-a7c5373e4b82",
+          "name": "Galaxy Z flip 6 ",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "a78f0aa7-37f0-4162-88a6-237502e124b8",
+          "name": "Galaxy Z flip4  ",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "e2f86f60-a4f5-4e58-91bb-6528ce538636",
+          "name": "Galaxy Z flip4  ",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "fd104e00-eca5-44d8-b897-aa7143f8c2e1",
+          "name": "Galaxy Z fold4 256 Go",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "66c355a4-aad7-4925-913f-a46328f475a8",
+          "name": "Galaxy Z fold4 512 Go",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "ff7c2538-f380-4738-b68a-0071e1e5a873",
+          "name": "Google Pixel 10 Pro",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "9be02c29-6196-4a57-b148-f82d08ee813e",
+          "name": "Google Pixel 10 Pro",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "84cbb802-e9e0-48f2-a677-41fde6e99d15",
+          "name": "Google Pixel 10 Pro Fold",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "216c23d9-fa1d-449a-9dbf-ad2190c6bf40",
+          "name": "Google Pixel 6 Pro 128 Go",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "61d5b2bd-f4e7-4099-a984-778755051fa4",
+          "name": "Google Pixel 6 Pro 256 Go",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "dd448f04-87d6-49a5-9650-f3602b573733",
+          "name": "Google Pixel 6 Pro 512 Go Non scellé (US/Japan)",
+          "source": "no_ref_no_ai"
+        },
+        {
+          "id": "8dd8b393-6f02-426b-a2cd-7326804ad18b",
+          "name": "Google Pixel 6A 128 Go",
+          "source": "no_ref_no_ai"
+        }
+      ]
+    }
+  ]
+}

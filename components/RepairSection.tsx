@@ -4,6 +4,7 @@ import { Search, Wrench, CheckCircle, AlertTriangle, Calendar, Smartphone, Shiel
 import { supabase } from '../services/supabaseClient';
 import { Order, Product } from '../types';
 import { DB_TABLES, DB_SCHEMA } from '../constants/dbSchema';
+import { ChameleoMascot } from './troc/ChameleoMascot';
 
 const RepairSection: React.FC = () => {
   const [step, setStep] = useState<'search' | 'select' | 'form' | 'success'>('search');
@@ -96,13 +97,35 @@ const RepairSection: React.FC = () => {
     }
   };
 
+  const savMsg = loading
+    ? "Vérification des registres de garantie... 🛠️⚡"
+    : error
+      ? "Commande introuvable, vérifie ton numéro de facture !"
+      : step === 'select'
+        ? "Sélectionne l'appareil concerné par la panne ! 📱🔧"
+        : step === 'form'
+          ? "Décris-moi la panne en détails, on va te remettre ça à neuf ! ⚡"
+          : step === 'success'
+            ? "Ticket SAV ouvert avec succès ! Rendez-vous au Mfoundi Mall 🎉✨"
+            : "Vérifie ta garantie et ouvre ton ticket SAV en direct ! 🛠️⚡";
+
   return (
     <div className="pt-24 pb-20 px-4 min-h-screen max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-lg mb-4">
+        <div className="flex flex-col items-center text-center mb-8 animate-in fade-in slide-in-from-bottom-5">
+            {/* Mascotte Xepti Ingénieur Tech SAV */}
+            <div className="mb-4">
+              <ChameleoMascot 
+                size="md"
+                pose="engineer"
+                state={loading ? 'scanning' : step === 'success' ? 'happy' : 'idle'}
+                message={savMsg}
+              />
+            </div>
+
+            <h1 className="text-3xl md:text-5xl font-bold text-white font-tech uppercase drop-shadow-lg mb-3">
                 Service Après-Vente <span className="text-xeption-gold">Xeption</span>
             </h1>
-            <p className="text-gray-300 max-w-2xl mx-auto">
+            <p className="text-gray-300 max-w-2xl mx-auto text-xs md:text-sm">
                 Un problème avec ton matos ? Vérifie ta garantie en 2 secondes et ouvre un dossier avant de passer nous voir au Mfoundi Mall.
             </p>
         </div>

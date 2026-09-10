@@ -1,5 +1,6 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { CartItem, PaymentMethod } from '../types';
 import { PAYMENT_DETAILS } from '../constants';
@@ -7,8 +8,92 @@ import { useCheckoutForm } from '../hooks/useCheckoutForm';
 import { useOrderProcess } from '../hooks/useOrderProcess';
 import {
   X, Smartphone, CheckCircle, ShieldCheck, Minus, Plus, ShoppingBag,
-  ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, FileText, Copy, Radar
+  ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, FileText, Copy, Radar,
+  User, Phone, Zap, Circle, Unlock, Printer, MessageCircle, Sparkles, RefreshCw
 } from 'lucide-react';
+import { downloadInvoicePDF, printInvoiceHTML } from '../utils/invoiceGenerator';
+import { copyToClipboard } from '../utils/clipboard';
+import { useDeliveryZones } from './delivery/deliveryZoneUi';
+import { DeliveryLocationSelect } from './delivery/DeliveryLocationSelect';
+import { FREE_DELIVERY_THRESHOLD_XAF } from '../constants/delivery';
+import { HCAPTCHA_SITE_KEY } from '../constants/hCaptcha';
+import { buildOrderConfirmationWhatsAppMessage, buildWhatsAppUrl } from '../utils/whatsappShare';
+import { lookupTrocVoucher } from '../services/trocVoucherLookupService';
+import { normalizeVoucherLookupRef } from '../utils/trocVoucherRef';
+
+type PlayfulFieldProps = {
+  step: number;
+  label: string;
+  hint: string;
+  doneMessage: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  type?: string;
+  optional?: boolean;
+  icon: React.ReactNode;
+  isValid: boolean;
+  delayClass?: string;
+};
+
+const PlayfulField: React.FC<PlayfulFieldProps> = ({
+  step, label, hint, doneMessage, value, onChange, placeholder, type = 'text',
+  optional, icon, isValid, delayClass = '',
+}) => {
+  const showSuccess = isValid;
+
+  return (
+    <div
+      className={`relative rounded-xl border p-3 lg:p-3 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 ${delayClass} ${
+        showSuccess
+          ? 'border-green-500/35 bg-green-500/[0.06] shadow-[0_0_24px_rgba(34,197,94,0.07)]'
+          : 'border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40'
+      }`}
+    >
+      <div className="flex items-start gap-2.5 mb-2 lg:mb-2">
+        <div
+          className={`w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center text-[10px] font-bold font-tech border-2 shrink-0 transition-all duration-500 ${
+            showSuccess
+              ? 'border-green-500 bg-green-500/20 text-green-400 scale-110 shadow-[0_0_12px_rgba(34,197,94,0.35)]'
+              : 'border-white/15 bg-black/50 text-gray-500'
+          }`}
+        >
+          {showSuccess ? <CheckCircle className="h-3.5 w-3.5 animate-in zoom-in duration-300" /> : step}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-white font-bold uppercase text-[11px] tracking-wider">{label}</span>
+            {optional && (
+              <span className="text-[9px] text-xeption-gold uppercase tracking-widest border border-xeption-gold/35 bg-xeption-gold/10 px-1.5 py-0.5 rounded-full">
+                + bonus XP
+              </span>
+            )}
+          </div>
+          <p className={`text-[10px] mt-0.5 line-clamp-1 lg:line-clamp-2 transition-colors duration-300 ${showSuccess ? 'text-green-400/90' : 'text-gray-500'}`}>
+            {showSuccess ? doneMessage : hint}
+          </p>
+        </div>
+        {showSuccess && <CheckCircle className="h-3.5 w-3.5 text-green-400 shrink-0" />}
+      </div>
+      <div className="relative group">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors group-focus-within:text-xeption-gold text-gray-600">
+          {icon}
+        </div>
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full bg-black/50 border rounded-lg text-white text-sm pl-10 pr-8 py-2.5 outline-none transition-all placeholder-gray-600 ${
+            showSuccess
+              ? 'border-green-500/30 focus:border-green-400'
+              : 'border-white/10 focus:border-xeption-gold focus:shadow-[0_0_0_1px_rgba(255,215,0,0.3),0_0_20px_rgba(255,215,0,0.08)]'
+          }`}
+          placeholder={placeholder}
+        />
+      </div>
+    </div>
+  );
+};
 
 interface CheckoutProps {
   cart: CartItem[];
@@ -26,25 +111,296 @@ const Checkout: React.FC<CheckoutProps> = ({
   // Logic Hooks
   const form = useCheckoutForm(cart);
   const order = useOrderProcess();
+  const { zones: deliveryZones, isLoading: deliveryZonesLoading } = useDeliveryZones();
+
+  useEffect(() => {
+    if (!deliveryZones.length) return;
+
+    if (form.selectedDeliveryZone) {
+      const fresh = deliveryZones.find((z) => z.id === form.selectedDeliveryZone!.id);
+      if (fresh) form.syncDeliveryZone(fresh);
+      return;
+    }
+
+    if (form.deliveryMode === 'delivery') {
+      const defaultZone =
+        deliveryZones.find((z) => z.name.includes('Yaoundé')) ?? deliveryZones[0];
+      form.setSelectedDeliveryZone(defaultZone);
+    }
+  }, [deliveryZones, form.deliveryMode, form.selectedDeliveryZone?.id]);
 
   // Local UI State
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedMerchantCode, setCopiedMerchantCode] = useState<'om' | 'momo' | null>(null);
+
+  // Verrouiller le scroll d'arrière-plan quand le checkout est ouvert & gestion Échap
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  // État pour le bon Smart Troc dans le panier
+  const [showVoucherInput, setShowVoucherInput] = useState(false);
+  const [voucherInputRef, setVoucherInputRef] = useState('');
+  const [voucherPhoneSuffix, setVoucherPhoneSuffix] = useState('');
+  const [isVerifyingVoucher, setIsVerifyingVoucher] = useState(false);
+  const [voucherError, setVoucherError] = useState('');
+  const [orderWhatsAppUrl, setOrderWhatsAppUrl] = useState<string | null>(null);
+
+  // Pré-remplir les 4 derniers chiffres du téléphone pour le bon si déjà saisis
+  useEffect(() => {
+    if (form.formData.phone && !voucherPhoneSuffix) {
+      const digits = form.formData.phone.replace(/\D/g, '');
+      if (digits.length >= 4) {
+        setVoucherPhoneSuffix(digits.slice(-4));
+      }
+    }
+  }, [form.formData.phone, voucherPhoneSuffix]);
+
+  const handleApplyVoucher = async () => {
+    const ref = normalizeVoucherLookupRef(voucherInputRef);
+    const suffix = voucherPhoneSuffix.replace(/\D/g, '').slice(-4);
+    if (!ref || suffix.length !== 4) {
+      setVoucherError('Indique la référence du bon (TRC-...) et les 4 derniers chiffres.');
+      return;
+    }
+    setIsVerifyingVoucher(true);
+    setVoucherError('');
+    try {
+      const voucher = await lookupTrocVoucher(ref, suffix);
+      if (!voucher || !voucher.trade_in_value) {
+        throw new Error("Ce bon n'a aucune valeur de reprise valide.");
+      }
+      form.applyTrocVoucher({
+        ref: voucher.voucher_reference || ref,
+        credit: voucher.trade_in_value,
+        brand: voucher.device_brand,
+        model: voucher.device_model,
+        imei: voucher.imei ?? undefined,
+      });
+      setShowVoucherInput(false);
+      setVoucherInputRef('');
+    } catch (e: any) {
+      setVoucherError(e.message || 'Bon introuvable ou coordonnées incorrectes.');
+    } finally {
+      setIsVerifyingVoucher(false);
+    }
+  };
+
+  // Par défaut sur Cash à la livraison tant que OM et MoMo sont en cours de déploiement
+  useEffect(() => {
+    if (form.step === 'payment' && (!form.selectedPayment || form.selectedPayment === PaymentMethod.OM || form.selectedPayment === PaymentMethod.MOMO)) {
+      form.setSelectedPayment(PaymentMethod.CASH);
+    }
+  }, [form.step, form.selectedPayment]);
   
   // Captcha State
-  const HCAPTCHA_SITE_KEY = "0d0cfd40-72aa-4570-a4fa-e8f263ce1d24";
   const captchaRef = useRef<any>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
+  const freeDeliveryProgress = Math.min(
+    100,
+    Math.round((form.subtotal / FREE_DELIVERY_THRESHOLD_XAF) * 100),
+  );
+
+  const FreeDeliveryHint: React.FC<{ className?: string }> = ({ className = '' }) => {
+    if (form.qualifiesForFreeDelivery) {
+      return (
+        <div
+          className={`rounded-lg border border-green-500/45 bg-green-500/10 px-4 py-3 ${className}`}
+        >
+          <p className="text-sm text-green-400 font-bold flex items-center gap-2">
+            <Truck className="h-4 w-4 shrink-0" />
+            Livraison offerte sur cette commande
+          </p>
+        </div>
+      );
+    }
+    const remaining = form.freeDeliveryRemaining;
+    if (remaining <= 0) return null;
+    return (
+      <div
+        className={`rounded-lg border border-xeption-gold/45 bg-xeption-gold/10 px-4 py-3 shadow-[0_0_20px_rgba(255,215,0,0.08)] ${className}`}
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-md bg-xeption-gold/20 border border-xeption-gold/35 shrink-0">
+            <Truck className="h-5 w-5 text-xeption-gold" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm sm:text-base text-white font-bold leading-snug">
+              Plus que{' '}
+              <span className="text-xeption-gold font-mono text-lg sm:text-xl">
+                {remaining.toLocaleString('fr-FR')} FCFA
+              </span>
+            </p>
+            <p className="text-xs text-gray-300 mt-0.5">pour débloquer la livraison offerte</p>
+            <div className="h-2 bg-black/40 rounded-full mt-3 border border-white/10 overflow-hidden">
+              <div
+                className="h-full bg-xeption-gold rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(255,215,0,0.5)]"
+                style={{ width: `${freeDeliveryProgress}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1.5 uppercase tracking-widest font-tech">
+              Seuil {FREE_DELIVERY_THRESHOLD_XAF.toLocaleString('fr-FR')} FCFA
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Composant léger pour le bon Smart Troc
+  const TrocVoucherApplyBlock: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
+    if (form.trocVoucher) {
+      return (
+        <div className="rounded-xl border border-xeption-gold/40 bg-xeption-gold/10 p-3 sm:p-4 transition-all">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="w-4 h-4 text-xeption-gold shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-tech font-bold text-white uppercase tracking-wider truncate">
+                  Bon Smart Troc {form.trocVoucher.ref}
+                </p>
+                <p className="text-[10px] text-xeption-gold/90 font-mono">
+                  - {form.trocDiscount.toLocaleString('fr-FR')} FCFA déduits
+                  {form.trocVoucher.brand ? ` (${form.trocVoucher.brand} ${form.trocVoucher.model || ''})` : ''}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={form.removeTrocVoucher}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/50 hover:text-red-400 text-xs transition-colors shrink-0"
+              title="Retirer ce bon"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-xl border border-white/10 bg-black/30 p-3 sm:p-4 transition-all">
+        {!showVoucherInput ? (
+          <button
+            type="button"
+            onClick={() => setShowVoucherInput(true)}
+            className="w-full flex items-center justify-between gap-2 text-left text-xs text-white/80 hover:text-xeption-gold font-tech uppercase tracking-wider transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-xeption-gold" />
+              Tu as un bon Smart Troc ?
+            </span>
+            <span className="text-[10px] font-bold text-xeption-gold underline">Déduire</span>
+          </button>
+        ) : (
+          <div className="flex flex-col gap-3 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="text-[11px] font-tech uppercase tracking-wider text-xeption-gold font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" /> Appliquer un bon Smart Troc
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVoucherInput(false);
+                  setVoucherError('');
+                }}
+                className="text-[10px] text-white/50 hover:text-white uppercase font-tech transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Champ 1 : Référence du bon */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-tech uppercase tracking-widest text-white/80 font-bold mb-1 flex items-center justify-between">
+                  <span>Référence du bon</span>
+                  <span className="text-xeption-gold font-mono text-[9px] font-normal">ex: TRC-178...</span>
+                </label>
+                <input
+                  type="text"
+                  value={voucherInputRef}
+                  onChange={(e) => setVoucherInputRef(e.target.value.toUpperCase())}
+                  placeholder="Ex : TRC-1787741068"
+                  className="w-full bg-black/50 border border-white/15 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-xeption-gold uppercase placeholder-gray-600 transition-colors"
+                />
+                <p className="text-[9px] text-gray-500 mt-1 leading-tight">
+                  Code unique figurant sur ton bon de troc.
+                </p>
+              </div>
+
+              {/* Champ 2 : 4 derniers chiffres du téléphone */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-tech uppercase tracking-widest text-white/80 font-bold mb-1 flex items-center justify-between">
+                  <span>4 chiffres tél. du bon</span>
+                  <span className="text-xeption-gold font-mono text-[9px] font-normal">Sécurité</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={voucherPhoneSuffix}
+                  onChange={(e) => setVoucherPhoneSuffix(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="Ex : 7859"
+                  className="w-full bg-black/50 border border-white/15 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-xeption-gold text-center tracking-widest placeholder-gray-600 transition-colors"
+                />
+                <p className="text-[9px] text-gray-500 mt-1 leading-tight">
+                  Numéro WhatsApp du bon de troc (ex: 69912<strong className="text-gray-300">7859</strong> → <strong className="text-xeption-gold">7859</strong>).
+                </p>
+              </div>
+            </div>
+
+            {voucherError && (
+              <p className="text-[10px] text-red-400 font-sans leading-tight bg-red-500/10 border border-red-500/20 rounded-lg p-2">
+                {voucherError}
+              </p>
+            )}
+
+            <button
+              type="button"
+              disabled={isVerifyingVoucher || !voucherInputRef.trim()}
+              onClick={handleApplyVoucher}
+              className="w-full inline-flex items-center justify-center gap-1.5 bg-xeption-gold/20 hover:bg-xeption-gold text-xeption-gold hover:text-black border border-xeption-gold/40 py-2.5 rounded-lg text-xs font-tech font-bold uppercase tracking-wider transition-all disabled:opacity-40 cursor-pointer"
+            >
+              {isVerifyingVoucher ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Vérification du bon...
+                </>
+              ) : (
+                'Appliquer la déduction'
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // --- Actions ---
 
   const handleProcessOrder = async () => {
       try {
-          await order.submitOrder({
+          const result = await order.submitOrder({
               cart,
               total: form.total,
+              subtotal: form.subtotal,
+              deliveryFee: form.deliveryFee,
+              trocVoucher: form.trocVoucher,
               formData: form.formData,
               deliveryMode: form.deliveryMode,
               paymentMethod: form.selectedPayment,
@@ -53,7 +409,39 @@ const Checkout: React.FC<CheckoutProps> = ({
           
           captchaRef.current?.resetCaptcha?.();
           setCaptchaToken(null);
+          form.clearDraft();
           form.setStep('success');
+
+          // Construction du message WhatsApp et ouverture automatique (Option A)
+          if (result?.orderId) {
+              const whatsappMsg = buildOrderConfirmationWhatsAppMessage({
+                  orderId: result.orderId,
+                  customerName: form.formData.name,
+                  customerPhone: form.formData.phone,
+                  customerCity: form.deliveryMode === 'pickup'
+                    ? 'Retrait Boutique'
+                    : (form.formData.city || form.formData.neighborhood || ''),
+                  deliveryMode: form.deliveryMode,
+                  items: cart.map((item) => ({
+                      name: item.name,
+                      quantity: item.quantity,
+                      price: item.price,
+                  })),
+                  subtotal: form.subtotal,
+                  deliveryFee: form.deliveryFee,
+                  trocVoucherDiscount: form.trocVoucher ? { ref: form.trocVoucher.ref, amount: form.trocDiscount } : null,
+                  total: form.total,
+              });
+              const url = buildWhatsAppUrl(whatsappMsg);
+              setOrderWhatsAppUrl(url);
+
+              // Ouverture automatique vers WhatsApp
+              try {
+                  window.open(url, '_blank');
+              } catch (openErr) {
+                  console.warn('Ouverture automatique WhatsApp bloquée par le navigateur:', openErr);
+              }
+          }
       } catch (err: any) {
           alert(err.message || "Une erreur est survenue.");
       }
@@ -67,44 +455,109 @@ const Checkout: React.FC<CheckoutProps> = ({
       }
   };
 
+  const handleAddMoreProducts = () => {
+    onClose();
+    if (onNavigate) {
+      onNavigate('shop');
+    }
+  };
+
+  const hasSavedCoordinates =
+    form.formData.name.trim() ||
+    form.formData.phone.trim() ||
+    form.formData.email.trim() ||
+    form.formData.neighborhood.trim();
+
+  const AddMoreProductsBlock: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
+    <div
+      className={`rounded-xl border border-dashed border-white/15 bg-black/25 space-y-2 ${
+        compact ? 'p-3' : 'p-4'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={handleAddMoreProducts}
+        className="w-full rounded-lg border border-white/15 bg-black/40 hover:border-xeption-gold/45 hover:bg-xeption-gold/10 px-4 py-3 flex items-center justify-center gap-2 text-xs font-tech font-bold uppercase tracking-wider text-gray-200 hover:text-white transition-all"
+      >
+        <Plus className="h-4 w-4 text-xeption-gold shrink-0" />
+        Ajouter un autre produit
+      </button>
+      <p className="text-[10px] text-gray-500 text-center leading-relaxed">
+        {hasSavedCoordinates
+          ? 'Tes coordonnées restent enregistrées aujourd\'hui. Rouvre le panier pour continuer.'
+          : 'Ton panier est conservé — parcours le catalogue et reviens ici.'}
+      </p>
+    </div>
+  );
+
+  const CartProductsRecap: React.FC = () => {
+    if (cart.length === 0) return null;
+
+    const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+    return (
+      <div className="rounded-xl border border-white/10 bg-black/30 overflow-hidden">
+        <div className="px-3 py-2.5 border-b border-white/10 flex items-center justify-between gap-2">
+          <span className="text-[10px] font-tech uppercase tracking-widest text-gray-400 font-bold flex items-center gap-1.5">
+            <ShoppingBag className="h-3.5 w-3.5 text-xeption-gold shrink-0" />
+            Dans ton panier
+          </span>
+          <span className="text-[9px] text-gray-600 uppercase tracking-widest shrink-0">
+            {itemCount} article{itemCount > 1 ? 's' : ''}
+          </span>
+        </div>
+        <ul className="grid grid-cols-2 gap-2 p-2 max-h-[260px] overflow-y-auto">
+          {cart.map((item) => (
+            <li
+              key={item.id}
+              className="rounded-lg border border-white/10 bg-black/40 p-2 flex flex-col gap-1.5 hover:border-white/20 transition-colors min-w-0"
+            >
+              <div className="flex items-start gap-2 min-w-0">
+                <div className="w-9 h-9 rounded-md bg-white/5 border border-white/10 p-0.5 shrink-0 overflow-hidden">
+                  <img src={item.image} alt="" className="w-full h-full object-contain" />
+                </div>
+                <p className="text-white text-[9px] font-bold uppercase tracking-wide line-clamp-2 leading-tight min-w-0">
+                  {item.name}
+                </p>
+              </div>
+              <div className="flex justify-between items-end gap-1">
+                <p className="text-[9px] text-gray-500 font-mono leading-tight">
+                  {item.quantity} × {item.price.toLocaleString('fr-FR')}
+                </p>
+                <p className="text-[10px] font-mono font-bold text-white tabular-nums shrink-0">
+                  {(item.price * item.quantity).toLocaleString('fr-FR')}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="px-3 py-2 border-t border-dashed border-white/10 flex justify-between items-center bg-black/25">
+          <span className="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Sous-total</span>
+          <span className="text-xs font-mono font-bold text-xeption-gold tabular-nums">
+            {form.subtotal.toLocaleString('fr-FR')} FCFA
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   const handleDownloadInvoice = async () => {
     if (!order.lastOrderHtml) return;
     setIsPdfGenerating(true);
     try {
-        const html2pdfModule = await import('html2pdf.js');
-        const html2pdf = html2pdfModule.default;
-
-        const element = document.createElement('div');
-        element.innerHTML = order.lastOrderHtml;
-        element.style.width = '700px'; 
-        element.style.padding = '20px';
-        element.style.background = 'white';
-
-        const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.left = '-10000px';
-        container.style.top = '0';
-        container.appendChild(element);
-        document.body.appendChild(container);
-
-        const safeName = form.formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'client';
-        await html2pdf().set({
-            margin: 10, filename: `Facture_Xeption_${safeName}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(element).save();
-        document.body.removeChild(container);
+      const safeName = form.formData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'client';
+      const filename = `Facture_Xeption_${order.createdOrderId || safeName}.pdf`;
+      await downloadInvoicePDF(order.lastOrderHtml, filename);
     } catch (err) {
-        console.error("PDF Gen Error:", err);
-        const blob = new Blob([order.lastOrderHtml], { type: 'text/html' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `Facture.html`;
-        link.click();
+      console.error("PDF Download Error:", err);
     } finally {
-        setIsPdfGenerating(false);
+      setIsPdfGenerating(false);
     }
+  };
+
+  const handlePrintInvoice = () => {
+    if (!order.lastOrderHtml) return;
+    printInvoiceHTML(order.lastOrderHtml);
   };
 
   const handleGoToTracking = () => {
@@ -120,13 +573,58 @@ const Checkout: React.FC<CheckoutProps> = ({
 
   // --- Renders ---
 
+  const checkoutSteps = [
+    { key: 'cart' as const, label: 'Panier' },
+    { key: 'details' as const, label: 'Infos' },
+    { key: 'payment' as const, label: 'Paiement' },
+  ];
+  const activeStepIndex = checkoutSteps.findIndex((s) => s.key === form.step);
+
+  const isCompactCheckoutStep = form.step === 'details' || form.step === 'payment';
+
   const StepIndicator = () => (
-    <div className="flex justify-center items-center gap-4 mb-8 text-sm font-tech uppercase tracking-widest">
-      <span className={`${form.step === 'cart' ? 'text-xeption-gold font-bold' : 'text-gray-400/70'}`}>1. Panier</span>
-      <span className="text-gray-500">/</span>
-      <span className={`${form.step === 'details' ? 'text-xeption-gold font-bold' : 'text-gray-400/70'}`}>2. Infos</span>
-      <span className="text-gray-500">/</span>
-      <span className={`${form.step === 'payment' ? 'text-xeption-gold font-bold' : 'text-gray-400/70'}`}>3. Paiement</span>
+    <div className={`flex justify-center items-center gap-2 sm:gap-3 ${isCompactCheckoutStep ? 'mb-4' : 'mb-6'}`}>
+      {checkoutSteps.map((stepItem, index) => {
+        const isActive = form.step === stepItem.key;
+        const isDone = activeStepIndex > index;
+        return (
+          <React.Fragment key={stepItem.key}>
+            <button
+              type="button"
+              onClick={() => form.goToStep(stepItem.key)}
+              disabled={!isDone && !isActive}
+              className="flex flex-col items-center gap-2 min-w-[56px] group transition-all disabled:cursor-default"
+              title={isDone ? `Revenir à l'étape ${stepItem.label}` : stepItem.label}
+            >
+              <div
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center font-tech font-bold text-sm transition-all duration-300 ${
+                  isActive
+                    ? 'border-xeption-gold bg-xeption-gold/15 text-xeption-gold shadow-[0_0_20px_rgba(255,215,0,0.35)] scale-110'
+                    : isDone
+                      ? 'border-xeption-gold/60 bg-xeption-gold/5 text-xeption-gold/80 group-hover:border-xeption-gold group-hover:text-xeption-gold cursor-pointer'
+                      : 'border-white/15 bg-black/40 text-gray-500'
+                }`}
+              >
+                {isDone ? <CheckCircle className="h-4 w-4" /> : index + 1}
+              </div>
+              <span
+                className={`text-[10px] font-tech uppercase tracking-widest transition-colors ${
+                  isActive ? 'text-xeption-gold font-bold' : isDone ? 'text-gray-400 group-hover:text-white' : 'text-gray-600'
+                }`}
+              >
+                {stepItem.label}
+              </span>
+            </button>
+            {index < checkoutSteps.length - 1 && (
+              <div
+                className={`h-0.5 w-8 sm:w-16 mb-5 rounded-full transition-colors duration-500 ${
+                  activeStepIndex > index ? 'bg-xeption-gold shadow-[0_0_8px_rgba(255,215,0,0.4)]' : 'bg-white/10'
+                }`}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 
@@ -176,6 +674,7 @@ const Checkout: React.FC<CheckoutProps> = ({
             ))}
           </div>
         )}
+        {cart.length > 0 && <AddMoreProductsBlock />}
       </div>
 
       {cart.length > 0 && (
@@ -184,16 +683,32 @@ const Checkout: React.FC<CheckoutProps> = ({
             <h3 className="text-xl font-bold text-white font-tech uppercase mb-6 border-b border-white/10 pb-4">Résumé</h3>
             <div className="space-y-4 mb-8 text-sm">
               <div className="flex justify-between text-gray-400"><span>Sous-total</span><span className="font-mono text-white">{form.subtotal.toLocaleString('fr-FR')} FCFA</span></div>
-              <div className="flex justify-between text-gray-400"><span>Estimation Livraison</span><span className="font-mono text-gray-500 italic text-xs">Calculé après</span></div>
+              <div className="flex justify-between text-gray-400 items-center">
+                <span>Livraison</span>
+                <span className={`font-mono text-xs ${form.qualifiesForFreeDelivery ? 'text-green-400 font-bold' : 'text-gray-500'}`}>
+                  {form.qualifiesForFreeDelivery ? 'Offerte' : 'Selon ville'}
+                </span>
+              </div>
+              {form.trocVoucher && (
+                <div className="flex justify-between text-amber-400 font-bold">
+                  <span>Bon Smart Troc</span>
+                  <span className="font-mono">- {form.trocDiscount.toLocaleString('fr-FR')} FCFA</span>
+                </div>
+              )}
+              <FreeDeliveryHint />
+              <TrocVoucherApplyBlock />
               <div className="border-t border-dashed border-white/20 pt-4 mt-4">
                 <div className="flex justify-between items-end">
                   <span className="text-white font-bold uppercase tracking-wider">Total Est.</span>
                   <div className="text-right">
-                    <span className="block text-3xl font-bold text-white font-tech">{form.subtotal.toLocaleString('fr-FR')}</span>
+                    <span className="block text-3xl font-bold text-white font-tech">{form.total.toLocaleString('fr-FR')}</span>
                     <span className="text-xeption-gold text-xs font-bold">FCFA</span>
                   </div>
                 </div>
               </div>
+            </div>
+            <div className="mb-4">
+              <AddMoreProductsBlock compact />
             </div>
             <button onClick={handleNext} className="w-full bg-xeption-gold hover:bg-white text-black font-tech font-bold uppercase tracking-wider py-4 text-lg shadow-[0_0_20px_rgba(255,215,0,0.3)] transition-all flex items-center justify-center gap-2 group">
               Continuer <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -204,127 +719,543 @@ const Checkout: React.FC<CheckoutProps> = ({
     </div>
   );
 
-  const renderDetails = () => (
-    <div className="max-w-2xl mx-auto w-full bg-black/50 backdrop-blur-xl border border-white/10 p-8 sm:p-12 shadow-2xl relative rounded-sm">
-      <div className="flex items-center space-x-2 text-xeption-gold mb-8 justify-center">
-        <ShieldCheck className="h-6 w-6" />
-        <span className="text-sm font-bold uppercase tracking-widest">Informations Client</span>
-      </div>
+  const renderDetails = () => {
+    const nameValid = form.formData.name.trim().length >= 2;
+    const phoneValid = form.formData.phone.trim().length >= 8;
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.formData.email.trim());
+    const locationValid = Boolean(form.selectedDeliveryZone && form.formData.neighborhood);
+    const firstName = form.formData.name.trim().split(/\s+/)[0] || 'champion';
 
-      <div className="flex bg-black/60 p-1 rounded-sm mb-8 border border-white/10">
-        <button onClick={() => form.setDeliveryMode('delivery')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-sm ${form.deliveryMode === 'delivery' ? 'bg-white/10 text-white shadow-sm border border-white/5' : 'text-gray-500 hover:text-gray-300'}`}>
-          <Truck className="h-4 w-4" /> Livraison à domicile (+2000 FCFA)
-        </button>
-        <button onClick={() => form.setDeliveryMode('pickup')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-sm ${form.deliveryMode === 'pickup' ? 'bg-white/10 text-white shadow-sm border border-white/5' : 'text-gray-500 hover:text-gray-300'}`}>
-          <Store className="h-4 w-4" /> Retrait en Boutique (Gratuit)
-        </button>
-      </div>
+    const questChecks =
+      form.deliveryMode === 'delivery'
+        ? [
+            nameValid,
+            phoneValid,
+            Boolean(form.selectedDeliveryZone),
+            Boolean(form.formData.neighborhood),
+          ]
+        : [nameValid, phoneValid];
+    const questDone = questChecks.filter(Boolean).length;
+    const questTotal = questChecks.length;
+    const questProgress = Math.round((questDone / questTotal) * 100);
+    const questComplete = questDone === questTotal;
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="md:col-span-2">
-          <label className="block text-xs text-gray-400 uppercase font-bold mb-2 ml-1">Nom complet</label>
-          <input type="text" value={form.formData.name} onChange={e => form.setFormData({ ...form.formData, name: e.target.value })} className="w-full bg-black/40 border border-white/10 text-white p-4 focus:border-xeption-gold focus:bg-black/60 outline-none transition-all placeholder-gray-600" placeholder="Ex: Samuel Eto'o" />
+    const questProgressBlock = (
+      <div className="rounded-xl border border-white/10 bg-black/40 p-3 lg:p-4">
+        <div className="flex justify-between items-center text-[10px] uppercase tracking-widest mb-2">
+          <span className="text-gray-500 font-bold">Progression</span>
+          <span className={`font-tech font-bold ${questComplete ? 'text-green-400' : 'text-xeption-gold'}`}>
+            {questDone}/{questTotal} checkpoints
+          </span>
         </div>
-        <div>
-          <label className="block text-xs text-gray-400 uppercase font-bold mb-2 ml-1">WhatsApp / Tél</label>
-          <input type="tel" value={form.formData.phone} onChange={e => form.setFormData({ ...form.formData, phone: e.target.value })} className="w-full bg-black/40 border border-white/10 text-white p-4 focus:border-xeption-gold focus:bg-black/60 outline-none transition-all placeholder-gray-600" placeholder="Ex: 699..." />
+        <div className="h-2 bg-black/60 rounded-full border border-white/10 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ease-out ${
+              questComplete
+                ? 'bg-gradient-to-r from-green-500 to-green-400 shadow-[0_0_14px_rgba(34,197,94,0.5)]'
+                : 'bg-gradient-to-r from-xeption-gold/70 to-xeption-gold shadow-[0_0_12px_rgba(255,215,0,0.4)]'
+            }`}
+            style={{ width: `${questProgress}%` }}
+          />
         </div>
-        <div>
-          <label className="block text-xs text-gray-400 uppercase font-bold mb-2 ml-1">Email (Pour la facture)</label>
-          <input type="email" value={form.formData.email} onChange={e => form.setFormData({ ...form.formData, email: e.target.value })} className="w-full bg-black/40 border border-white/10 text-white p-4 focus:border-xeption-gold focus:bg-black/60 outline-none transition-all placeholder-gray-600" placeholder="Ex: samuel@xeptionetwork.shop" />
+        <div className="flex gap-1.5 mt-2 flex-wrap">
+          {[
+            { ok: nameValid, label: 'Nom' },
+            { ok: phoneValid, label: 'WhatsApp' },
+            ...(form.deliveryMode === 'delivery'
+              ? [
+                  { ok: Boolean(form.selectedDeliveryZone), label: 'Ville' },
+                  { ok: Boolean(form.formData.neighborhood), label: 'Quartier' },
+                ]
+              : [{ ok: true, label: 'Retrait OK' }]),
+          ].map((chip) => (
+            <span
+              key={chip.label}
+              className={`inline-flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border transition-all duration-300 ${
+                chip.ok
+                  ? 'border-green-500/40 bg-green-500/10 text-green-400'
+                  : 'border-white/10 bg-black/30 text-gray-600'
+              }`}
+            >
+              {chip.ok ? (
+                <CheckCircle className="h-3 w-3 shrink-0" />
+              ) : (
+                <Circle className="h-3 w-3 shrink-0 opacity-50" />
+              )}
+              {chip.label}
+            </span>
+          ))}
+          {emailValid && (
+            <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border border-xeption-gold/40 bg-xeption-gold/10 text-xeption-gold">
+              <Mail className="h-3 w-3 shrink-0" />
+              Bonus mail
+            </span>
+          )}
         </div>
-
-        {form.deliveryMode === 'delivery' ? (
-          <div className="md:col-span-2 animate-in fade-in slide-in-from-top-2">
-            <label className="block text-xs text-gray-400 uppercase font-bold mb-2 ml-1">Adresse de livraison (Ville, Quartier)</label>
-            <input type="text" value={form.formData.city} onChange={e => form.setFormData({ ...form.formData, city: e.target.value })} className="w-full bg-black/40 border border-white/10 text-white p-4 focus:border-xeption-gold focus:bg-black/60 outline-none transition-all placeholder-gray-600" placeholder="Ex: Douala, Bonapriso, Rue des Palmiers" />
-          </div>
-        ) : (
-          <div className="md:col-span-2 bg-white/5 border border-white/10 p-4 rounded-sm flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-            <MapPin className="h-5 w-5 text-xeption-gold mt-1" />
-            <div>
-              <h4 className="text-white font-bold uppercase text-sm mb-1">Point de Retrait Xeption</h4>
-              <p className="text-gray-400 text-sm">Yaoundé, Mfoundi Mall</p>
-              <p className="text-gray-500 text-xs">À l'étage, Boutique 2063</p>
-            </div>
-          </div>
+        {questComplete && (
+          <p className="text-green-400 text-[10px] mt-2 font-bold uppercase tracking-widest flex items-center gap-1.5">
+            <Unlock className="h-3 w-3 shrink-0" />
+            Paiement débloqué
+          </p>
         )}
       </div>
+    );
 
-      <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center text-sm">
-        <span className="text-gray-400">Total à payer</span>
-        <span className="text-2xl font-bold font-mono text-white">{(form.total).toLocaleString('fr-FR')} FCFA</span>
+    const deliveryModeBlock = (
+      <div>
+        <p className="text-[10px] font-tech uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-2">
+          <span className="w-5 h-5 rounded-full bg-xeption-gold/15 border border-xeption-gold/30 flex items-center justify-center text-xeption-gold text-[9px] font-bold">?</span>
+          Comment tu reçois ?
+        </p>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1 lg:gap-2">
+          <button
+            type="button"
+            onClick={() => form.setDeliveryMode('delivery')}
+            className={`group relative p-3 rounded-xl border text-left transition-all duration-300 active:scale-[0.98] ${
+              form.deliveryMode === 'delivery'
+                ? 'border-xeption-gold bg-xeption-gold/10 shadow-[0_0_20px_rgba(255,215,0,0.1)]'
+                : 'border-white/10 bg-black/30 hover:border-white/25 hover:bg-black/50'
+            }`}
+          >
+            <Truck
+              className={`h-5 w-5 mb-2 transition-all duration-300 ${
+                form.deliveryMode === 'delivery' ? 'text-xeption-gold -rotate-6' : 'text-gray-500 group-hover:text-gray-300'
+              }`}
+            />
+            <span className="block text-white font-bold uppercase text-[10px] tracking-wider">Chez toi</span>
+            <span className="text-xeption-gold text-[10px] font-mono font-bold">
+              {form.qualifiesForFreeDelivery
+                ? 'Offerte'
+                : form.selectedDeliveryZone
+                  ? `${form.selectedDeliveryZone.price.toLocaleString('fr-FR')} FCFA`
+                  : 'Selon ville'}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => form.setDeliveryMode('pickup')}
+            className={`group relative p-3 rounded-xl border text-left transition-all duration-300 active:scale-[0.98] ${
+              form.deliveryMode === 'pickup'
+                ? 'border-xeption-gold bg-xeption-gold/10 shadow-[0_0_20px_rgba(255,215,0,0.1)]'
+                : 'border-white/10 bg-black/30 hover:border-white/25 hover:bg-black/50'
+            }`}
+          >
+            <Store
+              className={`h-5 w-5 mb-2 transition-all duration-300 ${
+                form.deliveryMode === 'pickup' ? 'text-xeption-gold scale-110' : 'text-gray-500 group-hover:text-gray-300'
+              }`}
+            />
+            <span className="block text-white font-bold uppercase text-[10px] tracking-wider">En boutique</span>
+            <span className="text-green-400 text-[10px] font-mono font-bold">Gratuit</span>
+          </button>
+        </div>
       </div>
+    );
 
-      <div className="flex space-x-4 mt-8">
-        <button onClick={form.prevStep} className="px-8 py-4 text-gray-400 border border-white/10 hover:border-white hover:text-white font-bold uppercase text-xs tracking-widest transition-colors bg-black/20">Retour</button>
-        <button onClick={handleNext} className="flex-1 bg-xeption-gold text-black font-bold py-4 font-tech uppercase tracking-wider hover:bg-white shadow-lg transition-colors">Continuer vers Paiement</button>
+    const totalAndActionsBlock = (
+      <>
+        <div className="rounded-xl border border-white/10 bg-black/40 p-4 relative overflow-hidden">
+          {questComplete && (
+            <div className="absolute inset-0 bg-green-500/[0.03] pointer-events-none" />
+          )}
+          <div className="space-y-1.5 text-sm mb-3 relative z-10">
+            <div className="flex justify-between text-gray-400 text-xs">
+              <span>Sous-total</span>
+              <span className="font-mono text-white">{form.subtotal.toLocaleString('fr-FR')} FCFA</span>
+            </div>
+            <div className="flex justify-between text-gray-400 text-xs items-start gap-2">
+              <span>{form.deliveryMode === 'delivery' ? 'Livraison' : 'Retrait'}</span>
+              <span className="text-right">
+                {form.deliveryMode === 'pickup' ? (
+                  <span className="font-mono text-green-400">Gratuit</span>
+                ) : form.deliveryFee === 0 ? (
+                  <span className="font-mono text-green-400">
+                    Gratuit
+                    {form.qualifiesForFreeDelivery && form.zoneDeliveryFee > 0 && (
+                      <span className="block text-[9px] text-gray-500 line-through">
+                        {form.zoneDeliveryFee.toLocaleString('fr-FR')} FCFA
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <span className="font-mono text-white">
+                    {form.deliveryFee.toLocaleString('fr-FR')} FCFA
+                  </span>
+                )}
+              </span>
+            </div>
+            {form.deliveryMode === 'delivery' && <FreeDeliveryHint className="mb-1" />}
+          </div>
+          <div className="border-t border-dashed border-white/15 pt-3 flex justify-between items-end relative z-10">
+            <span className="text-gray-400 text-[10px] uppercase tracking-widest font-bold">Total</span>
+            <div className="text-right">
+              <span className="text-xl lg:text-2xl font-bold font-tech text-white">{form.total.toLocaleString('fr-FR')}</span>
+              <span className="text-xeption-gold text-xs font-bold ml-1">FCFA</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={form.prevStep}
+            className="px-5 py-3 text-gray-400 border border-white/10 hover:border-white/30 hover:text-white font-bold uppercase text-[10px] tracking-widest transition-all bg-black/30 rounded-lg"
+          >
+            Retour
+          </button>
+          <button
+            onClick={handleNext}
+            className={`flex-1 font-bold py-3 font-tech uppercase tracking-wider text-xs transition-all rounded-lg flex items-center justify-center gap-2 group ${
+              questComplete
+                ? 'bg-xeption-gold text-black hover:bg-white shadow-[0_0_30px_rgba(255,215,0,0.45)] animate-pulse hover:animate-none'
+                : 'bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed'
+            }`}
+            disabled={!questComplete}
+          >
+            {questComplete ? (
+              <>
+                Débloquer le paiement
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </>
+            ) : (
+              <>
+                {questTotal - questDone} info{questTotal - questDone > 1 ? 's' : ''} restante{questTotal - questDone > 1 ? 's' : ''}
+              </>
+            )}
+          </button>
+        </div>
+      </>
+    );
+
+    return (
+      <div className="max-w-6xl mx-auto w-full relative overflow-hidden rounded-lg border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_0_60px_rgba(0,0,0,0.5)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-xeption-gold/60 to-transparent" />
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-xeption-gold/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-xeption-gold/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="p-5 sm:p-6 lg:p-8 relative z-10">
+          <div className="text-center mb-5 lg:hidden">
+            <p className="text-[10px] font-tech uppercase tracking-[0.35em] text-gray-500 mb-1">-- Mission checkout --</p>
+            <div className="flex items-center justify-center gap-2">
+              <Zap className="h-4 w-4 text-xeption-gold animate-pulse" />
+              <h2 className="text-base font-bold uppercase tracking-widest font-tech text-white">
+                C&apos;est presque dans la boîte !
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)] lg:gap-8 lg:items-start">
+            {/* Panneau gauche — formulaire */}
+            <div className="order-3 lg:order-none space-y-3">
+              <div className="hidden lg:flex items-center gap-2 mb-1">
+                <User className="h-4 w-4 text-xeption-gold" />
+                <h3 className="text-sm font-tech font-bold uppercase tracking-widest text-white">Tes coordonnées</h3>
+              </div>
+
+              <PlayfulField
+                step={1}
+                label="Qui commande ?"
+                hint="Ton nom pour la commande et l'appel WhatsApp"
+                doneMessage={`Respect ${firstName}, c'est noté`}
+                value={form.formData.name}
+                onChange={(v) => form.setFormData({ ...form.formData, name: v })}
+                placeholder="Ex: Samuel Eto'o"
+                icon={<User className="h-4 w-4" />}
+                isValid={nameValid}
+                delayClass="duration-300"
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+                <PlayfulField
+                  step={2}
+                  label="Ton WhatsApp"
+                  hint="Numéro actif pour l'appel"
+                  doneMessage="Numéro validé"
+                  value={form.formData.phone}
+                  onChange={(v) => form.setFormData({ ...form.formData, phone: v })}
+                  placeholder="Ex: 699 12 34 56"
+                  type="tel"
+                  icon={<Phone className="h-4 w-4" />}
+                  isValid={phoneValid}
+                  delayClass="duration-500"
+                />
+                <PlayfulField
+                  step={3}
+                  label="Email facture"
+                  hint="Optionnel — facture PDF"
+                  doneMessage="Facture prête par mail"
+                  value={form.formData.email}
+                  onChange={(v) => form.setFormData({ ...form.formData, email: v })}
+                  placeholder="Ex: samuel@..."
+                  type="email"
+                  optional
+                  icon={<Mail className="h-4 w-4" />}
+                  isValid={emailValid}
+                  delayClass="duration-700"
+                />
+              </div>
+
+              {form.deliveryMode === 'delivery' ? (
+                <DeliveryLocationSelect
+                  step={4}
+                  zones={deliveryZones}
+                  selectedZoneId={form.selectedDeliveryZone?.id ?? ''}
+                  neighborhood={form.formData.neighborhood}
+                  onZoneChange={form.setSelectedDeliveryZone}
+                  onNeighborhoodChange={form.setNeighborhood}
+                  isLoading={deliveryZonesLoading}
+                  isValid={locationValid}
+                />
+              ) : (
+                <div className="relative overflow-hidden rounded-xl border border-xeption-gold/25 bg-gradient-to-br from-xeption-gold/8 to-transparent p-4 flex items-start gap-3 animate-in fade-in duration-300">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-xeption-gold/15 border border-xeption-gold/30 flex items-center justify-center">
+                    <MapPin className="h-5 w-5 text-xeption-gold" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold uppercase text-xs mb-0.5 tracking-wide">Retrait · Mfoundi Mall</h4>
+                    <p className="text-gray-400 text-[11px]">Yaoundé · Boutique 2063</p>
+                    <p className="text-xeption-gold/90 text-[9px] uppercase tracking-widest mt-1.5 font-bold">N&apos;oublie pas ton ID</p>
+                  </div>
+                </div>
+              )}
+
+              <AddMoreProductsBlock />
+              <CartProductsRecap />
+            </div>
+
+            {/* Panneau droit — mission + livraison + total */}
+            <div className="order-2 lg:order-none flex flex-col gap-4 lg:sticky lg:top-2">
+              <div className="hidden lg:block">
+                <p className="text-[10px] font-tech uppercase tracking-[0.35em] text-gray-500 mb-1">-- Mission checkout --</p>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-xeption-gold animate-pulse" />
+                  <h2 className="text-base font-bold uppercase tracking-widest font-tech text-white">
+                    Presque dans la boîte !
+                  </h2>
+                </div>
+                <p className="text-gray-500 text-[11px] mt-1">
+                  {questTotal} infos et tu débloques le paiement.
+                </p>
+              </div>
+
+              <div className="order-1 lg:order-none">{questProgressBlock}</div>
+              <div className="order-2 lg:order-none">{deliveryModeBlock}</div>
+              <div className="order-3 lg:order-none hidden lg:flex lg:flex-col lg:gap-4">{totalAndActionsBlock}</div>
+            </div>
+
+            {/* Mobile — total + actions en bas */}
+            <div className="order-4 lg:hidden flex flex-col gap-4">{totalAndActionsBlock}</div>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPayment = () => (
     <div className="max-w-2xl mx-auto w-full bg-black/50 backdrop-blur-xl border border-white/10 p-8 sm:p-12 shadow-2xl rounded-sm">
       <h3 className="text-3xl font-bold text-white font-tech uppercase mb-8 text-center drop-shadow-md">Règlement</h3>
-      <div className="space-y-4">
-        {Object.values(PaymentMethod).map((method) => (
-          <div
-            key={method}
-            onClick={() => form.setSelectedPayment(method)}
-            className={`p-6 border cursor-pointer transition-all flex items-center justify-between group relative overflow-hidden ${
-              form.selectedPayment === method ? 'border-xeption-gold bg-xeption-gold/10' : 'border-white/10 bg-black/40 hover:border-white/30 hover:bg-black/60'
-            }`}
-          >
-            <div className="flex items-center space-x-6 relative z-10">
-              {method.includes('Orange') && <div className="w-12 h-12 bg-orange-600 flex items-center justify-center text-white font-bold rounded-sm shadow-lg">OM</div>}
-              {method.includes('MTN') && <div className="w-12 h-12 bg-yellow-400 flex items-center justify-center text-black font-bold rounded-sm shadow-lg">MoMo</div>}
-              {method.includes('Cash') && <div className="w-12 h-12 bg-green-700 flex items-center justify-center text-white font-bold rounded-sm shadow-lg">$$</div>}
-              <div>
-                <span className="block text-white font-tech font-bold uppercase tracking-wide text-lg group-hover:text-xeption-gold transition-colors">{method}</span>
-                <span className="text-xs text-gray-500">
-                  {method.includes('Cash')
-                    ? 'Paiement au retrait ou à la livraison'
-                    : 'Instructions de règlement communiquées par la boutique'}
-                </span>
+      <div className="space-y-3">
+        {Object.values(PaymentMethod).map((method) => {
+          const isComingSoon = method === PaymentMethod.OM || method === PaymentMethod.MOMO;
+          const isSelected = form.selectedPayment === method;
+          return (
+            <button
+              key={method}
+              type="button"
+              disabled={isComingSoon}
+              onClick={() => {
+                if (!isComingSoon) {
+                  form.setSelectedPayment(method);
+                }
+              }}
+              className={`w-full p-4 sm:p-5 border transition-all flex items-center gap-3 sm:gap-4 group relative text-left rounded-lg ${
+                isComingSoon
+                  ? 'opacity-40 bg-black/20 border-white/5 cursor-not-allowed select-none'
+                  : isSelected
+                    ? 'border-xeption-gold bg-xeption-gold/10 shadow-[0_0_20px_rgba(255,215,0,0.08)] cursor-pointer'
+                    : 'border-white/15 bg-black/40 hover:border-white/35 hover:bg-black/60 cursor-pointer'
+              }`}
+            >
+              <div
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                  isComingSoon
+                    ? 'border-white/20 bg-black/40'
+                    : isSelected
+                      ? 'border-xeption-gold bg-xeption-gold/20 shadow-[0_0_12px_rgba(255,215,0,0.4)]'
+                      : 'border-white/55 bg-black/60'
+                }`}
+                aria-hidden
+              >
+                {isSelected && !isComingSoon ? (
+                  <div className="w-3 h-3 rounded-full bg-xeption-gold shadow-[0_0_8px_#FFD700]" />
+                ) : null}
+              </div>
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 relative z-10">
+                {method.includes('Orange') && (
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 bg-orange-600/70 grayscale-[30%] flex items-center justify-center text-white font-bold rounded-sm shadow shrink-0">OM</div>
+                )}
+                {method.includes('MTN') && (
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 bg-yellow-500/70 grayscale-[30%] flex items-center justify-center text-black font-bold rounded-sm shadow shrink-0">MoMo</div>
+                )}
+                {method.includes('Cash') && (
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 bg-green-700 flex items-center justify-center text-white font-bold rounded-sm shadow-lg shrink-0">$$</div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className={`block font-tech font-bold uppercase tracking-wide text-sm sm:text-lg leading-tight ${
+                      isComingSoon ? 'text-gray-400' : 'text-white group-hover:text-xeption-gold transition-colors'
+                    }`}>
+                      {method}
+                    </span>
+                    {isComingSoon && (
+                      <span className="inline-flex items-center text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-white/10 text-xeption-gold border border-xeption-gold/30">
+                        Bientôt
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] sm:text-xs text-gray-500 leading-snug mt-0.5 block">
+                    {isComingSoon
+                      ? 'Paiement direct bientôt disponible'
+                      : method.includes('Cash')
+                        ? 'Paiement au retrait ou à la livraison'
+                        : 'Instructions de règlement communiquées par la boutique'}
+                  </span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {form.selectedPayment === PaymentMethod.OM && (
+        <div className="mt-4 bg-orange-900/20 border border-orange-500/30 p-5 rounded relative overflow-hidden backdrop-blur-sm transition-all duration-300">
+          <p className="text-orange-500 text-xs font-bold mb-3 uppercase tracking-widest relative z-10">Indications Orange Money</p>
+          <div className="space-y-3 font-mono text-sm text-gray-300 relative z-10">
+            <div className="flex justify-between border-b border-orange-500/10 pb-2"><span>Code USSD</span> <span className="text-white font-bold">#150*47#</span></div>
+            <div className="flex items-center justify-between border-b border-orange-500/10 pb-2">
+              <span>Code Marchand</span>
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold tracking-wider">{PAYMENT_DETAILS.OM.merchantCode}</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await copyToClipboard(PAYMENT_DETAILS.OM.merchantCode);
+                    setCopiedMerchantCode('om');
+                    setTimeout(() => setCopiedMerchantCode(null), 2000);
+                  }}
+                  className="px-2 py-1 rounded bg-orange-500/15 hover:bg-orange-500/30 text-orange-400 hover:text-white transition-colors flex items-center gap-1 text-[11px] font-sans border border-orange-500/25"
+                  title="Copier le code marchand"
+                >
+                  {copiedMerchantCode === 'om' ? (
+                    <>
+                      <CheckCircle className="w-3 h-3 text-green-400" />
+                      <span className="text-green-400 font-bold">Copié</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copier</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
-            {form.selectedPayment === method && <div className="w-4 h-4 bg-xeption-gold rounded-full shadow-[0_0_10px_#FFD700]"></div>}
+            <div className="flex justify-between">
+              <span>Montant à payer</span>
+              <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span>
+            </div>
           </div>
-        ))}
+          <p className="text-gray-400 text-xs mt-3 relative z-10">
+            La commande est enregistrée et le stock réservé. Le règlement Orange Money se fait à la livraison ou au retrait en boutique — notre équipe t&apos;appelle pour confirmer.
+          </p>
+        </div>
+      )}
+
+      {form.selectedPayment === PaymentMethod.MOMO && (
+        <div className="mt-4 bg-yellow-900/20 border border-yellow-500/30 p-5 rounded relative overflow-hidden backdrop-blur-sm transition-all duration-300">
+          <p className="text-yellow-500 text-xs font-bold mb-3 uppercase tracking-widest relative z-10">Indications MTN MoMo</p>
+          <div className="space-y-3 font-mono text-sm text-gray-300 relative z-10">
+            <div className="flex justify-between border-b border-yellow-500/10 pb-2"><span>Code USSD</span> <span className="text-white font-bold">*126#</span></div>
+            <div className="flex items-center justify-between border-b border-yellow-500/10 pb-2">
+              <span>Code Marchand</span>
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold tracking-wider">{PAYMENT_DETAILS.MOMO.merchantCode}</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await copyToClipboard(PAYMENT_DETAILS.MOMO.merchantCode);
+                    setCopiedMerchantCode('momo');
+                    setTimeout(() => setCopiedMerchantCode(null), 2000);
+                  }}
+                  className="px-2 py-1 rounded bg-yellow-500/15 hover:bg-yellow-500/30 text-yellow-400 hover:text-white transition-colors flex items-center gap-1 text-[11px] font-sans border border-yellow-500/25"
+                  title="Copier le code marchand"
+                >
+                  {copiedMerchantCode === 'momo' ? (
+                    <>
+                      <CheckCircle className="w-3 h-3 text-green-400" />
+                      <span className="text-green-400 font-bold">Copié</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copier</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-between">
+              <span>Montant à payer</span>
+              <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span>
+            </div>
+          </div>
+          <p className="text-gray-400 text-xs mt-3 relative z-10">
+            La commande est enregistrée et le stock réservé. Le règlement MTN MoMo se fait à la livraison ou au retrait — notre équipe te contacte avant l&apos;encaissement.
+          </p>
+        </div>
+      )}
+
+      {form.selectedPayment === PaymentMethod.CASH && (
+        <div className="mt-4 bg-emerald-950/20 border border-emerald-500/30 p-5 rounded relative overflow-hidden backdrop-blur-sm transition-all duration-300">
+          <p className="text-emerald-400 text-xs font-bold mb-3 uppercase tracking-widest relative z-10">Règlement au retrait ou à la livraison</p>
+          <div className="space-y-2 font-mono text-sm text-gray-300 relative z-10">
+            <div className="flex justify-between border-b border-emerald-500/10 pb-2">
+              <span>Mode de réception</span>
+              <span className="text-white font-bold">{form.deliveryMode === 'pickup' ? 'Retrait boutique' : 'Livraison à domicile'}</span>
+            </div>
+            {form.trocVoucher && (
+              <div className="flex justify-between text-amber-400 font-bold border-b border-emerald-500/10 pb-2">
+                <span>Bon Smart Troc ({form.trocVoucher.ref})</span>
+                <span className="font-mono">- {form.trocDiscount.toLocaleString('fr-FR')} FCFA</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>Montant à régler</span>
+              <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span>
+            </div>
+          </div>
+          <p className="text-gray-400 text-xs mt-3 relative z-10">
+            Paiement direct en espèces lors de la réception en main propre de ton colis.
+          </p>
+        </div>
+      )}
+
+      <div className="mt-4">
+        <TrocVoucherApplyBlock />
       </div>
 
-      <div className="mt-8 min-h-[100px] transition-all duration-300">
-        {form.selectedPayment === PaymentMethod.OM && (
-          <div className="bg-orange-900/20 border border-orange-500/30 p-6 rounded relative overflow-hidden backdrop-blur-sm">
-            <div className="absolute -right-4 -top-4 text-orange-500/10"><Smartphone size={100} /></div>
-            <p className="text-orange-500 text-xs font-bold mb-4 uppercase tracking-widest relative z-10">Indications Orange Money</p>
-            <div className="space-y-3 font-mono text-sm text-gray-300 relative z-10">
-              <div className="flex justify-between border-b border-orange-500/10 pb-2"><span>Code USSD</span> <span className="text-white font-bold">#150*47#</span></div>
-              <div className="flex justify-between border-b border-orange-500/10 pb-2"><span>Code Marchand</span> <span className="text-white font-bold">{PAYMENT_DETAILS.OM.merchantCode}</span></div>
-              <div className="flex justify-between"><span>Montant à payer</span> <span className="text-xeption-gold font-bold">{form.total.toLocaleString('fr-FR')} FCFA</span></div>
-            </div>
-            <p className="text-gray-400 text-xs mt-4 relative z-10">
-              La commande est enregistrée sur le site. Le règlement Mobile Money est ensuite confirmé avec la boutique avant préparation ou retrait.
-            </p>
-          </div>
-        )}
-        {form.selectedPayment === PaymentMethod.MOMO && (
-          <div className="bg-yellow-900/20 border border-yellow-500/30 p-6 rounded relative overflow-hidden backdrop-blur-sm">
-            <div className="absolute -right-4 -top-4 text-yellow-500/10"><Smartphone size={100} /></div>
-            <p className="text-yellow-500 text-xs font-bold mb-4 uppercase tracking-widest relative z-10">Indications MTN MoMo</p>
-            <div className="space-y-3 font-mono text-sm text-gray-300 relative z-10">
-              <div className="flex justify-between border-b border-yellow-500/10 pb-2"><span>Code USSD</span> <span className="text-white font-bold">*126#</span></div>
-              <div className="flex justify-between border-b border-yellow-500/10 pb-2"><span>Code Marchand</span> <span className="text-white font-bold">{PAYMENT_DETAILS.MOMO.merchantCode}</span></div>
-            </div>
-            <p className="text-gray-400 text-xs mt-4 relative z-10">
-              La validation finale du règlement peut nécessiter une confirmation manuelle avec la boutique avant expédition ou retrait.
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6 flex justify-center">
-        <HCaptcha ref={captchaRef} sitekey={HCAPTCHA_SITE_KEY} onVerify={(token) => setCaptchaToken(token)} onExpire={() => setCaptchaToken(null)} onError={() => setCaptchaToken(null)} />
+      <div className="mt-5 flex flex-col items-center gap-2">
+        <p className="text-[10px] font-tech uppercase tracking-widest text-gray-500 font-bold">
+          Vérification anti-robot
+        </p>
+        <div className="rounded-lg border border-white/15 bg-black/60 p-2 shadow-lg backdrop-blur-sm">
+          <HCaptcha
+            ref={captchaRef}
+            sitekey={HCAPTCHA_SITE_KEY}
+            theme="dark"
+            onVerify={(token) => setCaptchaToken(token)}
+            onExpire={() => setCaptchaToken(null)}
+            onError={() => setCaptchaToken(null)}
+          />
+        </div>
       </div>
 
       <div className="flex space-x-4 mt-8">
@@ -337,27 +1268,45 @@ const Checkout: React.FC<CheckoutProps> = ({
   );
 
   const renderSuccess = () => (
-    <div className="max-w-xl mx-auto w-full bg-black/50 backdrop-blur-xl border border-white/10 p-12 text-center animate-in fade-in zoom-in duration-500 shadow-2xl relative overflow-hidden rounded-sm">
+    <div className="max-w-xl mx-auto w-full bg-black/50 backdrop-blur-xl border border-white/10 p-8 sm:p-12 text-center animate-in fade-in zoom-in duration-500 shadow-2xl relative overflow-hidden rounded-sm">
       <div className="absolute inset-0 bg-green-500/5"></div>
       <div className="relative z-10">
-        <div className="w-28 h-28 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-green-500/30 shadow-[0_0_50px_rgba(34,197,94,0.2)]">
-          <CheckCircle className="h-12 w-12 text-green-500" />
+        <div className="w-24 h-24 sm:w-28 sm:h-28 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-green-500/30 shadow-[0_0_50px_rgba(34,197,94,0.2)]">
+          <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-500" />
         </div>
-        <h3 className="text-4xl font-bold text-white font-tech uppercase mb-4 drop-shadow-lg">C'est Validé !</h3>
-        <p className="text-gray-300 text-lg mb-6 leading-relaxed">
+        <h3 className="text-3xl sm:text-4xl font-bold text-white font-tech uppercase mb-3 drop-shadow-lg">C'est Validé !</h3>
+        <p className="text-gray-300 text-base sm:text-lg mb-6 leading-relaxed">
           Respect <span className="text-xeption-gold font-bold">{form.formData.name}</span>.<br />
           Ta commande est enregistrée. Notre équipe t'appelle au <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded">{form.formData.phone}</span>.
         </p>
 
-        <div className="bg-[#18181b] border border-xeption-gold/30 p-6 rounded-lg mb-8 relative overflow-hidden group">
+        {/* Bouton direct WhatsApp (Option A) */}
+        {orderWhatsAppUrl && (
+          <div className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-center">
+            <a
+              href={orderWhatsAppUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2.5 bg-green-600 hover:bg-green-500 text-white font-tech font-bold uppercase tracking-wider py-4 px-6 rounded-lg text-xs sm:text-sm shadow-[0_0_25px_rgba(34,197,94,0.35)] transition-all font-semibold"
+            >
+              <MessageCircle className="w-5 h-5 shrink-0" />
+              <span>Envoyer ma commande sur WhatsApp</span>
+            </a>
+            <p className="text-[11px] text-gray-400 mt-2 font-sans">
+              La discussion WhatsApp s&apos;ouvre automatiquement. Si elle a été bloquée par ton navigateur, clique sur le bouton vert ci-dessus.
+            </p>
+          </div>
+        )}
+
+        <div className="bg-[#18181b] border border-xeption-gold/30 p-5 sm:p-6 rounded-lg mb-6 sm:mb-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-16 h-16 bg-xeption-gold/10 rounded-full blur-xl group-hover:bg-xeption-gold/20 transition-all"></div>
             <div className="relative z-10">
-                <h4 className="text-xeption-gold font-bold uppercase text-sm mb-2 flex items-center justify-center gap-2"><Radar className="w-4 h-4 animate-pulse" /> Suivi Live</h4>
+                <h4 className="text-xeption-gold font-bold uppercase text-xs sm:text-sm mb-2 flex items-center justify-center gap-2"><Radar className="w-4 h-4 animate-pulse" /> Suivi Live</h4>
                 <p className="text-gray-400 text-xs mb-4">Copie ton numéro de commande pour suivre ton colis en temps réel.</p>
                 {order.createdOrderId && (
                     <div className="flex items-center justify-center gap-2 mb-4">
-                         <code className="bg-black/50 border border-white/10 px-4 py-2 rounded text-white font-mono font-bold tracking-widest text-lg">{order.createdOrderId}</code>
-                         <button onClick={() => { navigator.clipboard.writeText(order.createdOrderId || ''); setCopiedId(true); setTimeout(() => setCopiedId(false), 2000); }} className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-400 hover:text-white transition-colors" title="Copier">
+                         <code className="bg-black/50 border border-white/10 px-3 sm:px-4 py-2 rounded text-white font-mono font-bold tracking-widest text-base sm:text-lg break-all">{order.createdOrderId}</code>
+                         <button onClick={async () => { await copyToClipboard(order.createdOrderId || ''); setCopiedId(true); setTimeout(() => setCopiedId(false), 2000); }} className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-gray-400 hover:text-white transition-colors" title="Copier">
                              {copiedId ? <CheckCircle className="w-5 h-5 text-green-500"/> : <Copy className="w-5 h-5"/>}
                          </button>
                     </div>
@@ -374,9 +1323,24 @@ const Checkout: React.FC<CheckoutProps> = ({
             </div>
           )}
           {order.lastOrderHtml && (
-            <button onClick={handleDownloadInvoice} disabled={isPdfGenerating} className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-xeption-gold hover:text-white transition-colors py-2 border border-xeption-gold/30 hover:bg-xeption-gold hover:text-black rounded-sm p-3 mt-4 disabled:opacity-50 disabled:cursor-not-allowed">
-              {isPdfGenerating ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4" />} {isPdfGenerating ? 'Génération PDF...' : 'Télécharger la facture (PDF)'}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
+              <button
+                onClick={handleDownloadInvoice}
+                disabled={isPdfGenerating}
+                className="flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-xeption-gold hover:text-black hover:bg-xeption-gold transition-all py-3 px-4 border border-xeption-gold/40 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                {isPdfGenerating ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4" />}
+                {isPdfGenerating ? 'Génération...' : 'Télécharger la facture (PDF)'}
+              </button>
+              <button
+                onClick={handlePrintInvoice}
+                className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/10 transition-all py-3 px-4 border border-white/20 rounded-sm"
+                title="Imprimer ou enregistrer au format PDF via le navigateur"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimer</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -385,30 +1349,41 @@ const Checkout: React.FC<CheckoutProps> = ({
     </div>
   );
 
-  return (
-    <div className="fixed inset-0 z-[200] overflow-y-auto overflow-x-hidden bg-black/40 backdrop-blur-md">
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.02),transparent_70%)]"></div>
-      <div className="min-h-screen flex flex-col items-center justify-start pt-32 pb-12 px-4 sm:px-6">
-        <div className="w-full max-w-7xl flex justify-between items-center mb-10 relative z-20">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-1 bg-xeption-gold shadow-[0_0_10px_#FFD700]"></div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white font-tech uppercase tracking-wider drop-shadow-lg">Checkout <span className="text-xeption-gold">Process</span></h1>
+  return typeof document !== 'undefined'
+    ? createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-y-auto overflow-x-hidden bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.02),transparent_70%)]"></div>
+          <div className="min-h-screen flex flex-col items-center justify-start pt-4 sm:pt-5 pb-8 px-4 sm:px-6">
+            <div className={`w-full max-w-7xl flex justify-between items-center relative z-20 ${
+              isCompactCheckoutStep ? 'mb-3' : 'mb-6'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1 bg-xeption-gold shadow-[0_0_10px_#FFD700]"></div>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white font-tech uppercase tracking-wider drop-shadow-lg">
+                  Finaliser <span className="text-xeption-gold">la commande</span>
+                </h1>
+              </div>
+              <button onClick={onClose} className="group flex items-center gap-2 text-gray-300 hover:text-white transition-colors bg-black/20 p-2 rounded-full backdrop-blur-sm border border-white/5 hover:border-white/20">
+                <span className="text-xs font-bold uppercase tracking-widest hidden sm:block px-2">Fermer</span>
+                <div className="border border-gray-500 rounded-full p-1 group-hover:border-white transition-colors"><X className="h-4 w-4" /></div>
+              </button>
+            </div>
+            {form.step !== 'success' && <StepIndicator />}
+            <div className="w-full relative z-10 animate-in slide-in-from-bottom-10 duration-500">
+              {form.step === 'cart' && renderCart()}
+              {form.step === 'details' && renderDetails()}
+              {form.step === 'payment' && renderPayment()}
+              {form.step === 'success' && renderSuccess()}
+            </div>
           </div>
-          <button onClick={onClose} className="group flex items-center gap-2 text-gray-300 hover:text-white transition-colors bg-black/20 p-2 rounded-full backdrop-blur-sm border border-white/5 hover:border-white/20">
-            <span className="text-xs font-bold uppercase tracking-widest hidden sm:block px-2">Fermer</span>
-            <div className="border border-gray-500 rounded-full p-1 group-hover:border-white transition-colors"><X className="h-4 w-4" /></div>
-          </button>
-        </div>
-        {form.step !== 'success' && <StepIndicator />}
-        <div className="w-full relative z-10 animate-in slide-in-from-bottom-10 duration-500">
-          {form.step === 'cart' && renderCart()}
-          {form.step === 'details' && renderDetails()}
-          {form.step === 'payment' && renderPayment()}
-          {form.step === 'success' && renderSuccess()}
-        </div>
-      </div>
-    </div>
-  );
+        </div>,
+        document.body,
+      )
+    : null;
 };
 
 export default Checkout;

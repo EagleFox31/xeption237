@@ -488,7 +488,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                     ranges={data.ranges}
                     onCreateRange={brandMgr.createRange}
                     showAlert={confirm.alert}
-                    onClose={() => inventory.setEditingProduct(null)} 
+                    onClose={inventory.closeEditor} 
                     onSave={onSaveProduct} 
                     onChange={(u) => inventory.setEditingProduct(p => p ? ({ ...p, ...u }) : null)} 
                 />
@@ -615,6 +615,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         onEditProduct={inventory.setEditingProduct}
                         onDeleteProduct={onDeleteProduct}
                         onToggleFeatured={onToggleFeatured}
+                        pendingDraftProduct={inventory.pendingDraftProduct}
+                        onResumeDraft={inventory.resumeDraft}
+                        onDiscardDraft={inventory.discardDraft}
                       />
                     )}
                     {activeTab === 'packs' && <PacksTab packs={packsMgr.packs} products={products} onEditPack={packsMgr.setEditingPack} onDeletePack={onDeletePack} getHydratedItems={packsMgr.getHydratedItems} />}

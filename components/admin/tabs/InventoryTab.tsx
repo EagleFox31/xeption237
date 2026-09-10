@@ -39,6 +39,9 @@ interface InventoryTabProps {
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (id: string) => void;
   onToggleFeatured: (product: Product) => void;
+  pendingDraftProduct?: Product | null;
+  onResumeDraft?: (product: Product) => void;
+  onDiscardDraft?: () => void;
 }
 
 const labelBrand = (product: Product, brands: Brand[]) => {
@@ -104,6 +107,9 @@ const InventoryTab: React.FC<InventoryTabProps> = ({
   onEditProduct,
   onDeleteProduct,
   onToggleFeatured,
+  pendingDraftProduct,
+  onResumeDraft,
+  onDiscardDraft,
 }) => {
   const [search, setSearch] = useState('');
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
@@ -120,6 +126,42 @@ const InventoryTab: React.FC<InventoryTabProps> = ({
 
   return (
     <div className={`animate-in fade-in ${adminUi.tabViewportHWithActions} flex flex-col`}>
+      {pendingDraftProduct && (
+        <div className="mb-3 p-3 bg-xeption-gold/15 border border-xeption-gold/40 rounded-sm flex items-center justify-between gap-3 text-xs text-amber-200 shrink-0">
+          <div className="flex items-center gap-2 truncate">
+            <span className="w-2 h-2 rounded-full bg-xeption-gold animate-pulse shrink-0" />
+            <span className="truncate">
+              Brouillon non finalisé : <strong className="text-white">{pendingDraftProduct.name || 'Produit sans nom'}</strong>
+              {pendingDraftProduct.price ? ` (${pendingDraftProduct.price.toLocaleString()} FCFA)` : ''}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {onResumeDraft && (
+              <button
+                type="button"
+                onClick={() => onResumeDraft(pendingDraftProduct)}
+                className="px-3 py-1.5 bg-xeption-gold text-black text-[10px] font-bold uppercase rounded-sm hover:bg-white transition-colors"
+              >
+                Reprendre
+              </button>
+            )}
+            {onDiscardDraft && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Voulez-vous supprimer ce brouillon ?')) {
+                    onDiscardDraft();
+                  }
+                }}
+                className="p-1.5 text-white/50 hover:text-red-400 transition-colors"
+                title="Supprimer ce brouillon"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <div className="flex-1 min-h-0 relative">
         <TableShell
           className="h-full border-t border-white/10"

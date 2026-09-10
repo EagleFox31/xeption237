@@ -201,8 +201,10 @@ const verifyPrerenderOutput = (routes) => {
       errors.push(`sample product HTML missing: ${sampleRoute}`);
     } else {
       const sampleHtml = fs.readFileSync(samplePath, 'utf8');
-      if (!/<title>[^<]+Acheter au Cameroun[^<]*<\/title>/i.test(sampleHtml)) {
-        errors.push(`sample product page lacks SEO title: ${sampleRoute}`);
+      const titleMatch = sampleHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      const actualTitle = titleMatch ? titleMatch[1].trim() : '(aucune balise title)';
+      if (!/<title[^>]*>[\s\S]*?Acheter au Cameroun[\s\S]*?<\/title>/i.test(sampleHtml)) {
+        errors.push(`sample product page lacks SEO title: ${sampleRoute} (titre trouvé: "${actualTitle}")`);
       }
       if (!/application\/ld\+json/i.test(sampleHtml)) {
         errors.push(`sample product page lacks JSON-LD: ${sampleRoute}`);
@@ -292,7 +294,7 @@ const main = async () => {
      * qu'affiche index.html avant que Helmet ait pose le SEO de la route.
      */
     const titreRepli = (
-      fs.readFileSync(path.join(distDir, 'index.html'), 'utf8').match(/<title>([^<]*)<\/title>/) || [, '']
+      fs.readFileSync(path.join(distDir, 'index.html'), 'utf8').match(/<title[^>]*>([^<]*)<\/title>/i) || [, '']
     )[1].trim();
 
     const file = [...routes];

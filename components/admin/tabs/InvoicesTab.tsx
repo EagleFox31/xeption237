@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Order } from '../../../types';
-import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
+import { generateInvoiceHTML, generateInvoiceHTMLAsync, downloadInvoicePDF, printInvoiceHTML } from '../../../utils/invoiceGenerator';
 import { Printer, Download, Eye, FileText } from 'lucide-react';
 import TableShell from '../shared/TableShell';
 import { adminUi } from '../shared/adminUi';
@@ -15,53 +15,18 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ orders }) => {
   // Filter only valid orders (exclude pending/cancelled if desired, but keep all for accounting)
   const validOrders = orders.filter(o => o.status !== 'cancelled');
 
-  const handlePrint = (order: Order) => {
-    const html = generateInvoiceHTML(order);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
-      // Wait for resources to load then print
-      setTimeout(() => {
-          printWindow.focus();
-          printWindow.print();
-          printWindow.close();
-      }, 500);
-    }
+  const handlePrint = async (order: Order) => {
+    const html = await generateInvoiceHTMLAsync(order);
+    printInvoiceHTML(html);
   };
 
   const handleDownloadPDF = async (order: Order) => {
-    const html = generateInvoiceHTML(order);
-    const element = document.createElement('div');
-    element.innerHTML = html;
-    element.style.width = '700px'; 
-    element.style.background = 'white';
-    
-    // Create container offscreen
-    const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.left = '-10000px';
-    container.style.top = '0';
-    container.appendChild(element);
-    document.body.appendChild(container);
-
-    const safeName = order.customerName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-
+    const html = await generateInvoiceHTMLAsync(order);
+    const safeName = (order.customerName || 'client').replace(/[^a-z0-9]/gi, '_').toLowerCase();
     try {
-        const html2pdfModule = await import('html2pdf.js');
-        const html2pdf = html2pdfModule.default;
-        const opt = {
-            margin:       0, // Zero margin since CSS handles @page margin
-            filename:     `Facture_${order.id}_${safeName}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        await html2pdf().set(opt).from(element).save();
+      await downloadInvoicePDF(html, `Facture_${order.id}_${safeName}.pdf`);
     } catch {
-        alert("Impossible de générer le PDF pour le moment.");
-    } finally {
-        document.body.removeChild(container);
+      alert("Impossible de générer le PDF pour le moment.");
     }
   };
 

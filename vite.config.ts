@@ -33,11 +33,11 @@ export default defineConfig(({ mode }) => {
     },
     appType: 'spa',
     preview: {
-      host: env.VITE_HOST || env.HOST || '127.0.0.1',
+      host: env.VITE_HOST || env.HOST || true,
       port: Number.isFinite(parsedPort) ? parsedPort : 4173,
     },
     server: {
-      host: env.VITE_HOST || env.HOST || '127.0.0.1',
+      host: env.VITE_HOST || env.HOST || true,
       port: Number.isFinite(parsedPort) ? parsedPort : 4173,
     },
   };

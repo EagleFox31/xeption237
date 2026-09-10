@@ -15,6 +15,7 @@ export interface CheckoutDraft {
   deliveryMode: 'delivery' | 'pickup';
   deliveryZoneId: string | null;
   deliveryZoneSnapshot: DeliveryZone | null;
+  trocVoucher?: { ref: string; credit: number; brand?: string; model?: string } | null;
 }
 
 const STORAGE_KEY = 'xeption_checkout_draft_v1';

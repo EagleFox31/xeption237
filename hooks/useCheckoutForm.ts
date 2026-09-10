@@ -37,13 +37,23 @@ export const useCheckoutForm = (cart: CartItem[]) => {
     const [selectedDeliveryZone, setSelectedDeliveryZoneState] = useState<DeliveryZone | null>(
         initialDraft?.deliveryZoneSnapshot ?? null,
     );
+    const [trocVoucher, setTrocVoucher] = useState<{
+        ref: string;
+        credit: number;
+        brand?: string;
+        model?: string;
+        imei?: string;
+    } | null>(initialDraft?.trocVoucher ?? null);
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const zoneDeliveryFee = deliveryMode === 'pickup' ? 0 : (selectedDeliveryZone?.price ?? 0);
     const deliveryFee = cart.length > 0
         ? computeDeliveryFee(subtotal, deliveryMode, zoneDeliveryFee)
         : 0;
-    const total = subtotal + deliveryFee;
+    const trocDiscount = trocVoucher
+        ? Math.min(subtotal + deliveryFee, Math.round(trocVoucher.credit))
+        : 0;
+    const total = Math.max(0, subtotal + deliveryFee - trocDiscount);
 
     useEffect(() => {
         if (step === 'success') return;
@@ -53,8 +63,9 @@ export const useCheckoutForm = (cart: CartItem[]) => {
             deliveryMode,
             deliveryZoneId: selectedDeliveryZone?.id ?? null,
             deliveryZoneSnapshot: selectedDeliveryZone,
+            trocVoucher,
         });
-    }, [step, formData, deliveryMode, selectedDeliveryZone]);
+    }, [step, formData, deliveryMode, selectedDeliveryZone, trocVoucher]);
 
     const setSelectedDeliveryZone = (zone: DeliveryZone) => {
         setSelectedDeliveryZoneState((prev) => {
@@ -98,9 +109,28 @@ export const useCheckoutForm = (cart: CartItem[]) => {
         if (step === 'payment') setStep('details');
     };
 
+    const goToStep = (targetStep: 'cart' | 'details' | 'payment') => {
+        if (targetStep === 'cart') {
+            setStep('cart');
+        } else if (targetStep === 'details') {
+            if (cart.length > 0) setStep('details');
+        } else if (targetStep === 'payment') {
+            if (canProceedToPayment()) setStep('payment');
+        }
+    };
+
+    const applyTrocVoucher = (voucher: { ref: string; credit: number; brand?: string; model?: string; imei?: string }) => {
+        setTrocVoucher(voucher);
+    };
+
+    const removeTrocVoucher = () => {
+        setTrocVoucher(null);
+    };
+
     const clearDraft = () => {
         clearCheckoutDraft();
         hasRestoredDraft.current = false;
+        setTrocVoucher(null);
     };
 
     return {
@@ -111,9 +141,11 @@ export const useCheckoutForm = (cart: CartItem[]) => {
         selectedDeliveryZone, setSelectedDeliveryZone, syncDeliveryZone,
         setNeighborhood,
         subtotal, deliveryFee, zoneDeliveryFee, total,
+        trocVoucher, trocDiscount,
+        applyTrocVoucher, removeTrocVoucher,
         qualifiesForFreeDelivery: qualifiesForFreeDelivery(subtotal, deliveryMode),
         freeDeliveryRemaining: freeDeliveryRemaining(subtotal),
-        nextStep, prevStep,
+        nextStep, prevStep, goToStep,
         clearDraft,
         hasRestoredDraft: hasRestoredDraft.current,
     };

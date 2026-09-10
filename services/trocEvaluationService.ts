@@ -655,15 +655,6 @@ export const upsertSession = async (
     sessionKey,
     step,
   });
-
-  // Non-bloquant intentionnellement — un échec de tracking ne doit pas bloquer le flow.
-  console.warn('[troc] session tracking skipped', {
-    code: insertError.code,
-    message: insertError.message,
-    sessionKey,
-    step,
-    phase: 'insert',
-  });
 };
 
 // ─── Dossier partiel (photos uploadées) ───────────────────────────────────────

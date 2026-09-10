@@ -8,6 +8,7 @@ import {
   isFeedbackKind,
   isInviteDue,
 } from '../utils/orderFeedback';
+import { buildPublicSiteUrl } from '../utils/publicSiteUrl';
 
 export type DueFeedbackInvite = {
   token: string;
@@ -30,15 +31,8 @@ export type PublicFeedbackInvite = {
   items: { id?: string; name?: string }[];
 };
 
-const publicAppOrigin = (): string => {
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
-  }
-  return 'https://www.xeptionetwork.shop';
-};
-
 export const feedbackPageUrl = (token: string): string =>
-  `${publicAppOrigin()}${buildFeedbackPagePath(token)}`;
+  buildPublicSiteUrl(buildFeedbackPagePath(token));
 
 export const openFeedbackWhatsApp = async (invite: DueFeedbackInvite): Promise<void> => {
   const url = buildCustomerWhatsAppUrl(

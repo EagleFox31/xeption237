@@ -68,3 +68,52 @@ export const buildTradeInAppointmentMessage = (request: TradeInRequest): string 
     ...(request.target_product_name ? [`Appareil souhaité : ${request.target_product_name}`] : []),
   ].join('\n');
 };
+
+export interface OrderConfirmationWhatsAppPayload {
+  orderId: string;
+  customerName: string;
+  customerPhone: string;
+  customerCity: string;
+  deliveryMode: 'delivery' | 'pickup';
+  items: { name: string; quantity: number; price: number }[];
+  subtotal: number;
+  deliveryFee: number;
+  trocVoucherDiscount?: { ref: string; amount: number } | null;
+  total: number;
+}
+
+export const buildOrderConfirmationWhatsAppMessage = (
+  payload: OrderConfirmationWhatsAppPayload,
+): string => {
+  const lines: string[] = [
+    'NOUVELLE COMMANDE — XEPTION NETWORK',
+    '',
+    `Référence : ${payload.orderId}`,
+    `Client : ${payload.customerName}`,
+    `Téléphone : ${payload.customerPhone}`,
+    `Mode : ${payload.deliveryMode === 'pickup' ? 'Retrait en boutique' : 'Livraison à domicile'}`,
+    `Lieu : ${payload.customerCity || (payload.deliveryMode === 'pickup' ? 'Boutique' : 'Non précisé')}`,
+    '',
+    'Articles :',
+    ...payload.items.map(
+      (item) => `• ${item.name} (x${item.quantity}) : ${formatFcfa(item.price * item.quantity)}`,
+    ),
+    '',
+    `Sous-total : ${formatFcfa(payload.subtotal)}`,
+    payload.deliveryFee > 0
+      ? `Frais de livraison : ${formatFcfa(payload.deliveryFee)}`
+      : 'Livraison : Offerte',
+  ];
+
+  if (payload.trocVoucherDiscount && payload.trocVoucherDiscount.amount > 0) {
+    lines.push(
+      `Déduction Bon Smart Troc (${payload.trocVoucherDiscount.ref}) : -${formatFcfa(payload.trocVoucherDiscount.amount)}`,
+    );
+  }
+
+  lines.push(`Total à régler : ${formatFcfa(payload.total)}`);
+  lines.push('');
+  lines.push('Bonjour, je viens de valider ma commande sur le site et je souhaite la confirmer.');
+
+  return lines.join('\n');
+};

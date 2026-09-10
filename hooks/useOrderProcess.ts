@@ -2,12 +2,16 @@
 import { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { Order, CartItem, PaymentMethod } from '../types';
-import { generateInvoiceHTML } from '../utils/invoiceGenerator';
+import { generateInvoiceHTML, buildOrderTrackingUrl, generateTrackingQRCode } from '../utils/invoiceGenerator';
 import { DB_TABLES, DB_SCHEMA } from '../constants/dbSchema';
+import { safeRandomUUID } from '../utils/uuid';
 
 interface OrderProcessProps {
     cart: CartItem[];
     total: number;
+    subtotal?: number;
+    deliveryFee?: number;
+    trocVoucher?: { ref: string; credit: number; brand?: string; model?: string; imei?: string } | null;
     formData: { name: string; phone: string; email: string; city: string };
     deliveryMode: 'delivery' | 'pickup';
     paymentMethod: PaymentMethod | null;
@@ -19,7 +23,7 @@ export const useOrderProcess = () => {
     const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
     const [lastOrderHtml, setLastOrderHtml] = useState<string | null>(null);
 
-    const submitOrder = async ({ cart, total, formData, deliveryMode, paymentMethod, captchaToken }: OrderProcessProps) => {
+    const submitOrder = async ({ cart, total, trocVoucher, formData, deliveryMode, paymentMethod, captchaToken }: OrderProcessProps) => {
         setIsProcessing(true);
         try {
             if (!captchaToken) throw new Error("Captcha requis.");
@@ -103,10 +107,43 @@ export const useOrderProcess = () => {
                 customerPhone: formData.phone,
                 customerCity: deliveryMode === 'pickup' ? 'Retrait Boutique' : formData.city,
                 deliveryMode,
-                date: displayDate
+                date: displayDate,
+                discountAmount: trocVoucher?.credit ?? 0,
+                discountReason: trocVoucher ? `Bon Smart Troc ${trocVoucher.ref}` : undefined,
+                trocVoucher: trocVoucher ? {
+                    ref: trocVoucher.ref,
+                    device_brand: trocVoucher.brand,
+                    device_model: trocVoucher.model,
+                    imei: trocVoucher.imei,
+                    trade_in_value: trocVoucher.credit,
+                } : undefined,
             };
 
-            const html = generateInvoiceHTML(invoiceData);
+            // Sauvegarde de la remise éventuelle sur la commande et liaison du bon Smart Troc
+            if (trocVoucher?.credit) {
+                const voucherRef = trocVoucher.ref;
+                supabase.from('orders').update({
+                    discount_amount: trocVoucher.credit,
+                }).eq('id', newOrderId).then(() => {}).catch(console.warn);
+
+                if (voucherRef) {
+                    supabase.from('trade_in_requests').update({
+                        completed_order_id: newOrderId,
+                        credit_applied: trocVoucher.credit,
+                    }).or(`voucher_reference.eq.${voucherRef},id.eq.${voucherRef}`)
+                    .then(() => {}).catch(console.warn);
+                }
+            }
+
+            const trackingUrl = buildOrderTrackingUrl(newOrderId);
+            let qrDataUrl = '';
+            try {
+                qrDataUrl = await generateTrackingQRCode(trackingUrl);
+            } catch (e) {
+                console.warn('QR Code tracking generation error:', e);
+            }
+
+            const html = generateInvoiceHTML(invoiceData, { qrDataUrl, trackingUrl });
             setLastOrderHtml(html);
 
             if (formData.email) {
@@ -148,7 +185,7 @@ export const useOrderProcess = () => {
             }).eq(DB_SCHEMA.CUSTOMERS.EMAIL, formData.email);
         } else {
             await supabase.from(DB_TABLES.CUSTOMERS).insert([{
-                [DB_SCHEMA.CUSTOMERS.ID]: crypto.randomUUID(),
+                [DB_SCHEMA.CUSTOMERS.ID]: safeRandomUUID(),
                 [DB_SCHEMA.CUSTOMERS.NAME]: formData.name,
                 [DB_SCHEMA.CUSTOMERS.EMAIL]: formData.email,
                 [DB_SCHEMA.CUSTOMERS.PHONE]: formData.phone,

@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Box, User, Phone, Mail, ShoppingCart, Grid, CheckCircle, Printer, ArrowRight, Search, SlidersHorizontal, Filter, X, Building2, AlertTriangle, FlaskConical, WifiOff, RefreshCw, CloudOff } from 'lucide-react';
 import { Product, CartItem, Order, Category, Brand, TradeInRequest } from '../../../types';
-import { generateInvoiceHTML } from '../../../utils/invoiceGenerator';
+import { generateInvoiceHTMLAsync, printInvoiceHTML } from '../../../utils/invoiceGenerator';
 import { optimizeImage } from '../../../utils/mediaOptimization';
 import { POS_PAYMENT_OPTIONS, type PosPaymentMethod } from '../../../utils/paymentMethods';
 import { isTestModeEnabled, setTestModeEnabled } from '../../../utils/testMode';
@@ -119,19 +119,10 @@ const PosTab: React.FC<PosTabProps> = ({
       });
   }, [products, brands, posSearch, selectedCategory, sortBy]);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
       if (!lastOrder) return;
-      const html = generateInvoiceHTML(lastOrder);
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-          printWindow.document.write(html);
-          printWindow.document.close();
-          setTimeout(() => { 
-              printWindow.focus(); 
-              printWindow.print(); 
-              printWindow.close(); 
-          }, 500);
-      }
+      const html = await generateInvoiceHTMLAsync(lastOrder);
+      printInvoiceHTML(html);
   };
 
   if (lastOrder) {

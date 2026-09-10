@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Product, AdminNotification, Order, Staff } from '../../types';
 import { supabase } from '../../services/supabaseClient'; // Import supabase
+import { safeRandomUUID } from '../../utils/uuid';
 
 // UI Composition
 import Sidebar from './layout/Sidebar';
@@ -18,6 +19,7 @@ import BackToShopLink from './layout/BackToShopLink';
 import ConfirmationModal from './modals/ConfirmationModal';
 import NotificationToast from './notifications/NotificationToast';
 import NotificationDrawer from './notifications/NotificationDrawer';
+import { notifyError } from '../../utils/notify';
 
 // Feature Tabs
 import DashboardTab from './tabs/DashboardTab';
@@ -101,7 +103,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       if (result.synced > 0) {
         data.refreshAll();
         notifs.addNotification({
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           type: 'success',
           title: 'Ventes synchronisées',
           message: `${result.synced} vente(s) hors ligne envoyée(s) au serveur.`,
@@ -112,7 +114,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       }
       if (result.failed > 0) {
         notifs.addNotification({
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           type: 'alert',
           title: 'Synchronisation incomplète',
           message: `${result.failed} vente(s) n'ont pas pu être envoyées — vérifie la file dans la caisse.`,
@@ -124,7 +126,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     },
     onStockConflict: (record) => {
       notifs.addNotification({
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         type: 'alert',
         title: 'Stock insuffisant',
         message: `La vente ${record.payload.orderId} n'a pas pu être synchronisée — stock épuisé entre-temps. Traite-la manuellement dans la caisse.`,
@@ -192,13 +194,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     return () => { cancelled = true; };
   }, []);
 
-  const orderPayment = useOrderPayment(data.refreshAll);
+  const orderPayment = useOrderPayment(
+    data.refreshAll,
+    async (orderId) => {
+      const targetOrder = data.orders.find((o) => o.id === orderId);
+      if (targetOrder && (targetOrder.status === 'shipped' || targetOrder.status === 'ready')) {
+        try {
+          await ordersMgr.updateStatus(orderId, 'delivered');
+        } catch (err) {
+          console.error('Erreur clôture commande après encaissement:', err);
+        }
+      }
+    },
+    currentStaffSession.sessionEmail,
+  );
   const staffMgr = useStaffManager({
     staffMembers: data.staffMembers,
     setStaffMembers: data.setStaffMembers,
     onFeedback: (title, message) => {
       notifs.addNotification({
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         type: 'alert',
         title,
         message,
@@ -405,7 +420,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
             onClose={() => setIsChangingPassword(false)}
             onDone={(message) =>
               notifs.addNotification({
-                id: crypto.randomUUID(),
+                id: safeRandomUUID(),
                 type: 'alert',
                 title: 'Sécurité',
                 message,
@@ -575,7 +590,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                           try {
                             await orderPayment.initiateCampayPayment(collectingOrder, phone);
                           } catch (e: unknown) {
-                            alert(e instanceof Error ? e.message : 'Erreur paiement');
+                            const msg = e instanceof Error ? e.message : 'Erreur lors du paiement Mobile Money';
+                            notifyError('Paiement Mobile Money', msg);
                           }
                         }}
                         onMarkCashPaid={async () => {
@@ -583,9 +599,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                           try {
                             await orderPayment.markCashPaid(collectingOrder.id);
                           } catch (e: unknown) {
-                            alert(e instanceof Error ? e.message : 'Erreur paiement');
+                            const msg = e instanceof Error ? e.message : 'Erreur lors du paiement Espèces';
+                            notifyError('Paiement Espèces', msg);
                           }
                         }}
+                        onResetPaymentError={() => orderPayment.setError(null)}
                       />
                     )}
                     {activeTab === 'inventory' && (

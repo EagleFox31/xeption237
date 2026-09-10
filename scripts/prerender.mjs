@@ -291,28 +291,62 @@ const findChromeExecutable = () => {
   return candidates.find((candidate) => fs.existsSync(candidate)) || null;
 };
 
+const decodeHtmlEntities = (value = '') =>
+  value.replace(/&(#(?:x[0-9a-f]+|\d+)|quot|amp|apos|lt|gt|nbsp);/gi, (full, entity) => {
+    const normalized = entity.toLowerCase();
+    const named = {
+      quot: '"',
+      amp: '&',
+      apos: "'",
+      lt: '<',
+      gt: '>',
+      nbsp: ' ',
+    };
+
+    if (named[normalized] !== undefined) return named[normalized];
+
+    if (normalized.startsWith('#x')) {
+      const codePoint = Number.parseInt(normalized.slice(2), 16);
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : full;
+    }
+
+    if (normalized.startsWith('#')) {
+      const codePoint = Number.parseInt(normalized.slice(1), 10);
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : full;
+    }
+
+    return full;
+  });
+
+/**
+ * Extrait un attribut HTML en respectant le guillemet qui l'a ouvert.
+ * Une apostrophe dans content="L'iPhone..." ne doit jamais fermer la valeur.
+ */
+const extractAttribute = (tag, attributeName) => {
+  const pattern = new RegExp(`\\b${attributeName}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, 'i');
+  const match = tag.match(pattern);
+  return match ? decodeHtmlEntities(match[2].trim()) : '';
+};
+
 const extractTitle = (html) => {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  return match ? match[1].trim() : '';
+  return match ? decodeHtmlEntities(match[1].trim()) : '';
 };
 
 const extractCanonical = (html) => {
   const tags = html.match(/<link\b[^>]*>/gi) || [];
-  const canonicalTag = tags.find((tag) => /\brel=["']canonical["']/i.test(tag));
-  if (!canonicalTag) return '';
-
-  const href = canonicalTag.match(/\bhref=["']([^"']+)["']/i);
-  return href ? href[1].trim() : '';
+  const canonicalTag = tags.find((tag) =>
+    extractAttribute(tag, 'rel').toLowerCase().split(/\s+/).includes('canonical'),
+  );
+  return canonicalTag ? extractAttribute(canonicalTag, 'href') : '';
 };
 
 const extractMetaContent = (html, selectorAttr, selectorValue) => {
   const tags = html.match(/<meta\b[^>]*>/gi) || [];
-  const selector = new RegExp(`\\b${selectorAttr}=["']${selectorValue}["']`, 'i');
-  const tag = tags.find((candidate) => selector.test(candidate));
-  if (!tag) return '';
-
-  const content = tag.match(/\bcontent=["']([^"']*)["']/i);
-  return content ? content[1].trim() : '';
+  const tag = tags.find(
+    (candidate) => extractAttribute(candidate, selectorAttr).toLowerCase() === selectorValue.toLowerCase(),
+  );
+  return tag ? extractAttribute(tag, 'content') : '';
 };
 
 const inspectProductHtml = (route, html) => {
@@ -360,7 +394,7 @@ const verifyPrerenderOutput = (routes) => {
   }
 
   const homeHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
-  if (!/<meta[^>]+name=["']description["'][^>]+content=["'][^"']{20,}["']/i.test(homeHtml)) {
+  if (extractMetaContent(homeHtml, 'name', 'description').length < 20) {
     errors.push('dist/index.html missing meta description (prerender may have failed)');
   }
   if (homeHtml.includes('Leader High-Tech & Troc au Cameroun') && !homeHtml.includes('Ndamba du Digital')) {

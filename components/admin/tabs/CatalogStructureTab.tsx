@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Layers, Plus, Tag, Trash2 } from 'lucide-react';
+import { ChevronRight, Layers, Plus, Tag, Trash2, ArrowLeft } from 'lucide-react';
 import type { Brand, Category, Product, ProductRange } from '../../../types';
 import { adminUi } from '../shared/adminUi';
 import {
@@ -36,11 +36,10 @@ interface CatalogStructureTabProps {
     addRange: () => void | Promise<void>;
     deleteRange: (id: string) => void | Promise<void>;
   };
-  showAlert: AdminAlertFn;
+  showAlert?: AdminAlertFn;
 }
 
 const panelClass = `${adminUi.surface} overflow-hidden flex flex-col min-h-0 h-full max-h-full`;
-
 const listScrollClass = 'flex-1 min-h-0 overflow-y-auto custom-scrollbar overscroll-contain';
 
 const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
@@ -57,6 +56,7 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
 }) => {
   const [selectedTypeSlug, setSelectedTypeSlug] = useState<string | null>(null);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [mobileStep, setMobileStep] = useState<'types' | 'brands' | 'ranges'>('types');
 
   useEffect(() => {
     if (!selectedTypeSlug && categories.length > 0) {
@@ -131,6 +131,7 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
   const handleSelectType = (slug: string) => {
     setSelectedTypeSlug(slug);
     setSelectedBrandId(null);
+    setMobileStep('brands');
   };
 
   const handleDeleteType = async (id: string, slug: string) => {
@@ -138,12 +139,16 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
     if (selectedTypeSlug === slug) {
       setSelectedTypeSlug(null);
       setSelectedBrandId(null);
+      setMobileStep('types');
     }
   };
 
   const handleDeleteBrand = async (id: string) => {
     await brandMgr.deleteBrand(id);
-    if (selectedBrandId === id) setSelectedBrandId(null);
+    if (selectedBrandId === id) {
+      setSelectedBrandId(null);
+      setMobileStep('brands');
+    }
   };
 
   const handleAddRange = async () => {
@@ -151,12 +156,17 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
       await brandMgr.addRange();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Impossible de créer la gamme.';
-      showAlert('Gamme non créée', msg, 'danger');
+      if (showAlert) {
+        showAlert('Gamme non créée', msg, 'danger');
+      } else {
+        alert(`Gamme non créée : ${msg}`);
+      }
     }
   };
 
   const handleSelectBrand = (brandId: string) => {
     setSelectedBrandId(normalizeCatalogBrandKey(brandId, brands));
+    setMobileStep('ranges');
   };
 
   const handleAddBrand = async () => {
@@ -165,14 +175,94 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
   };
 
   return (
-    <div
-      className="animate-in fade-in flex flex-col gap-3 min-h-0 h-[calc(100dvh-10rem)] md:h-[calc(100dvh-8rem)] overflow-hidden"
-    >
-      <div
-        className="grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-0 flex-1 grid-rows-3 lg:grid-rows-1 auto-rows-[minmax(0,1fr)]"
-      >
-        {/* COL 1 — TYPES */}
-        <div className={panelClass}>
+    <div className={`animate-in fade-in flex flex-col gap-3 min-h-0 ${adminUi.tabViewportH}`}>
+      {/* Sélecteur d'étapes Mobile (< lg) */}
+      <div className="lg:hidden flex flex-col gap-2 shrink-0">
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-black/40 border border-white/10 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setMobileStep('types')}
+            className={`py-2 px-1 text-center text-xs font-bold uppercase rounded-md transition-colors flex items-center justify-center gap-1 ${
+              mobileStep === 'types'
+                ? 'bg-xeption-gold text-black shadow-sm'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">1. Types</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileStep('brands')}
+            disabled={!selectedTypeSlug}
+            className={`py-2 px-1 text-center text-xs font-bold uppercase rounded-md transition-colors flex items-center justify-center gap-1 ${
+              mobileStep === 'brands'
+                ? 'bg-xeption-gold text-black shadow-sm'
+                : !selectedTypeSlug
+                  ? 'text-white/25 cursor-not-allowed'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Tag className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">2. Marques</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileStep('ranges')}
+            disabled={!selectedBrandId}
+            className={`py-2 px-1 text-center text-xs font-bold uppercase rounded-md transition-colors flex items-center justify-center gap-1 ${
+              mobileStep === 'ranges'
+                ? 'bg-xeption-gold text-black shadow-sm'
+                : !selectedBrandId
+                  ? 'text-white/25 cursor-not-allowed'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span className="truncate">3. Gammes</span>
+          </button>
+        </div>
+
+        {/* Fil d'ariane contextuel sur mobile */}
+        {mobileStep === 'brands' && selectedType && (
+          <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border border-white/10 rounded-md text-xs">
+            <span className="text-white/70 truncate">
+              Type actif : <strong className="text-xeption-gold">{selectedType.name}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => setMobileStep('types')}
+              className="text-xeption-gold hover:text-white text-[11px] font-bold uppercase shrink-0 ml-2 flex items-center gap-1"
+            >
+              <ArrowLeft className="w-3 h-3" /> Changer
+            </button>
+          </div>
+        )}
+
+        {mobileStep === 'ranges' && selectedType && selectedBrand && (
+          <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border border-white/10 rounded-md text-xs">
+            <span className="text-white/70 truncate">
+              <strong className="text-white/80">{selectedType.name}</strong> &gt;{' '}
+              <strong className="text-xeption-gold">{selectedBrand.name}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => setMobileStep('brands')}
+              className="text-xeption-gold hover:text-white text-[11px] font-bold uppercase shrink-0 ml-2 flex items-center gap-1"
+            >
+              <ArrowLeft className="w-3 h-3" /> Changer
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Conteneur des 3 colonnes (1 colonne plein écran sur mobile, 3 colonnes côte à côte sur desktop) */}
+      <div className="flex-1 min-h-0 lg:grid lg:grid-cols-3 lg:gap-3 flex flex-col">
+        {/* COLONNE 1 — TYPES */}
+        <div
+          className={`${panelClass} ${
+            mobileStep === 'types' ? 'flex flex-1' : 'hidden lg:flex'
+          }`}
+        >
           <div className="p-4 border-b border-white/10 bg-black/30 backdrop-blur-sm shrink-0">
             <h2 className="text-xs font-bold uppercase text-white flex items-center gap-2">
               <Layers className="w-4 h-4 text-xeption-gold" />
@@ -183,19 +273,26 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
                 type="text"
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onAddCategory();
+                  }
+                }}
                 placeholder="Nouveau type…"
-                className="flex-1 bg-black/50 border border-white/25 px-3 py-2 text-sm text-white placeholder:text-white/70 rounded-sm outline-none focus:border-xeption-gold"
+                className="flex-1 bg-black/50 border border-white/20 focus:border-xeption-gold px-3 py-2 text-sm text-white placeholder:text-white/40 rounded-sm outline-none transition-colors"
               />
               <button
                 type="button"
                 onClick={() => onAddCategory()}
-                className="shrink-0 bg-xeption-gold text-black p-2 rounded-sm hover:bg-white transition-colors"
+                className="shrink-0 bg-xeption-gold text-black p-2.5 rounded-sm hover:bg-white transition-colors flex items-center justify-center"
                 title="Ajouter le type"
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
           </div>
+
           <div className={listScrollClass}>
             {categories.length === 0 ? (
               <p className="p-6 text-sm text-white/60 text-center">Aucun type. Ajoute le premier.</p>
@@ -209,17 +306,31 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
                       <button
                         type="button"
                         onClick={() => handleSelectType(cat.slug)}
-                        className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-left transition-colors ${
-                          active ? 'bg-xeption-gold/15 border-l-2 border-xeption-gold' : 'hover:bg-white/5'
+                        className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors ${
+                          active
+                            ? 'bg-xeption-gold/15 border-l-4 border-xeption-gold text-white'
+                            : 'hover:bg-white/5 text-white/90'
                         }`}
                       >
                         <div className="min-w-0">
-                          <span className="block text-sm font-bold text-white truncate">{cat.name}</span>
-                          <span className="text-[10px] font-mono text-white/65">{cat.slug}</span>
+                          <span
+                            className={`block text-sm font-bold truncate ${
+                              active ? 'text-xeption-gold' : 'text-white'
+                            }`}
+                          >
+                            {cat.name}
+                          </span>
+                          <span className="text-[11px] font-mono text-white/50">{cat.slug}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-white/70 font-mono">{marqueCount} marq.</span>
-                          {active && <ChevronRight className="w-4 h-4 text-xeption-gold" />}
+                          <span className="text-[11px] text-white/60 font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                            {marqueCount} marq.
+                          </span>
+                          <ChevronRight
+                            className={`w-4 h-4 transition-transform ${
+                              active ? 'text-xeption-gold translate-x-0.5' : 'text-white/30'
+                            }`}
+                          />
                         </div>
                       </button>
                     </li>
@@ -228,27 +339,37 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
               </ul>
             )}
           </div>
+
           {selectedType && (
-            <div className="p-3 border-t border-white/10 shrink-0 flex justify-end">
+            <div className="p-3 border-t border-white/10 bg-black/30 backdrop-blur-sm shrink-0 flex items-center justify-between gap-2">
+              <span className="text-xs text-white/50 truncate">
+                Type : <strong className="text-white">{selectedType.name}</strong>
+              </span>
               <button
                 type="button"
                 onClick={() => handleDeleteType(selectedType.id, selectedType.slug)}
-                className="text-[10px] uppercase font-bold text-red-400 hover:text-red-300 flex items-center gap-1"
+                className="text-xs uppercase font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1.5 rounded-sm transition-colors flex items-center gap-1.5 shrink-0"
               >
-                <Trash2 className="w-3 h-3" /> Supprimer ce type
+                <Trash2 className="w-3.5 h-3.5" /> Supprimer
               </button>
             </div>
           )}
         </div>
 
-        {/* COL 2 — MARQUES */}
-        <div className={`${panelClass} ${!selectedTypeSlug ? 'opacity-50 pointer-events-none' : ''}`}>
+        {/* COLONNE 2 — MARQUES */}
+        <div
+          className={`${panelClass} ${
+            mobileStep === 'brands' ? 'flex flex-1' : 'hidden lg:flex'
+          } ${!selectedTypeSlug ? 'opacity-60' : ''}`}
+        >
           <div className="p-4 border-b border-white/10 bg-black/30 backdrop-blur-sm shrink-0">
             <h2 className="text-xs font-bold uppercase text-white flex items-center gap-2">
               <Tag className="w-4 h-4 text-xeption-gold" />
               2. Marque
               {selectedType && (
-                <span className="text-white/60 font-normal normal-case">— {selectedType.name}</span>
+                <span className="text-white/60 font-normal normal-case truncate max-w-[150px]">
+                  — {selectedType.name}
+                </span>
               )}
             </h2>
             <div className="mt-3 flex gap-2">
@@ -256,26 +377,48 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
                 type="text"
                 value={brandMgr.newBrandName}
                 onChange={(e) => brandMgr.setNewBrandName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddBrand();
+                  }
+                }}
+                disabled={!selectedTypeSlug}
                 placeholder="Nouvelle marque…"
-                className="flex-1 bg-black/50 border border-white/25 px-3 py-2 text-sm text-white placeholder:text-white/70 rounded-sm outline-none focus:border-xeption-gold"
+                className="flex-1 bg-black/50 border border-white/20 focus:border-xeption-gold px-3 py-2 text-sm text-white placeholder:text-white/40 rounded-sm outline-none transition-colors disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => handleAddBrand()}
-                className="shrink-0 bg-xeption-gold text-black p-2 rounded-sm hover:bg-white transition-colors"
+                disabled={!selectedTypeSlug}
+                className="shrink-0 bg-xeption-gold text-black p-2.5 rounded-sm hover:bg-white transition-colors flex items-center justify-center disabled:opacity-50"
                 title="Ajouter la marque"
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
           </div>
+
           <div className={listScrollClass}>
             {!selectedTypeSlug ? (
-              <p className="p-6 text-sm text-white/60 text-center">Choisis un type à gauche.</p>
+              <div className="p-8 text-center flex flex-col items-center justify-center h-full">
+                <Layers className="w-10 h-10 text-white/20 mb-3" />
+                <p className="text-sm text-white/60 mb-3">Choisis un type pour voir ses marques.</p>
+                <button
+                  type="button"
+                  onClick={() => setMobileStep('types')}
+                  className="px-4 py-2 bg-xeption-gold text-black rounded-sm text-xs font-bold uppercase hover:bg-white transition-colors"
+                >
+                  Voir les types
+                </button>
+              </div>
             ) : displayBrands.length === 0 ? (
-              <p className="p-6 text-sm text-white/60 text-center">
-                Aucune marque pour ce type. Crée une marque ci-dessus, puis ajoute ses gammes à droite.
-              </p>
+              <div className="p-6 text-sm text-white/60 text-center">
+                <p>Aucune marque pour ce type.</p>
+                <p className="text-xs text-white/40 mt-1">
+                  Crée une marque ci-dessus pour commencer.
+                </p>
+              </div>
             ) : (
               <ul className="divide-y divide-white/5">
                 {displayBrands.map((brand) => {
@@ -298,27 +441,39 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
                       <button
                         type="button"
                         onClick={() => handleSelectBrand(brand.id)}
-                        className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-left transition-colors ${
-                          active ? 'bg-xeption-gold/15 border-l-2 border-xeption-gold' : 'hover:bg-white/5'
+                        className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors ${
+                          active
+                            ? 'bg-xeption-gold/15 border-l-4 border-xeption-gold text-white'
+                            : 'hover:bg-white/5 text-white/90'
                         }`}
                       >
-                        <span className="text-sm font-bold text-white truncate">
-                          {brand.name}
+                        <div className="min-w-0 flex items-center gap-2">
+                          <span
+                            className={`text-sm font-bold truncate ${
+                              active ? 'text-xeption-gold' : 'text-white'
+                            }`}
+                          >
+                            {brand.name}
+                          </span>
                           {!brand.isDbBrand && (
-                            <span className="ml-1.5 text-[9px] font-normal uppercase text-amber-300/90">
-                              inventaire
+                            <span className="text-[9px] font-semibold uppercase tracking-wider text-amber-300 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded shrink-0">
+                              inv.
                             </span>
                           )}
-                        </span>
+                        </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-white/70 font-mono">
+                          <span className="text-[11px] text-white/60 font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10">
                             {gammeCount > 0
                               ? `${gammeCount} gam.`
                               : productCount > 0
                                 ? `${productCount} prod.`
                                 : '0 gam.'}
                           </span>
-                          {active && <ChevronRight className="w-4 h-4 text-xeption-gold" />}
+                          <ChevronRight
+                            className={`w-4 h-4 transition-transform ${
+                              active ? 'text-xeption-gold translate-x-0.5' : 'text-white/30'
+                            }`}
+                          />
                         </div>
                       </button>
                     </li>
@@ -327,28 +482,34 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
               </ul>
             )}
           </div>
+
           {selectedBrand?.isDbBrand && (
-            <div className="p-3 border-t border-white/10 shrink-0 flex justify-end">
+            <div className="p-3 border-t border-white/10 bg-black/30 backdrop-blur-sm shrink-0 flex items-center justify-between gap-2">
+              <span className="text-xs text-white/50 truncate">
+                Marque : <strong className="text-white">{selectedBrand.name}</strong>
+              </span>
               <button
                 type="button"
                 onClick={() => handleDeleteBrand(selectedBrand.id)}
-                className="text-[10px] uppercase font-bold text-red-400 hover:text-red-300 flex items-center gap-1"
+                className="text-xs uppercase font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1.5 rounded-sm transition-colors flex items-center gap-1.5 shrink-0"
               >
-                <Trash2 className="w-3 h-3" /> Supprimer la marque
+                <Trash2 className="w-3.5 h-3.5" /> Supprimer
               </button>
             </div>
           )}
         </div>
 
-        {/* COL 3 — GAMMES */}
+        {/* COLONNE 3 — GAMMES */}
         <div
-          className={`${panelClass} ${!selectedTypeSlug || !selectedBrandId ? 'opacity-50 pointer-events-none' : ''}`}
+          className={`${panelClass} ${
+            mobileStep === 'ranges' ? 'flex flex-1' : 'hidden lg:flex'
+          } ${!selectedTypeSlug || !selectedBrandId ? 'opacity-60' : ''}`}
         >
           <div className="p-4 border-b border-white/10 bg-black/30 backdrop-blur-sm shrink-0">
-            <h2 className="text-xs font-bold uppercase text-white">
-              3. Gammes
+            <h2 className="text-xs font-bold uppercase text-white flex items-center justify-between gap-2">
+              <span>3. Gammes</span>
               {selectedBrand && selectedType && (
-                <span className="text-white/60 font-normal normal-case block mt-1 text-[11px]">
+                <span className="text-white/60 font-normal normal-case text-[11px] truncate">
                   {selectedBrand.name} · {selectedType.name}
                 </span>
               )}
@@ -358,37 +519,62 @@ const CatalogStructureTab: React.FC<CatalogStructureTabProps> = ({
                 type="text"
                 value={brandMgr.newRangeName}
                 onChange={(e) => brandMgr.setNewRangeName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddRange();
+                  }
+                }}
+                disabled={!selectedTypeSlug || !selectedBrandId}
                 placeholder="Nom de la gamme…"
-                className="flex-1 bg-black/50 border border-white/25 px-3 py-2 text-sm text-white placeholder:text-white/70 rounded-sm outline-none focus:border-xeption-gold"
+                className="flex-1 bg-black/50 border border-white/20 focus:border-xeption-gold px-3 py-2 text-sm text-white placeholder:text-white/40 rounded-sm outline-none transition-colors disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => handleAddRange()}
-                className="shrink-0 bg-blue-600 text-white px-3 py-2 rounded-sm text-[10px] font-bold uppercase hover:bg-blue-500 transition-colors"
+                disabled={!selectedTypeSlug || !selectedBrandId}
+                className="shrink-0 bg-xeption-gold text-black px-3.5 py-2 rounded-sm text-xs font-bold uppercase hover:bg-white transition-colors disabled:opacity-50"
               >
                 Ajouter
               </button>
             </div>
           </div>
+
           <div className={listScrollClass}>
             {!selectedBrandId ? (
-              <p className="p-6 text-sm text-white/60 text-center">Choisis une marque.</p>
+              <div className="p-8 text-center flex flex-col items-center justify-center h-full">
+                <Tag className="w-10 h-10 text-white/20 mb-3" />
+                <p className="text-sm text-white/60 mb-3">Choisis une marque pour voir ses gammes.</p>
+                <button
+                  type="button"
+                  onClick={() => setMobileStep('brands')}
+                  className="px-4 py-2 bg-xeption-gold text-black rounded-sm text-xs font-bold uppercase hover:bg-white transition-colors"
+                >
+                  Voir les marques
+                </button>
+              </div>
             ) : rangesForSelection.length === 0 && orphanProductsForSelection.length === 0 ? (
-              <p className="p-6 text-sm text-white/60 text-center">
-                Aucune gamme pour cette marque dans ce type. Ajoute une ci-dessus.
-              </p>
+              <div className="p-6 text-sm text-white/60 text-center">
+                <p>Aucune gamme pour cette marque.</p>
+                <p className="text-xs text-white/40 mt-1">
+                  Ajoute une gamme ci-dessus pour structurer les produits.
+                </p>
+              </div>
             ) : (
               <ul className="divide-y divide-white/5">
                 {rangesForSelection.map((range) => (
                   <li
                     key={range.id}
-                    className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-white/5"
+                    className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-white/5 transition-colors"
                   >
-                    <span className="text-sm font-bold text-white">{range.name}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-xeption-gold/70 shrink-0" />
+                      <span className="text-sm font-bold text-white truncate">{range.name}</span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => brandMgr.deleteRange(range.id)}
-                      className="p-2 text-red-400 hover:bg-red-500/10 rounded-sm"
+                      className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-sm transition-colors"
                       title="Supprimer la gamme"
                     >
                       <Trash2 className="w-4 h-4" />

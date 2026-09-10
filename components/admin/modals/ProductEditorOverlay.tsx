@@ -13,6 +13,11 @@ import { isUuid, resolveBrandKeyToDbId } from '../../../utils/productBrand';
 import CatalogRangeCombobox from '../shared/CatalogRangeCombobox';
 import ProductRangeCreateModal from './ProductRangeCreateModal';
 import type { AdminAlertFn } from '../shared/adminAlert';
+import {
+    clearProductDraft,
+    hasProductDraftContent,
+    saveProductDraft,
+} from '../../../utils/productDraftStorage';
 
 interface ProductEditorOverlayProps {
     product: Product;
@@ -59,6 +64,31 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
     );
 
     const validationIssues = useMemo(() => validateProductForSave(product), [product]);
+
+    // Sécurité Mobile : Sauvegarde immédiate lors du basculement d'application ou minimisation
+    useEffect(() => {
+        const flushDraft = () => {
+            if (product && hasProductDraftContent(product)) {
+                saveProductDraft(product);
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                flushDraft();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pagehide', flushDraft);
+        window.addEventListener('beforeunload', flushDraft);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pagehide', flushDraft);
+            window.removeEventListener('beforeunload', flushDraft);
+        };
+    }, [product]);
 
     // --- HELPER FORMATAGE PRIX ---
     const formatPriceDisplay = (value: number | undefined) => {
@@ -322,6 +352,44 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
                 </div>
             )}
 
+            {/* --- BANDEAU SÉCURITÉ BROUILLON MOBILE --- */}
+            {product.id.startsWith('new_') && hasProductDraftContent(product) && (
+                <div className="mb-6 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-sm flex items-center justify-between gap-3 text-xs text-emerald-200">
+                    <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                        <span>Brouillon sauvegardé automatiquement (vos saisies sont protégées en cas de rechargement).</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (window.confirm('Voulez-vous réinitialiser tous les champs et recommencer une fiche vierge ?')) {
+                                clearProductDraft();
+                                onChange({
+                                    name: '',
+                                    description: '',
+                                    price: 0,
+                                    oldPrice: undefined,
+                                    image: '',
+                                    images: [],
+                                    video: '',
+                                    specs: [],
+                                    pros: [],
+                                    cons: [],
+                                    brand: '',
+                                    productRange: '',
+                                    manualChecks: [],
+                                    reviews: [],
+                                    warrantyMonths: 0,
+                                });
+                            }
+                        }}
+                        className="text-white/40 hover:text-red-400 font-bold uppercase text-[10px] tracking-wider transition-colors shrink-0"
+                    >
+                        Recommencer à zéro
+                    </button>
+                </div>
+            )}
+
             <form className="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
                 {/* --- COLONNE GAUCHE (Infos Texte) --- */}
@@ -579,41 +647,51 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
                                 className="text-blue-400 border-blue-400/30 hover:bg-blue-500 hover:text-white"
                             />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {(product.specs || []).map((spec, idx) => (
-                                <div key={idx} className="flex gap-2">
+                                <div
+                                    key={idx}
+                                    className="flex items-center gap-2 bg-black/50 border border-white/15 rounded-sm p-1.5 focus-within:border-xeption-gold/60 focus-within:bg-black/70 transition-colors"
+                                >
                                     <input
-                                        className="flex-1 bg-black/40 border border-white/10 p-2 text-xs text-gray-400 font-bold uppercase"
+                                        className="w-1/3 min-w-[75px] max-w-[120px] bg-transparent px-2 py-1.5 text-xs text-gray-400 font-bold uppercase outline-none placeholder:text-gray-600 truncate border-r border-white/10"
                                         value={spec.label}
                                         placeholder="LABEL (ex: RAM)"
                                         onChange={e => {
                                             const newSpecs = [...(product.specs || [])];
-                                            newSpecs[idx].label = e.target.value;
+                                            newSpecs[idx] = { ...newSpecs[idx], label: e.target.value };
                                             onChange({ specs: newSpecs });
                                         }}
                                     />
                                     <input
-                                        className="flex-1 bg-black/40 border border-white/10 p-2 text-xs text-white"
+                                        className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-xs text-white outline-none placeholder:text-gray-600 truncate"
                                         value={spec.value}
                                         placeholder="VALEUR (ex: 16Go)"
                                         onChange={e => {
                                             const newSpecs = [...(product.specs || [])];
-                                            newSpecs[idx].value = e.target.value;
+                                            newSpecs[idx] = { ...newSpecs[idx], value: e.target.value };
                                             onChange({ specs: newSpecs });
                                         }}
                                     />
-                                    <button type="button" onClick={() => {
-                                        const newSpecs = (product.specs || []).filter((_, i) => i !== idx);
-                                        onChange({ specs: newSpecs });
-                                    }} className="text-red-500 hover:text-white"><X className="w-3 h-3" /></button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newSpecs = (product.specs || []).filter((_, i) => i !== idx);
+                                            onChange({ specs: newSpecs });
+                                        }}
+                                        className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-white/5 rounded-sm transition-colors shrink-0"
+                                        title="Supprimer cette caractéristique"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
                             ))}
                             <button
                                 type="button"
                                 onClick={() => onChange({ specs: [...(product.specs || []), { label: '', value: '' }] })}
-                                className="p-2 border border-dashed border-white/10 text-gray-500 hover:text-white hover:border-white/30 text-xs flex items-center justify-center gap-2 transition-all col-span-2"
+                                className="p-2.5 border border-dashed border-white/15 hover:border-xeption-gold/50 text-gray-400 hover:text-white text-xs flex items-center justify-center gap-2 transition-all rounded-sm col-span-1 md:col-span-2 bg-black/20 hover:bg-black/40"
                             >
-                                <ListPlus className="w-3 h-3" /> Ajouter une spec
+                                <ListPlus className="w-3.5 h-3.5 text-xeption-gold" /> Ajouter une caractéristique
                             </button>
                         </div>
                     </div>

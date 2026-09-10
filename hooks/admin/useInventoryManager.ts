@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Product, Category, Brand, ProductRange } from '../../types';
 import { supabase } from '../../services/supabaseClient';
 import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
@@ -9,6 +9,14 @@ import {
 } from '../../utils/productDuplicate';
 import { assertRpcSuccess } from '../../utils/rpcResult';
 import { safeRandomUUID } from '../../utils/uuid';
+import {
+    clearProductDraft,
+    hasProductDraftContent,
+    isProductDraftActive,
+    loadProductDraft,
+    saveProductDraft,
+    setProductDraftInactive,
+} from '../../utils/productDraftStorage';
 
 interface UseInventoryManagerProps {
     products: Product[];
@@ -39,10 +47,56 @@ export const useInventoryManager = ({
     ranges = [],
     confirmDialog,
 }: UseInventoryManagerProps) => {
-    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    // Restauration automatique si l'éditeur était ouvert avant un rechargement inattendu
+    const [editingProduct, setEditingProduct] = useState<Product | null>(() => {
+        if (typeof window === 'undefined') return null;
+        if (isProductDraftActive()) {
+            const draft = loadProductDraft();
+            if (draft && draft.product && hasProductDraftContent(draft.product)) {
+                return draft.product;
+            }
+        }
+        return null;
+    });
 
-    const startCreate = (categories: Category[]) => {
-        setEditingProduct({
+    // Sauvegarde en continu du brouillon dès qu'il est modifié
+    useEffect(() => {
+        if (editingProduct && hasProductDraftContent(editingProduct)) {
+            saveProductDraft(editingProduct);
+        }
+    }, [editingProduct]);
+
+    const pendingDraftProduct = useMemo(() => {
+        if (editingProduct) return null;
+        const draft = loadProductDraft();
+        if (draft && draft.product && hasProductDraftContent(draft.product)) {
+            return draft.product;
+        }
+        return null;
+    }, [editingProduct]);
+
+    const startCreate = async (categories: Category[]) => {
+        const draftMeta = loadProductDraft();
+        if (draftMeta && draftMeta.product && hasProductDraftContent(draftMeta.product)) {
+            const draftName = draftMeta.product.name ? `« ${draftMeta.product.name} »` : 'en cours';
+            const resume = confirmDialog
+                ? await confirmDialog(
+                      'Brouillon non finalisé',
+                      `Un brouillon de produit ${draftName} est sauvegardé sur cet appareil. Souhaitez-vous le reprendre ?`,
+                      'Reprendre le brouillon'
+                  )
+                : window.confirm(`Un brouillon (${draftName}) existe. Souhaitez-vous le reprendre ?`);
+
+            if (resume) {
+                saveProductDraft(draftMeta.product);
+                setEditingProduct(draftMeta.product);
+                return;
+            } else {
+                clearProductDraft();
+            }
+        }
+
+        const fresh: Product = {
             id: `new_${Date.now()}`,
             name: '',
             description: '',
@@ -59,8 +113,28 @@ export const useInventoryManager = ({
             pros: [],
             cons: [],
             reviews: [],
-            warrantyMonths: 0
-        });
+            warrantyMonths: 0,
+        };
+        saveProductDraft(fresh);
+        setEditingProduct(fresh);
+    };
+
+    const closeEditor = () => {
+        setProductDraftInactive();
+        setEditingProduct(null);
+    };
+
+    const discardDraft = () => {
+        clearProductDraft();
+        setEditingProduct(null);
+    };
+
+    const resumeDraft = (productToResume?: Product) => {
+        const target = productToResume || loadProductDraft()?.product;
+        if (target) {
+            saveProductDraft(target);
+            setEditingProduct(target);
+        }
     };
 
     const syncCatalogStock = async (productId: string, quantity: number) => {
@@ -82,6 +156,7 @@ export const useInventoryManager = ({
         onUpdateProducts(
             products.map((p) => (p.id === existingId ? { ...p, stock: newStock } : p))
         );
+        clearProductDraft();
         setEditingProduct(null);
     };
 
@@ -205,12 +280,17 @@ export const useInventoryManager = ({
             : products.map((p) => (p.id === productData.id ? productData : p));
 
         onUpdateProducts(newProductList);
+        clearProductDraft();
         setEditingProduct(null);
     };
 
     const deleteProduct = async (id: string) => {
         const { error } = await supabase.from(DB_TABLES.PRODUCTS).delete().eq(DB_SCHEMA.PRODUCTS.ID, id);
         if (error) throw error;
+        if (editingProduct?.id === id) {
+            clearProductDraft();
+            setEditingProduct(null);
+        }
         onUpdateProducts(products.filter((p) => p.id !== id));
     };
 
@@ -234,5 +314,9 @@ export const useInventoryManager = ({
         saveProduct,
         deleteProduct,
         toggleFeatured,
+        closeEditor,
+        discardDraft,
+        resumeDraft,
+        pendingDraftProduct,
     };
 };

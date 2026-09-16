@@ -97,3 +97,11 @@ The current work focuses on catalogue quality, SEO/GEO improvements, automated t
 ## Repository note
 
 This is a real client project, not a starter template. Public documentation describes the product and technical architecture without exposing private customer data, credentials or production configuration.
+
+## Ownership and licensing
+
+The original software implementation, application architecture and technical components in this repository are proprietary to **EagleFox31** and are published under the **AgenStudio** brand.
+
+Client-provided product catalogues, business and customer data, brand assets, commercial content, credentials and production service accounts remain the property or under the control of the client and their respective account holders. This includes production **CamPay** and mobile-money merchant accounts.
+
+Third-party libraries and services remain subject to their own licences and terms. See [`LICENSE`](LICENSE) for the repository terms.

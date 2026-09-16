@@ -1,0 +1,25 @@
+PROPRIETARY LICENSE
+
+Copyright © 2026 EagleFox31. All rights reserved.
+Published and maintained under the AgenStudio brand.
+
+The original source code, software architecture, application components, technical implementation, developer documentation, and other original engineering work contained in this repository are proprietary to the copyright holder unless otherwise stated.
+
+No permission is granted to copy, modify, merge, publish, distribute, sublicense, sell, deploy, commercially exploit, or create derivative works from this repository or substantial portions of it without prior written permission from the copyright holder.
+
+The fact that this repository is publicly accessible does not grant any licence or other right to use the proprietary materials beyond viewing them on GitHub.
+
+CLIENT-OWNED AND THIRD-PARTY MATERIALS
+
+The following are not transferred, licensed, or claimed as proprietary AgenStudio assets by this repository:
+
+- product catalogues and product data supplied or maintained by the client;
+- client business data, commercial records, customer records, prices, stock records, and other operational data;
+- client names, trademarks, logos, visual assets, commercial copy, and other brand materials supplied by the client;
+- credentials, API keys, payment credentials, production secrets, and service configuration;
+- production payment-service accounts and merchant accounts, including CamPay and mobile-money accounts;
+- third-party libraries, services, trademarks, and other materials governed by their own licences or terms.
+
+Those materials remain the property or under the control of their respective owners and account holders. Nothing in this licence changes those ownership rights.
+
+For licensing enquiries concerning the original software implementation, contact the repository owner through the GitHub profile associated with EagleFox31.

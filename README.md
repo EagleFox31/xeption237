@@ -8,6 +8,22 @@ The application combines the public storefront with the operational tools needed
   <a href="https://www.xeptionetwork.shop/"><strong>Open the live storefront</strong></a>
 </p>
 
+<p align="center">
+  <a href="https://www.xeptionetwork.shop/">
+    <img src="docs/readme/xeption-home.jpg" alt="XEPTION storefront homepage" width="960" />
+  </a>
+</p>
+
+## Product views
+
+| Smart Troc | Shop catalogue |
+| --- | --- |
+| ![XEPTION Smart Troc](docs/readme/xeption-troc-zone.jpg) | ![XEPTION shop catalogue](docs/readme/xeption-shop.jpg) |
+
+| Order tracking | Product detail |
+| --- | --- |
+| ![XEPTION order tracking](docs/readme/xeption-tracking.jpg) | ![XEPTION product detail](docs/readme/xeption-product.jpg) |
+
 ## Main capabilities
 
 - **E-commerce storefront** — product catalogue, product pages, cart, checkout and order tracking

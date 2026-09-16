@@ -94,9 +94,11 @@ npm run db:verify        # database migration checks
 
 The current work focuses on catalogue quality, SEO/GEO improvements, automated testing and continued reliability of the commerce and operational workflows.
 
-## Repository note
+## Repository origin
 
-This is a real client project, not a starter template. Public documentation describes the product and technical architecture without exposing private customer data, credentials or production configuration.
+This is a production client application. GitHub records this repository as having been originally created from Google Gemini's `aistudio-repository-template`; the current application code, architecture, workflows and production implementation are project-specific.
+
+Public documentation describes the product and technical architecture without exposing private customer data, credentials or production configuration.
 
 ## Ownership and licensing
 

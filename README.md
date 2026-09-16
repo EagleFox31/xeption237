@@ -4,7 +4,9 @@
 
 The application combines the public storefront with the operational tools needed to run the business: catalogue management, orders, stock, local payments, point of sale, after-sales service and device trade-ins.
 
-**Live:** https://www.xeptionetwork.shop/
+<p align="center">
+  <a href="https://www.xeptionetwork.shop/"><strong>Open the live storefront</strong></a>
+</p>
 
 ## Main capabilities
 

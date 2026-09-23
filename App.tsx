@@ -16,6 +16,7 @@ import { Toaster } from 'sonner';
 import { resolveSuperAdminAccess } from './utils/superAdmin';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { notifyError } from './utils/notify';
+import { trackAddToCart } from './utils/analytics';
 import { getProductSlug } from './utils/slug';
 import MobileBottomNav from './components/MobileBottomNav';
 import HomePage from './pages/HomePage';
@@ -253,6 +254,14 @@ const App: React.FC = () => {
       return [...prev, { ...product, quantity: 1 }];
     });
     setIsCartOpen(true);
+    trackAddToCart({
+      item_id: product.id,
+      item_name: product.name,
+      item_brand: (product as any).brand ?? undefined,
+      item_category: product.category ?? undefined,
+      price: product.price,
+      quantity: 1,
+    });
   };
 
   const addPackToCart = (pack: Pack) => {

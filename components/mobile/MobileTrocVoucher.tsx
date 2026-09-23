@@ -15,6 +15,7 @@ import { buildWhatsAppUrl, buildTradeInVoucherShareMessage } from '../../utils/w
 import { resolveTrocTargetSummary, type TrocTargetSummary } from '../../services/trocCheckoutService';
 import { downloadTradeInVoucher } from '../../utils/tradeInVoucherGenerator';
 import { copyToClipboard } from '../../utils/clipboard';
+import { trackTrocChoice } from '../../utils/analytics';
 
 export interface MobileTrocVoucherProps {
   request: TradeInRequest;
@@ -259,7 +260,7 @@ export const MobileTrocVoucher: React.FC<MobileTrocVoucherProps> = ({
           {onSellInstead && (
             <button
               type="button"
-              onClick={onSellInstead}
+              onClick={() => { trackTrocChoice('sell_to_xeption'); onSellInstead(); }}
               className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 border border-amber-400/50 flex flex-col items-center justify-center gap-0.5 active:scale-[0.98] transition-all shadow-[0_4px_16px_rgba(251,191,36,0.3)] text-black"
             >
               <div className="flex items-center gap-1.5">

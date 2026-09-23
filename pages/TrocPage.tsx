@@ -58,6 +58,7 @@ import {
   TROC_TUNNEL_TIER,
 } from '../utils/trocPricing';
 import type { TrocCoachView } from '../utils/trocCoach';
+import { trackTrocStart } from '../utils/analytics';
 
 const TROC_HOW_IT_WORKS = [
   { num: '01', text: 'Décris ton appareil et vérifie ton IMEI' },
@@ -338,6 +339,8 @@ const TrocPage: React.FC = () => {
   useEffect(() => {
     // On verrouille le scroll du body pour créer un effet "App" pleine page
     document.body.style.overflow = 'hidden';
+    // Analytics : premier point d'entrée dans le funnel
+    trackTrocStart();
     return () => {
       document.body.style.overflow = 'auto';
     };

@@ -3,6 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown, Loader2, CheckCircle, XCircle, Smartphone } from 'lucide-react';
 import type { TradeInRequest, TrocEvaluationResult } from '../types';
 import { supabase } from '../services/supabaseClient';
+import {
+  trackMarketplaceListingStepView,
+  trackMarketplacePaymentInitiated,
+  trackMarketplaceListingPublished,
+} from '../utils/analytics';
 
 type PayState = 'idle' | 'initiating' | 'polling' | 'paid' | 'failed' | 'expired' | 'timeout';
 
@@ -144,6 +149,11 @@ export const MarketplacePage: React.FC = () => {
     return () => document.body.classList.remove('hide-mobile-bottom-nav');
   }, []);
 
+  // Analytics : chaque étape vue (1 = specs, 2 = prix, 3 = paiement)
+  useEffect(() => {
+    trackMarketplaceListingStepView(step);
+  }, [step]);
+
   // Auto-ajustement des prix quand RAM/Stockage changent
   useEffect(() => {
     const storageGb = parseInt(storageRaw) || 0;
@@ -205,9 +215,10 @@ export const MarketplacePage: React.FC = () => {
       setPayError(error.message);
       return;
     }
+    trackMarketplaceListingPublished(fee, maxVal);
     navigate('/marketplace');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceBrand, deviceModel, grade, ramRaw, storageRaw, accessories, minVal, maxVal, phone]);
+  }, [deviceBrand, deviceModel, grade, ramRaw, storageRaw, accessories, minVal, maxVal, phone, fee]);
 
   const stopPolling = useCallback(() => {
     if (pollTimer.current) { clearInterval(pollTimer.current); pollTimer.current = null; }
@@ -258,6 +269,8 @@ export const MarketplacePage: React.FC = () => {
         return;
       }
       const ref: string = data.reference;
+      const chargedAmount: number = data.amount ?? fee;
+      trackMarketplacePaymentInitiated(chargedAmount, maxVal);
       setPayRef(ref);
       setPayState('polling');
       pollStart.current = Date.now();

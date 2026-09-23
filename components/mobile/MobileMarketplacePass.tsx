@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, Info } from 'lucide-react';
 import type { TradeInRequest, TrocEvaluationResult } from '../../types';
+import { trackTrocChoice } from '../../utils/analytics';
 
 export interface MobileMarketplacePassProps {
   request: TradeInRequest;
@@ -42,6 +43,7 @@ export const MobileMarketplacePass: React.FC<MobileMarketplacePassProps> = ({
   const imeiLabel = request.imei_status === 'valid' ? 'IMEI Garanti' : 'IMEI Vérifié';
 
   const handleContinue = () => {
+    trackTrocChoice('marketplace');
     navigate('/marketplace/lister', {
       state: { request, result, sellMax, marketplaceMax },
     });

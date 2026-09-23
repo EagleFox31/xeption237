@@ -7,6 +7,7 @@ import { resolveVoucherValidityDays } from '../../utils/voucherValidity';
 import { buildWhatsAppUrl, buildSellAppointmentMessage } from '../../utils/whatsappShare';
 import { downloadSellVoucher } from '../../utils/tradeInVoucherGenerator';
 import { copyToClipboard } from '../../utils/clipboard';
+import { trackTrocChoice } from '../../utils/analytics';
 
 export interface MobileVenteVoucherProps {
   request: TradeInRequest;
@@ -82,6 +83,7 @@ export const MobileVenteVoucher: React.FC<MobileVenteVoucherProps> = ({
   );
 
   const handleMarketplace = () => {
+    trackTrocChoice('marketplace');
     navigate('/marketplace/lister', {
       state: { request, result, sellMax, marketplaceMax },
     });

@@ -5,6 +5,17 @@ import { Order, CartItem, PaymentMethod } from '../types';
 import { generateInvoiceHTML, buildOrderTrackingUrl, generateTrackingQRCode } from '../utils/invoiceGenerator';
 import { DB_TABLES, DB_SCHEMA } from '../constants/dbSchema';
 import { safeRandomUUID } from '../utils/uuid';
+import { trackBeginCheckout, trackPurchase, type EcommerceItem } from '../utils/analytics';
+
+const toEcommerceItems = (cart: CartItem[]): EcommerceItem[] =>
+  cart.map((c) => ({
+    item_id: c.id,
+    item_name: c.name,
+    item_brand: (c as any).brand ?? undefined,
+    item_category: (c as any).category ?? undefined,
+    price: c.price,
+    quantity: c.quantity,
+  }));
 
 interface OrderProcessProps {
     cart: CartItem[];
@@ -25,6 +36,8 @@ export const useOrderProcess = () => {
 
     const submitOrder = async ({ cart, total, trocVoucher, formData, deliveryMode, paymentMethod, captchaToken }: OrderProcessProps) => {
         setIsProcessing(true);
+        // Analytics : intention d'achat (avant validations captcha/paiement)
+        trackBeginCheckout(toEcommerceItems(cart), total);
         try {
             if (!captchaToken) throw new Error("Captcha requis.");
             if (!paymentMethod) throw new Error("Moyen de paiement requis.");
@@ -89,6 +102,9 @@ export const useOrderProcess = () => {
             }
 
             setCreatedOrderId(newOrderId);
+
+            // Analytics : achat confirmé (post RPC success)
+            trackPurchase(newOrderId, toEcommerceItems(cart), total);
 
             // 3. Mise à jour CRM (Non-bloquant / Side Effect)
             if (formData.email) {

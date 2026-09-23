@@ -2,6 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MessageCircle, RefreshCw, Smartphone, Camera } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
+import {
+  trackMarketplaceBrowseView,
+  trackMarketplaceContactSeller,
+} from '../utils/analytics';
 
 interface MarketplaceListing {
   id: string;
@@ -181,6 +185,7 @@ const ListingCard: React.FC<{ listing: MarketplaceListing }> = ({ listing: l }) 
           href={waUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackMarketplaceContactSeller(l.id, l.price_max)}
           className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#075e54] hover:bg-[#128c7e] border border-emerald-500/20 text-white font-tech font-black text-[10px] uppercase tracking-wider transition-colors active:scale-[0.97]"
         >
           <MessageCircle className="w-3 h-3 shrink-0" />
@@ -205,8 +210,10 @@ export const MarketplaceBrowsePage: React.FC = () => {
       .select('id,created_at,device_brand,device_model,grade,imei_status,ram_gb,storage_gb,accessories,price_min,price_max,city,photo_urls')
       .eq('status', 'active')
       .order('created_at', { ascending: false });
-    setListings(data ?? []);
+    const rows = data ?? [];
+    setListings(rows);
     setLoading(false);
+    trackMarketplaceBrowseView(rows.length);
   };
 
   useEffect(() => { fetch(); }, []);

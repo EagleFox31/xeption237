@@ -10,6 +10,7 @@ import { PageSEO, JsonLd, productJsonLd, breadcrumbJsonLd, faqJsonLd, toOgImage 
 import { buildProductFaq } from '../utils/productFaq';
 import { buildShopReturnPath } from '../utils/shopFilterStorage';
 import SkeletonLoader from '../components/common/SkeletonLoader';
+import { trackViewItem } from '../utils/analytics';
 
 interface ProductPageProps {
     products: Product[];
@@ -42,6 +43,18 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
     // Find product by ID
     const product = productId ? products.find(p => p.id === productId) : undefined;
+
+    // Analytics : view_item une fois que le produit est résolu
+    useEffect(() => {
+        if (!product) return;
+        trackViewItem({
+            item_id: product.id,
+            item_name: product.name,
+            item_brand: (product as any).brand ?? undefined,
+            item_category: product.category ?? undefined,
+            price: product.price,
+        });
+    }, [product?.id]);
 
     // Pendant le chargement initial OU la transition visuelle au clic : afficher le Skeleton Loader
     if (isPageLoading || products.length === 0) {

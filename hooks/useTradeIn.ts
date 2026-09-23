@@ -24,6 +24,18 @@ import { supabase } from '../services/supabaseClient';
 import { getTrocSessionKey, resetTrocSessionKey } from '../utils/trocSessionKey';
 import { getProductDisplayName } from '../utils/productDisplay';
 import { loadTrocDraft, saveTrocDraft, clearTrocDraft } from '../utils/trocStorage';
+import {
+  trackTrocStepView,
+  trackTrocPaymentInitiated,
+  trackTrocPaymentPaid,
+  trackTrocResultShown,
+  trackTrocOfferAccepted,
+  trackTrocOfferRefused,
+  trackTrocVoucherGenerated,
+  trackTrocImeiChecked,
+  trackTrocPhotosUploaded,
+  type TrocStep as AnalyticsTrocStep,
+} from '../utils/analytics';
 
 export type TrocStep = 'form' | 'photos' | 'diagnostic' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
 export type ImeiMatchState = 'unknown' | 'match' | 'mismatch' | 'not_verified';
@@ -199,6 +211,54 @@ export const useTradeIn = () => {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Analytics : chaque changement de step visible par l'utilisateur.
+  // On skip 'evaluating' (transitoire, pas une page réelle).
+  useEffect(() => {
+    if (step === 'evaluating') return;
+    trackTrocStepView(step as AnalyticsTrocStep);
+  }, [step]);
+
+  // Analytics : IMEI vérifié — trace le résultat.
+  useEffect(() => {
+    if (imeiStatus === 'not_checked') return;
+    const mapped: 'valid' | 'invalid' | 'failed' =
+      imeiStatus === 'valid' ? 'valid' :
+      imeiStatus === 'check_failed' ? 'failed' : 'invalid';
+    trackTrocImeiChecked(mapped);
+  }, [imeiStatus]);
+
+  // Analytics : paiement confirmé — trace une seule fois par cycle.
+  const paymentPaidTracked = useRef(false);
+  useEffect(() => {
+    if (paymentState === 'paid' && !paymentPaidTracked.current) {
+      paymentPaidTracked.current = true;
+      trackTrocPaymentPaid(paymentAmount ?? 0, selectedTier);
+    }
+    if (paymentState === 'idle' || paymentState === 'failed') {
+      paymentPaidTracked.current = false;
+    }
+  }, [paymentState, paymentAmount, selectedTier]);
+
+  // Analytics : voucher généré une fois qu'on entre au step voucher avec un saved request.
+  const voucherTracked = useRef(false);
+  useEffect(() => {
+    if (step === 'voucher' && savedRequest && !voucherTracked.current) {
+      voucherTracked.current = true;
+      trackTrocVoucherGenerated(savedRequest.voucher_reference || savedRequest.id);
+    }
+    if (step !== 'voucher') voucherTracked.current = false;
+  }, [step, savedRequest]);
+
+  // Analytics : résultat d'évaluation montré.
+  const resultTracked = useRef(false);
+  useEffect(() => {
+    if (step === 'result' && result && !resultTracked.current) {
+      resultTracked.current = true;
+      trackTrocResultShown(result.tradeInGrade ?? 'unknown', result.tradeInValueCredit ?? result.tradeInValue ?? 0);
+    }
+    if (step !== 'result') resultTracked.current = false;
+  }, [step, result]);
+
   // Sauvegarde automatique du brouillon dans localStorage à chaque modification
   useEffect(() => {
     saveTrocDraft({
@@ -327,6 +387,7 @@ export const useTradeIn = () => {
         await preflightDevicePhotos(form, urls, photos);
       }
       setPhotoUrls(urls);
+      trackTrocPhotosUploaded(urls.length);
 
       const intake = await upsertTrocIntake(sessionKey, form, urls, {
         imeiStatus,
@@ -585,6 +646,7 @@ export const useTradeIn = () => {
       setPaymentReference(reference);
       setPaymentAmount(amount);
       setPaymentState('pending');
+      trackTrocPaymentInitiated(amount, tier);
 
       startPaymentPolling(reference);
     } catch {
@@ -706,9 +768,13 @@ export const useTradeIn = () => {
     }
   };
 
-  const acceptOffer = (targetProduct?: Product | null) => persist(targetProduct);
+  const acceptOffer = (targetProduct?: Product | null) => {
+    trackTrocOfferAccepted(result?.tradeInGrade ?? 'unknown', result?.tradeInValueCredit ?? result?.tradeInValue ?? 0);
+    return persist(targetProduct);
+  };
 
   const refuse = () => {
+    trackTrocOfferRefused(result?.tradeInGrade);
     setResult(null);
     setStep('form');
     setError(null);

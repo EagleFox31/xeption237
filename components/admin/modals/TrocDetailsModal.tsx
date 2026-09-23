@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, Camera } from 'lucide-react';
+import { X, Download, Camera, Phone, Calendar, Clock } from 'lucide-react';
 import type { TradeInRequest } from '../../../types';
 import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
 import { downloadTradeInVoucher } from '../../../utils/tradeInVoucherGenerator';
@@ -8,6 +8,28 @@ import { completeTrocWithSale, getTargetPricing, resteAPayer, resolveTrocTargetS
 import { reevaluateAndPersist } from '../../../services/trocEvaluationService';
 import { VoucherExpiryBadge } from '../shared/VoucherExpiryBadge';
 import { notifyError, notifySuccess } from '../../../utils/notify';
+import { supabase } from '../../../services/supabaseClient';
+
+interface StatusHistoryRow {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  changed_at: string;
+  changed_by: string | null;
+  reason: string | null;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  in_progress: 'En cours',
+  pending:     'En attente',
+  accepted:    'Accepté',
+  contacted:   'Contacté',
+  appointment: 'RDV pris',
+  refused:     'Refusé',
+  validated:   'Validé',
+  completed:   'Terminé',
+  cancelled:   'Annulé',
+};
 
 interface TrocDetailsModalProps {
   request: TradeInRequest;
@@ -50,6 +72,7 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
   const [busy, setBusy] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'OM' | 'MOMO'>('CASH');
   const [targetInfo, setTargetInfo] = useState<{ price: number; stock: number } | null>(null);
+  const [history, setHistory] = useState<StatusHistoryRow[]>([]);
 
   const now = new Date();
   const expiryState = redemptionState(request, now);
@@ -70,6 +93,21 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
       alive = false;
     };
   }, [request.status, request.target_product_id]);
+
+  // Historique des transitions de statut (trade_in_status_history, populé par trigger DB)
+  useEffect(() => {
+    let alive = true;
+    supabase
+      .from('trade_in_status_history')
+      .select('id, from_status, to_status, changed_at, changed_by, reason')
+      .eq('request_id', request.id)
+      .order('changed_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        if (alive && data) setHistory(data as StatusHistoryRow[]);
+      });
+    return () => { alive = false; };
+  }, [request.id, request.status]);
 
   const act = async (to: TradeInRequest['status']) => {
     setBusy(true);
@@ -127,13 +165,15 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
             <h3 className="text-xl font-bold font-tech text-white uppercase tracking-widest flex items-center gap-3">
               Dossier Troc {request.voucher_reference ?? request.id.slice(0, 8)}
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                request.status === 'pending'   ? 'bg-yellow-500/20 text-yellow-400' :
-                request.status === 'accepted'  ? 'bg-blue-500/20 text-blue-400' :
-                request.status === 'validated' ? 'bg-green-500/20 text-green-400' :
-                request.status === 'completed' ? 'bg-gray-500/20 text-gray-400' :
+                request.status === 'pending'     ? 'bg-yellow-500/20 text-yellow-400' :
+                request.status === 'accepted'    ? 'bg-blue-500/20 text-blue-400' :
+                request.status === 'contacted'   ? 'bg-sky-500/20 text-sky-400' :
+                request.status === 'appointment' ? 'bg-violet-500/20 text-violet-400' :
+                request.status === 'validated'   ? 'bg-green-500/20 text-green-400' :
+                request.status === 'completed'   ? 'bg-gray-500/20 text-gray-400' :
                 'bg-red-500/20 text-red-400'
               }`}>
-                {request.status}
+                {STATUS_LABELS[request.status] ?? request.status}
               </span>
             </h3>
             <p className="text-xs text-gray-500 mt-1 font-sans">Créé le {formatDate(request.created_at)}</p>
@@ -245,8 +285,69 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
                 </div>
               )}
 
+              {/* Timeline des transitions de statut */}
+              {history.length > 0 && (
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-[10px] font-tech text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    Historique du pipeline
+                  </p>
+                  <ol className="space-y-2">
+                    {history.map((h) => (
+                      <li key={h.id} className="flex items-start gap-2 text-xs">
+                        <span className="text-gray-600 font-mono shrink-0 mt-0.5">
+                          {new Date(h.changed_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span className="text-gray-300">
+                          {h.from_status ? (
+                            <>
+                              <span className="text-gray-500">{STATUS_LABELS[h.from_status] ?? h.from_status}</span>
+                              <span className="mx-1 text-gray-600">→</span>
+                            </>
+                          ) : null}
+                          <span className="text-white font-medium">{STATUS_LABELS[h.to_status] ?? h.to_status}</span>
+                          {h.changed_by && h.changed_by !== 'system' && (
+                            <span className="text-gray-500 ml-1.5">· {h.changed_by}</span>
+                          )}
+                          {h.reason && (
+                            <span className="block text-gray-400 italic mt-0.5">« {h.reason} »</span>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* Pipeline actions : après acceptation client → suivi commercial */}
+              {request.status === 'accepted' && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => act('contacted')}
+                    disabled={busy}
+                    className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-sky-600/20 hover:bg-sky-600/40 border border-sky-600/30 text-sky-300 font-tech font-bold uppercase tracking-widest py-3 text-xs rounded-sm transition-all disabled:opacity-40"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    Client contacté
+                  </button>
+                </div>
+              )}
+
+              {request.status === 'contacted' && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => act('appointment')}
+                    disabled={busy}
+                    className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-violet-600/20 hover:bg-violet-600/40 border border-violet-600/30 text-violet-300 font-tech font-bold uppercase tracking-widest py-3 text-xs rounded-sm transition-all disabled:opacity-40"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    RDV pris
+                  </button>
+                </div>
+              )}
+
               {/* Actions gardées selon le statut */}
-              {(request.status === 'pending' || request.status === 'accepted') && (
+              {(request.status === 'pending' || request.status === 'accepted' || request.status === 'contacted' || request.status === 'appointment') && (
                 <div className="flex gap-3">
                   <button
                     onClick={() => act('validated')}

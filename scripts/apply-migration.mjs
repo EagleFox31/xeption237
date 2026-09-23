@@ -106,9 +106,12 @@ function buildDatabaseUrl(projectRef) {
 
 function applyWithSupabaseCli(filePath) {
   console.log('→ Tentative via Supabase CLI (linked)...');
+  // Windows + shell:true concatène les args avec des espaces ; si filePath en contient,
+  // le CLI Supabase (Go) tronque au premier espace. On force le quoting.
+  const quoted = filePath.includes(' ') ? `"${filePath}"` : filePath;
   const result = spawnSync(
     'npx',
-    ['supabase', 'db', 'query', '--linked', '-f', filePath],
+    ['supabase', 'db', 'query', '--linked', '-f', quoted],
     { cwd: root, encoding: 'utf8', shell: true },
   );
 

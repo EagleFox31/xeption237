@@ -286,7 +286,7 @@ export interface TradeInRequest {
   blocker_reason?: BlockerReason | null;
   /** Palier de service payé : 'express' | 'premium' | 'safety'. Premium+ déverrouille le certificat PDF. */
   tier?: 'express' | 'premium' | 'safety' | null;
-  status: 'in_progress' | 'pending' | 'accepted' | 'refused' | 'validated' | 'completed' | 'cancelled';
+  status: 'in_progress' | 'pending' | 'accepted' | 'contacted' | 'appointment' | 'refused' | 'validated' | 'completed' | 'cancelled';
   /** Commande POS générée à la clôture troc (si applicable). */
   linked_order_id?: string | null;
   admin_notes?: string;

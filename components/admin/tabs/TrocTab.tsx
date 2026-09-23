@@ -9,6 +9,42 @@ import { VoucherExpiryBadge } from '../shared/VoucherExpiryBadge';
 import { buildTrocDossierRows, phonesMatch } from '../../../utils/trocDossierJoin';
 import { resteAPayer } from '../../../services/trocCheckoutService';
 import { notifyError, notifySuccess } from '../../../utils/notify';
+import { AlertTriangle } from 'lucide-react';
+
+const DUPLICATE_WINDOW_DAYS = 90;
+
+/**
+ * Détecte les doublons potentiels : plusieurs requests ayant le MÊME téléphone
+ * OU le MÊME IMEI dans une fenêtre glissante de 90 jours. Retourne un Set des IDs
+ * de requests concernées. On ignore les statuts terminaux (refused/completed/cancelled)
+ * pour ne pas alerter sur du legacy.
+ */
+const detectDuplicates = (requests: TradeInRequest[]): Set<string> => {
+  const cutoff = Date.now() - DUPLICATE_WINDOW_DAYS * 86_400_000;
+  const active = requests.filter((r) => {
+    if (new Date(r.created_at).getTime() < cutoff) return false;
+    return r.status !== 'refused' && r.status !== 'completed' && r.status !== 'cancelled';
+  });
+  const byPhone = new Map<string, TradeInRequest[]>();
+  const byImei  = new Map<string, TradeInRequest[]>();
+  for (const r of active) {
+    const phone = (r.customer_phone ?? '').replace(/\D/g, '');
+    if (phone.length >= 8) {
+      if (!byPhone.has(phone)) byPhone.set(phone, []);
+      byPhone.get(phone)!.push(r);
+    }
+    const imei = (r.imei ?? '').trim();
+    if (imei) {
+      if (!byImei.has(imei)) byImei.set(imei, []);
+      byImei.get(imei)!.push(r);
+    }
+  }
+  const dupes = new Set<string>();
+  for (const list of [...byPhone.values(), ...byImei.values()]) {
+    if (list.length > 1) list.forEach((r) => dupes.add(r.id));
+  }
+  return dupes;
+};
 
 interface TrocTabProps {
   requests: TradeInRequest[];
@@ -44,6 +80,8 @@ const FILTERS: { label: string; value: FilterValue }[] = [
   { label: 'En cours', value: 'in_progress' },
   { label: 'En attente', value: 'pending' },
   { label: 'Accepté', value: 'accepted' },
+  { label: 'Contacté', value: 'contacted' },
+  { label: 'RDV pris', value: 'appointment' },
   { label: 'Validé', value: 'validated' },
   { label: 'Terminé', value: 'completed' },
   { label: 'Refusé', value: 'refused' },
@@ -205,6 +243,8 @@ export const TrocTab: React.FC<TrocTabProps> = ({
     () => buildTrocDossierRows(requests, sessions, payments),
     [requests, sessions, payments],
   );
+
+  const duplicateIds = useMemo(() => detectDuplicates(requests), [requests]);
 
   const filtered = useMemo(() => {
     let list = allRows;
@@ -538,8 +578,17 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-mono text-xs text-white/60">
+                      <p className="font-mono text-xs text-white/60 flex items-center gap-1.5">
                         {req?.voucher_reference ?? req?.id?.slice(0, 8) ?? '—'}
+                        {req && duplicateIds.has(req.id) && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-tech font-bold uppercase tracking-wide"
+                            title="Doublon potentiel (même téléphone ou IMEI dans les 90 derniers jours)"
+                          >
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            Doublon
+                          </span>
+                        )}
                       </p>
                       <p className="mt-0.5 truncate text-sm font-medium text-white">{displayName}</p>
                       {formPhone && <p className="text-[11px] text-white/50">{formPhone}</p>}
@@ -687,7 +736,17 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                     } ${isAwaiting ? 'bg-white/[0.03]' : ''}`}
                   >
                     <td className="px-4 py-3 font-mono text-xs text-white/60">
-                      <span>{req?.voucher_reference ?? req?.id?.slice(0, 8) ?? '—'}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span>{req?.voucher_reference ?? req?.id?.slice(0, 8) ?? '—'}</span>
+                        {req && duplicateIds.has(req.id) && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-tech font-bold uppercase tracking-wide"
+                            title="Doublon potentiel (même téléphone ou IMEI < 90 jours)"
+                          >
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                          </span>
+                        )}
+                      </div>
                       {pay?.reference && row.kind === 'dossier' && (
                         <p className="text-[10px] text-white/35 mt-0.5 truncate max-w-[9rem]" title={pay.reference}>
                           {pay.reference}

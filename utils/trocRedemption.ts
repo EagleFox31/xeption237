@@ -25,7 +25,13 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export const TROC_TRANSITIONS: Record<TrocStatus, TrocStatus[]> = {
   in_progress: ['cancelled'],
   pending: ['validated', 'refused', 'cancelled'],
-  accepted: ['validated', 'refused', 'cancelled'],
+  // Depuis accepted (offre acceptée par le client), la commerciale peut :
+  // - marquer le client comme contacté (première prise de contact staff)
+  // - court-circuiter vers validated (client déjà en boutique)
+  // - refuser / annuler
+  accepted: ['contacted', 'validated', 'refused', 'cancelled'],
+  contacted: ['appointment', 'validated', 'refused', 'cancelled'],
+  appointment: ['validated', 'refused', 'cancelled'],
   validated: ['completed', 'cancelled'],
   completed: [],
   refused: [],

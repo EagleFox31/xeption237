@@ -38,12 +38,13 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    const isOrder = isOrderPaymentReference(reference);
-    const table = isOrder ? 'order_payments' : 'troc_payments';
-    const campayField = isOrder ? 'campay_reference' : 'notchpay_status';
+    const isMkt   = reference.startsWith('MKT-');
+    const isOrder = !isMkt && isOrderPaymentReference(reference);
+    const table = isMkt ? 'marketplace_payments' : isOrder ? 'order_payments' : 'troc_payments';
+    const campayField = isMkt ? 'campay_ref' : isOrder ? 'campay_reference' : 'notchpay_status';
 
     let query = `${supabaseUrl}/rest/v1/${table}?reference=eq.${encodeURIComponent(reference)}&select=status,${campayField}${isOrder ? ',order_id' : ''}&limit=1`;
-    if (!isOrder && sessionKey) {
+    if (!isOrder && !isMkt && sessionKey) {
       query = `${supabaseUrl}/rest/v1/troc_payments?session_key=eq.${encodeURIComponent(sessionKey)}&reference=eq.${encodeURIComponent(reference)}&select=status,notchpay_status&limit=1`;
     }
 
@@ -62,7 +63,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (row.status !== 'pending') {
-      return new Response(JSON.stringify({ status: row.status, kind: isOrder ? 'order' : 'troc' }), {
+      return new Response(JSON.stringify({ status: row.status, kind: isMkt ? 'marketplace' : isOrder ? 'order' : 'troc' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
@@ -92,7 +93,26 @@ Deno.serve(async (req: Request) => {
 
     if (internalStatus === 'paid' && isOrder) {
       await patchOrderPaymentPaid(supabaseUrl, serviceKey, reference, campayRef);
-    } else if (internalStatus !== 'pending' && !isOrder) {
+    } else if (internalStatus !== 'pending' && isMkt) {
+      const updatePayload: Record<string, unknown> = {
+        status: internalStatus,
+        updated_at: new Date().toISOString(),
+      };
+      if (internalStatus === 'paid') updatePayload.paid_at = new Date().toISOString();
+      await fetchWithTimeout(
+        `${supabaseUrl}/rest/v1/marketplace_payments?reference=eq.${encodeURIComponent(reference)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify(updatePayload),
+        },
+      );
+    } else if (internalStatus !== 'pending' && !isOrder && !isMkt) {
       const updatePayload: Record<string, unknown> = {
         status: internalStatus,
         updated_at: new Date().toISOString(),
@@ -128,7 +148,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    return new Response(JSON.stringify({ status: internalStatus, kind: isOrder ? 'order' : 'troc' }), {
+    const kind = isMkt ? 'marketplace' : isOrder ? 'order' : 'troc';
+    return new Response(JSON.stringify({ status: internalStatus, kind }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });

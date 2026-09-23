@@ -17,8 +17,7 @@ import { resolveSuperAdminAccess } from './utils/superAdmin';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { notifyError } from './utils/notify';
 import { getProductSlug } from './utils/slug';
-//Newlmlmpmmlm
-// Pages
+import MobileBottomNav from './components/MobileBottomNav';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import ShopPage from './pages/ShopPage';
@@ -35,6 +34,8 @@ import CGVPage from './pages/CGVPage';
 import CGVSmartTrocPage from './pages/CGVSmartTrocPage';
 import VerifyCertificatePage from './pages/VerifyCertificatePage';
 import FeedbackPage from './pages/FeedbackPage';
+import MarketplacePage from './pages/MarketplacePage';
+import MarketplaceBrowsePage from './pages/MarketplaceBrowsePage';
 
 const Checkout = lazy(() => import('./components/Checkout'));
 const AiConsultant = lazy(() => import('./components/AiConsultant'));
@@ -78,9 +79,10 @@ const App: React.FC = () => {
   const isStudioPage = location.pathname.startsWith('/studio');
   const isStaffPortal = isAdminPage || isStudioPage;
   const isTrocPage = location.pathname === '/troc';
+  const isHomePage = location.pathname === '/';
   const isImageOnlyBackgroundPage = isImageOnlyBackgroundRoute(location.pathname);
   const isLightBackgroundPage = isLightBackgroundRoute(location.pathname);
-  const { isSlow: isSlowConnection } = useBandwidthDetector();
+  const { isSlow: isSlowConnection, isVideoAllowed } = useBandwidthDetector();
 
   useEffect(() => {
     let isMounted = true;
@@ -294,7 +296,7 @@ const App: React.FC = () => {
   const bgVideoUrl =
     'https://res.cloudinary.com/dli0kdkg9/video/upload/v1768438828/xption7_zrgro4.mp4';
   const isBackgroundVideoPaused =
-    isAdminPage || isStudioPage || isImageOnlyBackgroundPage || isLightBackgroundPage || isSlowConnection;
+    isAdminPage || isStudioPage || isImageOnlyBackgroundPage || isLightBackgroundPage || !isVideoAllowed;
   const backgroundImagePool = isLightBackgroundPage
     ? SITE_BACKGROUND_LIGHT_IMAGES
     : SITE_BACKGROUND_IMAGES;
@@ -311,12 +313,14 @@ const App: React.FC = () => {
       />
 
       {!isStaffPortal && (
-        <Header
-          cartCount={cartCount}
-          onOpenCart={() => setIsCartOpen(true)}
-          products={products}
-          onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
-        />
+        <div className={isProductPage ? 'hidden md:block' : 'block'}>
+          <Header
+            cartCount={cartCount}
+            onOpenCart={() => setIsCartOpen(true)}
+            products={products}
+            onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
+          />
+        </div>
       )}
 
       <ErrorBoundary>
@@ -324,7 +328,9 @@ const App: React.FC = () => {
         className={`relative z-10 flex-1 flex flex-col w-full min-w-0 max-w-full overflow-x-clip box-border ${
           isStaffPortal
             ? 'pt-0 pb-0'
-            : `pt-[132px] ${isProductPage ? 'pb-24 md:pb-6' : 'pb-20'}`
+            : isProductPage
+              ? 'pt-0 md:pt-[132px] pb-0 md:pb-6'
+              : `pt-[132px] ${isHomePage ? 'pb-8 md:pb-20' : 'pb-24 md:pb-20'}`
         }`}
       >
         <Routes>
@@ -334,6 +340,8 @@ const App: React.FC = () => {
               packs={packs}
               onAddToCart={addToCart}
               onAddPackToCart={addPackToCart}
+              cartCount={cartCount}
+              onOpenCart={() => setIsCartOpen(true)}
             />
           } />
           <Route path="/about" element={<AboutPage />} />
@@ -348,9 +356,13 @@ const App: React.FC = () => {
             <ProductPage
               products={products}
               onAddToCart={addToCart}
+              cartCount={cartCount}
+              onOpenCart={() => setIsCartOpen(true)}
             />
           } />
           <Route path="/troc" element={<TrocPage />} />
+          <Route path="/marketplace" element={<MarketplaceBrowsePage />} />
+          <Route path="/marketplace/lister" element={<MarketplacePage />} />
           <Route path="/tracking/*" element={<TrackingPage />} />
           <Route path="/bon" element={<TrocVoucherPage />} />
           <Route path="/sav" element={<SavPage />} />
@@ -387,7 +399,7 @@ const App: React.FC = () => {
       </ErrorBoundary>
 
       {!isProductPage && !isStaffPortal && !isTrocPage && (
-        <footer className="mt-auto bg-black/80 backdrop-blur-xl border-t border-gray-800 py-12 relative z-10 shrink-0">
+        <footer className="mt-auto bg-[#0a0a0c] md:bg-black/80 md:backdrop-blur-xl border-t border-white/10 md:border-gray-800 py-12 relative z-10 shrink-0 hidden md:block">
           <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-8">
             <div className="mb-6 md:mb-0">
               <h3 className="text-xl font-bold text-white mb-2 font-tech uppercase">Xeption</h3>
@@ -455,6 +467,12 @@ const App: React.FC = () => {
         <Suspense fallback={null}>
           <AiConsultant />
         </Suspense>
+      )}
+
+      {!isStaffPortal && !isCartOpen && (
+        <ErrorBoundary fallback={null}>
+          <MobileBottomNav isStaffAuthenticated={isStaffAuthenticated} />
+        </ErrorBoundary>
       )}
 
       <Toaster

@@ -13,6 +13,7 @@ const WELCOME_MESSAGE =
 const AiConsultant: React.FC = () => {
   const location = useLocation();
   const isProductPage = location.pathname.startsWith('/product/');
+  const isTrocPage = location.pathname.startsWith('/troc') || location.pathname.startsWith('/marketplace');
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -106,6 +107,8 @@ const AiConsultant: React.FC = () => {
   };
 
   const sendBlocked = isLoading || !input.trim();
+
+  if (isTrocPage) return null;
 
   return (
     <>

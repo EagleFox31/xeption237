@@ -81,6 +81,7 @@ const applyCredibilityDecision = (
   decision: string | undefined,
   photoIssues: Array<{ index?: number }>,
   photoCount: number,
+  summary?: string,
 ): void => {
   const indices = photoIssues
     .map((p) => Number(p?.index))
@@ -94,7 +95,8 @@ const applyCredibilityDecision = (
 
   if (decision === 'mismatch') {
     throw new DeviceMismatchError(
-      'Les photos ne correspondent pas au téléphone déclaré. Envoyez des photos nettes du bon appareil.',
+      summary ||
+        'Les photos ne permettent pas de confirmer avec certitude le modèle déclaré. Vérifiez que l’appareil est bien visible sous un bon éclairage (écran allumé et dos).',
     );
   }
 };
@@ -137,7 +139,12 @@ const preflightViaEdge = async (form: TrocDeviceForm, photoUrls: string[]): Prom
     throw new Error(payload.error);
   }
 
-  applyCredibilityDecision(payload.analysisDecision, payload.photoIssues ?? [], urlsForCheck.length);
+  applyCredibilityDecision(
+    payload.analysisDecision,
+    payload.photoIssues ?? [],
+    urlsForCheck.length,
+    payload.credibilitySummary,
+  );
 };
 
 /**

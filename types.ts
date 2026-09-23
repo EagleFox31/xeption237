@@ -349,7 +349,7 @@ export interface TrocDeviceForm {
   imei: string;
 }
 
-export type TrocStep = 'form' | 'photos' | 'imei' | 'payment' | 'result' | 'voucher';
+export type TrocStep = 'form' | 'photos' | 'diagnostic' | 'imei' | 'payment' | 'result' | 'voucher';
 
 export interface TrocPayment {
   id: string;

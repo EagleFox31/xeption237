@@ -25,7 +25,7 @@ import { getTrocSessionKey, resetTrocSessionKey } from '../utils/trocSessionKey'
 import { getProductDisplayName } from '../utils/productDisplay';
 import { loadTrocDraft, saveTrocDraft, clearTrocDraft } from '../utils/trocStorage';
 
-export type TrocStep = 'form' | 'photos' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
+export type TrocStep = 'form' | 'photos' | 'diagnostic' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
 export type ImeiMatchState = 'unknown' | 'match' | 'mismatch' | 'not_verified';
 export type PaymentState = 'idle' | 'initiating' | 'pending' | 'polling' | 'paid' | 'failed' | 'expired' | 'timeout';
 
@@ -303,7 +303,8 @@ export const useTradeIn = () => {
       setError("L'IMEI n'a pas pu être confirmé. Revenez à l'étape précédente.");
       return;
     }
-    if (photos.length < 3 && photoUrls.length < 3) {
+    const totalAvailablePhotos = photos.length + photoUrls.length;
+    if (photos.length < 3 && photoUrls.length < 3 && totalAvailablePhotos < 3) {
       setError('Ajoutez au moins 3 photos nettes de votre appareil (écran allumé, face arrière, tranches/angles) pour continuer.');
       return;
     }
@@ -311,7 +312,15 @@ export const useTradeIn = () => {
     setError(null);
     setPhotoIssueIndices([]);
     try {
-      const urls = photos.length >= 3 ? await uploadFiles(photos) : photoUrls;
+      let urls: string[];
+      if (photos.length >= 3) {
+        urls = await uploadFiles(photos);
+      } else if (photos.length > 0) {
+        const newlyUploaded = await uploadFiles(photos);
+        urls = [...newlyUploaded, ...photoUrls].slice(0, 4);
+      } else {
+        urls = photoUrls;
+      }
       setIsUploading(false);
       setIsCheckingPhotos(true);
       if (photos.length >= 3) {
@@ -334,7 +343,7 @@ export const useTradeIn = () => {
       setPaymentReference(null);
       setSelectedTier(TROC_TUNNEL_TIER);
       setError(null);
-      setStep('payment');
+      setStep('diagnostic');
     } catch (err) {
       if (err instanceof PhotoRetakeRequiredError) {
         setPhotoIssueIndices(err.issueIndices);
@@ -346,10 +355,10 @@ export const useTradeIn = () => {
         return;
       }
       if (err instanceof DeviceMismatchError) {
-        setPhotoIssueIndices(photos.map((_, i) => i + 1));
+        setPhotoIssueIndices([]);
         setError(
           err.detail ||
-            "Les photos ne correspondent pas au téléphone déclaré. Remplacez-les par des photos nettes de l'appareil indiqué dans le formulaire.",
+            "Nous n'avons pas pu confirmer le modèle avec certitude sur ces photos. Assurez-vous d'inclure une photo nette avec écran allumé et une vue du dos de l'appareil.",
         );
         return;
       }
@@ -362,6 +371,25 @@ export const useTradeIn = () => {
       setIsUploading(false);
       setIsCheckingPhotos(false);
     }
+  };
+
+  const continueFromDiagnostic = (answers: {
+    powersOn: boolean;
+    touchOk: boolean;
+    camerasBiometrics: 'oui' | 'non' | 'nsp';
+  }) => {
+    setForm((prev) => ({
+      ...prev,
+      powersOn: answers.powersOn,
+      screenCondition: answers.touchOk ? (prev.screenCondition || 'parfait') : 'tactile_defectueux',
+      biometricsWork: answers.camerasBiometrics !== 'non',
+      cameraCondition: answers.camerasBiometrics === 'non' ? 'défectueuse' : (prev.cameraCondition || 'bon'),
+    }));
+    setPaymentState('idle');
+    setPaymentReference(null);
+    setSelectedTier(TROC_TUNNEL_TIER);
+    setError(null);
+    setStep('payment');
   };
 
   // Auto-match catalogue : le QuickForm hérite du prix exact (base_price + tradeInModelId)
@@ -398,15 +426,26 @@ export const useTradeIn = () => {
           setImeiDeviceSource('provider');
           setImeiEvidenceCount(0);
           void applyCatalogMatch(deviceInfo.brand, deviceInfo.model);
-          const brandMatch = isSoftMatch(form.deviceBrand, deviceInfo.brand);
-          const modelMatch = isSoftMatch(form.deviceModel, deviceInfo.model);
-          if (brandMatch && modelMatch) {
+
+          if (!form.deviceBrand && !form.deviceModel) {
+            // Flux IMEI-first : marque et modèle automatiquement déduits du TAC IMEI
+            setForm((prev) => ({
+              ...prev,
+              deviceBrand: deviceInfo.brand,
+              deviceModel: deviceInfo.model,
+            }));
             setImeiMatchState('match');
           } else {
-            setImeiMatchState('mismatch');
-            setError(
-              "L'IMEI détecté ne correspond pas à la marque/modèle indiqué. Venez en boutique pour vérification."
-            );
+            const brandMatch = isSoftMatch(form.deviceBrand, deviceInfo.brand);
+            const modelMatch = isSoftMatch(form.deviceModel, deviceInfo.model);
+            if (brandMatch && modelMatch) {
+              setImeiMatchState('match');
+            } else {
+              setImeiMatchState('mismatch');
+              setError(
+                "L'IMEI détecté ne correspond pas à la marque/modèle indiqué. Venez en boutique pour vérification."
+              );
+            }
           }
         } else if (form.deviceBrand || form.deviceModel) {
           const history = await lookupImeiFromHistory(form.imei);
@@ -438,10 +477,24 @@ export const useTradeIn = () => {
             // Message informatif — pas une erreur bloquante, le modèle sera confirmé en boutique
           }
         } else {
-          setImeiDeviceInfo(null);
-          setImeiDeviceSource(null);
-          setImeiEvidenceCount(0);
-          setImeiMatchState('not_verified');
+          const history = await lookupImeiFromHistory(form.imei);
+          if (history) {
+            setImeiDeviceInfo({ brand: history.brand, model: history.model });
+            setImeiDeviceSource('historical');
+            setImeiEvidenceCount(history.count);
+            void applyCatalogMatch(history.brand, history.model);
+            setForm((prev) => ({
+              ...prev,
+              deviceBrand: history.brand,
+              deviceModel: history.model,
+            }));
+            setImeiMatchState('match');
+          } else {
+            setImeiDeviceInfo(null);
+            setImeiDeviceSource(null);
+            setImeiEvidenceCount(0);
+            setImeiMatchState('not_verified');
+          }
         }
       } else if (status === 'check_failed') {
         setImeiDeviceInfo(null);
@@ -455,19 +508,26 @@ export const useTradeIn = () => {
           setError(TROC_MESSAGES.ai_rate_limited);
         } else if (normalizedReason.includes('invalid_imei_checksum')) {
           setError('Ce numéro IMEI semble incorrect. Vérifiez les 15 chiffres en composant *#06# sur votre téléphone.');
+        } else if (normalizedReason.includes('trivial_test_imei')) {
+          setError('Ce numéro est une suite de test fictive. Entrez le vrai IMEI de 15 chiffres de votre téléphone.');
         } else {
-          setError("Vérification IMEI indisponible pour le moment. La confirmation se fera en boutique.");
+          setError(reason || "Numéro IMEI non reconnu. Vérifiez les 15 chiffres ou choisissez votre modèle ci-dessous.");
         }
       } else {
         setImeiMatchState('unknown');
       }
-    } catch {
+    } catch (err: any) {
       setImeiStatus('check_failed');
       setImeiDeviceInfo(null);
       setImeiDeviceSource(null);
       setImeiEvidenceCount(0);
       setImeiMatchState('unknown');
-      setError("Vérification IMEI indisponible pour le moment. La confirmation se fera en boutique.");
+      const msg = err?.message;
+      if (msg && typeof msg === 'string' && msg.length > 5 && !msg.toLowerCase().includes('failed to fetch')) {
+        setError(msg);
+      } else {
+        setError("Numéro IMEI non reconnu. Vérifiez les 15 chiffres ou choisissez votre modèle ci-dessous.");
+      }
     } finally {
       setIsCheckingImei(false);
     }
@@ -508,6 +568,8 @@ export const useTradeIn = () => {
     setPaymentState('initiating');
     setSelectedTier(tier);
     setError(null);
+    // Persist phone so saveTradeInRequest can read it from form later
+    setForm((prev) => ({ ...prev, customerPhone: phone }));
     try {
       upsertSession(sessionKey, 'payment', {
         deviceBrand: form.deviceBrand,
@@ -517,7 +579,7 @@ export const useTradeIn = () => {
       const { reference, amount } = await createPayment(sessionKey, phone, {
         tier,
         customerName:  form.customerName || undefined,
-        customerPhone: form.customerPhone || undefined,
+        customerPhone: phone,
         customerEmail: form.customerEmail || undefined,
       });
       setPaymentReference(reference);
@@ -593,10 +655,10 @@ export const useTradeIn = () => {
         return;
       }
       if (err instanceof DeviceMismatchError) {
-        setPhotoIssueIndices(photoUrls.map((_, i) => i + 1));
+        setPhotoIssueIndices([]);
         setError(
           err.detail ||
-            "Les photos ne correspondent pas au téléphone déclaré. Remplacez-les par des photos nettes de l'appareil indiqué dans le formulaire.",
+            "Nous n'avons pas pu confirmer le modèle avec certitude sur ces photos. Assurez-vous d'inclure une photo nette avec écran allumé et une vue du dos de l'appareil.",
         );
         setStep('photos');
         return;
@@ -713,6 +775,7 @@ export const useTradeIn = () => {
     goToPhotos,
     goToPhotosQuick,
     continueFromPhotos,
+    continueFromDiagnostic,
     doCheckImei,
     skipImei,
     goToPayment,
@@ -723,5 +786,6 @@ export const useTradeIn = () => {
     refuse,
     reset,
     setBasePrice,
+    setStep,
   };
 };

@@ -55,6 +55,42 @@ export const buildTradeInVoucherShareMessage = (
   ].join('\n');
 };
 
+export const buildMarketplaceListingMessage = (
+  request: TradeInRequest,
+  opts: { marketplaceMin: number; marketplaceMax: number },
+): string => {
+  const ref = resolveVoucherReference(request);
+  const device = `${request.device_brand} ${request.device_model}`.trim();
+  return [
+    'DEMANDE DE LISTING MARKETPLACE — XEPTION NETWORK',
+    '',
+    `Appareil : ${device}`,
+    `Prix indicatif marketplace : ${formatFcfa(opts.marketplaceMin)} - ${formatFcfa(opts.marketplaceMax)}`,
+    `Référence bon : ${ref}`,
+    '',
+    'Bonjour Xeption, je préfère lister mon appareil sur la marketplace.',
+    'Je voudrais être contacté pour procéder.',
+  ].join('\n');
+};
+
+export const buildSellAppointmentMessage = (
+  request: TradeInRequest,
+  opts: { sellMin: number; sellMax: number },
+): string => {
+  const ref = resolveVoucherReference(request);
+  const device = `${request.device_brand} ${request.device_model}`.trim();
+  return [
+    'VENTE DIRECTE — XEPTION NETWORK',
+    '',
+    `Appareil : ${device}`,
+    `Valeur estimée : ${formatFcfa(opts.sellMin)} - ${formatFcfa(opts.sellMax)}`,
+    `Référence bon : ${ref}`,
+    '',
+    'Bonjour Xeption, je souhaite vendre mon appareil directement en boutique.',
+    'Je voudrais prendre un RDV pour procéder à la vente.',
+  ].join('\n');
+};
+
 export const buildTradeInAppointmentMessage = (request: TradeInRequest): string => {
   const ref = resolveVoucherReference(request);
   const device = `${request.device_brand} ${request.device_model}`.trim();

@@ -355,6 +355,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
     { id: 'home', label: 'Accueil' },
     { id: 'shop', label: 'Le Shop' },
     { id: 'troc', label: 'Troc Zone' },
+    { id: 'marketplace', label: 'Marketplace' },
     { id: 'tracking', label: 'Suivi' },
     { id: 'sav', label: 'SAV' },
   ];

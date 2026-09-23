@@ -76,7 +76,17 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.xeptionetwork.shop/product/jbl-tune-520bt-noir-ce128e16-694f-4728-99df-4bf88048f5c4</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.xeptionetwork.shop/product/buds-pro-4-99ee4bc7-b856-45c8-aab0-4f5a491ae815</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.xeptionetwork.shop/product/iphone-13-128-go-53107c83-f7df-4b51-b7fa-24f48f0f37dc</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -621,17 +631,17 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.xeptionetwork.shop/product/google-pixel-10-pro-9be02c29-6196-4a57-b148-f82d08ee813e</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://www.xeptionetwork.shop/product/buds-fe-f13dd542-f1d1-4d04-8f66-4ccca151abc6</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.xeptionetwork.shop/product/iphone-14-pro-256go-10bed18e-8e18-454b-a82e-0ddde65acf27</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.xeptionetwork.shop/product/google-pixel-10-pro-9be02c29-6196-4a57-b148-f82d08ee813e</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -857,11 +867,6 @@
   </url>
   <url>
     <loc>https://www.xeptionetwork.shop/product/samsung-galaxy-m33-128-go-6-gb-ram-scelle-1sim-korea-4dc17157-adaa-4edb-adb3-1689cda2196a</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.xeptionetwork.shop/product/iphone-13-128-go-53107c83-f7df-4b51-b7fa-24f48f0f37dc</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

@@ -11,9 +11,30 @@ export const useBandwidthDetector = () => {
 
   useEffect(() => {
     let cancelled = false;
-    detectBandwidth().then((result) => {
-      if (!cancelled) setProfile(result);
-    });
+
+    const updateProfile = (forceFresh = false) => {
+      detectBandwidth(forceFresh).then((result) => {
+        if (!cancelled) setProfile(result);
+      });
+    };
+
+    updateProfile(false);
+
+    // Écoute en temps réel des changements réseau (passage 4G -> 3G -> 2G ou activation saveData)
+    const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
+    const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
+
+    if (conn && typeof conn.addEventListener === 'function') {
+      const handleConnectionChange = () => {
+        updateProfile(true);
+      };
+      conn.addEventListener('change', handleConnectionChange);
+      return () => {
+        cancelled = true;
+        conn.removeEventListener('change', handleConnectionChange);
+      };
+    }
+
     return () => {
       cancelled = true;
     };
@@ -26,6 +47,8 @@ export const useBandwidthDetector = () => {
     tier,
     isSlow: tier === 'slow',
     isFast: tier === 'fast',
+    isVideoAllowed: profile?.isVideoAllowed ?? (tier === 'fast' && typeof window !== 'undefined' && window.innerWidth >= 768),
     isLoading: profile == null,
+    effectiveType: profile?.effectiveType ?? null,
   };
 };

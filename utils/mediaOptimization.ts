@@ -57,6 +57,38 @@ export const optimizeImage = (
   return url;
 };
 
+/**
+ * Génère un placeholder LQIP (Low-Quality Image Placeholder) flouté ultra-léger (~250 octets)
+ * Téléchargé instantanément même en 2G/3G, permettant un affichage flou immédiat des vraies couleurs.
+ */
+export const optimizeImagePlaceholder = (url: string | undefined, width: number = 24): string => {
+  if (!url) return IMAGE_FALLBACK;
+  if (!url.includes('cloudinary.com')) return url;
+
+  // w_24, e_blur:200, q_auto:low, f_auto : micro-vignette floue ultra-légère
+  const transformation = `f_auto,q_auto:low,w_${width},e_blur:200,c_limit`;
+  const parts = url.split('/upload/');
+  if (parts.length === 2) {
+    return buildCloudinaryTransform(parts, transformation);
+  }
+  return url;
+};
+
+/**
+ * Génère une chaîne srcset responsive pour Cloudinary
+ * ex: "url_180 180w, url_320 320w, url_640 640w"
+ */
+export const generateCloudinarySrcSet = (
+  url: string | undefined,
+  widths: number[] = [180, 320, 480, 640, 800],
+): string | undefined => {
+  if (!url || !url.includes('cloudinary.com')) return undefined;
+
+  return widths
+    .map((w) => `${optimizeImage(url, w)} ${w}w`)
+    .join(', ');
+};
+
 /** Vignette produit carrée (hero / grilles) — même cadre pour phones et laptops */
 export const optimizeProductThumb = (url: string | undefined, size: number = 400): string => {
   if (!url) return IMAGE_FALLBACK;

@@ -28,6 +28,14 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   accessories: Headphones,
 };
 
+/** Catégories par défaut immédiates (garanties 100% sans temps de chargement) */
+const FALLBACK_CATEGORIES: Category[] = [
+  { id: 'phones', name: 'Smartphones', slug: 'phones' },
+  { id: 'computer', name: 'Ordinateurs', slug: 'computer' },
+  { id: 'tablettes', name: 'Tablettes', slug: 'tablettes' },
+  { id: 'accessories', name: 'Accessoires', slug: 'accessories' },
+];
+
 /** Ordre de priorité d'affichage des catégories (le reste suit, alphabétique). */
 const CATEGORY_ORDER = ['phones', 'computer', 'tablettes', 'accessories'];
 const categoryRank = (slug: string) => {
@@ -109,7 +117,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [isMobileShopOpen, setIsMobileShopOpen] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(FALLBACK_CATEGORIES);
   const [brands, setBrands] = useState<BrandRow[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<{
@@ -167,8 +175,12 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
 
   useEffect(() => {
     const fetchCats = async () => {
-      const { data } = await supabase.from('categories').select('*').order('name', { ascending: true });
-      if (data) setCategories(data as Category[]);
+      try {
+        const { data } = await supabase.from('categories').select('*').order('name', { ascending: true });
+        if (data && data.length > 0) setCategories(data as Category[]);
+      } catch (err) {
+        console.warn('Using fallback categories', err);
+      }
     };
     void fetchCats();
   }, []);
@@ -192,6 +204,25 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
       window.removeEventListener('resize', update);
     };
   }, [categories]);
+
+  // Réinitialisation du scroll horizontal de la barre de raccourcis lors du changement de route
+  // Évite que le bouton TROC reste masqué hors-champ vers la gauche à cause du CSS snap
+  useEffect(() => {
+    const el = catBarRef.current;
+    if (!el) return;
+    const resetScroll = () => {
+      if (catBarRef.current) {
+        catBarRef.current.scrollTo({ left: 0, behavior: 'instant' });
+      }
+    };
+    resetScroll();
+    const rafId = requestAnimationFrame(resetScroll);
+    const timerId = setTimeout(resetScroll, 60);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timerId);
+    };
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetchBrands = async () => {
@@ -550,7 +581,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
             >
               <ShoppingCart className="h-6 w-6 group-hover:scale-110 transition-transform duration-300" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-xeption-red text-[10px] font-bold text-white shadow-[0_0_10px_#ff0033]">
+                <span className="absolute -top-1 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-400 text-black text-[10px] font-black flex items-center justify-center shadow-[0_0_8px_rgba(251,191,36,0.5)] leading-none">
                   {cartCount}
                 </span>
               )}
@@ -575,15 +606,23 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
             aria-label="Catégories et marques"
             className="flex items-center gap-0.5 md:gap-1 h-14 pl-1.5 pr-6 md:pl-2 md:pr-6 lg:pr-8 xl:pr-10 overflow-x-auto snap-x snap-mandatory md:snap-none scroll-px-1 md:scroll-px-2 border-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {/* Mobile : Smart Troc en tête de barre */}
-            <button
-              type="button"
-              onClick={() => navigate('/troc')}
-              className="md:hidden group shrink-0 snap-start inline-flex items-center gap-1 px-1.5 py-2 rounded-md text-[10px] font-tech font-bold uppercase tracking-normal text-xeption-gold hover:bg-white/5 transition-colors whitespace-nowrap"
-            >
-              <RefreshCw className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} />
-              Troc
-            </button>
+            {/* Mobile : Smart Troc en tête de barre (masqué si déjà sur /troc pour éviter la redondance) */}
+            {!location.pathname.startsWith('/troc') && (
+              <button
+                key="mobile-nav-troc-btn"
+                ref={(node) => {
+                  if (node && catBarRef.current && catBarRef.current.scrollLeft > 0) {
+                    catBarRef.current.scrollLeft = 0;
+                  }
+                }}
+                type="button"
+                onClick={() => navigate('/troc')}
+                className="md:hidden group shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400/20 border border-amber-400/60 text-xs font-tech font-black uppercase tracking-wider text-amber-400 hover:bg-amber-400/30 active:scale-95 transition-all whitespace-nowrap shadow-[0_0_12px_rgba(251,191,36,0.35)]"
+              >
+                <RefreshCw className="w-4 h-4 shrink-0 stroke-[2.5]" />
+                <span className="text-sm font-black tracking-wider">TROC</span>
+              </button>
+            )}
 
             {/* Desktop : Promos */}
             <button
@@ -596,7 +635,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
 
             <span className="shrink-0 w-px h-4 bg-white/10 mx-0.5 md:mx-1.5" />
 
-            {/* Catégories */}
+            {/* Catégories (Smartphones, PC, Tablettes, Accessoires) */}
             {[...categories].sort((a, b) => categoryRank(a.slug) - categoryRank(b.slug)).map((cat) => {
               const Icon = CATEGORY_ICONS[cat.slug] || Tag;
               const mobileLabel = CATEGORY_MOBILE_LABEL[cat.slug] ?? cat.name;
@@ -605,9 +644,9 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                   key={cat.slug}
                   onClick={() => navigateToShop(cat.slug)}
                   aria-label={cat.name}
-                  className="group shrink-0 snap-start inline-flex items-center gap-0.5 md:gap-1.5 px-1.5 md:px-3 py-2 rounded-md text-[10px] md:text-sm font-tech font-bold uppercase tracking-normal md:tracking-wide text-white/70 hover:text-white hover:bg-white/5 transition-colors whitespace-nowrap"
+                  className="group shrink-0 snap-start inline-flex items-center gap-1 md:gap-1.5 px-2.5 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-tech font-bold uppercase tracking-wider text-white hover:text-amber-400 bg-white/5 md:bg-transparent hover:bg-white/10 active:scale-95 transition-all whitespace-nowrap"
                 >
-                  <Icon className="w-3 h-3 md:w-4 md:h-4 shrink-0" />
+                  <Icon className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0 text-zinc-300 group-hover:text-amber-400" />
                   <span className="md:hidden">{mobileLabel}</span>
                   <span className="hidden md:inline">{cat.name}</span>
                 </button>

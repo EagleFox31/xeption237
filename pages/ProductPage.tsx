@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import ProductDetail from '../components/ProductDetail';
+import MobileProductDetailView from '../components/mobile/MobileProductDetailView';
 import { Product } from '../types';
 import { parseProductIdFromSlug } from '../utils/slug';
 import { getProductSlug } from '../utils/slug';
@@ -8,31 +9,46 @@ import { getProductDisplayName } from '../utils/productDisplay';
 import { PageSEO, JsonLd, productJsonLd, breadcrumbJsonLd, faqJsonLd, toOgImage } from '../utils/seo';
 import { buildProductFaq } from '../utils/productFaq';
 import { buildShopReturnPath } from '../utils/shopFilterStorage';
+import SkeletonLoader from '../components/common/SkeletonLoader';
 
 interface ProductPageProps {
     products: Product[];
     onAddToCart: (product: Product) => void;
+    cartCount?: number;
+    onOpenCart?: () => void;
 }
 
-const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
+const ProductPage: React.FC<ProductPageProps> = ({
+    products,
+    onAddToCart,
+    cartCount = 0,
+    onOpenCart = () => {},
+}) => {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const location = useLocation();
+    const [isPageLoading, setIsPageLoading] = useState(true);
+
+    // Déclenche le Skeleton Loader lors de chaque clic / navigation vers un produit
+    useEffect(() => {
+        setIsPageLoading(true);
+        const timer = setTimeout(() => {
+            setIsPageLoading(false);
+        }, 320);
+        return () => clearTimeout(timer);
+    }, [slug]);
 
     const productId = slug ? parseProductIdFromSlug(slug) : null;
 
     // Find product by ID
     const product = productId ? products.find(p => p.id === productId) : undefined;
 
+    // Pendant le chargement initial OU la transition visuelle au clic : afficher le Skeleton Loader
+    if (isPageLoading || products.length === 0) {
+        return <SkeletonLoader variant="product-detail" />;
+    }
+
     if (!product) {
-        if (products.length === 0) {
-            // Loading state
-            return (
-                <div className="min-h-screen pt-32 flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-xeption-gold border-t-transparent rounded-full animate-spin"></div>
-                </div>
-            );
-        }
         return (
             <>
                 <PageSEO
@@ -131,14 +147,29 @@ const ProductPage: React.FC<ProductPageProps> = ({ products, onAddToCart }) => {
                     faqJsonLd(buildProductFaq(product)),
                 ]}
             />
-            <ProductDetail
-                product={product}
-                relatedProducts={related}
-                topProducts={topSales}
-                onBack={handleBack}
-                onAddToCart={onAddToCart}
-                onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
-            />
+            {/* Expérience Mobile Native (Fidèle à la maquette utilisateur) */}
+            <div className="block md:hidden">
+                <MobileProductDetailView
+                    product={product}
+                    onBack={handleBack}
+                    onAddToCart={onAddToCart}
+                    cartCount={cartCount}
+                    onOpenCart={onOpenCart}
+                    relatedProducts={related}
+                />
+            </div>
+
+            {/* Expérience Desktop (Préservée intacte, 0 régression) */}
+            <div className="hidden md:block">
+                <ProductDetail
+                    product={product}
+                    relatedProducts={related}
+                    topProducts={topSales}
+                    onBack={handleBack}
+                    onAddToCart={onAddToCart}
+                    onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
+                />
+            </div>
         </>
     );
 };

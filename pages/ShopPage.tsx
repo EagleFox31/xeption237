@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { PageSEO, JsonLd, breadcrumbJsonLd, itemListJsonLd, absoluteUrl } from '../utils/seo';
 import ProductList from '../components/ProductList';
 import ShopHero from '../components/shop/ShopHero';
+import MobileShopView from '../components/mobile/MobileShopView';
 import { Product } from '../types';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { getProductSlug } from '../utils/slug';
@@ -110,60 +111,75 @@ const ShopPage: React.FC<ShopPageProps> = ({ products, onAddToCart }) => {
                 catalogItemList,
             ]} />
 
-            <ShopHero
-                products={products}
-                activeFilter={activeFilter}
-                searchQuery={searchQuery}
-                productCount={resultCount}
-            />
+            {/* Expérience Mobile Native (Fidèle à la maquette 02_catalogue_filtres.jpg) */}
+            <div className="block md:hidden">
+                <MobileShopView
+                    products={products}
+                    onAddToCart={onAddToCart}
+                    onProductClick={(p) => {
+                        const shopReturnTo = `${location.pathname}${location.search}`;
+                        navigate(`/product/${getProductSlug(p)}`, { state: { shopReturnTo } });
+                    }}
+                />
+            </div>
 
-            <ProductList
-                products={products}
-                onAddToCart={onAddToCart}
-                onResultCountChange={setResultCount}
-                onProductClick={(p) => {
-                    const shopReturnTo = `${location.pathname}${location.search}`;
-                    navigate(`/product/${getProductSlug(p)}`, { state: { shopReturnTo } });
-                }}
-                title="Catalogue Complet"
-                stickyToolbar
-                hasShopHero
-                searchQuery={searchQuery}
-                sort={sort}
-                promoOnly={promoOnly}
-                inStockOnly={inStockOnly}
-                filter={activeFilter}
-                onFilterChange={(next) => {
-                    const params = new URLSearchParams(searchParams);
-                    if (!next || next === 'all') params.delete('cat');
-                    else params.set('cat', next);
-                    params.delete('brand');
-                    params.delete('storage');
-                    params.delete('ram');
-                    params.delete('condition');
-                    params.delete('price_min');
-                    params.delete('price_max');
-                    commitParams(params);
-                }}
-                page={page}
-                onPageChange={setPage}
-                brandFilter={activeBrand}
-                onBrandChange={(next) => setParam('brand', next)}
-                onSortChange={(next) => setParam('sort', next === 'default' ? '' : next)}
-                onPromoOnlyChange={(v) => setBoolParam('promo', v)}
-                onInStockOnlyChange={(v) => setBoolParam('stock', v)}
-                onClearSearch={() => setParam('q', '')}
-                onResetFilters={() => setSearchParams({}, { replace: true })}
-                storageFilter={storageFilter}
-                ramFilter={ramFilter}
-                conditionFilter={conditionFilter}
-                onStorageChange={(v) => setParam('storage', v)}
-                onRamChange={(v) => setParam('ram', v)}
-                onConditionChange={(v) => setParam('condition', v)}
-                priceMin={priceMin}
-                priceMax={priceMax}
-                onPriceRangeChange={setPriceRange}
-            />
+            {/* Expérience Desktop (Préservée intacte, 0 régression) */}
+            <div className="hidden md:block">
+                <ShopHero
+                    products={products}
+                    activeFilter={activeFilter}
+                    searchQuery={searchQuery}
+                    productCount={resultCount}
+                />
+
+                <ProductList
+                    products={products}
+                    onAddToCart={onAddToCart}
+                    onResultCountChange={setResultCount}
+                    onProductClick={(p) => {
+                        const shopReturnTo = `${location.pathname}${location.search}`;
+                        navigate(`/product/${getProductSlug(p)}`, { state: { shopReturnTo } });
+                    }}
+                    title="Catalogue Complet"
+                    stickyToolbar
+                    hasShopHero
+                    searchQuery={searchQuery}
+                    sort={sort}
+                    promoOnly={promoOnly}
+                    inStockOnly={inStockOnly}
+                    filter={activeFilter}
+                    onFilterChange={(next) => {
+                        const params = new URLSearchParams(searchParams);
+                        if (!next || next === 'all') params.delete('cat');
+                        else params.set('cat', next);
+                        params.delete('brand');
+                        params.delete('storage');
+                        params.delete('ram');
+                        params.delete('condition');
+                        params.delete('price_min');
+                        params.delete('price_max');
+                        commitParams(params);
+                    }}
+                    page={page}
+                    onPageChange={setPage}
+                    brandFilter={activeBrand}
+                    onBrandChange={(next) => setParam('brand', next)}
+                    onSortChange={(next) => setParam('sort', next === 'default' ? '' : next)}
+                    onPromoOnlyChange={(v) => setBoolParam('promo', v)}
+                    onInStockOnlyChange={(v) => setBoolParam('stock', v)}
+                    onClearSearch={() => setParam('q', '')}
+                    onResetFilters={() => setSearchParams({}, { replace: true })}
+                    storageFilter={storageFilter}
+                    ramFilter={ramFilter}
+                    conditionFilter={conditionFilter}
+                    onStorageChange={(v) => setParam('storage', v)}
+                    onRamChange={(v) => setParam('ram', v)}
+                    onConditionChange={(v) => setParam('condition', v)}
+                    priceMin={priceMin}
+                    priceMax={priceMax}
+                    onPriceRangeChange={setPriceRange}
+                />
+            </div>
         </div>
     );
 };

@@ -37,6 +37,7 @@ import {
   totalPages,
 } from '../utils/shopPagination';
 import ShopPagination from './shop/ShopPagination';
+import SkeletonLoader from './common/SkeletonLoader';
 
 type ViewMode = 'grid' | 'list';
 
@@ -979,10 +980,14 @@ const ProductList: React.FC<ProductListProps> = ({
         ) : null}
 
         <div className={isShopLayout ? 'flex-1 min-w-0' : ''}>
-          {isShopLayout && filteredProducts.length === 0 ? (
-            <div className="text-center py-16 px-4 border border-white/10 rounded-xl bg-black/40 backdrop-blur-md">
+          {products.length === 0 ? (
+            <div className="py-2">
+              <SkeletonLoader variant="product-grid" count={8} />
+            </div>
+          ) : isShopLayout && filteredProducts.length === 0 ? (
+            <div className="text-center py-16 px-4 border border-white/15 rounded-xl bg-black/75 backdrop-blur-md shadow-xl">
               <p className="text-white font-tech uppercase text-lg mb-2">Aucun produit trouvé</p>
-              <p className="text-gray-400 text-sm mb-4">
+              <p className="text-gray-300 text-sm mb-4">
                 Essaie une autre catégorie ou modifie ta recherche dans le menu.
               </p>
               {onResetFilters && hasActiveFilters && (

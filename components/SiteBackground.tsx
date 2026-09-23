@@ -78,19 +78,19 @@ const SiteBackground: React.FC<SiteBackgroundProps> = ({
         aria-hidden
       />
 
-      <video
-        ref={videoRef}
-        autoPlay
-        loop
-        muted
-        playsInline
-        poster={frontImage}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-          isVideoPaused ? 'opacity-0' : 'opacity-90 md:opacity-100'
-        }`}
-      >
-        <source src={optimizeVideo(videoUrl)} type="video/mp4" />
-      </video>
+      {!isVideoPaused && (
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          poster={frontImage}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-90 md:opacity-100"
+        >
+          <source src={optimizeVideo(videoUrl)} type="video/mp4" />
+        </video>
+      )}
 
       {variant === 'dark' && (
         <>

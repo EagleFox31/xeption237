@@ -209,3 +209,9 @@ html {
       box-shadow: 0 0 8px rgba(255, 215, 0, 0.35);
       cursor: grab;
     }
+
+    /* Masquer la barre de navigation basse quand une étape plein écran mobile le demande */
+    body.hide-mobile-bottom-nav nav[aria-label="Navigation mobile principale"] {
+      display: none !important;
+    }
+

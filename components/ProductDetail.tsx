@@ -4,6 +4,7 @@ import { Product } from '../types';
 import { ArrowLeft, ShoppingCart, Check, X, Cpu, Play, Share2, Link as LinkIcon, CheckCircle2, ShieldCheck, Star, MapPin, ChevronDown, HelpCircle, MessageCircle } from 'lucide-react';
 import { buildProductFaq } from '../utils/productFaq';
 import { optimizeImage } from '../utils/mediaOptimization';
+import ProductCardImage from './common/ProductCardImage';
 import { getProductSlug } from '../utils/slug';
 import { getProductDisplayName, normalizeSamsungGalaxySpelling } from '../utils/productDisplay';
 import { ProductBadgeChips } from './product/ProductBadgeChips';
@@ -284,10 +285,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                 }
                             }}
                         >
-                            <img
+                            <ProductCardImage
                                 src={optimizeImage(activeImage, 1100)}
                                 alt={`${displayName} — Xeption Cameroun`}
-                                className="relative z-10 w-full h-full object-contain object-center transition-opacity duration-700 ease-in-out"
+                                width={1100}
+                                height={800}
+                                priority={true}
+                                sizes="(max-width: 1024px) 100vw, 800px"
+                                placeholderClassName="bg-transparent"
+                                className="relative z-10 w-full h-full object-contain object-center"
                                 key={activeImage}
                             />
 

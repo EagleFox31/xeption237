@@ -6,6 +6,7 @@ import HomeTrustBandeau from '../components/HomeTrustBandeau';
 import HomeProductRow from '../components/home/HomeProductRow';
 import PackList from '../components/PackList';
 import TrocSection from '../components/TrocSection';
+import MobileHomeView from '../components/mobile/MobileHomeView';
 import { Product, Pack } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { getProductSlug } from '../utils/slug';
@@ -19,6 +20,8 @@ interface HomePageProps {
   packs: Pack[];
   onAddToCart: (product: Product) => void;
   onAddPackToCart: (pack: Pack) => void;
+  cartCount?: number;
+  onOpenCart?: () => void;
 }
 
 /** Promos → featured → reste ; 9 = 3 slides desktop (3 produits / slide) */
@@ -38,7 +41,14 @@ const pickHeroProducts = (products: Product[], limit = HERO_PRODUCT_LIMIT): Prod
   return merged;
 };
 
-const HomePage: React.FC<HomePageProps> = ({ products, packs, onAddToCart, onAddPackToCart }) => {
+const HomePage: React.FC<HomePageProps> = ({
+  products,
+  packs,
+  onAddToCart,
+  onAddPackToCart,
+  cartCount,
+  onOpenCart,
+}) => {
   const navigate = useNavigate();
 
   const heroProducts = useMemo(() => pickHeroProducts(products, HERO_PRODUCT_LIMIT), [products]);
@@ -81,78 +91,93 @@ const HomePage: React.FC<HomePageProps> = ({ products, packs, onAddToCart, onAdd
           ici que WebSite + ItemList pour éviter tout doublon de @id. */}
       <JsonLd data={[websiteJsonLd(), featuredItemList]} />
 
-      <HomeTrustBandeau />
-
-      <Hero
-        products={heroProducts}
-        onShopNow={() => navigate('/shop')}
-        onNavigateTroc={() => navigate('/troc')}
-        onProductClick={(p) => navigate(`/product/${getProductSlug(p)}`)}
-        onAddToCart={onAddToCart}
-      />
-
-      <div id="featured-products" className="pt-1 pb-6">
-        <HomeProductRow
-          tightTop
-          eyebrow="Deals" title="Bonnes Affaires"
-          icon={<Zap className="w-6 h-6 md:w-7 md:h-7 text-red-400 fill-current" />}
-          products={rows.bonnesAffaires}
-          onViewAll={() => navigate('/shop?promo=1')}
-          onAddToCart={onAddToCart} onProductClick={goProduct}
+      {/* Expérience Mobile Native (Fidèle à la maquette 01_accueil_mobile.jpg) */}
+      <div className="block md:hidden">
+        <MobileHomeView
+          products={products}
+          packs={packs}
+          onAddToCart={onAddToCart}
+          onAddPackToCart={onAddPackToCart}
+          cartCount={cartCount ?? 0}
+          onOpenCart={onOpenCart ?? (() => {})}
         />
-        <HomeProductRow
-          eyebrow="Catégorie" title="Smartphones"
-          icon={<Smartphone className="w-6 h-6 md:w-7 md:h-7 text-blue-400" />}
-          products={rows.smartphones}
-          onViewAll={() => navigate('/shop?cat=phones')}
-          onAddToCart={onAddToCart} onProductClick={goProduct}
-        />
-        <HomeProductRow
-          eyebrow="L'occasion maligne" title="Reconditionnés"
-          icon={<RotateCcw className="w-6 h-6 md:w-7 md:h-7 text-emerald-400" />}
-          products={rows.reconditionnes}
-          onViewAll={() => navigate('/shop?condition=refurbished')}
-          onAddToCart={onAddToCart} onProductClick={goProduct}
-        />
-        <HomeProductRow
-          eyebrow="Catégorie" title="Accessoires"
-          icon={<Headphones className="w-6 h-6 md:w-7 md:h-7 text-xeption-gold" />}
-          products={rows.accessoires}
-          onViewAll={() => navigate('/shop?cat=accessories')}
-          onAddToCart={onAddToCart} onProductClick={goProduct}
-        />
-        <HomeProductRow
-          eyebrow="Catégorie"
-          title="Ordinateurs & Gaming"
-          mobileTitle="PC & Gaming"
-          icon={<Laptop className="w-6 h-6 md:w-7 md:h-7 text-purple-400" />}
-          products={rows.ordinateurs}
-          onViewAll={() => navigate('/shop?cat=computer')}
-          onAddToCart={onAddToCart} onProductClick={goProduct}
-        />
-        <HomeProductRow
-          eyebrow="Frais du jour" title="Nouveautés"
-          icon={<Sparkles className="w-6 h-6 md:w-7 md:h-7 text-xeption-gold" />}
-          products={rows.nouveautes}
-          onViewAll={() => navigate('/shop')}
-          onAddToCart={onAddToCart} onProductClick={goProduct}
-        />
-
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-10 flex justify-center">
-          <button
-            type="button"
-            onClick={() => navigate('/shop')}
-            className="group inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-xeption-gold text-black font-tech font-bold text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] transition-all"
-          >
-            Voir tout le catalogue
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
       </div>
 
-      <PackList packs={packs} products={products} onAddPackToCart={onAddPackToCart} />
+      {/* Expérience Desktop (Préservée intacte, 0 régression) */}
+      <div className="hidden md:block">
+        <HomeTrustBandeau />
 
-      <TrocSection onNavigate={(page) => navigate(`/${page}`)} />
+        <Hero
+          products={heroProducts}
+          onShopNow={() => navigate('/shop')}
+          onNavigateTroc={() => navigate('/troc')}
+          onProductClick={(p) => navigate(`/product/${getProductSlug(p)}`)}
+          onAddToCart={onAddToCart}
+        />
+
+        <div id="featured-products" className="pt-1 pb-6">
+          <HomeProductRow
+            tightTop
+            eyebrow="Deals" title="Bonnes Affaires"
+            icon={<Zap className="w-6 h-6 md:w-7 md:h-7 text-red-400 fill-current" />}
+            products={rows.bonnesAffaires}
+            onViewAll={() => navigate('/shop?promo=1')}
+            onAddToCart={onAddToCart} onProductClick={goProduct}
+          />
+          <HomeProductRow
+            eyebrow="Catégorie" title="Smartphones"
+            icon={<Smartphone className="w-6 h-6 md:w-7 md:h-7 text-blue-400" />}
+            products={rows.smartphones}
+            onViewAll={() => navigate('/shop?cat=phones')}
+            onAddToCart={onAddToCart} onProductClick={goProduct}
+          />
+          <HomeProductRow
+            eyebrow="L'occasion maligne" title="Reconditionnés"
+            icon={<RotateCcw className="w-6 h-6 md:w-7 md:h-7 text-emerald-400" />}
+            products={rows.reconditionnes}
+            onViewAll={() => navigate('/shop?condition=refurbished')}
+            onAddToCart={onAddToCart} onProductClick={goProduct}
+          />
+          <HomeProductRow
+            eyebrow="Catégorie" title="Accessoires"
+            icon={<Headphones className="w-6 h-6 md:w-7 md:h-7 text-xeption-gold" />}
+            products={rows.accessoires}
+            onViewAll={() => navigate('/shop?cat=accessories')}
+            onAddToCart={onAddToCart} onProductClick={goProduct}
+          />
+          <HomeProductRow
+            eyebrow="Catégorie"
+            title="Ordinateurs & Gaming"
+            mobileTitle="PC & Gaming"
+            icon={<Laptop className="w-6 h-6 md:w-7 md:h-7 text-purple-400" />}
+            products={rows.ordinateurs}
+            onViewAll={() => navigate('/shop?cat=computer')}
+            onAddToCart={onAddToCart} onProductClick={goProduct}
+          />
+          <HomeProductRow
+            eyebrow="Frais du jour" title="Nouveautés"
+            icon={<Sparkles className="w-6 h-6 md:w-7 md:h-7 text-xeption-gold" />}
+            products={rows.nouveautes}
+            onViewAll={() => navigate('/shop')}
+            onAddToCart={onAddToCart} onProductClick={goProduct}
+          />
+
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-10 flex justify-center">
+            <button
+              type="button"
+              onClick={() => navigate('/shop')}
+              className="group inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-xeption-gold text-black font-tech font-bold text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] transition-all"
+            >
+              Voir tout le catalogue
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+        </div>
+
+        <PackList packs={packs} products={products} onAddPackToCart={onAddPackToCart} />
+
+        <TrocSection onNavigate={(page) => navigate(`/${page}`)} />
+      </div>
     </>
   );
 };

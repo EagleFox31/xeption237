@@ -19,24 +19,27 @@ import { notifyError } from './utils/notify';
 import { trackAddToCart } from './utils/analytics';
 import { getProductSlug } from './utils/slug';
 import MobileBottomNav from './components/MobileBottomNav';
+// Pages critiques (landing + commerce) : eager pour éviter un fallback au premier paint.
 import HomePage from './pages/HomePage';
-import AboutPage from './pages/AboutPage';
 import ShopPage from './pages/ShopPage';
-import ContactPage from './pages/ContactPage';
-import TrocPage from './pages/TrocPage';
-import TrackingPage from './pages/TrackingPage';
-import TrocVoucherPage from './pages/TrocVoucherPage';
-import SavPage from './pages/SavPage';
 import ProductPage from './pages/ProductPage';
-import MentionsLegalesPage from './pages/MentionsLegalesPage';
-import PolitiqueConfidentialitePage from './pages/PolitiqueConfidentialitePage';
-import PolitiqueCookiesPage from './pages/PolitiqueCookiesPage';
-import CGVPage from './pages/CGVPage';
-import CGVSmartTrocPage from './pages/CGVSmartTrocPage';
-import VerifyCertificatePage from './pages/VerifyCertificatePage';
-import FeedbackPage from './pages/FeedbackPage';
-import MarketplacePage from './pages/MarketplacePage';
-import MarketplaceBrowsePage from './pages/MarketplaceBrowsePage';
+
+// Pages secondaires : lazy pour alléger le main bundle (voir docs/engineering/PERF_AUDIT_TROC.md).
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const TrocPage = lazy(() => import('./pages/TrocPage'));
+const TrackingPage = lazy(() => import('./pages/TrackingPage'));
+const TrocVoucherPage = lazy(() => import('./pages/TrocVoucherPage'));
+const SavPage = lazy(() => import('./pages/SavPage'));
+const MentionsLegalesPage = lazy(() => import('./pages/MentionsLegalesPage'));
+const PolitiqueConfidentialitePage = lazy(() => import('./pages/PolitiqueConfidentialitePage'));
+const PolitiqueCookiesPage = lazy(() => import('./pages/PolitiqueCookiesPage'));
+const CGVPage = lazy(() => import('./pages/CGVPage'));
+const CGVSmartTrocPage = lazy(() => import('./pages/CGVSmartTrocPage'));
+const VerifyCertificatePage = lazy(() => import('./pages/VerifyCertificatePage'));
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
+const MarketplacePage = lazy(() => import('./pages/MarketplacePage'));
+const MarketplaceBrowsePage = lazy(() => import('./pages/MarketplaceBrowsePage'));
 
 const Checkout = lazy(() => import('./components/Checkout'));
 const AiConsultant = lazy(() => import('./components/AiConsultant'));
@@ -342,6 +345,7 @@ const App: React.FC = () => {
               : `pt-[132px] ${isHomePage ? 'pb-8 md:pb-20' : 'pb-24 md:pb-20'}`
         }`}
       >
+        <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={
             <HomePage
@@ -369,7 +373,12 @@ const App: React.FC = () => {
               onOpenCart={() => setIsCartOpen(true)}
             />
           } />
-          <Route path="/troc" element={<TrocPage />} />
+          <Route path="/troc" element={
+            <TrocPage
+              products={products}
+              onAddToCart={addToCart}
+            />
+          } />
           <Route path="/marketplace" element={<MarketplaceBrowsePage />} />
           <Route path="/marketplace/lister" element={<MarketplacePage />} />
           <Route path="/tracking/*" element={<TrackingPage />} />
@@ -404,6 +413,7 @@ const App: React.FC = () => {
             </Suspense>
           } />
         </Routes>
+        </Suspense>
       </main>
       </ErrorBoundary>
 

@@ -34,6 +34,8 @@ import {
 
   Target,
 
+  BarChart3,
+
 } from 'lucide-react';
 
 
@@ -65,6 +67,8 @@ export const ADMIN_TAB_IDS = [
   'productImages',
 
   'troc',
+
+  'trocDashboard',
 
   'sav',
 
@@ -335,6 +339,20 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         description: 'Reprises Smart Troc et paiements.',
 
         icon: ArrowLeftRight,
+
+      },
+
+      {
+
+        id: 'trocDashboard',
+
+        label: 'Dashboard Troc',
+
+        shortLabel: 'Dashboard',
+
+        description: 'Conversion, funnel et temps médian des dossiers Smart Troc.',
+
+        icon: BarChart3,
 
       },
 

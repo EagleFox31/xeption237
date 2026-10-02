@@ -29,6 +29,7 @@ const TAB_MIN_ROLE: Record<AdminTabId, StaffRoleId> = {
   stores: 'direction',
   stockMovements: 'responsable',
   troc: 'responsable',
+  trocDashboard: 'responsable',
   sav: 'responsable',
   catalogStructure: 'direction',
   staff: 'direction',

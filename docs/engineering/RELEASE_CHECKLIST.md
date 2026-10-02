@@ -74,8 +74,11 @@ Si le PR touche à `supabase/functions/` :
 
 ## 8. Smoke test commerce (OBLIGATOIRE)
 
+**Suivre la checklist dédiée** : [`QA_ORDER_FLOW.md`](./QA_ORDER_FLOW.md) §3 (smoke test parcours critique, 8 min).
+
 - [ ] Homepage charge en < 3s sur mobile 4G simulé (DevTools Network throttling)
-- [ ] Ajouter 1 produit au panier → total correct → checkout chargé
+- [ ] Smoke test §3 du QA_ORDER_FLOW complet (catalogue, panier, checkout, validation, admin, stock, retry, voucher, analytics)
+- [ ] Double-tap "Valider la commande" → une seule commande créée (test manuel critique du contrat de dédup)
 - [ ] Pas d'erreur sur `/shop`, `/product/*`
 - [ ] Admin login + accès à `/admin` (si staff token valide)
 - [ ] Pas de scroll horizontal sur homepage mobile

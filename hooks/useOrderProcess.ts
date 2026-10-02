@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { Order, CartItem, PaymentMethod } from '../types';
 import { generateInvoiceHTML, buildOrderTrackingUrl, generateTrackingQRCode } from '../utils/invoiceGenerator';
@@ -33,8 +33,34 @@ export const useOrderProcess = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
     const [lastOrderHtml, setLastOrderHtml] = useState<string | null>(null);
+    // Garde SYNCHRONE anti double-submission. Entre le click utilisateur et le
+    // flip de `isProcessing` (useState batché), React laisse une fenêtre de ~0ms
+    // où un double-tap passe. useRef se met à jour immédiatement → fenêtre fermée.
+    //
+    // Design : si une deuxième requête arrive pendant qu'une première est en vol,
+    // on RETOURNE LA MÊME PROMESSE au lieu de rejouer la requête. Comme ça :
+    //   • pas de doublon côté serveur (RPC create_order_atomic n'est appelée qu'une fois)
+    //   • pas d'erreur côté UI (le caller voit le même résultat positif)
+    //   • pas de reset UX (la step 'success' se déclenche normalement)
+    //
+    // Protège contre : double-tap mobile, clavier Entrée répété, bots, réseau lent.
+    type SubmitResult = { success: boolean; orderId?: string };
+    const inFlightRef = useRef<Promise<SubmitResult> | null>(null);
 
-    const submitOrder = async ({ cart, total, trocVoucher, formData, deliveryMode, paymentMethod, captchaToken }: OrderProcessProps) => {
+    const submitOrder = async (props: OrderProcessProps): Promise<SubmitResult> => {
+        if (inFlightRef.current) {
+            return inFlightRef.current;
+        }
+        const promise = runSubmitOrder(props);
+        inFlightRef.current = promise;
+        try {
+            return await promise;
+        } finally {
+            inFlightRef.current = null;
+        }
+    };
+
+    const runSubmitOrder = async ({ cart, total, trocVoucher, formData, deliveryMode, paymentMethod, captchaToken }: OrderProcessProps): Promise<SubmitResult> => {
         setIsProcessing(true);
         // Analytics : intention d'achat (avant validations captcha/paiement)
         trackBeginCheckout(toEcommerceItems(cart), total);

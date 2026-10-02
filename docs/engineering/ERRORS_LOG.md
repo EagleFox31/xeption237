@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-09-23 — Double-submission : `useState` lâche face au double-tap
+
+- **Symptôme (potentiel)** : race window entre le click utilisateur et le flip du state `isProcessing`. Entre `onClick → setIsProcessing(true)` et le re-render du bouton `disabled`, React batche l'update : ~0–50 ms où un deuxième click peut passer. Risque : deux appels à `create_order_atomic` → deux commandes créées, deux débits stock, deux factures.
+- **Cause racine** : la seule garde côté client était un `useState([isProcessing])` propagé par les règles de rendu React. useState est asynchrone (batched updates). Un `useRef` est synchrone.
+- **Résolution** : garde `useRef<Promise | null>` dans `useOrderProcess.submitOrder`. Si une requête est en vol, les suivantes **retournent la même promesse** → RPC appelée une seule fois, UI voit un résultat positif sur toutes les soumissions parasites. Testé manuellement par double-tap rapide.
+- **Comment ne plus la refaire** : **toute action irréversible côté serveur** (payment, commande, stock, notification externe, email, publication) **doit être protégée par un `useRef` synchrone côté UI** en plus du `useState([isLoading])` pour l'UX. Pattern à reprendre : `inFlightRef` qui porte la promesse en cours. Documenté dans `QA_ORDER_FLOW.md` §2.
+
+---
+
 ## 2026-09-23 — Migration : FK UUID → table dont `id` est en fait TEXT (CHECK compatibility)
 
 - **Symptôme** : `apply-migration` sortait un `✗` nu (sans message), puis après fix du quoting du path, le CLI Supabase révélait : `ERROR 42804: foreign key constraint "..._fkey" cannot be implemented. Key columns "request_id" and "id" are of incompatible types: uuid and text.` Migration `trade_in_status_history` déclarait `request_id UUID REFERENCES trade_in_requests(id)`.

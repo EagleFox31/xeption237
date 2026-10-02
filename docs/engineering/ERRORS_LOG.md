@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-09-23 — Migration : FK UUID → table dont `id` est en fait TEXT (CHECK compatibility)
+
+- **Symptôme** : `apply-migration` sortait un `✗` nu (sans message), puis après fix du quoting du path, le CLI Supabase révélait : `ERROR 42804: foreign key constraint "..._fkey" cannot be implemented. Key columns "request_id" and "id" are of incompatible types: uuid and text.` Migration `trade_in_status_history` déclarait `request_id UUID REFERENCES trade_in_requests(id)`.
+- **Cause racine** : `trade_in_requests.id` est `TEXT` (contient des valeurs qui RESSEMBLENT à des UUID). Confusion « ressemble à » → « est ». La convention AGENTS.md ligne 125 l'avait anticipé : « products.id est text (valeurs de forme UUID), alors que trade_in_requests.trade_in_model_id est uuid. Le type d'une colonne de liaison doit matcher exactement la colonne référencée ». Je ne l'avais pas introspecté avant d'écrire la migration.
+- **Résolution** : `request_id TEXT NOT NULL REFERENCES public.trade_in_requests(id) ON DELETE CASCADE`.
+- **Comment ne plus la refaire** : **avant toute FK, requêter `information_schema.columns` sur la colonne cible** — ne jamais supposer `uuid` par convention. Commande à sauver : `select column_name, udt_name from information_schema.columns where table_schema='public' and table_name='<table>' and column_name='id'`. Si prod bloqué pour auto-mode, extraire du dump migrations ou demander explicitement au user de valider.
+
+---
+
+## 2026-09-23 — Supabase CLI Windows : path avec espaces tronqué silencieusement
+
+- **Symptôme** : `apply-migration.mjs` affichait `failed to read SQL file: open C:\Users\jakaa\Documents\Projets: The system cannot find the file specified.` sur un chemin `C:\Users\jakaa\Documents\Projets Dell XPS\xeption-app\...`. Le CLI tronquait au premier espace, cherchait un fichier `Projets` au lieu de `Projets Dell XPS\...\migration.sql`. Avant ça, le script affichait un `✗` nu quand pg timeout (ETIMEDOUT sur le pooler), masquant la cause réelle.
+- **Cause racine** : `spawnSync('npx', [..., '-f', filePath], { shell: true })` sur Windows concatène les args avec des espaces simples. Si `filePath` contient un espace, le shell le découpe en plusieurs args. Le CLI Supabase (binaire Go) reçoit alors `-f` + `C:\Users\jakaa\Documents\Projets` + le reste comme args séparés et perdus.
+- **Résolution** : patcher `scripts/apply-migration.mjs` pour quoter les paths contenant des espaces avant de les passer à `spawnSync` en mode shell. `const quoted = filePath.includes(' ') ? '"' + filePath + '"' : filePath;`.
+- **Comment ne plus la refaire** : **`shell: true` + args array = piège sur Windows**. Soit on quote manuellement, soit on passe `shell: false` et un vrai array d'args (mais alors `npx` doit être résolu via son chemin absolu). Règle : tout `spawnSync(..., { shell: true })` qui reçoit un path utilisateur DOIT quoter ce path. Les projets ouverts dans `Projets Dell XPS\` sont la norme chez ce user — le path avec espaces n'est pas une édge case.
+
+---
+
 ## 2026-08-23 — Méthode : conclusions publiées avant la fin de la vérification (6 revirements)
 
 - **Symptôme** : sur une même session, six affirmations contredites peu après. « Le baseline des 49 migrations est fiable » (5 vérifiées sur 49) · « la connexion DB est bloquée par l'environnement » (×2) · « il n'y a aucun gating par rôle » · « activer la RLS suffit » · « l'étape 1 = 3 failles » (5 le message suivant) · conseil d'interroger la consultante externe (c'était l'utilisatrice). Le user a fini par dire : « depuis là tu changes tout le temps d'avis ».

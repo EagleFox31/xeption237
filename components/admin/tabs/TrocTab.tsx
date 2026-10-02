@@ -10,41 +10,7 @@ import { buildTrocDossierRows, phonesMatch } from '../../../utils/trocDossierJoi
 import { resteAPayer } from '../../../services/trocCheckoutService';
 import { notifyError, notifySuccess } from '../../../utils/notify';
 import { AlertTriangle } from 'lucide-react';
-
-const DUPLICATE_WINDOW_DAYS = 90;
-
-/**
- * Détecte les doublons potentiels : plusieurs requests ayant le MÊME téléphone
- * OU le MÊME IMEI dans une fenêtre glissante de 90 jours. Retourne un Set des IDs
- * de requests concernées. On ignore les statuts terminaux (refused/completed/cancelled)
- * pour ne pas alerter sur du legacy.
- */
-const detectDuplicates = (requests: TradeInRequest[]): Set<string> => {
-  const cutoff = Date.now() - DUPLICATE_WINDOW_DAYS * 86_400_000;
-  const active = requests.filter((r) => {
-    if (new Date(r.created_at).getTime() < cutoff) return false;
-    return r.status !== 'refused' && r.status !== 'completed' && r.status !== 'cancelled';
-  });
-  const byPhone = new Map<string, TradeInRequest[]>();
-  const byImei  = new Map<string, TradeInRequest[]>();
-  for (const r of active) {
-    const phone = (r.customer_phone ?? '').replace(/\D/g, '');
-    if (phone.length >= 8) {
-      if (!byPhone.has(phone)) byPhone.set(phone, []);
-      byPhone.get(phone)!.push(r);
-    }
-    const imei = (r.imei ?? '').trim();
-    if (imei) {
-      if (!byImei.has(imei)) byImei.set(imei, []);
-      byImei.get(imei)!.push(r);
-    }
-  }
-  const dupes = new Set<string>();
-  for (const list of [...byPhone.values(), ...byImei.values()]) {
-    if (list.length > 1) list.forEach((r) => dupes.add(r.id));
-  }
-  return dupes;
-};
+import { detectDuplicates } from '../../../utils/trocDuplicates';
 
 interface TrocTabProps {
   requests: TradeInRequest[];
@@ -244,7 +210,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
     [requests, sessions, payments],
   );
 
-  const duplicateIds = useMemo(() => detectDuplicates(requests), [requests]);
+  const duplicates = useMemo(() => detectDuplicates(requests), [requests]);
 
   const filtered = useMemo(() => {
     let list = allRows;
@@ -580,7 +546,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                     <div className="min-w-0">
                       <p className="font-mono text-xs text-white/60 flex items-center gap-1.5">
                         {req?.voucher_reference ?? req?.id?.slice(0, 8) ?? '—'}
-                        {req && duplicateIds.has(req.id) && (
+                        {req && duplicates.has(req.id) && (
                           <span
                             className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-tech font-bold uppercase tracking-wide"
                             title="Doublon potentiel (même téléphone ou IMEI dans les 90 derniers jours)"
@@ -738,7 +704,7 @@ export const TrocTab: React.FC<TrocTabProps> = ({
                     <td className="px-4 py-3 font-mono text-xs text-white/60">
                       <div className="flex items-center gap-1.5">
                         <span>{req?.voucher_reference ?? req?.id?.slice(0, 8) ?? '—'}</span>
-                        {req && duplicateIds.has(req.id) && (
+                        {req && duplicates.has(req.id) && (
                           <span
                             className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-tech font-bold uppercase tracking-wide"
                             title="Doublon potentiel (même téléphone ou IMEI < 90 jours)"

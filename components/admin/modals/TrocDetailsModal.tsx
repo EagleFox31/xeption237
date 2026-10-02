@@ -3,7 +3,7 @@ import { X, Download, Camera, Phone, Calendar, Clock } from 'lucide-react';
 import type { TradeInRequest } from '../../../types';
 import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
 import { downloadTradeInVoucher } from '../../../utils/tradeInVoucherGenerator';
-import { redemptionState, evaluateCompletion, REDEMPTION_GRACE_DAYS } from '../../../utils/trocRedemption';
+import { redemptionState, evaluateCompletion, REDEMPTION_GRACE_DAYS, TROC_STATUS_LABELS } from '../../../utils/trocRedemption';
 import { completeTrocWithSale, getTargetPricing, resteAPayer, resolveTrocTargetSummary } from '../../../services/trocCheckoutService';
 import { reevaluateAndPersist } from '../../../services/trocEvaluationService';
 import { VoucherExpiryBadge } from '../shared/VoucherExpiryBadge';
@@ -19,17 +19,9 @@ interface StatusHistoryRow {
   reason: string | null;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  in_progress: 'En cours',
-  pending:     'En attente',
-  accepted:    'Accepté',
-  contacted:   'Contacté',
-  appointment: 'RDV pris',
-  refused:     'Refusé',
-  validated:   'Validé',
-  completed:   'Terminé',
-  cancelled:   'Annulé',
-};
+/** Fallback quand le statut lu depuis l'historique n'existe pas dans le mapping (statut legacy). */
+const labelStatus = (s: string): string =>
+  (TROC_STATUS_LABELS as Record<string, string>)[s] ?? s;
 
 interface TrocDetailsModalProps {
   request: TradeInRequest;
@@ -173,7 +165,7 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
                 request.status === 'completed'   ? 'bg-gray-500/20 text-gray-400' :
                 'bg-red-500/20 text-red-400'
               }`}>
-                {STATUS_LABELS[request.status] ?? request.status}
+                {labelStatus(request.status)}
               </span>
             </h3>
             <p className="text-xs text-gray-500 mt-1 font-sans">Créé le {formatDate(request.created_at)}</p>
@@ -301,11 +293,11 @@ export const TrocDetailsModal: React.FC<TrocDetailsModalProps> = ({ request, onC
                         <span className="text-gray-300">
                           {h.from_status ? (
                             <>
-                              <span className="text-gray-500">{STATUS_LABELS[h.from_status] ?? h.from_status}</span>
+                              <span className="text-gray-500">{labelStatus(h.from_status)}</span>
                               <span className="mx-1 text-gray-600">→</span>
                             </>
                           ) : null}
-                          <span className="text-white font-medium">{STATUS_LABELS[h.to_status] ?? h.to_status}</span>
+                          <span className="text-white font-medium">{labelStatus(h.to_status)}</span>
                           {h.changed_by && h.changed_by !== 'system' && (
                             <span className="text-gray-500 ml-1.5">· {h.changed_by}</span>
                           )}

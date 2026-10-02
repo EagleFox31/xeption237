@@ -13,6 +13,24 @@ import type { TradeInRequest } from '../types';
 export type TrocStatus = TradeInRequest['status'];
 export type RedemptionState = 'valid' | 'grace' | 'stale' | 'no_expiry';
 
+/**
+ * Libellés FR canoniques des statuts. Une seule source de vérité, réutilisée
+ * par toutes les vues admin (TrocTab, TrocDetailsModal, Dashboard, notifications…).
+ * Ajouter un statut → ajouter son libellé ici.
+ */
+export const TROC_STATUS_LABELS: Record<TrocStatus, string> = {
+  in_progress: 'En cours',
+  pending:     'En attente',
+  accepted:    'Accepté',
+  contacted:   'Contacté',
+  appointment: 'RDV pris',
+  refused:     'Refusé',
+  validated:   'Validé',
+  completed:   'Terminé',
+  cancelled:   'Annulé',
+};
+
+
 /** Jours de grâce après l'échéance pendant lesquels un override (avec motif) reste possible. */
 export const REDEMPTION_GRACE_DAYS = 7;
 
@@ -41,6 +59,20 @@ export const TROC_TRANSITIONS: Record<TrocStatus, TrocStatus[]> = {
 /** Une transition de statut est-elle autorisée par la machine à états ? */
 export const canTransition = (from: TrocStatus, to: TrocStatus): boolean =>
   TROC_TRANSITIONS[from]?.includes(to) ?? false;
+
+/**
+ * Statuts terminaux (aucune transition sortante) — dérivés de la machine à états
+ * pour éviter le drift entre configuration et helpers consommateurs.
+ */
+export const TERMINAL_STATUSES: ReadonlySet<TrocStatus> = new Set(
+  (Object.entries(TROC_TRANSITIONS) as [TrocStatus, TrocStatus[]][])
+    .filter(([, outs]) => outs.length === 0)
+    .map(([status]) => status),
+);
+
+/** Le statut est-il terminal (dossier clos) ? */
+export const isTerminalStatus = (status: TrocStatus): boolean =>
+  TERMINAL_STATUSES.has(status);
 
 /**
  * Jours restants avant l'échéance du bon (négatif = dépassé). null si pas d'échéance.

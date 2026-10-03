@@ -62,8 +62,8 @@ const localHeuristicJustification = (
 ): string => {
   return TROC_MESSAGES.heuristic(
     form.batteryHealth || 80,
-    form.screenCondition,
-    form.bodyCondition,
+    form.screenCondition || '',
+    form.bodyCondition || '',
     photosCount,
     form.accessories?.length || 0,
   );
@@ -168,7 +168,7 @@ export const fetchArgusModels = async (brand?: string): Promise<TradeInModel[]> 
   }
 };
 
-const resolveBasePrice = async (
+export const resolveBasePrice = async (
   form: TrocDeviceForm,
   currentBasePrice: number
 ): Promise<number> => {
@@ -215,7 +215,7 @@ export const checkImei = async (
       else if (httpStatus === 503 || httpStatus === 502) reason = 'provider_unavailable';
       else if (httpStatus >= 500)                      reason = 'check_failed';
       else                                             reason = (error as any)?.message || 'invoke_error';
-      return { status: 'check_failed', reason };
+      return { status: 'check_failed', blacklistStatus: 'unknown', assuranceLevel: 'basic', reason };
     }
 
     if (!ALLOWED_IMEI_CHECK_STATUSES.has(data.status)) {
@@ -499,6 +499,9 @@ export const saveTradeInRequest = async (
       customerName:    form.customerName,
       customerPhone:   form.customerPhone,
       customerEmail:   form.customerEmail || null,
+      deviceCategory:  form.deviceCategory,
+      identifierType:  form.identifierType ?? (form.imei ? 'imei' : 'none'),
+      serialNumber:    form.serialNumber || null,
       deviceBrand:     form.deviceBrand,
       deviceModel:     form.deviceModel,
       deviceStorage:   form.deviceStorage || null,

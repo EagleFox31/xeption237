@@ -9,7 +9,7 @@ import { useOrderProcess } from '../hooks/useOrderProcess';
 import {
   X, Smartphone, CheckCircle, ShieldCheck, Minus, Plus, ShoppingBag,
   ArrowRight, Lock, MapPin, Truck, Store, Loader2, Mail, FileText, Copy, Radar,
-  User, Phone, Zap, Circle, Unlock, Printer, MessageCircle, Sparkles, RefreshCw
+  User, Phone, Zap, Circle, Unlock, Printer, MessageCircle, Sparkles, RefreshCw, Star
 } from 'lucide-react';
 import { downloadInvoicePDF, printInvoiceHTML } from '../utils/invoiceGenerator';
 import { copyToClipboard } from '../utils/clipboard';
@@ -1343,6 +1343,15 @@ const Checkout: React.FC<CheckoutProps> = ({
             </div>
           )}
         </div>
+
+        <a
+          href="https://g.page/r/CSff_llXZOOuEAI/review"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full mb-3 inline-flex items-center justify-center gap-2 border border-xeption-gold/35 bg-xeption-gold/10 hover:bg-xeption-gold/20 text-xeption-gold font-tech font-bold uppercase tracking-widest py-3.5 px-4 text-xs transition-all rounded-sm"
+        >
+          <Star className="w-4 h-4 shrink-0" /> Laisser un avis sur Google
+        </a>
 
         <button onClick={() => { onClearCart(); onClose(); form.setStep('cart'); }} className="w-full bg-white/10 text-white font-bold py-4 font-tech uppercase tracking-wider hover:bg-white hover:text-black shadow-lg transition-all">Retour au Shop</button>
       </div>

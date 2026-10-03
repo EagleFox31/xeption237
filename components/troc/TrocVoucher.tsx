@@ -17,6 +17,7 @@ import {
   ShoppingBag,
   ArrowRight,
   X,
+  Star,
 } from 'lucide-react';
 import type { Product, TradeInRequest } from '../../types';
 import { buildWhatsAppUrl, buildTradeInVoucherShareMessage, buildTradeInAppointmentMessage } from '../../utils/whatsappShare';
@@ -615,6 +616,15 @@ export const TrocVoucher: React.FC<TrocVoucherProps> = ({
           </button>
         </div>
       </div>
+
+      <a
+        href="https://g.page/r/CSff_llXZOOuEAI/review"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full flex items-center justify-center gap-2 border border-xeption-gold/35 bg-xeption-gold/10 hover:bg-xeption-gold/20 text-xeption-gold font-tech font-bold uppercase tracking-widest py-3.5 px-3 text-xs transition-all rounded-sm"
+      >
+        <Star className="w-4 h-4 shrink-0" /> Laisser un avis sur Google
+      </a>
 
       {!hideNewEvaluation && (
       <button

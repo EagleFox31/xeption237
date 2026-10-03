@@ -96,9 +96,9 @@ const accessoriesScore = (form: TrocDeviceForm): number => {
 
 export const computeConditionScore = (form: TrocDeviceForm): number => {
   const s =
-    screenScore(form.screenCondition)                   * 0.30 +
+    screenScore(form.screenCondition || '')                   * 0.30 +
     batteryScore(form.batteryHealth ?? 80)              * 0.20 +
-    bodyScore(form.bodyCondition)                       * 0.15 +
+    bodyScore(form.bodyCondition || '')                       * 0.15 +
     cameraScore(form.cameraCondition ?? 'bon')          * 0.10 +
     ((form.chargesNormally ?? true) ? 100 : 0)          * 0.08 +
     ((form.biometricsWork ?? true)  ? 100 : 50)         * 0.07 +

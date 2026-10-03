@@ -83,7 +83,7 @@ export interface DeliveryZone {
 
 export interface TradeInModel {
   id: string;
-  category: 'phone' | 'laptop';
+  category: 'phone' | 'laptop' | 'tablet' | 'console' | 'other';
   brand: string;
   model_name: string;
   base_price: number;
@@ -173,6 +173,9 @@ export interface TradeInRequest {
   customer_name: string;
   customer_phone: string;
   customer_email?: string;
+  device_category?: DeviceCategoryId;
+  identifier_type?: TrocIdentifierType;
+  serial_number?: string;
   device_brand: string;
   device_model: string;
   device_storage?: string;
@@ -210,6 +213,12 @@ export interface TrocDeviceForm {
   customerPhone: string;
   customerEmail: string;
   createAccount?: boolean;
+  
+  // Catégorie
+  deviceCategory: DeviceCategoryId;
+  identifierType?: TrocIdentifierType;
+  serialNumber?: string;
+
   // Identification appareil
   deviceBrand: string;
   deviceModel: string;
@@ -219,28 +228,30 @@ export interface TrocDeviceForm {
   acquisitionCondition: 'new' | 'used';
   purchaseDate: string;
   ownershipRank: 'unknown' | 'first' | 'second' | 'third_plus';
-  // État physique
-  batteryHealth: number;
-  screenCondition: string;
-  bodyCondition: string;
-  cameraCondition: string;           // 'bon' | 'rayures' | 'défectueuse'
+  // État physique (optionnel selon catégorie)
+  batteryHealth?: number;
+  screenCondition?: string;
+  bodyCondition?: string;
+  cameraCondition?: string;           // 'bon' | 'rayures' | 'défectueuse'
   // État fonctionnel (critères bloquants ou décote)
-  powersOn: boolean;                  // false → refus direct
-  chargesNormally: boolean;           // false → décote
-  biometricsWork: boolean;            // false → décote
-  accountUnlocked: boolean;           // false → notice info (résolution en boutique avec technicien)
-  hasWaterDamage: boolean;            // true → refus direct
+  powersOn?: boolean;                  // false → refus direct
+  chargesNormally?: boolean;           // false → décote
+  biometricsWork?: boolean;            // false → décote
+  accountUnlocked?: boolean;           // false → notice info (résolution en boutique avec technicien)
+  hasWaterDamage?: boolean;            // true → refus direct
   // Historique
-  previousRepairs: string;           // 'aucune' | 'écran' | 'batterie' | 'autre'
+  previousRepairs?: string;           // 'aucune' | 'écran' | 'batterie' | 'autre'
   // Accessoires
   accessories: string[];
   hasOriginalBox: boolean;
   hasInvoice: boolean;
   // IMEI
-  imei: string;
+  imei?: string;
 }
 
-export type TrocStep = 'form' | 'photos' | 'imei' | 'payment' | 'result' | 'voucher';
+export type DeviceCategoryId = 'phone' | 'laptop' | 'tablet' | 'console' | 'other';
+export type TrocIdentifierType = 'imei' | 'sn' | 'none';
+export type TrocStep = 'category' | 'form' | 'photos' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
 
 export interface TrocPayment {
   id: string;

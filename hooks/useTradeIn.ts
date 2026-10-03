@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import {
   checkImei,
-  evaluateDevice,
   lookupImeiFromHistory,
   saveTradeInRequest,
   upsertSession,
@@ -12,10 +11,10 @@ import {
 } from '../services/trocEvaluationService';
 import { uploadFiles } from '../services/uploadService';
 import { validateTrocForm } from '../utils/trocFormValidation';
-import type { TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
+import type { TrocDeviceForm, TrocEvaluationResult, TradeInRequest, TrocStep } from '../types';
 import { supabase } from '../services/supabaseClient';
+import { resolveTradeInEngine, resolveTradeInProfile } from '../services/troc/resolveTradeInEngine';
 
-export type TrocStep = 'form' | 'photos' | 'imei' | 'payment' | 'evaluating' | 'result' | 'voucher';
 export type ImeiMatchState = 'unknown' | 'match' | 'mismatch' | 'not_verified';
 export type PaymentState = 'idle' | 'initiating' | 'pending' | 'polling' | 'paid' | 'failed' | 'expired' | 'timeout';
 
@@ -32,6 +31,7 @@ const initialForm: TrocDeviceForm = {
   deviceModel: '',
   deviceStorage: '',
   deviceRam: '',
+  identifierType: 'imei',
   acquisitionCondition: 'used',
   purchaseDate: '',
   ownershipRank: 'unknown',
@@ -49,6 +49,7 @@ const initialForm: TrocDeviceForm = {
   hasOriginalBox: false,
   hasInvoice: false,
   imei: '',
+  deviceCategory: 'phone',
 };
 
 const normalize = (value?: string) =>
@@ -101,6 +102,8 @@ export const useTradeIn = () => {
   // ─── Paiement ─────────────────────────────────────────────────────────────
   const [paymentState, setPaymentState] = useState<PaymentState>('idle');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const activeProfile = resolveTradeInProfile(form.deviceCategory);
+  const requiresImei = activeProfile.identifierType === 'imei';
   const pollTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -110,7 +113,21 @@ export const useTradeIn = () => {
   };
 
   const updateForm = (partial: Partial<TrocDeviceForm>) => {
-    setForm((prev) => ({ ...prev, ...partial }));
+    setForm((prev) => {
+      const next = { ...prev, ...partial };
+
+      if (partial.deviceCategory) {
+        next.identifierType = resolveTradeInProfile(partial.deviceCategory).identifierType;
+      }
+      if (Object.prototype.hasOwnProperty.call(partial, 'imei')) {
+        next.identifierType = 'imei';
+      }
+      if (Object.prototype.hasOwnProperty.call(partial, 'serialNumber') && partial.serialNumber) {
+        next.identifierType = 'sn';
+      }
+
+      return next;
+    });
     if (Object.prototype.hasOwnProperty.call(partial, 'imei')) {
       setImeiStatus('not_checked');
       setImeiBlacklistStatus('unknown');
@@ -150,8 +167,9 @@ export const useTradeIn = () => {
     try {
       const urls = await uploadFiles(photos);
       setPhotoUrls(urls);
-      setStep('imei');
-      upsertSession(sessionKey, 'photos', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+      const nextStep: TrocStep = activeProfile.identifierType === 'none' ? 'payment' : 'imei';
+      setStep(nextStep);
+      upsertSession(sessionKey, nextStep, { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
     } catch {
       setError("L'envoi des photos a échoué. Vérifiez votre connexion et réessayez.");
     } finally {
@@ -160,6 +178,12 @@ export const useTradeIn = () => {
   };
 
   const doCheckImei = async () => {
+    if (!requiresImei) {
+      updateForm({ identifierType: activeProfile.identifierType });
+      setError(null);
+      return;
+    }
+
     if (!form.imei) {
       setImeiStatus('not_checked');
       setImeiMatchState('unknown');
@@ -254,6 +278,12 @@ export const useTradeIn = () => {
   };
 
   const skipImei = () => {
+    if (!requiresImei) {
+      setError(null);
+      setStep('payment');
+      return;
+    }
+
     setImeiStatus('not_checked');
     setImeiBlacklistStatus('unknown');
     setImeiAssuranceLevel('basic');
@@ -265,7 +295,7 @@ export const useTradeIn = () => {
   };
 
   const goToPayment = () => {
-    if (imeiStatus !== 'valid') {
+    if (requiresImei && imeiStatus !== 'valid') {
       setError("L'IMEI n'a pas pu être confirmé. Venez en boutique pour une estimation directe.");
       return;
     }
@@ -341,7 +371,7 @@ export const useTradeIn = () => {
 
   const runEvaluation = async (overrideStatus?: TradeInRequest['imei_status']) => {
     const status = overrideStatus ?? imeiStatus;
-    if (status !== 'valid') {
+    if (requiresImei && status !== 'valid') {
       setError(
         "L'IMEI n'a pas pu être confirmé pour cet appareil. Venez en boutique pour une estimation directe."
       );
@@ -353,7 +383,9 @@ export const useTradeIn = () => {
     setError(null);
     setStep('evaluating');
     try {
-      const evaluation = await evaluateDevice(form, photoUrls, status, basePrice);
+      const engine = resolveTradeInEngine(form.deviceCategory);
+      const evaluation = await engine.evaluate(form, photoUrls, basePrice);
+      
       setResult(evaluation);
       setStep('result');
       upsertSession(sessionKey, 'result', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });

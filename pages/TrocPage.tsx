@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PageSEO, JsonLd, breadcrumbJsonLd } from '../utils/seo';
 import { 
@@ -29,6 +29,7 @@ import { useTradeIn } from '../hooks/useTradeIn';
 import { useTrocVisionHealth } from '../hooks/useTrocVisionHealth';
 import { TrocStepper } from '../components/troc/TrocStepper';
 import { TrocCoachBar } from '../components/troc/TrocCoachBar';
+import { resolveTrocCoach } from '../utils/trocCoach';
 import { ChameleoMascot } from '../components/troc/ChameleoMascot';
 import { TrocQuickForm } from '../components/troc/TrocQuickForm';
 import { ImeiCertifFlow } from '../components/certif/ImeiCertifFlow';
@@ -49,8 +50,10 @@ import MobileVenteVoucher from '../components/mobile/MobileVenteVoucher';
 import MobileMarketplacePass from '../components/mobile/MobileMarketplacePass';
 import { generateTradeInVoucherHTML } from '../utils/tradeInVoucherGenerator';
 import { getPaymentStatus } from '../services/trocEvaluationService';
-import { resolveTrocCoach } from '../utils/trocCoach';
-import type { TradeInRequest } from '../types';
+import type { TradeInRequest, Product } from '../types';
+import { supabase } from '../services/supabaseClient';
+import { getProductSlug } from '../utils/slug';
+import ProductCard from '../components/product/ProductCard';
 import {
   formatTrocFee,
   TROC_TIER_PRICES,
@@ -322,7 +325,12 @@ const DeviceChoiceCard: React.FC<{
   );
 };
 
-const TrocPage: React.FC = () => {
+export interface TrocPageProps {
+  products?: Product[];
+  onAddToCart?: (product: Product) => void;
+}
+
+const TrocPage: React.FC<TrocPageProps> = ({ products: initialProducts = [], onAddToCart }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const troc = useTradeIn();
@@ -335,6 +343,38 @@ const TrocPage: React.FC = () => {
   const [marketplaceOnly, setMarketplaceOnly] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showStickyCta, setShowStickyCta] = useState(false);
+
+  const [localProducts, setLocalProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    if (initialProducts && initialProducts.length > 0) return;
+    let isMounted = true;
+    supabase
+      .from('products')
+      .select('*')
+      .then(({ data, error }) => {
+        if (!isMounted || error || !data) return;
+        const formatted: Product[] = data.map((p: any) => ({
+          ...p,
+          oldPrice: p.old_price || p.oldPrice || null,
+          isPromo: p.is_promo || p.isPromo || false,
+          warrantyMonths: p.warranty_months || p.warrantyMonths || 0,
+          releaseYear: p.release_year ?? p.releaseYear ?? undefined,
+          isFeatured: p.is_featured || p.isFeatured || false,
+          brand: p.brand || null,
+          productRange: p.product_range || p.productRange || null,
+        }));
+        setLocalProducts(formatted);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [initialProducts]);
+
+  const allProducts = initialProducts.length > 0 ? initialProducts : localProducts;
+  const phonesInCatalog = useMemo(() => {
+    return allProducts.filter((p) => p.category === 'phones' || p.category === 'smartphones');
+  }, [allProducts]);
 
   useEffect(() => {
     // On verrouille le scroll du body pour créer un effet "App" pleine page
@@ -520,259 +560,272 @@ const TrocPage: React.FC = () => {
               />
             </div>
 
-            {/* Version Desktop (Préservée intacte, 0 régression) */}
-            <div className="hidden md:block space-y-5 sm:space-y-8 animate-fade-in-up relative max-w-2xl mx-auto pb-16">
+            {/* Version Desktop (Adaptée Laptop & Grand Écran : Plein espace, Vrai téléphone, Vrais articles du catalogue) */}
+            <div className="hidden md:block space-y-8 lg:space-y-12 animate-fade-in-up relative max-w-6xl xl:max-w-7xl mx-auto pb-16">
               <ShootingXBackground />
 
-            {/* HERO SECTION PRINCIPALE (SIDE-BY-SIDE SUR MOBILE COMME LA MAQUETTE) */}
-            <div className="relative z-10 pt-1 sm:pt-2">
-              {/* ROW 1: TEXTE À GAUCHE + SMARTPHONE VISUEL À DROITE */}
-              <div className="flex items-center justify-between gap-2 sm:gap-6">
-                {/* COLONNE GAUCHE : ACCROCHE & BULLETS */}
-                <div className="flex-1 text-left min-w-0">
-                  <span className="text-[9px] sm:text-xs font-tech font-bold uppercase tracking-[0.2em] text-white/70 block mb-0.5">
-                    Vends ou échange
-                  </span>
-                  <h1 className="text-xl sm:text-4xl font-tech font-black uppercase text-white tracking-wider leading-none">
-                    Ton téléphone <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-xeption-gold to-yellow-300">
-                      vaut de l'or !
-                    </span>
-                  </h1>
-                  <p className="text-[11px] sm:text-sm text-gray-300 font-sans mt-1 leading-snug">
-                    Découvre sa valeur en moins de <strong className="text-white font-bold">2 min</strong> avec notre <span className="text-xeption-gold font-semibold">IA</span>.
-                  </p>
-
-                  {/* 3 Arguments Clés ultra-compacts */}
-                  <div className="space-y-1 sm:space-y-2 mt-2">
-                    <div className="flex items-center gap-1.5 text-[11px] sm:text-sm text-gray-200">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-xeption-gold/15 border border-xeption-gold/40 flex items-center justify-center text-xeption-gold shrink-0">
-                        <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                      </div>
-                      <span>Évaluation à <strong className="text-white">100 F</strong> seulement</span>
+              {/* HERO SECTION PRINCIPALE (GRILLE 2 COLONNES PRESTIGE SUR LAPTOP / DESKTOP) */}
+              <div className="relative z-10 pt-2 sm:pt-4">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-12 items-center">
+                  
+                  {/* COLONNE GAUCHE (7 COLONNES) : ACCROCHE, BULLETS, CTA, STEPPER, BONUS */}
+                  <div className="lg:col-span-7 space-y-5 sm:space-y-6 text-left">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-xeption-gold/40 text-[10px] sm:text-xs font-tech font-bold uppercase tracking-[0.2em] text-white/80">
+                      <span className="w-2 h-2 rounded-full bg-xeption-gold animate-pulse" />
+                      Vends ou échange au meilleur prix
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] sm:text-sm text-gray-200">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-xeption-gold/15 border border-xeption-gold/40 flex items-center justify-center text-xeption-gold shrink-0">
-                        <ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                      </div>
-                      <span>Analyse fiable par <strong className="text-white">IA</strong></span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[11px] sm:text-sm text-gray-200">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-xeption-gold/15 border border-xeption-gold/40 flex items-center justify-center text-xeption-gold shrink-0">
-                        <Coins className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                      </div>
-                      <span>Cash ou crédit boutique (<strong className="text-xeption-gold">+18 %</strong>)</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* COLONNE DROITE : VISUEL SMARTPHONE AVEC AURA DORÉE & BADGE */}
-                <div className="relative shrink-0 w-32 sm:w-44 flex justify-center items-center">
-                  {/* Aura dorée radiale */}
-                  <div className="absolute w-28 h-28 sm:w-40 sm:h-40 rounded-full bg-gradient-to-tr from-amber-500/20 via-xeption-gold/25 to-transparent blur-2xl pointer-events-none -z-10" />
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-tech font-black uppercase text-white tracking-wider leading-[1.08]">
+                      Ton téléphone <br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-xeption-gold to-yellow-300">
+                        vaut de l'or !
+                      </span>
+                    </h1>
 
-                  {/* Badge flottant au-dessus */}
-                  <div className="absolute -top-2 right-0 z-20 bg-black/90 backdrop-blur-md border border-xeption-gold/50 px-2 py-0.5 rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.8)] pointer-events-none whitespace-nowrap">
-                    <span className="text-[8px] sm:text-[10px] font-serif italic text-amber-200 tracking-wide flex items-center gap-1">
-                      ✨ Même usé, il a de la valeur !
-                    </span>
-                  </div>
+                    <p className="text-sm sm:text-base text-gray-300 font-sans max-w-xl leading-relaxed">
+                      Découvre sa valeur en moins de <strong className="text-white font-bold">2 min</strong> avec notre expertise <span className="text-xeption-gold font-semibold">IA</span> et repars avec du cash immédiat ou un nouveau smartphone.
+                    </p>
 
-                  {/* Châssis smartphone compact */}
-                  <div className="relative w-28 sm:w-36 h-36 sm:h-44 rounded-[22px] bg-gradient-to-b from-[#24242a] via-[#151518] to-[#0d0d10] p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.85),0_0_15px_rgba(212,175,55,0.2)] border border-white/20">
-                    <div className="w-full h-full rounded-[16px] bg-gradient-to-b from-[#09090b] via-[#121216] to-[#09090b] border border-white/10 p-1.5 flex flex-col justify-between overflow-hidden relative">
-                      <div className="w-10 h-2.5 bg-black rounded-full mx-auto border border-white/15 flex items-center justify-end px-1">
-                        <div className="w-1 h-1 rounded-full bg-[#1c1c24] border border-white/20" />
-                      </div>
-
-                      <div className="my-auto text-center p-0.5">
-                        <div className="inline-block p-1 rounded-lg bg-white/5 border border-white/10 mb-0.5">
-                          <Smartphone className="w-4 h-4 text-xeption-gold mx-auto" />
+                    {/* 3 Arguments Clés en grille desktop */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-1">
+                      <div className="flex items-center gap-2.5 bg-[#141418]/80 border border-white/10 rounded-xl p-3">
+                        <div className="w-8 h-8 rounded-lg bg-xeption-gold/15 border border-xeption-gold/40 flex items-center justify-center text-xeption-gold shrink-0">
+                          <Zap className="w-4 h-4" />
                         </div>
-                        <p className="font-serif italic text-[9px] sm:text-[11px] text-amber-200 leading-tight">
-                          « Ton ancien phone <br /> = <br /> Une nouvelle opportunité ! »
-                        </p>
+                        <div className="min-w-0">
+                          <div className="text-xs font-tech font-bold text-white uppercase truncate">Évaluation 100 F</div>
+                          <div className="text-[10px] text-gray-400 truncate">Frais symbolique</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2.5 bg-[#141418]/80 border border-white/10 rounded-xl p-3">
+                        <div className="w-8 h-8 rounded-lg bg-xeption-gold/15 border border-xeption-gold/40 flex items-center justify-center text-xeption-gold shrink-0">
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-tech font-bold text-white uppercase truncate">Analyse par IA</div>
+                          <div className="text-[10px] text-gray-400 truncate">Fiable & instantanée</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2.5 bg-[#141418]/80 border border-white/10 rounded-xl p-3">
+                        <div className="w-8 h-8 rounded-lg bg-xeption-gold/15 border border-xeption-gold/40 flex items-center justify-center text-xeption-gold shrink-0">
+                          <Coins className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-tech font-bold text-white uppercase truncate">Cash ou Crédit</div>
+                          <div className="text-[10px] text-xeption-gold font-bold truncate">+18% en reprise</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* GROS BOUTON D'ACTION IMMÉDIAT + STEPPER */}
+                    <div className="pt-2 space-y-3">
+                      <button
+                        type="button"
+                        id="troc-hero-estimate-cta"
+                        onClick={() => {
+                          setSelectedDeviceType('phone');
+                          setIntent('troc');
+                        }}
+                        className="w-full sm:w-auto min-w-[280px] py-4 px-8 bg-gradient-to-r from-amber-400 via-xeption-gold to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-black font-tech font-black uppercase tracking-wider text-sm sm:text-base rounded-xl sm:rounded-2xl shadow-[0_4px_30px_rgba(212,175,55,0.45)] flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] group cursor-pointer"
+                      >
+                        <Camera className="w-5 h-5 stroke-[2.5] group-hover:scale-110 transition-transform" />
+                        <span>Estimer mon téléphone</span>
+                        <ArrowRight className="w-4 h-4 stroke-[2.5] group-hover:translate-x-1.5 transition-transform" />
+                      </button>
+
+                      {/* Mini-stepper 1-2-3 */}
+                      <div className="grid grid-cols-3 gap-2 max-w-lg text-center pt-1">
+                        <div className="flex flex-col items-center">
+                          <div className="w-6 h-6 rounded-full bg-white/5 border border-white/15 flex items-center justify-center text-xeption-gold mb-1">
+                            <Smartphone className="w-3 h-3" />
+                          </div>
+                          <span className="text-[10px] text-gray-300 leading-tight">1. Je choisis la marque</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-6 h-6 rounded-full bg-white/5 border border-white/15 flex items-center justify-center text-xeption-gold mb-1">
+                            <Camera className="w-3 h-3" />
+                          </div>
+                          <span className="text-[10px] text-gray-300 leading-tight">2. J'ajoute des photos</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-6 h-6 rounded-full bg-white/5 border border-white/15 flex items-center justify-center text-xeption-gold mb-1">
+                            <FileText className="w-3 h-3" />
+                          </div>
+                          <span className="text-[10px] text-gray-300 leading-tight">3. Je reçois mon estimation</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BANDEAU BONUS COMBO (+18% CRÉDIT BOUTIQUE) */}
+                    <div className="bg-gradient-to-r from-amber-500/10 via-xeption-gold/15 to-transparent border border-xeption-gold/35 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_4px_25px_rgba(212,175,55,0.12)]">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-xeption-gold/20 border border-xeption-gold/40 flex items-center justify-center text-xeption-gold shrink-0">
+                          <Gift className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-sm sm:text-base font-tech font-extrabold uppercase tracking-wide text-xeption-gold">
+                            +18 % en crédit boutique
+                          </div>
+                          <div className="text-[11px] text-gray-400 uppercase tracking-wider font-tech">
+                            Si tu choisis l'échange contre un nouvel appareil
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs sm:text-sm font-serif italic text-amber-200/90 tracking-wide shrink-0">
+                        Simple, Rapide, Sécurisé !
+                      </div>
+                    </div>
+
+                    {/* GRILLE DE RÉASSURANCE (4 PINS) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                      <div className="bg-[#121214]/60 border border-white/10 rounded-xl p-2.5 flex items-center gap-2 text-gray-300">
+                        <CheckCircle2 className="w-4 h-4 text-xeption-gold shrink-0" />
+                        <span className="text-[11px] font-medium leading-tight">Évaluation 100 F</span>
+                      </div>
+                      <div className="bg-[#121214]/60 border border-white/10 rounded-xl p-2.5 flex items-center gap-2 text-gray-300">
+                        <Lock className="w-4 h-4 text-xeption-gold shrink-0" />
+                        <span className="text-[11px] font-medium leading-tight">Sans engagement</span>
+                      </div>
+                      <div className="bg-[#121214]/60 border border-white/10 rounded-xl p-2.5 flex items-center gap-2 text-gray-300">
+                        <Zap className="w-4 h-4 text-xeption-gold shrink-0" />
+                        <span className="text-[11px] font-medium leading-tight">Réponse immédiate</span>
+                      </div>
+                      <div className="bg-[#121214]/60 border border-white/10 rounded-xl p-2.5 flex items-center gap-2 text-gray-300">
+                        <MapPin className="w-4 h-4 text-xeption-gold shrink-0" />
+                        <span className="text-[11px] font-medium leading-tight">À Mfoundi Mall</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* COLONNE DROITE (5 COLONNES) : VRAI TÉLÉPHONE HAUTE DÉFINITION & EFFETS PRESTIGE */}
+                  <div className="lg:col-span-5 relative flex justify-center items-center">
+                    {/* Aura dorée radiale */}
+                    <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr from-amber-500/25 via-xeption-gold/30 to-transparent blur-3xl pointer-events-none -z-10" />
+
+                    {/* Carte Prestige du VRAI Téléphone (Véritable photo HD au lieu d'une maquette factice) */}
+                    <div className="relative w-full max-w-sm sm:max-w-md rounded-[28px] bg-gradient-to-b from-[#18181f] via-[#111116] to-[#09090c] border border-amber-400/40 p-4 sm:p-5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_35px_rgba(212,175,55,0.25)] overflow-hidden group">
+                      
+                      {/* Badge flottant au-dessus */}
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-xeption-gold/50 text-[10px] sm:text-xs font-serif italic text-amber-200 shadow-md">
+                          ✨ Même usé, il a de la valeur !
+                        </span>
+                        <span className="text-[10px] font-tech uppercase tracking-wider text-xeption-gold font-bold bg-xeption-gold/10 px-2 py-0.5 rounded border border-xeption-gold/30">
+                          Reprise Directe
+                        </span>
                       </div>
 
-                      <div className="w-8 h-0.5 bg-white/30 rounded-full mx-auto" />
+                      {/* Photo Réelle du Smartphone */}
+                      <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-black/60 border border-white/10 flex items-center justify-center shadow-inner">
+                        <img
+                          src="/troc-exchange-phones.jpg"
+                          alt="Vrai téléphone pour reprise et échange - Smart Troc Xeption"
+                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 pointer-events-none select-none"
+                          loading="eager"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                        <div className="absolute bottom-3 left-3 right-3 text-center">
+                          <p className="font-tech font-bold text-xs sm:text-sm text-white uppercase tracking-wider drop-shadow-md">
+                            « Ton ancien phone = Une nouvelle opportunité ! »
+                          </p>
+                          <p className="text-[10px] text-amber-200/90 font-serif italic">
+                            iPhone • Samsung Galaxy • Tecno • Xiaomi • etc.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Micro-barre de statut */}
+                      <div className="mt-3.5 flex items-center justify-between text-[11px] text-gray-300 font-tech uppercase tracking-wider px-1">
+                        <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          Expertise IA Prête
+                        </span>
+                        <span className="text-gray-400">
+                          Mfoundi Mall Yaoundé
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* ROW 2: GROS BOUTON D'ACTION IMMÉDIAT (DIRECTEMENT VISIBLE SANS AUCUN SCROLL) */}
-              <div className="mt-3 sm:mt-5">
+              {/* SECTION CATALOGUE : VRAIS ARTICLES SMARTPHONES DISPONIBLES EN BOUTIQUE */}
+              <div className="pt-8 sm:pt-12 border-t border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="w-1.5 h-4 bg-xeption-gold rounded-full" />
+                      <span className="text-[11px] font-tech font-bold uppercase tracking-[0.2em] text-xeption-gold">
+                        Catalogue Officiel Xeption
+                      </span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-tech font-black uppercase text-white tracking-wider">
+                      Nos Smartphones Disponibles
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl">
+                      Découvre nos modèles disponibles immédiatement en boutique ou échange ton ancien téléphone contre l'un d'eux avec <strong className="text-xeption-gold">+18% de crédit offert</strong>.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate('/shop?category=phones')}
+                    className="inline-flex items-center gap-2 text-xs font-tech font-bold uppercase tracking-wider text-xeption-gold hover:text-white transition-all bg-[#18181c] hover:bg-xeption-gold/20 border border-xeption-gold/40 hover:border-xeption-gold px-4 py-2.5 rounded-xl shrink-0 group shadow-md"
+                  >
+                    <span>Voir tout le catalogue smartphones ({phonesInCatalog.length || 'en stock'})</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+
+                {phonesInCatalog.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+                    {phonesInCatalog.slice(0, 8).map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onAddToCart={onAddToCart || ((p) => navigate(`/product/${getProductSlug(p)}`))}
+                        onProductClick={(p) => navigate(`/product/${getProductSlug(p)}`)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="h-64 rounded-xl bg-white/5 border border-white/10 animate-pulse flex flex-col p-4 justify-between">
+                        <div className="w-full aspect-square bg-white/5 rounded-lg" />
+                        <div className="space-y-2">
+                          <div className="h-4 bg-white/10 rounded w-3/4" />
+                          <div className="h-3 bg-white/5 rounded w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* BANDEAU DE RÉASSURANCE LIVRAISON & GARANTIE */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-white/10 text-xs font-tech uppercase tracking-wider text-gray-400">
+                <div className="flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-xeption-gold" />
+                  <span>Livraison express partout au Cameroun</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-xeption-gold" />
+                  <span>Garantie jusqu'à 12 mois</span>
+                </div>
+              </div>
+
+              {/* LIEN DISCRET VERS LE PASSEPORT OFFICIEL / CERTIFICAT */}
+              <div className="text-center pt-2">
                 <button
                   type="button"
-                  id="troc-hero-estimate-cta"
-                  onClick={() => {
-                    setSelectedDeviceType('phone');
-                    setIntent('troc');
-                  }}
-                  className="w-full py-3.5 sm:py-4 px-5 sm:px-8 bg-gradient-to-r from-amber-400 via-xeption-gold to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-black font-tech font-black uppercase tracking-wider text-sm sm:text-base rounded-xl sm:rounded-2xl shadow-[0_4px_25px_rgba(212,175,55,0.45)] flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] group cursor-pointer"
+                  onClick={() => setIntent('certif')}
+                  className="text-[11px] font-tech text-gray-500 hover:text-xeption-gold transition-colors underline underline-offset-4 tracking-wider uppercase"
                 >
-                  <Camera className="w-5 h-5 stroke-[2.5] group-hover:scale-110 transition-transform" />
-                  <span>Estimer mon téléphone</span>
-                  <ArrowRight className="w-4 h-4 stroke-[2.5] group-hover:translate-x-1.5 transition-transform" />
-                </button>
-              </div>
-
-              {/* ROW 3: MINI-STEPPER 1-2-3 PÉDAGOGIQUE */}
-              <div className="grid grid-cols-3 gap-1 max-w-lg mx-auto text-center mt-2.5 sm:mt-4 px-1">
-                <div className="flex flex-col items-center">
-                  <div className="w-6 h-6 rounded-full bg-white/5 border border-white/15 flex items-center justify-center text-xeption-gold mb-0.5">
-                    <Smartphone className="w-3 h-3" />
-                  </div>
-                  <span className="text-[9px] sm:text-xs text-gray-300 leading-tight">
-                    1. Je choisis la marque
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className="w-6 h-6 rounded-full bg-white/5 border border-white/15 flex items-center justify-center text-xeption-gold mb-0.5">
-                    <Camera className="w-3 h-3" />
-                  </div>
-                  <span className="text-[9px] sm:text-xs text-gray-300 leading-tight">
-                    2. J'ajoute des photos
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className="w-6 h-6 rounded-full bg-white/5 border border-white/15 flex items-center justify-center text-xeption-gold mb-0.5">
-                    <FileText className="w-3 h-3" />
-                  </div>
-                  <span className="text-[9px] sm:text-xs text-gray-300 leading-tight">
-                    3. Je reçois mon estimation
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* BANDEAU BONUS COMBO (+18% CRÉDIT BOUTIQUE) */}
-            <div className="bg-gradient-to-r from-amber-500/10 via-xeption-gold/15 to-transparent border border-xeption-gold/35 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_4px_25px_rgba(212,175,55,0.12)]">
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-xeption-gold/20 border border-xeption-gold/40 flex items-center justify-center text-xeption-gold shrink-0">
-                  <Gift className="w-5 h-5" />
-                </div>
-                <div className="text-center sm:text-left">
-                  <div className="text-sm sm:text-base font-tech font-extrabold uppercase tracking-wide text-xeption-gold">
-                    +18 % en crédit boutique
-                  </div>
-                  <div className="text-[11px] text-gray-400 uppercase tracking-wider font-tech">
-                    Si tu choisis l'échange contre un nouvel appareil
-                  </div>
-                </div>
-              </div>
-              <div className="text-xs sm:text-sm font-serif italic text-amber-200/90 tracking-wide shrink-0">
-                Simple, Rapide, Sécurisé !
-              </div>
-            </div>
-
-            {/* GRILLE DE RÉASSURANCE (4 PINS) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-              <div className="bg-[#121214]/60 border border-white/10 rounded-xl p-2.5 flex items-center gap-2 text-gray-300">
-                <CheckCircle2 className="w-4 h-4 text-xeption-gold shrink-0" />
-                <span className="text-[11px] font-medium leading-tight">Évaluation 100 F</span>
-              </div>
-              <div className="bg-[#121214]/60 border border-white/10 rounded-xl p-2.5 flex items-center gap-2 text-gray-300">
-                <Lock className="w-4 h-4 text-xeption-gold shrink-0" />
-                <span className="text-[11px] font-medium leading-tight">Sans engagement</span>
-              </div>
-              <div className="bg-[#121214]/60 border border-white/10 rounded-xl p-2.5 flex items-center gap-2 text-gray-300">
-                <Zap className="w-4 h-4 text-xeption-gold shrink-0" />
-                <span className="text-[11px] font-medium leading-tight">Réponse immédiate</span>
-              </div>
-              <div className="bg-[#121214]/60 border border-white/10 rounded-xl p-2.5 flex items-center gap-2 text-gray-300">
-                <MapPin className="w-4 h-4 text-xeption-gold shrink-0" />
-                <span className="text-[11px] font-medium leading-tight">À Mfoundi Mall</span>
-              </div>
-            </div>
-
-            {/* SECTION DÉCOUVRE NOS UNIVERS */}
-            <div className="pt-4 sm:pt-6">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-3.5 bg-xeption-gold rounded-full" />
-                <h2 className="text-xs sm:text-sm font-tech font-bold uppercase tracking-wider text-white">
-                  Découvre nos univers
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate('/shop?category=phones')}
-                  className="group bg-[#121214]/80 border border-white/10 hover:border-xeption-gold/60 rounded-xl p-3 flex flex-col items-center justify-between text-center transition-all hover:scale-[1.02] active:scale-95"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xeption-gold mb-2 group-hover:scale-110 transition-transform">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-tech font-bold uppercase tracking-wide text-white group-hover:text-xeption-gold transition-colors flex items-center gap-1">
-                    Smartphones <ArrowRight className="w-3 h-3 opacity-60 group-hover:translate-x-0.5 transition-transform" />
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/shop?category=ordinateurs')}
-                  className="group bg-[#121214]/80 border border-white/10 hover:border-xeption-gold/60 rounded-xl p-3 flex flex-col items-center justify-between text-center transition-all hover:scale-[1.02] active:scale-95"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xeption-gold mb-2 group-hover:scale-110 transition-transform">
-                    <Laptop className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-tech font-bold uppercase tracking-wide text-white group-hover:text-xeption-gold transition-colors flex items-center gap-1">
-                    PC Portables <ArrowRight className="w-3 h-3 opacity-60 group-hover:translate-x-0.5 transition-transform" />
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/shop?category=tablettes')}
-                  className="group bg-[#121214]/80 border border-white/10 hover:border-xeption-gold/60 rounded-xl p-3 flex flex-col items-center justify-between text-center transition-all hover:scale-[1.02] active:scale-95"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xeption-gold mb-2 group-hover:scale-110 transition-transform">
-                    <Tablet className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-tech font-bold uppercase tracking-wide text-white group-hover:text-xeption-gold transition-colors flex items-center gap-1">
-                    Tablettes <ArrowRight className="w-3 h-3 opacity-60 group-hover:translate-x-0.5 transition-transform" />
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/shop?category=accessories')}
-                  className="group bg-[#121214]/80 border border-white/10 hover:border-xeption-gold/60 rounded-xl p-3 flex flex-col items-center justify-between text-center transition-all hover:scale-[1.02] active:scale-95"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xeption-gold mb-2 group-hover:scale-110 transition-transform">
-                    <Headphones className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-tech font-bold uppercase tracking-wide text-white group-hover:text-xeption-gold transition-colors flex items-center gap-1">
-                    Accessoires <ArrowRight className="w-3 h-3 opacity-60 group-hover:translate-x-0.5 transition-transform" />
-                  </span>
+                  Tu souhaites uniquement certifier l'IMEI d'un appareil ? Clique ici ➔
                 </button>
               </div>
             </div>
-
-            {/* BANDEAU DE RÉASSURANCE LIVRAISON & GARANTIE */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/10 text-xs font-tech uppercase tracking-wider text-gray-400">
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-xeption-gold" />
-                <span>Livraison express partout au Cameroun</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-xeption-gold" />
-                <span>Garantie jusqu'à 12 mois</span>
-              </div>
-            </div>
-
-            {/* LIEN DISCRET VERS LE PASSEPORT OFFICIEL / CERTIFICAT */}
-            <div className="text-center pt-2">
-              <button
-                type="button"
-                onClick={() => setIntent('certif')}
-                className="text-[11px] font-tech text-gray-500 hover:text-xeption-gold transition-colors underline underline-offset-4 tracking-wider uppercase"
-              >
-                Tu souhaites uniquement certifier l'IMEI d'un appareil ? Clique ici ➔
-              </button>
-            </div>
-          </div>
           </>
         )}
 

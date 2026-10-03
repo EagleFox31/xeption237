@@ -129,8 +129,16 @@ const startServer = (port, spaShellHtml) => {
     res.end(spaShellHtml);
   });
 
-  return new Promise((resolve) => {
-    server.listen(port, () => resolve(server));
+  return new Promise((resolve, reject) => {
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.warn(`[prerender] Port ${port} occupé, essai sur ${port + 1}...`);
+        resolve(startServer(port + 1, spaShellHtml));
+      } else {
+        reject(err);
+      }
+    });
+    server.listen(port, () => resolve({ server, port }));
   });
 };
 
@@ -455,7 +463,7 @@ const main = async () => {
   const spaShellHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
 
   const port = 4173;
-  const server = await startServer(port, spaShellHtml);
+  const { server, port: actualPort } = await startServer(port, spaShellHtml);
   const localExecutable = findChromeExecutable();
   let executablePath = localExecutable;
 
@@ -511,7 +519,7 @@ const main = async () => {
     };
 
     const renderRoute = async (page, route) => {
-      const url = `http://localhost:${port}${route}`;
+      const url = `http://localhost:${actualPort}${route}`;
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
       await waitForPrerender(page, route);
 

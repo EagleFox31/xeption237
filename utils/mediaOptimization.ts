@@ -28,15 +28,26 @@ const buildCloudinaryTransform = (
   transformation: string,
 ): string => `${parts[0]}/upload/${transformation}/${parts[1]}`;
 
+const isInvalidOrPlaceholderUrl = (url: string | undefined): boolean => {
+  if (!url || typeof url !== 'string') return true;
+  const trimmed = url.trim().toLowerCase();
+  return (
+    trimmed === '' ||
+    trimmed.includes('via.placeholder.com') ||
+    trimmed.includes('placeholder.com')
+  );
+};
+
 export const optimizeImage = (
   url: string | undefined,
   width: number = 800,
   options?: { dpr?: boolean },
 ): string => {
-  if (!url) return IMAGE_FALLBACK;
+  if (isInvalidOrPlaceholderUrl(url)) return IMAGE_FALLBACK;
+  const safeUrl = url as string;
 
   // Si ce n'est pas une image Cloudinary, on retourne l'URL telle quelle
-  if (!url.includes('cloudinary.com')) return url;
+  if (!safeUrl.includes('cloudinary.com')) return safeUrl;
 
   const tier = getBandwidthTier();
   const cappedWidth = capWidthForTier(width, tier);
@@ -62,16 +73,17 @@ export const optimizeImage = (
  * Téléchargé instantanément même en 2G/3G, permettant un affichage flou immédiat des vraies couleurs.
  */
 export const optimizeImagePlaceholder = (url: string | undefined, width: number = 24): string => {
-  if (!url) return IMAGE_FALLBACK;
-  if (!url.includes('cloudinary.com')) return url;
+  if (isInvalidOrPlaceholderUrl(url)) return IMAGE_FALLBACK;
+  const safeUrl = url as string;
+  if (!safeUrl.includes('cloudinary.com')) return safeUrl;
 
   // w_24, e_blur:200, q_auto:low, f_auto : micro-vignette floue ultra-légère
   const transformation = `f_auto,q_auto:low,w_${width},e_blur:200,c_limit`;
-  const parts = url.split('/upload/');
+  const parts = safeUrl.split('/upload/');
   if (parts.length === 2) {
     return buildCloudinaryTransform(parts, transformation);
   }
-  return url;
+  return safeUrl;
 };
 
 /**
@@ -82,7 +94,7 @@ export const generateCloudinarySrcSet = (
   url: string | undefined,
   widths: number[] = [180, 320, 480, 640, 800],
 ): string | undefined => {
-  if (!url || !url.includes('cloudinary.com')) return undefined;
+  if (isInvalidOrPlaceholderUrl(url) || !url?.includes('cloudinary.com')) return undefined;
 
   return widths
     .map((w) => `${optimizeImage(url, w)} ${w}w`)
@@ -91,20 +103,21 @@ export const generateCloudinarySrcSet = (
 
 /** Vignette produit carrée (hero / grilles) — même cadre pour phones et laptops */
 export const optimizeProductThumb = (url: string | undefined, size: number = 400): string => {
-  if (!url) return IMAGE_FALLBACK;
-  if (!url.includes('cloudinary.com')) return url;
+  if (isInvalidOrPlaceholderUrl(url)) return IMAGE_FALLBACK;
+  const safeUrl = url as string;
+  if (!safeUrl.includes('cloudinary.com')) return safeUrl;
 
   const tier = getBandwidthTier();
   const cappedSize = capWidthForTier(size, tier);
   const quality = imageQualityForTier(tier);
   const transformation = `f_auto,${quality},w_${cappedSize},h_${cappedSize},c_fill,g_center`;
 
-  const parts = url.split('/upload/');
+  const parts = safeUrl.split('/upload/');
   if (parts.length === 2) {
     return buildCloudinaryTransform(parts, transformation);
   }
 
-  return url;
+  return safeUrl;
 };
 
 export const optimizeVideo = (url: string | undefined): string => {

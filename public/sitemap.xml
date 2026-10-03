@@ -96,6 +96,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.xeptionetwork.shop/product/apple-iphone-12-pro-max-256-go-us-canada-98c1e2f1-a3af-4d98-94e6-e935ae38873a</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.xeptionetwork.shop/product/redmi-a3-pro-75a559ad-2a4b-4127-b19c-6b3846960248</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -187,11 +192,6 @@
   </url>
   <url>
     <loc>https://www.xeptionetwork.shop/product/xiaomi-redmi-a5-64-go-3bf6f7e1-17ac-4b88-a197-f2d16539b49a</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.xeptionetwork.shop/product/apple-iphone-12-pro-max-256-go-us-canada-98c1e2f1-a3af-4d98-94e6-e935ae38873a</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -631,17 +631,17 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.xeptionetwork.shop/product/google-pixel-10-pro-9be02c29-6196-4a57-b148-f82d08ee813e</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.xeptionetwork.shop/product/buds-fe-f13dd542-f1d1-4d04-8f66-4ccca151abc6</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.xeptionetwork.shop/product/iphone-14-pro-256go-10bed18e-8e18-454b-a82e-0ddde65acf27</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.xeptionetwork.shop/product/google-pixel-10-pro-9be02c29-6196-4a57-b148-f82d08ee813e</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

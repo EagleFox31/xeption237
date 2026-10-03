@@ -27,6 +27,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isBottomNavHidden, setIsBottomNavHidden] = useState(false);
 
   // Verrouiller le défilement quand le menu profil est ouvert
   useEffect(() => {
@@ -44,14 +45,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     setIsAccountMenuOpen(false);
   }, [location.pathname]);
 
-  // Masquer sur les pages staff, studio, et détail produit sur mobile (barre d'action dédiée)
-  const pathname = location.pathname;
-  if (pathname.startsWith('/admin') || pathname.startsWith('/studio') || pathname.startsWith('/product/')) {
-    return null;
-  }
-
   // Masquer spécifiquement sur les étapes mobiles qui remplacent la bottom bar (ex: Résultat Smart Troc)
-  const [isBottomNavHidden, setIsBottomNavHidden] = useState(false);
   useEffect(() => {
     const updateHidden = () => {
       setIsBottomNavHidden(document.body.classList.contains('hide-mobile-bottom-nav'));
@@ -62,7 +56,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  if (isBottomNavHidden) {
+  // Masquer sur les pages staff, studio, et détail produit sur mobile (barre d'action dédiée)
+  const pathname = location.pathname;
+  if (
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/studio') ||
+    pathname.startsWith('/product/') ||
+    isBottomNavHidden
+  ) {
     return null;
   }
 

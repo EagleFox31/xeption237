@@ -15,6 +15,7 @@ interface EvaluationResultProps {
   onAcceptOffer: () => void;
   onRefuse: () => void;
   isSubmitting: boolean;
+  whatsappUrl?: string;
 }
 
 const formatFCFA = (amount: number): string =>
@@ -38,7 +39,7 @@ const resolveRefusalMessage = (blockerReason?: BlockerReason | null): Evaluation
 };
 
 export const EvaluationResult: React.FC<EvaluationResultProps> = ({
-  result, deviceLabel, onAcceptOffer, onRefuse, isSubmitting,
+  result, deviceLabel, onAcceptOffer, onRefuse, isSubmitting, whatsappUrl,
 }) => {
   const { score, scoreColor, justification, tradeInValue, tradeInGrade, blockerReason } = result;
   const isRefused    = tradeInGrade === 'refuse';
@@ -112,7 +113,7 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
           <p className="text-sm font-tech font-bold text-xeption-red uppercase">Troc impossible</p>
           <p className="text-xs text-gray-400 font-sans">{msg.body}</p>
           <a
-            href="https://wa.me/237697686684"
+            href={whatsappUrl ?? "https://wa.me/237697686684"}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 bg-green-600/20 border border-green-600/40 hover:bg-green-600/40 text-green-400 font-tech font-bold uppercase tracking-widest text-xs py-3 transition-all rounded-sm"

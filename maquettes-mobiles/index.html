@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xeption — Suite Ergonomique Mondiale (11 Écrans Mobiles)</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --card-bg: #121215;
+      --card-border: rgba(255, 255, 255, 0.12);
+      --gold: #d4af37;
+      --gold-light: #f6e05e;
+      --text: #ffffff;
+      --text-muted: #9ca3af;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 24px 16px 60px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .brand-title {
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .brand-title span {
+      color: #ef4444;
+    }
+    .subtitle {
+      font-size: 16px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .desc {
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 auto;
+      font-size: 14px;
+    }
+    .badge-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid rgba(212, 175, 55, 0.35);
+      border-radius: 9999px;
+      color: var(--gold-light);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .section-title-box {
+      margin: 48px 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-bar {
+      width: 4px;
+      height: 24px;
+      background: var(--gold);
+      border-radius: 999px;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover {
+      border-color: rgba(212, 175, 55, 0.4);
+      transform: translateY(-4px);
+    }
+    .image-wrapper {
+      background: #000;
+      position: relative;
+      text-align: center;
+      padding: 16px;
+      cursor: pointer;
+    }
+    .image-wrapper img {
+      max-width: 100%;
+      height: auto;
+      max-height: 520px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      display: block;
+      margin: 0 auto;
+    }
+    .card-content {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .screen-number {
+      font-size: 11px;
+      color: var(--gold);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .screen-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    .screen-route {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #d1d5db;
+      margin-bottom: 12px;
+      align-self: flex-start;
+    }
+    .screen-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .principles-list {
+      list-style: none;
+      border-top: 1px solid var(--card-border);
+      padding-top: 12px;
+      margin-top: auto;
+    }
+    .principles-list li {
+      font-size: 12px;
+      color: #e5e7eb;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .principles-list li::before {
+      content: "✦";
+      color: var(--gold);
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 60px;
+      font-size: 12px;
+      color: #6b7280;
+      padding-top: 24px;
+      border-top: 1px solid var(--card-border);
+    }
+    @media print {
+      body { background: #fff; color: #000; }
+      .card { page-break-inside: avoid; border: 1px solid #ccc; }
+      .image-wrapper img { max-height: 400px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand-title">XEPTION<span>.</span></div>
+      <div class="subtitle">Expérience Mobile Complète — Suite des 11 Écrans UX/UI</div>
+      <p class="desc">
+        Design System mobile inspiré des leaders mondiaux (Apple Trade In, Back Market, Nielsen Norman Group) : <strong>Divulgation progressive (1 écran = 1 décision)</strong>, zéro surcharge cognitive, adaptation au marché camerounais.
+      </p>
+      <div class="badge-bar">
+        <span class="badge">11 Écrans Haute Définition</span>
+        <span class="badge">Divulgation Progressive (0 surcharge)</span>
+        <span class="badge">Tunnel Smart Troc Séquencé</span>
+        <span class="badge">Calcul Différence en Direct</span>
+      </div>
+    </header>
+
+    <!-- SECTION 1 : LE TUNNEL SMART TROC (SÉQUENCÉ & PROGRESSIF) -->
+    <div class="section-title-box">
+      <div class="section-bar"></div>
+      <h2 class="section-title">Partie 1 · Le Tunnel Smart Troc (Séquencé & Progressif)</h2>
+    </div>
+
+    <div class="grid">
+      <!-- TROC 0 : LANDING -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="03_smart_troc_landing.jpg" alt="Smart Troc Landing">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 01 · Étape 0</div>
+          <h3 class="screen-title">Landing Troc — Zéro Scroll</h3>
+          <span class="screen-route">Route : /troc</span>
+          <p class="screen-desc">
+            Prise de contact foudroyante. Le bouton d'estimation est 100% visible au-dessus du pli dès l'ouverture de la page.
+          </p>
+          <ul class="principles-list">
+            <li>Disposition côte-à-côte : Accroche à gauche, visuel à droite.</li>
+            <li>Bouton CTA doré centré au pouce sans aucun défilement.</li>
+            <li>3 arguments rassurants : 100 F, Analyse IA, Cash / +18%.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TROC 1 : IMEI & IDENTIFICATION -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="06_troc_etape1_imei.jpg" alt="Contrôle IMEI et Modèle">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 02 · Étape 1</div>
+          <h3 class="screen-title">Identification & Contrôle IMEI</h3>
+          <span class="screen-route">Tunnel Troc : /troc (Étape 1)</span>
+          <p class="screen-desc">
+            Saisie rapide du contact et vérification anti-vol instantanée de l'appareil dans la base officielle GSMA.
+          </p>
+          <ul class="principles-list">
+            <li>Prénom, WhatsApp et sélection facile de la marque / modèle.</li>
+            <li>Bouton d'aide direct *#06# pour trouver l'IMEI sans chercher.</li>
+            <li>Badge vert de certification : « IMEI Conforme · Non Bloqué ».</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TROC 2 : PHOTOS IA -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="07_troc_etape2_photos_ia.jpg" alt="Scanner Photo IA">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 03 · Étape 2</div>
+          <h3 class="screen-title">Inspection Visuelle par IA</h3>
+          <span class="screen-route">Tunnel Troc : /troc (Étape 2)</span>
+          <p class="screen-desc">
+            Guide pas-à-pas pour capturer les 4 angles requis afin d'établir la cotation esthétique de l'appareil.
+          </p>
+          <ul class="principles-list">
+            <li>Grille 2x2 avec retours visuels clairs (Validé / En cours).</li>
+            <li>Barre de progression en temps réel (ex: 3/4 photos ajoutées).</li>
+            <li>Conseil didactique de luminosité pour éviter les rejets photo.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TROC 3 : PAIEMENT 100 F -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="08_troc_etape3_paiement_100f.jpg" alt="Paiement 100 FCFA">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 04 · Étape 3</div>
+          <h3 class="screen-title">Frais d'Audit IA (100 FCFA)</h3>
+          <span class="screen-route">Tunnel Troc : /troc (Étape 3)</span>
+          <p class="screen-desc">
+            Paiement symbolique de 100 F par mobile money local pour déclencher le rapport d'expertise officiel.
+          </p>
+          <ul class="principles-list">
+            <li>Prix 100 FCFA mis en exergue en or avec badge 100% déductible.</li>
+            <li>Sélecteur tactile géant : MTN MoMo & Orange Money.</li>
+            <li>Rappel de l'invite USSD sur l'écran pour un paiement serein.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TROC 4 : VERDICT AVEC BONUS FIXE (CALIBRÉ POUR LA MARGE DU BOSS) -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="13_troc_verdict_bonus_fixe.png" alt="Verdict avec Bonus Fixe">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 05 · Étape 4 (Calibré pour le Boss)</div>
+          <h3 class="screen-title">Verdict avec Bonus Fixe & Marge Préservée</h3>
+          <span class="screen-route">Tunnel Troc : /troc (Le Verdict)</span>
+          <p class="screen-desc">
+            Au lieu d'un 18% risqué pour la marge, on accorde un bonus fixe clair (+20 000 F). Le client comprend tout en 1 seconde.
+          </p>
+          <ul class="principles-list">
+            <li>Montant échange : <strong>300 000 F</strong> (+20 000 F de bonus inclus).</li>
+            <li>Montant cash direct : <strong>280 000 F</strong>.</li>
+            <li>Bouton 1 : « Échanger votre téléphone : 300 000 F ».</li>
+            <li>Bouton 2 : « Nous vendre votre téléphone : 280 000 F ».</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TROC 5 : SÉLECTION DU NOUVEAU SMARTPHONE (NOUVEAU - CALCUL DE LA DIFFÉRENCE) -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="10_troc_selection_nouveau_phone.jpg" alt="Sélection Nouveau Téléphone">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 06 · Étape 5 (Le Choix)</div>
+          <h3 class="screen-title">Sélection du Nouveau Smartphone</h3>
+          <span class="screen-route">Tunnel Troc : /troc (Catalogue Déduit)</span>
+          <p class="screen-desc">
+            Chaque téléphone du catalogue calcule en direct la différence exacte que le client doit ajouter.
+          </p>
+          <ul class="principles-list">
+            <li>Bandeau doré fixé : « Crédit disponible : 330 400 FCFA ».</li>
+            <li>Calcul automatique : iPhone 15 Pro ➔ <strong>« Tu ajoutes seulement 419 600 F »</strong>.</li>
+            <li>Filtres rapides : Apple, Samsung, En stock Mfoundi Mall.</li>
+            <li>Bouton direct 1-tap « Choisir cet appareil ».</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TROC 6 : BON DE REPRISE QR OFFICIEL -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="11_troc_bon_officiel_qr.jpg" alt="Bon de Reprise Officiel">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 07 · Étape 6</div>
+          <h3 class="screen-title">Bon Officiel & QR Code d'Audit</h3>
+          <span class="screen-route">Route : /bon</span>
+          <p class="screen-desc">
+            Le passeport officiel de reprise délivré au client pour venir retirer son cash ou son nouvel appareil à Mfoundi Mall.
+          </p>
+          <ul class="principles-list">
+            <li>Ticket VIP doré avec référence unique (#TRC-2026-8941).</li>
+            <li>QR Code central haute résolution scannable en caisse boutique.</li>
+            <li>Réservation du modèle bloquée 48h en boutique.</li>
+            <li>Téléchargement PDF et envoi sur WhatsApp en 1 tap.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2 : L'EXPÉRIENCE BOUTIQUE E-COMMERCE -->
+    <div class="section-title-box">
+      <div class="section-bar"></div>
+      <h2 class="section-title">Partie 2 · L'Expérience Boutique E-Commerce</h2>
+    </div>
+
+    <div class="grid">
+      <!-- ACCUEIL -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="01_accueil_mobile.jpg" alt="Accueil Boutique">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 08</div>
+          <h3 class="screen-title">Accueil Boutique Mobile</h3>
+          <span class="screen-route">Route : /</span>
+          <p class="screen-desc">
+            La vitrine d'entrée principale : marques vedettes, ventes flash en FCFA et orientation fluide.
+          </p>
+          <ul class="principles-list">
+            <li>Bannière hero percutante « Le meilleur de la tech au Cameroun ».</li>
+            <li>Pills de navigation par univers (Smartphones, PC, Tablettes).</li>
+            <li>Ventes flash avec bouton panier rapide.</li>
+            <li>Bottom Nav noire avec bouton TROC doré surélevé.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- CATALOGUE -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="02_catalogue_filtres.jpg" alt="Catalogue & Filtres">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 09</div>
+          <h3 class="screen-title">Catalogue & Filtres Rapides</h3>
+          <span class="screen-route">Route : /shop</span>
+          <p class="screen-desc">
+            Recherche textuelle et filtres tactiles rapides adaptés à l'usage d'une seule main.
+          </p>
+          <ul class="principles-list">
+            <li>Filtre clé de réassurance : « En stock Mfoundi Mall ».</li>
+            <li>Chips tactiles : Apple, Samsung, Tecno.</li>
+            <li>Grille 2 colonnes avec badges d'état (Neuf / Reconditionné A+).</li>
+            <li>Bouton panier direct au pouce sur chaque produit.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- FICHE PRODUIT -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="04_fiche_produit.jpg" alt="Fiche Produit">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 10</div>
+          <h3 class="screen-title">Fiche Produit — Double CTA</h3>
+          <span class="screen-route">Route : /product/:id</span>
+          <p class="screen-desc">
+            Lève le frein psychologique du prix en incitant à troquer son ancien appareil directement au moment du choix.
+          </p>
+          <ul class="principles-list">
+            <li>Carrousel visuel immersif avec pastilles de sélection.</li>
+            <li>Sélecteur tactile de stockage (128G, 256G, 512G) et couleur.</li>
+            <li>Bouton Primaire Doré : « Échanger mon ancien phone (Smart Troc) ».</li>
+            <li>Bouton Secondaire : « Acheter comptant ».</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- CHECKOUT -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img src="05_panier_checkout.jpg" alt="Panier et Checkout">
+        </div>
+        <div class="card-content">
+          <div class="screen-number">Écran 11</div>
+          <h3 class="screen-title">Panier & Checkout Simplifié</h3>
+          <span class="screen-route">Route : /checkout</span>
+          <p class="screen-desc">
+            Déduction directe du bon de reprise Troc et finalisation en 1 tap avec MTN MoMo ou Orange Money.
+          </p>
+          <ul class="principles-list">
+            <li>Carte de remise automatique pour la reprise Smart Troc (-320 000 F).</li>
+            <li>Reste net à payer en gros chiffres dorés sans surprise.</li>
+            <li>Choix rapide : MTN MoMo, Orange Money, Retrait Mfoundi Mall.</li>
+            <li>Bouton pleine largeur sécurisé « Valider la commande ».</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Xeption Network 237 — Système d'Information & Architecture Mobile — Tous droits réservés.
+    </div>
+  </div>
+</body>
+</html>

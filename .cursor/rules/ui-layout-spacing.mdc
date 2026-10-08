@@ -1,0 +1,44 @@
+---
+description: CSS/Tailwind spacing and sticky layout — avoid margin-collapse and sticky overlap mistakes
+globs: xeption237/**/*.{tsx,jsx,css}
+alwaysApply: false
+---
+
+# UI layout & spacing (learned from shop bandeau fixes)
+
+## Clarify intent before moving pixels
+
+- **Remonter vers la navbar** ≠ **espace entre bandeau et grille**.
+- If the user says "collé à la product list", they want **visible gap below the bandeau** (often video/background), not more padding inside the same black background.
+
+## Do not use negative vertical margins as the default fix
+
+- `-mt-*` on page wrappers or sticky toolbars often **breaks flow** with `main pt-20`, feels like content moves the wrong way, and is hard for the user to reason about.
+- Prefer: correct `top` on sticky, normal flow, then explicit gap below.
+
+## Same-background padding is invisible separation
+
+- Large `pb-*` **inside** a `bg-black/90` sticky bar does **not** create space between bandeau and products — it only extends the black box.
+- Visible gap needs **transparent area** (background video/page) or margin/gap between **separate** blocks.
+
+## Sticky + margin-bottom is unreliable
+
+- `margin-bottom` on `position: sticky` can **collapse** with siblings; following content may still look flush.
+- **Prefer `flex flex-col` + `gap-*`** on the parent for forced spacing between bandeau and catalog grid.
+- Empty spacer `div` alone is weak if margins collapse or sticky `z-index` paints over it.
+
+## Sticky scroll behavior
+
+- While scrolling, products **pass under** the sticky layer — that reads as "collé" even if rest state has margin.
+- If separation must hold while scrolling: extend sticky background with bottom padding **only when** you accept a larger sticky footprint, or keep filters sticky but not the full hero block.
+
+## One clear fix, not stacked hacks
+
+- Avoid combining `-mt`, spacer div, `mt` on grid, and inner `pb` in one pass — each masks the others and wastes user time.
+- Apply one mechanism (`gap` on flex parent), verify in browser, then tune magnitude (`gap-16` vs `gap-24`).
+
+## Shop page reference (`ProductList` + `ShopPage`)
+
+- Bandeau: `sticky top-20`, black bg ends after filters (`pb-4`), no huge inner black padding.
+- Catalog container: `flex flex-col gap-24 md:gap-32` when `stickyToolbar`.
+- Search: single navbar bar synced via `?q=` — no duplicate search in bandeau.

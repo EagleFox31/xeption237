@@ -20,14 +20,14 @@ Finaliser le tracking GTM/GA4 (events Troc alignés) et cadrer le chantier marke
 - **Marketplace différenciation** : IMEI vérifié + grading uniforme — aucun concurrent CM ne le fait
 
 ## Reste à faire
-1. Pousser `wip/troc-multi-device-v3-clean` (contient commit `e4f613f`)
-2. Vérifier dans GTM Preview que les events `troc_*` arrivent bien côté GA4 Realtime
+1. ~~Pousser `wip/troc-multi-device-v3-clean`~~ — fait (b9fa2a7)
+2. Vérifier dans GTM Preview que les events `troc_*` arrivent bien côté GA4 Realtime — à faire après merge dans main
 3. Événements `marketplace_*` (6 triggers GTM) : dormants, à activer quand la feature marketplace démarre
 4. Discuter MARKETPLACE_PLAN.md avec le boss — 6 arbitrages listés section 9 (modèle transac, commission, positionnement, modération, KYC, nom)
-5. Deploy edge function `product-catalog` : `npx supabase functions deploy product-catalog --project-ref tawnusmfyvugqczaydat --no-verify-jwt --use-api --workdir .`
-6. PR #1 "Release: paid Xeption scope without ERP" — 1/2 checks fail, à investiguer
-7. Migration `20260401_004_market_price_cache.sql` — statut inconnu
-8. Fichiers non commités : `PASSATION.md` (ce fichier), `public/sitemap.xml` (auto-régénéré, dérive catalogue)
+5. ~~Deploy edge function `product-catalog`~~ — fait (2026-10-08)
+6. **PR #1 "Release: paid Xeption scope without ERP"** — en attente paiement boss. 1/2 checks CI fail (pas de `gh` CLI pour investiguer). Reprendre quand le boss valide le paiement.
+7. Migration `20260401_004_market_price_cache.sql` — pas encore livrée, intentionnel
+8. ~~Fichiers non commités~~ — fait (342a319)
 
 ## Pièges / contexte
 - **Repo** : `xeption237/` est sous-dossier du monorepo `xeption-app/` — toujours `git` depuis `xeption237/`

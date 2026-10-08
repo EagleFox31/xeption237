@@ -400,6 +400,9 @@ const TrocPage: React.FC = () => {
               onAcceptOffer={troc.acceptOffer}
               onRefuse={troc.refuse}
               isSubmitting={troc.isSubmitting}
+              whatsappUrl={`https://wa.me/237697686684?text=${encodeURIComponent(
+                `Bonjour Xeption, je suis ${troc.form.customerName} (${troc.form.customerPhone}).\nMon ${troc.form.deviceBrand} ${troc.form.deviceModel} a reçu une estimation de ${new Intl.NumberFormat('fr-FR').format(troc.result.tradeInValue)} FCFA via Smart Troc.\nComment procéder pour le dépôt en boutique ?`
+              )}`}
             />
           )}
 

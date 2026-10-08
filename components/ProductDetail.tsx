@@ -83,10 +83,38 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         script.id = 'product-json-ld';
         document.head.appendChild(script);
 
+        // Open Graph produit — requis pour Facebook Dynamic Ads
+        const productUrl = `${window.location.origin}/product/${getProductSlug(product)}`;
+        const ogMetas: [string, string][] = [
+            ['og:type',             'product'],
+            ['og:title',            `${product.name} — Xeption Cameroun`],
+            ['og:description',      product.description || `${product.name} au meilleur prix au Cameroun`],
+            ['og:image',            product.image],
+            ['og:url',              productUrl],
+            ['og:site_name',        'Xeption Network 237'],
+            ['product:price:amount',  String(product.price)],
+            ['product:price:currency', 'XAF'],
+            ['product:availability', product.stock > 0 ? 'in stock' : 'out of stock'],
+            ['product:condition',   product.condition === 'new' ? 'new' : 'refurbished'],
+            ['product:retailer_item_id', String(product.id)],
+        ];
+        const insertedMetas: HTMLMetaElement[] = [];
+        for (const [property, content] of ogMetas) {
+            let el = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
+            if (!el) {
+                el = document.createElement('meta');
+                el.setAttribute('property', property);
+                document.head.appendChild(el);
+                insertedMetas.push(el);
+            }
+            el.setAttribute('content', content);
+        }
+
         return () => {
             const existingScript = document.getElementById('product-json-ld');
-            if (existingScript) {
-                document.head.removeChild(existingScript);
+            if (existingScript) document.head.removeChild(existingScript);
+            for (const el of insertedMetas) {
+                if (document.head.contains(el)) document.head.removeChild(el);
             }
         };
     }, [product]);

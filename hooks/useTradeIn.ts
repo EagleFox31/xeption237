@@ -12,6 +12,7 @@ import {
 } from '../services/trocEvaluationService';
 import { uploadFiles } from '../services/uploadService';
 import { validateTrocForm } from '../utils/trocFormValidation';
+import { pushEvent } from '../utils/analytics';
 import type { TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
 import { supabase } from '../services/supabaseClient';
 
@@ -152,6 +153,7 @@ export const useTradeIn = () => {
       setPhotoUrls(urls);
       setStep('imei');
       upsertSession(sessionKey, 'photos', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+      pushEvent('troc_photos_uploaded', { photos_count: urls.length });
     } catch {
       setError("L'envoi des photos a échoué. Vérifiez votre connexion et réessayez.");
     } finally {
@@ -175,6 +177,7 @@ export const useTradeIn = () => {
       setImeiBlacklistStatus(blacklistStatus);
       setImeiAssuranceLevel(assuranceLevel);
       upsertSession(sessionKey, 'imei', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+      pushEvent('troc_imei_checked', { imei_status: status });
 
       if (status === 'valid') {
         if (deviceInfo) {
@@ -289,6 +292,7 @@ export const useTradeIn = () => {
       const { reference } = await createPayment(sessionKey, phone, form.customerName || undefined, form.customerEmail || undefined);
       setPaymentReference(reference);
       setPaymentState('pending');
+      pushEvent('troc_payment_initiated', { currency: 'XAF' });
 
       // Démarrage polling
       pollTimerRef.current = setInterval(async () => {
@@ -297,6 +301,7 @@ export const useTradeIn = () => {
         if (poll.status === 'paid') {
           clearPaymentTimers();
           setPaymentState('paid');
+          pushEvent('troc_payment_paid', { currency: 'XAF' });
           setTimeout(() => runEvaluation(), 800);
         } else if (poll.status === 'failed') {
           clearPaymentTimers();
@@ -336,6 +341,7 @@ export const useTradeIn = () => {
     setPaymentReference(reference);
     setPaymentState('paid');
     setStep('payment'); // affiche l'écran "Paiement confirmé" brièvement
+    pushEvent('troc_payment_paid', { currency: 'XAF' });
     setTimeout(() => runEvaluation(), 800);
   };
 
@@ -357,6 +363,11 @@ export const useTradeIn = () => {
       setResult(evaluation);
       setStep('result');
       upsertSession(sessionKey, 'result', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel });
+      pushEvent('troc_result_shown', {
+        grade: evaluation.tradeInGrade,
+        value: evaluation.tradeInValue,
+        currency: 'XAF',
+      });
     } catch (err: any) {
       // Photos non conformes (cas le plus fréquent) — ton neutre, pas accusateur.
       if (err instanceof PhotoRetakeRequiredError) {
@@ -400,6 +411,13 @@ export const useTradeIn = () => {
       });
       setStep('voucher');
       upsertSession(sessionKey, 'voucher', { deviceBrand: form.deviceBrand, deviceModel: form.deviceModel, tradeInId: saved.id });
+      pushEvent('troc_offer_accepted', {
+        value: result.tradeInValue,
+        grade: result.tradeInGrade,
+        currency: 'XAF',
+        voucher_ref: saved.voucherReference,
+      });
+      pushEvent('troc_voucher_generated', { voucher_ref: saved.voucherReference });
     } catch {
       setError("Une erreur est survenue lors de la validation. Réessayez ou contactez la boutique.");
     } finally {
@@ -410,6 +428,13 @@ export const useTradeIn = () => {
   const acceptOffer = () => persist();
 
   const refuse = () => {
+    if (result) {
+      pushEvent('troc_offer_refused', {
+        value: result.tradeInValue,
+        grade: result.tradeInGrade,
+        currency: 'XAF',
+      });
+    }
     setResult(null);
     setStep('form');
     setError(null);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PageSEO, JsonLd, breadcrumbJsonLd } from '../utils/seo';
 import { ArrowLeft, Gamepad2, Laptop, Loader2, Package, RefreshCw, Smartphone, Sparkles, Tablet } from 'lucide-react';
 import { useTradeIn } from '../hooks/useTradeIn';
@@ -11,6 +11,7 @@ import { EvaluationResult } from '../components/troc/EvaluationResult';
 import { TrocVoucher } from '../components/troc/TrocVoucher';
 import { generateTradeInVoucherHTML } from '../utils/tradeInVoucherGenerator';
 import { getPaymentStatus } from '../services/trocEvaluationService';
+import { pushEvent } from '../utils/analytics';
 import type { TradeInRequest } from '../types';
 
 const STEP_LABELS = ['Appareil', 'Photos', 'IMEI', 'Paiement', 'Résultat', 'Bon'];
@@ -135,18 +136,17 @@ const DeviceChoiceCard: React.FC<{
   );
 };
 
-declare global {
-  interface Window { dataLayer?: object[]; }
-}
-
-const pushEvent = (event: string, params?: object) => {
-  window.dataLayer = window.dataLayer ?? [];
-  window.dataLayer.push({ event, ...params });
-};
-
 const TrocPage: React.FC = () => {
   const troc = useTradeIn();
   const [selectedDeviceType, setSelectedDeviceType] = useState<'phone' | null>(null);
+  const trocStartedRef = useRef(false);
+
+  // troc_start — arrivée sur la page (une seule fois par session de vue)
+  useEffect(() => {
+    if (trocStartedRef.current) return;
+    trocStartedRef.current = true;
+    pushEvent('troc_start');
+  }, []);
 
   // ── Retour callback CamPay : vérification serveur ──────────────────────
   useEffect(() => {
@@ -174,19 +174,19 @@ const TrocPage: React.FC = () => {
     }
   }, [troc.paymentState, troc.photos.length, troc.result, troc.step]);
 
-  // Funnel tracking — un événement par étape pour GA4 via GTM
+  // Funnel tracking — event unique troc_step_view, paramètre troc_step pour la valeur
   useEffect(() => {
-    const stepEvents: Record<string, string> = {
-      form:       'troc_step_appareil',
-      photos:     'troc_step_photos',
-      imei:       'troc_step_imei',
-      payment:    'troc_step_paiement',
-      evaluating: 'troc_step_evaluation',
-      result:     'troc_step_resultat',
-      voucher:    'troc_step_bon',
+    const stepLabels: Record<string, string> = {
+      form:       'appareil',
+      photos:     'photos',
+      imei:       'imei',
+      payment:    'paiement',
+      evaluating: 'evaluation',
+      result:     'resultat',
+      voucher:    'bon',
     };
-    const eventName = stepEvents[troc.step];
-    if (eventName) pushEvent(eventName, { device_type: 'phone' });
+    const trocStep = stepLabels[troc.step];
+    if (trocStep) pushEvent('troc_step_view', { troc_step: trocStep, device_type: 'phone' });
   }, [troc.step]);
 
   const stepIndex = STEP_INDEX[troc.step] ?? 0;
@@ -278,6 +278,7 @@ const TrocPage: React.FC = () => {
                   key={option.id}
                   option={option}
                   onSelect={(id) => {
+                    pushEvent('troc_choice', { troc_choice: id });
                     if (id === 'phone') setSelectedDeviceType('phone');
                   }}
                 />

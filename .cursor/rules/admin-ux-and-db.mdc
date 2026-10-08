@@ -1,0 +1,36 @@
+---
+description: Admin panel UX, ventes/commandes, et slugs catégories Supabase
+alwaysApply: true
+---
+
+# Admin Xeption — UX & données
+
+## Slugs catégories (Supabase)
+
+- FK `product_ranges.category` et `products.category` → `categories.slug`
+- Utiliser `phones`, **pas** `smartphones` (référence : `constants/dbSchema.ts` → `CATEGORY_SLUGS`)
+- Tablettes = `tablettes`, ordinateurs = `ordinateurs`
+
+## Navigation admin
+
+- Menu groupé via `components/admin/layout/adminMenuConfig.ts` (ne pas rééparpiller 15 entrées plates)
+- **Commandes + Factures** = un seul onglet `orders` (`OrdersTab`), pas deux pages
+- **Structure catalogue** = une page `catalogStructure` : colonnes Type → Marque → Gamme (hiérarchie, pas d’onglets)
+- Facture PDF/impression **après validation** (`confirmed` et suivants), pas en `pending`
+
+## Textes staff (français humain)
+
+- Pas de jargon UI : « colonne Actions », « statut orange », flèches `→` dans les guides
+- Phrases complètes, ton boutique (« accepte », « prépare », « le client a reçu »)
+- Aide page commandes : **une ligne** dans une **card compacte** opaque (`SALES_PAGE_HINT`), pas un gros bloc multi-étapes
+
+## Lisibilité admin
+
+- Texte d’aide et labels menu en **blanc** sur fond sombre / photo — pas `gray-500` sur fond flou
+- Statuts commande affichés en **français** (`ORDER_STATUS_LABELS`), pas les slugs anglais DB
+
+## Inventaire produit
+
+- Validation avant save : nom, prix, image (pas placeholder)
+- Doublons : nom seul en secours si marque/gamme diffèrent
+- Auto-fill IA : par champ ; si description remplie, elle sert de contexte pour specs/pros/cons

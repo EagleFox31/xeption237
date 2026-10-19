@@ -52,7 +52,11 @@ Deno.serve(async (req: Request) => {
     brandsRes.ok ? (await brandsRes.json()).map((b: { id: string; name: string }) => [b.id, b.name]) : [],
   );
 
-  const items = products.map((p) => {
+  // Google/Meta refusent les fiches sans vraie photo (ex. icône de repli `/icons/...`) :
+  // on ne publie que les URL d'image absolues ; la fiche revient dès qu'une photo est posée.
+  const hasRealImage = (p: Product) => /^https?:\/\//.test(p.image || '');
+
+  const items = products.filter(hasRealImage).map((p) => {
     const url        = `${SITE_URL}/product/${p.id}`;
     const imageUrl   = p.image || '';
     // Spec Google/Meta : g:price = prix normal, g:sale_price = prix promo (seulement si inférieur).

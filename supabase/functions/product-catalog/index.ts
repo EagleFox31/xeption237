@@ -3,7 +3,8 @@ const Deno = globalThis.Deno;
 
 export {};
 
-const SITE_URL = 'https://xeption237.vercel.app';
+// Domaine public de la boutique (surchargeable par secret SITE_URL).
+const SITE_URL = (Deno.env.get('SITE_URL') ?? 'https://www.xeptionetwork.shop').replace(/\/$/, '');
 
 Deno.serve(async (req: Request) => {
   // Facebook crawle en GET sans auth
@@ -43,6 +44,14 @@ Deno.serve(async (req: Request) => {
 
   const products: Product[] = await res.json();
 
+  // products.brand contient l'id de la table brands : on le traduit en nom.
+  const brandsRes = await fetch(`${supabaseUrl}/rest/v1/brands?select=id,name`, {
+    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+  });
+  const brandNames = new Map<string, string>(
+    brandsRes.ok ? (await brandsRes.json()).map((b: { id: string; name: string }) => [b.id, b.name]) : [],
+  );
+
   const items = products.map((p) => {
     const url        = `${SITE_URL}/product/${p.id}`;
     const imageUrl   = p.image || '';
@@ -53,7 +62,7 @@ Deno.serve(async (req: Request) => {
       ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] ?? c
     );
     const title = escXml(p.name);
-    const brand = escXml(p.brand || 'Xeption');
+    const brand = escXml((p.brand && brandNames.get(p.brand)) || p.brand || 'Xeption');
 
     // Images additionnelles (jusqu'à 10 pour Facebook)
     const additionalImages = (p.images || [])

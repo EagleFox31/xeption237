@@ -13,11 +13,15 @@
  *
  *   6. Lance :
  *      GTM_ACCESS_TOKEN=<le token>  \
- *      GTM_ACCOUNT_ID=6578376268    \
- *      GTM_CONTAINER_ID=284954836   \
+ *      GTM_ACCOUNT_ID=6378376268    \
+ *      GTM_CONTAINER_ID=264934838   \
  *      GTM_WORKSPACE_ID=2           \
  *      GA4_MEASUREMENT_ID=G-50XP8798T1 \
+ *      META_PIXEL_ID=1085399414289859 \
  *      node scripts/gtm-setup-tags.mjs
+ *
+ *   META_PIXEL_ID est optionnel : s'il est fourni, ajoute aussi les balises Meta Pixel
+ *   (base + PageView SPA + ViewContent/AddToCart/InitiateCheckout/Purchase).
  *
  *   Le token expire au bout d'1h — si ça foire à mi-parcours, refais un token et relance,
  *   le script skippe ce qui existe déjà (idempotent).
@@ -39,6 +43,13 @@ for (const [k, v] of Object.entries({
   GA4_MEASUREMENT_ID: GA4_MEASUREMENT_ID,
 })) {
   if (!v) { console.error(`✗ ${k} manquant.`); process.exit(1); }
+}
+
+// Optionnel : si défini, ajoute aussi les balises Meta Pixel (en plus des balises GA4).
+const META_PIXEL_ID = process.env.META_PIXEL_ID?.trim();
+if (META_PIXEL_ID && !/^\d{15,16}$/.test(META_PIXEL_ID)) {
+  console.error(`✗ META_PIXEL_ID invalide (attendu 15-16 chiffres) : ${META_PIXEL_ID}`);
+  process.exit(1);
 }
 
 const BASE = `https://www.googleapis.com/tagmanager/v2/accounts/${ACCOUNT_ID}/containers/${CONTAINER_ID}/workspaces/${WORKSPACE_ID}`;
@@ -187,6 +198,97 @@ async function loadVariables() {
   return new Map((res.variable ?? []).map(v => [v.name, v]));
 }
 
+// ─── Meta Pixel (balises Custom HTML, ajoutées à côté des balises GA4) ──────────
+
+// Trigger intégré GTM « All Pages » (ID fixe dans tous les containers).
+const GTM_ALL_PAGES_TRIGGER_ID = '2147479553';
+const META_BASE_TAG = 'Meta - Pixel base';
+
+/**
+ * Events ecommerce GA4 du dataLayer → events standards Meta.
+ * `eventIdKey` : clé de déduplication avec l'API Conversions (serveur) — même event_id des deux côtés.
+ */
+const META_ECOMMERCE_EVENTS = [
+  { dlEvent: 'view_item',      metaEvent: 'ViewContent' },
+  { dlEvent: 'add_to_cart',    metaEvent: 'AddToCart' },
+  { dlEvent: 'begin_checkout', metaEvent: 'InitiateCheckout' },
+  { dlEvent: 'purchase',       metaEvent: 'Purchase', eventIdKey: 'transaction_id' },
+];
+
+const metaBaseHtml = (pixelId) => `<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}');
+fbq('track', 'PageView');
+</script>`;
+
+// ES5 uniquement : le compilateur Custom HTML de GTM refuse les arrow functions.
+const metaEcommerceHtml = ({ metaEvent, eventIdKey }) => `<script>
+(function () {
+  var e = {{DL - ecommerce}} || {};
+  var items = e.items || [];
+  var params = {
+    content_type: 'product',
+    content_ids: items.map(function (i) { return String(i.item_id); }),
+    contents: items.map(function (i) { return { id: String(i.item_id), quantity: i.quantity || 1, item_price: i.price }; }),
+    num_items: items.length,
+    value: e.value,
+    currency: e.currency || 'XAF'
+  };
+  ${eventIdKey
+    ? `var id = e.${eventIdKey};\n  fbq('track', '${metaEvent}', params, id ? { eventID: '${metaEvent.toLowerCase()}_' + id } : {});`
+    : `fbq('track', '${metaEvent}', params);`}
+})();
+</script>`;
+
+async function ensureHtmlTag(name, html, triggerIds, existing, extra = {}) {
+  if (existing.tagsByName.has(name)) return;
+  await api('POST', '/tags', {
+    name,
+    type: 'html',
+    parameter: [
+      { type: 'template', key: 'html', value: html },
+      { type: 'boolean',  key: 'supportDocumentWrite', value: 'false' },
+    ],
+    firingTriggerId: triggerIds,
+    ...extra,
+  });
+  console.log(`  + tag      ${name}`);
+}
+
+/** Trigger « History Change » : PageView Meta à chaque navigation SPA (React Router). */
+async function ensureHistoryChangeTrigger(existing) {
+  const name = 'History Change - SPA';
+  const found = existing.triggersByName.get(name);
+  if (found) return found.triggerId;
+  const created = await api('POST', '/triggers', { name, type: 'historyChange' });
+  console.log(`  + trigger  ${name}`);
+  return created.triggerId;
+}
+
+async function setupMetaPixel(pixelId, existing) {
+  console.log(`\n→ Meta Pixel ${pixelId} :`);
+  await ensureDataLayerVar('ecommerce', existing);
+
+  await ensureHtmlTag(META_BASE_TAG, metaBaseHtml(pixelId), [GTM_ALL_PAGES_TRIGGER_ID], existing, {
+    tagFiringOption: 'oncePerLoad',
+  });
+
+  const historyTriggerId = await ensureHistoryChangeTrigger(existing);
+  // Séquençage : la balise de base (init fbq) passe toujours avant les events.
+  const afterBase = { setupTag: [{ tagName: META_BASE_TAG, stopOnSetupFailure: true }] };
+  await ensureHtmlTag('Meta - PageView (SPA)', `<script>fbq('track', 'PageView');</script>`,
+    [historyTriggerId], existing, afterBase);
+
+  for (const evt of META_ECOMMERCE_EVENTS) {
+    const triggerId = await ensureTrigger(evt.dlEvent, existing);
+    await ensureHtmlTag(`Meta - ${evt.metaEvent}`, metaEcommerceHtml(evt), [triggerId], existing, afterBase);
+  }
+}
+
 async function preflight() {
   console.log('→ Preflight : liste des accounts accessibles avec ce token…');
   const res = await fetch('https://www.googleapis.com/tagmanager/v2/accounts', {
@@ -262,6 +364,13 @@ async function main() {
   for (const evt of EVENTS) {
     const triggerId = await ensureTrigger(evt.name, existing);
     await ensureTag(evt, triggerId, existing);
+  }
+
+  // 3. Meta Pixel (optionnel, additif — ne modifie aucune balise GA4)
+  if (META_PIXEL_ID) {
+    await setupMetaPixel(META_PIXEL_ID, existing);
+  } else {
+    console.log('\n→ META_PIXEL_ID absent : balises Meta ignorées.');
   }
 
   console.log('\n✓ Terminé. Ouvre GTM UI → "Envoyer" → publier la nouvelle version.');

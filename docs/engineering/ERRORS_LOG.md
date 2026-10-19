@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-10-19 — `gtm-setup-tags.mjs` : IDs GTM faux dans l'en-tête du script
+
+- **Symptôme** : preflight du script en échec trois fois de suite : `Account ID 6578376268 PAS trouvé`, puis `Container ID 284954836 PAS trouvé`, puis `Workspace ID 2 PAS trouvé`.
+- **Cause racine** : les IDs écrits en dur dans l'en-tête comme exemple de commande avaient été mal recopiés (account `6378376268`, container `264934838`). Le workspace, lui, change après chaque publication GTM (2 → 5) : une valeur figée finit forcément périmée.
+- **Résolution** : en-tête corrigé avec l'account et le container ; relance avec `GTM_WORKSPACE_ID=5`. Le preflight (lecture seule, liste les IDs réels) a évité toute écriture au mauvais endroit.
+- **Comment ne plus la refaire** : prendre les IDs dans l'URL GTM (`#/container/accounts/<account>/containers/<container>/workspaces/<ws>`) au moment de lancer le script, sans se fier à un exemple écrit. Toujours garder le preflight lecture seule avant les écritures distantes.
+
+---
+
 ## 2026-09-23 — Double-submission : `useState` lâche face au double-tap
 
 - **Symptôme (potentiel)** : race window entre le click utilisateur et le flip du state `isProcessing`. Entre `onClick → setIsProcessing(true)` et le re-render du bouton `disabled`, React batche l'update : ~0–50 ms où un deuxième click peut passer. Risque : deux appels à `create_order_atomic` → deux commandes créées, deux débits stock, deux factures.

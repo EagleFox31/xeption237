@@ -3,6 +3,7 @@ import {
   getProductPrimaryRamBucket,
   getProductPrimaryStorageBucket,
 } from './shopFacets';
+import { isInternalSpec } from './publicSpecs';
 
 export type HighlightSpecKey =
   | 'screen'
@@ -127,7 +128,7 @@ export const getHighlightSpecKeysForCategory = (category: string): HighlightSpec
 
 const extractGenericHighlights = (product: Product, limit = 3): ProductHighlightSpec[] => {
   const specs = (product.specs || [])
-    .filter((s) => s.label.trim() && s.value.trim() && !SKIP_GENERIC_SPEC.test(s.label))
+    .filter((s) => s.label.trim() && s.value.trim() && !SKIP_GENERIC_SPEC.test(s.label) && !isInternalSpec(s.label))
     .slice(0, limit);
 
   return specs.map((spec) => ({

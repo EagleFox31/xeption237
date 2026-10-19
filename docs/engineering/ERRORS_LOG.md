@@ -245,3 +245,29 @@ avant la boucle de réservation. Résultat : `{"success":true}`, 1 commande,
 - **Comment ne plus la refaire** : lorsqu'une fonction `SECURITY DEFINER` agrégée est créée pour être consommée par le front public (tunnel troc, boutique), s'assurer que `anon` possède le droit `EXECUTE` si les visiteurs non connectés doivent la consommer.
 
 
+
+
+---
+
+## 2026-10-19 — Fiches produits : traçabilité fournisseur publiée et specs clonées entre modèles
+
+**Symptôme** : 85 fiches affichaient en boutique et dans le JSON-LD une spec « Source »
+(« MFOUNDI MALL - IPHONE »…) ; des Galaxy Watch annonçaient un écran « OLED Retina » et la
+compatibilité iOS ; un Galaxy Fit3 portait les specs d'une Watch4 ; une note interne
+(« Source text had '515g'… ») et la promo d'un autre revendeur apparaissaient en description.
+
+**Cause racine** : `products.specs` mélange données client et traçabilité d'import
+(`utils/mfoundiCatalogParser.ts` pose `Source`), et chaque vue rendait le tableau brut. Les
+fiches créées par copie d'une fiche voisine (ou générées) n'étaient relues par personne contre la
+fiche constructeur.
+
+**Résolution** : `utils/publicSpecs.ts` (`getPublicSpecs` / `isInternalSpec`) filtre les specs
+internes et vides dans toutes les vues publiques (fiche desktop et mobile, JSON-LD, FAQ, résumé
+carte, points forts), sans toucher aux données. Migration `20261019_005_fiches_produits_qualite` :
+46 fiches corrigées depuis GSMArena / constructeurs, lignes d'origine sauvegardées dans
+`archived_rows` (reason `audit fiches 19/10/2026`).
+
+**Comment ne plus la refaire** : toute nouvelle vue publique de specs passe par
+`getPublicSpecs` (test `tests/unit/publicSpecs.test.ts`) ; une spec de traçabilité ajoutée à
+l'import s'ajoute à `INTERNAL_SPEC_LABELS`. Une fiche copiée d'une autre se vérifie spec par spec
+contre la fiche constructeur avant publication.

@@ -1,6 +1,7 @@
 import { Product } from '../types';
 import { getProductDisplayName } from './productDisplay';
 import type { FaqEntry } from './seo';
+import { getPublicSpecs } from './publicSpecs';
 
 type Spec = { label: string; value: string };
 
@@ -25,7 +26,7 @@ const MAX_SPEC_QUESTIONS = 5;
  */
 export const buildProductFaq = (product: Product): FaqEntry[] => {
   const name = getProductDisplayName(product);
-  const specs = (product.specs || []).filter((s) => s?.label && s?.value);
+  const specs = getPublicSpecs(product.specs);
   const faq: FaqEntry[] = [];
 
   // --- 1. Questions dérivées des specs (uniques par produit) ---

@@ -1,4 +1,5 @@
 import { Product } from '../types';
+import { getPublicSpecs } from './publicSpecs';
 
 /** Ordre de priorité des specs affichées en sous-titre de carte (les plus scannables). */
 const PRIORITY: RegExp[] = [
@@ -18,7 +19,7 @@ const PRIORITY: RegExp[] = [
  * sur la description).
  */
 export function productSpecSummary(product: Product, max = 4): string {
-  const specs = (product.specs || []).filter((s) => s?.label && s?.value);
+  const specs = getPublicSpecs(product.specs);
   if (!specs.length) return '';
 
   const picked: { label: string; value: string }[] = [];

@@ -9,6 +9,7 @@ import { getProductSlug } from '../utils/slug';
 import { getProductDisplayName, normalizeSamsungGalaxySpelling } from '../utils/productDisplay';
 import { ProductBadgeChips } from './product/ProductBadgeChips';
 import ProductHighlightCards from './product/ProductHighlightCards';
+import { getPublicSpecs } from '../utils/publicSpecs';
 
 interface ProductDetailProps {
     product: Product;
@@ -423,7 +424,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                     </div>
                 </div>
 
-                {product.specs && (
+                {getPublicSpecs(product.specs).length > 0 && (
                     <div className="max-w-5xl mx-auto px-4 pb-12 relative z-10">
                         <div className="flex items-center gap-4 mb-8">
                             <Cpu className="h-8 w-8 text-gray-600" />
@@ -432,7 +433,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {product.specs.map((spec, index) => (
+                            {getPublicSpecs(product.specs).map((spec, index) => (
                                 <div
                                     key={index}
                                     className="flex justify-between items-center p-4 border-b border-gray-200/50 hover:bg-white/50 hover:shadow-sm transition-all group bg-white/30 backdrop-blur-sm"

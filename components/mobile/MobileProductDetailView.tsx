@@ -26,6 +26,7 @@ import { buildProductFaq } from '../../utils/productFaq';
 import { isUuid } from '../../utils/productBrand';
 import { SkeletonShimmer } from '../common/SkeletonLoader';
 import ProductCardImage from '../common/ProductCardImage';
+import { getPublicSpecs, isInternalSpec } from '../../utils/publicSpecs';
 
 export interface MobileProductDetailViewProps {
   product: Product;
@@ -210,13 +211,15 @@ export const MobileProductDetailView: React.FC<MobileProductDetailViewProps> = (
   const formattedSpecs = useMemo(() => {
     if (!product.specs) return [];
     if (Array.isArray(product.specs)) {
-      return product.specs.filter((s) => s && s.label && s.value);
+      return getPublicSpecs(product.specs);
     }
     if (typeof product.specs === 'object') {
-      return Object.entries(product.specs).map(([label, value]) => ({
-        label,
-        value: String(value),
-      }));
+      return Object.entries(product.specs)
+        .filter(([label]) => !isInternalSpec(label))
+        .map(([label, value]) => ({
+          label,
+          value: String(value),
+        }));
     }
     return [];
   }, [product.specs]);

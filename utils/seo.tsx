@@ -1,5 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { getPublicSpecs } from './publicSpecs';
 
 const SITE_URL = 'https://www.xeptionetwork.shop';
 export const absoluteUrl = (path: string) => `${SITE_URL}${path}`;
@@ -107,9 +108,8 @@ export const productJsonLd = (p: ProductSchemaInput) => ({
       }
     : undefined,
   // Specs affichées → additionalProperty (fort levier d'extraction pour les LLM).
-  additionalProperty: p.specs?.length
-    ? p.specs
-        .filter((s) => s.label && s.value)
+  additionalProperty: getPublicSpecs(p.specs).length
+    ? getPublicSpecs(p.specs)
         .map((s) => ({ '@type': 'PropertyValue', name: s.label, value: s.value }))
     : undefined,
   // Note honnête uniquement : jamais de note inventée sans avis réels

@@ -299,11 +299,14 @@ const CGVPage: React.FC = () => {
               <p>Pour exercer ce droit, le Client doit :</p>
               <ol className="list-decimal list-inside space-y-1.5 pl-2 text-white/90">
                 <li>Notifier sa décision par email à <a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline">support@xeptionetwork.shop</a></li>
-                <li>Retourner le produit dans son état d'origine, complet et non utilisé</li>
+                <li>Retourner le produit en boutique (Mfoundi Mall, Boutique 2063), dans son état d'origine, complet et non utilisé</li>
                 <li>Joindre la facture d'achat ou la confirmation de commande</li>
               </ol>
               <p>
                 Les <strong className="text-white">frais de retour sont à la charge du Client</strong>, sauf en cas de défaut de conformité ou de vice caché. Le remboursement intervient dans un délai de <strong className="text-white">quinze (15) jours</strong> à compter de la réception du produit retourné ou de la notification de rétractation pour un service.
+              </p>
+              <p>
+                Le Client peut choisir entre un <strong className="text-white">échange</strong> contre un autre produit et un <strong className="text-white">remboursement</strong>. Aucuns frais de remise en stock ne sont appliqués.
               </p>
               <p className="text-white text-xs italic">
                 Le droit de rétractation ne s'applique pas aux produits descellés ne pouvant être retournés pour des raisons d'hygiène (écouteurs intra-auriculaires par exemple), ni aux logiciels descellés ou aux biens personnalisés à la demande du Client.

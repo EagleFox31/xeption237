@@ -25,7 +25,7 @@ Deno.serve(async (req: Request) => {
 
   // Récupère tous les produits en stock + hors stock (Facebook veut tout pour désactiver les ruptures)
   const res = await fetch(
-    `${supabaseUrl}/rest/v1/products?select=id,name,description,price,old_price,image,images,brand,condition,stock,category,slug&order=created_at.desc`,
+    `${supabaseUrl}/rest/v1/products?select=id,name,description,price,oldPrice,image,images,brand,condition,stock,category&order=updated_at.desc`,
     {
       headers: {
         apikey: supabaseKey,
@@ -36,13 +36,15 @@ Deno.serve(async (req: Request) => {
   );
 
   if (!res.ok) {
-    return new Response('Erreur Supabase', { status: 502 });
+    const body = await res.text();
+    console.error('products REST error', res.status, body);
+    return new Response(`Erreur Supabase: ${res.status} ${body}`, { status: 502 });
   }
 
   const products: Product[] = await res.json();
 
   const items = products.map((p) => {
-    const url        = `${SITE_URL}/product/${p.slug || p.id}`;
+    const url        = `${SITE_URL}/product/${p.id}`;
     const imageUrl   = p.image || '';
     const price      = `${p.price} XAF`;
     const condition  = p.condition === 'new' ? 'new' : 'refurbished';
@@ -68,8 +70,8 @@ Deno.serve(async (req: Request) => {
       <g:image_link>${escXml(imageUrl)}</g:image_link>
       ${additionalImages}
       <g:price>${price}</g:price>
-      ${p.old_price ? `<g:sale_price>${p.price} XAF</g:sale_price>` : ''}
-      ${p.old_price ? `<g:original_price>${p.old_price} XAF</g:original_price>` : ''}
+      ${p.oldPrice ? `<g:sale_price>${p.price} XAF</g:sale_price>` : ''}
+      ${p.oldPrice ? `<g:original_price>${p.oldPrice} XAF</g:original_price>` : ''}
       <g:availability>${available}</g:availability>
       <g:condition>${condition}</g:condition>
       <g:brand>${brand}</g:brand>
@@ -107,12 +109,11 @@ interface Product {
   name: string;
   description?: string;
   price: number;
-  old_price?: number;
+  oldPrice?: number;
   image: string;
   images?: string[];
   brand?: string;
   condition?: string;
   stock: number;
   category?: string;
-  slug?: string;
 }

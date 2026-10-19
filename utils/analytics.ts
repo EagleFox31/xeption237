@@ -31,6 +31,11 @@ const push = (payload: DataLayerEvent): void => {
   if (IS_DEV) console.info('[analytics]', payload.event, payload);
   if (!IS_ENABLED) return;
   window.dataLayer = window.dataLayer || [];
+  // GTM fusionne récursivement le dataLayer : sans reset, les items d'un event précédent
+  // fuient dans le suivant (pratique recommandée par Google pour l'ecommerce GA4).
+  if ('ecommerce' in payload) {
+    (window.dataLayer as unknown[]).push({ ecommerce: null });
+  }
   window.dataLayer.push(payload);
 };
 
@@ -164,4 +169,25 @@ export const trackPurchase = (orderId: string, items: EcommerceItem[], total: nu
 
 export const trackEvent = (name: string, params?: Record<string, unknown>): void => {
   push({ event: name, ...(params ?? {}) });
+};
+
+// ─── API Conversions Meta (identifiants navigateur) ────────────────────────────
+
+const readCookie = (name: string): string | null => {
+  if (typeof document === 'undefined') return null;
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return m ? decodeURIComponent(m[1]) : null;
+};
+
+/**
+ * `_fbp` / `_fbc` posés par le pixel, transmis à l'API Conversions pour l'appariement.
+ * Si le pixel est bloqué, `fbc` est reconstruit depuis `fbclid` (format Meta `fb.1.<ms>.<fbclid>`).
+ */
+export const getMetaBrowserIds = (): { fbp: string | null; fbc: string | null } => {
+  let fbc = readCookie('_fbc');
+  if (!fbc && typeof window !== 'undefined') {
+    const fbclid = new URLSearchParams(window.location.search).get('fbclid');
+    if (fbclid) fbc = `fb.1.${Date.now()}.${fbclid}`;
+  }
+  return { fbp: readCookie('_fbp'), fbc };
 };

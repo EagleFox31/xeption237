@@ -5,7 +5,7 @@ import { Order, CartItem, PaymentMethod } from '../types';
 import { generateInvoiceHTML, buildOrderTrackingUrl, generateTrackingQRCode } from '../utils/invoiceGenerator';
 import { DB_TABLES, DB_SCHEMA } from '../constants/dbSchema';
 import { safeRandomUUID } from '../utils/uuid';
-import { trackBeginCheckout, trackPurchase, type EcommerceItem } from '../utils/analytics';
+import { trackBeginCheckout, trackPurchase, getMetaBrowserIds, type EcommerceItem } from '../utils/analytics';
 
 const toEcommerceItems = (cart: CartItem[]): EcommerceItem[] =>
   cart.map((c) => ({
@@ -131,6 +131,14 @@ export const useOrderProcess = () => {
 
             // Analytics : achat confirmé (post RPC success)
             trackPurchase(newOrderId, toEcommerceItems(cart), total);
+
+            // API Conversions Meta (non bloquant) : Purchase côté serveur, dédupliqué
+            // avec le pixel via event_id purchase_<orderId>. Passe outre les bloqueurs.
+            supabase.functions
+                .invoke('meta-capi', {
+                    body: { orderId: newOrderId, ...getMetaBrowserIds(), eventSourceUrl: window.location.href },
+                })
+                .catch(console.warn);
 
             // 3. Mise à jour CRM (Non-bloquant / Side Effect)
             if (formData.email) {

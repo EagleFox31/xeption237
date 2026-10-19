@@ -25,11 +25,37 @@ Changer un tag = manipuler l'UI GTM, **pas** de redéploiement du site.
 
 ### 3. Meta Pixel
 
-1. Créer un Pixel dans [Meta Events Manager](https://business.facebook.com/events_manager) —
-   noter l'ID Pixel (15 chiffres).
-2. Dans GTM : ajouter un template **Meta Pixel** (via GTM Community Gallery) ou un
-   **Custom HTML** avec le snippet `fbq('init', 'PIXEL_ID')` sur All Pages.
-3. Mapper les events custom vers les standards Meta :
+Pixel dédié **Xeption 237** : `1085399414289859` (portefeuille Team Trigenys).
+⚠ Ne jamais utiliser le pixel « Atelier Maître » (`2270650607049039`) — autre app.
+
+**Automatisé** : `META_PIXEL_ID=1085399414289859 node scripts/gtm-setup-tags.mjs` (avec les
+variables GTM habituelles) crée, en plus des balises GA4 et sans les modifier :
+- `Meta - Pixel base` (Custom HTML, All Pages, une fois par chargement) ;
+- `Meta - PageView (SPA)` sur le trigger `History Change - SPA` (navigations React Router) ;
+- `Meta - ViewContent` / `AddToCart` / `InitiateCheckout` / `Purchase` sur les triggers
+  `CE - view_item` / `add_to_cart` / `begin_checkout` / `purchase`, lus depuis `{{DL - ecommerce}}`.
+  `Purchase` porte `eventID = purchase_<transaction_id>` pour la déduplication avec l'API Conversions.
+
+Idempotent (skip par nom). Puis GTM → Prévisualiser → Publier. Vérifier dans Events Manager → Tester les événements.
+
+### 4. API Conversions Meta (côté serveur)
+
+Le pixel navigateur est bloqué par les bloqueurs de pubs et la protection contre le suivi.
+`Purchase` est donc aussi envoyé depuis Supabase :
+
+- `useOrderProcess` → après la RPC `create_order_atomic`, appel non bloquant de l'Edge Function
+  [`meta-capi`](../../supabase/functions/meta-capi/index.ts) avec `{ orderId, fbp, fbc, eventSourceUrl }`.
+- La fonction **relit la commande en base** (montant, contact, articles), hache email / téléphone
+  (E.164 237) / ville en SHA-256 ([`_shared/metaCapi.ts`](../../supabase/functions/_shared/metaCapi.ts),
+  testé par `tests/unit/metaCapi.test.ts`), ajoute IP + user agent, puis POST Graph API.
+- `event_id = purchase_<orderId>` = `eventID` de la balise GTM → Meta déduplique.
+- Refuse les commandes de plus d'une heure (anti-rejeu).
+
+Secrets Supabase : `META_CAPI_TOKEN` (obligatoire, sinon 503 sans effet), `META_PIXEL_ID`
+(défaut `1085399414289859`), `META_TEST_EVENT_CODE` (optionnel : tant qu'il est posé, tout part
+dans « Événements de test » — **le retirer après validation**).
+
+Mapping cible complet (events custom non encore automatisés) :
    - `troc_payment_paid` → `Purchase` (value = amount, currency = XAF)
    - `troc_result_shown` → `Lead` (SMART TROC = génération de lead qualifié)
    - `marketplace_listing_published` → `Purchase` (frais publication)

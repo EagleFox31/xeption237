@@ -530,14 +530,14 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
                   />
                 </div>
 
-                {/* Nom du produit */}
-                <h4 className="text-white font-tech font-medium text-xs truncate mt-1">
+                {/* Nom du produit — or, 2 lignes max, hauteur fixe pour aligner les prix entre cards */}
+                <h4 className="mt-1 text-xeption-gold font-tech font-bold text-sm leading-tight line-clamp-2 h-[34px]">
                   {displayName}
                 </h4>
 
-                {/* Ligne inférieure : Prix formaté en FCFA + Bouton panier carré doré */}
-                <div className="mt-2 pt-1 flex items-center justify-between gap-1">
-                  <span className="font-tech text-amber-400 text-xs sm:text-sm font-black tracking-tight truncate">
+                {/* Ligne inférieure : Prix (hiérarchie primaire e-commerce) + CTA panier */}
+                <div className="mt-0.5 flex items-center justify-between gap-1">
+                  <span className="font-tech text-white text-base font-bold truncate">
                     {formatPrice(product.price)}
                   </span>
 

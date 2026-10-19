@@ -161,9 +161,14 @@ export const MobileFlashSales: React.FC<MobileFlashSalesProps> = ({
                 </button>
               </div>
 
-              {/* Ligne inférieure : Prix formaté en FCFA + bouton or */}
-              <div className="mt-2.5 pt-1 flex items-center justify-between gap-1">
-                <span className="font-tech text-white text-xs font-bold truncate">
+              {/* Nom du produit — or, 2 lignes max, hauteur fixe pour aligner les prix entre cards */}
+              <p className="mt-2 text-xeption-gold text-sm font-bold font-tech leading-tight line-clamp-2 h-[34px]">
+                {displayName}
+              </p>
+
+              {/* Ligne inférieure : Prix (hiérarchie primaire e-commerce) + CTA panier */}
+              <div className="mt-0.5 flex items-center justify-between gap-1">
+                <span className="font-tech text-white text-base font-bold truncate">
                   {formatPrice(product.price)}
                 </span>
 

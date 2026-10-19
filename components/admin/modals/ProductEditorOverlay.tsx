@@ -8,6 +8,7 @@ import { generateProductDetails } from '../../../services/aiProductDetailsServic
 import type { ProductEnricherField } from '../../../services/personas/productEnricher';
 import { isWeakProductDescription } from '../../../utils/productDescription';
 import { CATEGORY_SLUGS } from '../../../constants/dbSchema';
+import { DEFAULT_WARRANTY_MONTHS } from '../../../constants/productDefaults';
 import { brandsForCategory, catalogBrandFromId, normalizeCatalogBrandKey, resolveCatalogBrandId } from '../../../utils/catalogStructure';
 import { isUuid, resolveBrandKeyToDbId } from '../../../utils/productBrand';
 import CatalogRangeCombobox from '../shared/CatalogRangeCombobox';
@@ -379,7 +380,7 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
                                     productRange: '',
                                     manualChecks: [],
                                     reviews: [],
-                                    warrantyMonths: 0,
+                                    warrantyMonths: DEFAULT_WARRANTY_MONTHS,
                                 });
                             }
                         }}

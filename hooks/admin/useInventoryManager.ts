@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Product, Category, Brand, ProductRange } from '../../types';
 import { supabase } from '../../services/supabaseClient';
 import { DB_TABLES, DB_SCHEMA } from '../../constants/dbSchema';
+import { DEFAULT_WARRANTY_MONTHS } from '../../constants/productDefaults';
 import {
     findBestDuplicateMatch,
     validateProductForSave,
@@ -113,7 +114,7 @@ export const useInventoryManager = ({
             pros: [],
             cons: [],
             reviews: [],
-            warrantyMonths: 0,
+            warrantyMonths: DEFAULT_WARRANTY_MONTHS,
         };
         saveProductDraft(fresh);
         setEditingProduct(fresh);

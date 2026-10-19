@@ -55,7 +55,9 @@ Deno.serve(async (req: Request) => {
   const items = products.map((p) => {
     const url        = `${SITE_URL}/product/${p.id}`;
     const imageUrl   = p.image || '';
-    const price      = `${p.price} XAF`;
+    // Spec Google/Meta : g:price = prix normal, g:sale_price = prix promo (seulement si inférieur).
+    const onSale     = Number(p.oldPrice) > Number(p.price);
+    const price      = `${onSale ? p.oldPrice : p.price} XAF`;
     const condition  = p.condition === 'new' ? 'new' : 'refurbished';
     const available  = p.stock > 0 ? 'in stock' : 'out of stock';
     const desc       = (p.description || p.name).replace(/[<>&'"]/g, (c) =>
@@ -79,8 +81,7 @@ Deno.serve(async (req: Request) => {
       <g:image_link>${escXml(imageUrl)}</g:image_link>
       ${additionalImages}
       <g:price>${price}</g:price>
-      ${p.oldPrice ? `<g:sale_price>${p.price} XAF</g:sale_price>` : ''}
-      ${p.oldPrice ? `<g:original_price>${p.oldPrice} XAF</g:original_price>` : ''}
+      ${onSale ? `<g:sale_price>${p.price} XAF</g:sale_price>` : ''}
       <g:availability>${available}</g:availability>
       <g:condition>${condition}</g:condition>
       <g:brand>${brand}</g:brand>

@@ -19,7 +19,7 @@ export const SITE_BACKGROUND_LIGHT_IMAGES = [
 ] as const;
 
 /** Pages sans vidéo — images rotatives uniquement */
-export const IMAGE_ONLY_BACKGROUND_ROUTES = ['/troc', '/bon'] as const;
+export const IMAGE_ONLY_BACKGROUND_ROUTES = ['/troc', '/bon', '/marketplace'] as const;
 
 /** Pages avec fond clair dédié */
 export const LIGHT_BACKGROUND_ROUTES = [

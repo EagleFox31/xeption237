@@ -63,13 +63,13 @@ const SiteBackground: React.FC<SiteBackgroundProps> = ({
       }
     >
       <div
-        key={isLight ? backImage : undefined}
+        key={isLight ? `back-${backImage}` : undefined}
         className={imageLayerClass}
         style={{ backgroundImage: `url('${backImage}')` }}
         aria-hidden
       />
       <div
-        key={isLight ? frontImage : undefined}
+        key={isLight ? `front-${frontImage}` : undefined}
         className={`${imageLayerClass} transition-opacity duration-[2000ms] ease-in-out`}
         style={{
           backgroundImage: `url('${frontImage}')`,

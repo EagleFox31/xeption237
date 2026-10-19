@@ -97,15 +97,15 @@ const buildContactMessage = (l: MarketplaceListing): string => {
 
 const SkeletonCard: React.FC = () => (
   <div className="rounded-2xl bg-[#0f0f13] border border-white/8 overflow-hidden animate-pulse">
-    <div className="h-36 bg-white/5" />
-    <div className="p-3 space-y-2">
-      <div className="h-3.5 w-3/4 bg-white/8 rounded" />
+    <div className="h-36 md:h-48 lg:h-56 bg-white/5" />
+    <div className="p-3 md:p-4 space-y-2">
+      <div className="h-3.5 md:h-4 w-3/4 bg-white/8 rounded" />
       <div className="flex gap-1.5">
         <div className="h-4 w-12 bg-white/6 rounded-full" />
         <div className="h-4 w-16 bg-white/6 rounded-full" />
       </div>
-      <div className="h-4 w-full bg-white/8 rounded" />
-      <div className="h-8 w-full bg-white/5 rounded-xl" />
+      <div className="h-4 md:h-5 w-full bg-white/8 rounded" />
+      <div className="h-8 md:h-9 w-full bg-white/5 rounded-xl" />
     </div>
   </div>
 );
@@ -122,7 +122,7 @@ const ListingCard: React.FC<{ listing: MarketplaceListing }> = ({ listing: l }) 
 
       {/* Zone image / carousel */}
       {photos.length > 0 ? (
-        <div className="relative h-36 w-full shrink-0 overflow-hidden">
+        <div className="relative h-36 md:h-48 lg:h-56 w-full shrink-0 overflow-hidden">
           <div className="flex h-full w-full overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {photos.map((url, i) => (
               <img
@@ -136,47 +136,47 @@ const ListingCard: React.FC<{ listing: MarketplaceListing }> = ({ listing: l }) 
           </div>
           {/* Badge photo count */}
           {photos.length > 1 && (
-            <div className="absolute top-2 right-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-black/60 text-white text-[9px] font-tech">
-              <Camera className="w-2.5 h-2.5" />
+            <div className="absolute top-2 right-2 flex items-center gap-0.5 px-1.5 py-0.5 md:px-2 md:py-0.5 rounded-full bg-black/60 text-white text-[9px] md:text-[11px] font-tech">
+              <Camera className="w-2.5 h-2.5 md:w-3 md:h-3" />
               {photos.length}
             </div>
           )}
           {/* Grade overlay */}
-          <div className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-tech font-black border backdrop-blur-sm ${gs.pill} bg-black/50`}>
+          <div className={`absolute bottom-2 left-2 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[9px] md:text-[11px] font-tech font-black border backdrop-blur-sm ${gs.pill} bg-black/50`}>
             Grade {l.grade}
           </div>
         </div>
       ) : (
-        <div className="relative h-24 bg-gradient-to-br from-zinc-800/40 to-zinc-900/60 flex items-center justify-center shrink-0">
-          <Smartphone className="w-8 h-8 text-zinc-700" />
-          <div className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-tech font-black border ${gs.pill}`}>
+        <div className="relative h-24 md:h-48 lg:h-56 bg-gradient-to-br from-zinc-800/40 to-zinc-900/60 flex items-center justify-center shrink-0">
+          <Smartphone className="w-8 h-8 md:w-12 md:h-12 text-zinc-700" />
+          <div className={`absolute bottom-2 left-2 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[9px] md:text-[11px] font-tech font-black border ${gs.pill}`}>
             Grade {l.grade}
           </div>
         </div>
       )}
 
       {/* Infos */}
-      <div className="p-2.5 flex flex-col gap-2 flex-1">
+      <div className="p-2.5 md:p-4 flex flex-col gap-2 md:gap-3 flex-1">
         {/* Nom + date */}
         <div className="flex items-start justify-between gap-1">
-          <div className="text-white font-tech font-bold text-[12px] leading-snug line-clamp-2 flex-1">{device}</div>
-          <span className="text-zinc-600 text-[9px] font-sans shrink-0 mt-0.5">{timeAgo(l.created_at)}</span>
+          <div className="text-white font-tech font-bold text-[12px] md:text-base leading-snug line-clamp-2 flex-1">{device}</div>
+          <span className="text-zinc-600 text-[9px] md:text-xs font-sans shrink-0 mt-0.5">{timeAgo(l.created_at)}</span>
         </div>
 
         {/* Pastilles specs */}
         {(l.storage_gb || l.ram_gb) && (
           <div className="flex gap-1 flex-wrap">
             {l.storage_gb && (
-              <span className="px-2 py-0.5 rounded-full bg-white/6 border border-white/10 text-zinc-300 text-[9px] font-tech">{l.storage_gb} Go</span>
+              <span className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-full bg-white/6 border border-white/10 text-zinc-300 text-[9px] md:text-xs font-tech">{l.storage_gb} Go</span>
             )}
             {l.ram_gb && (
-              <span className="px-2 py-0.5 rounded-full bg-white/6 border border-white/10 text-zinc-300 text-[9px] font-tech">{l.ram_gb} Go RAM</span>
+              <span className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-full bg-white/6 border border-white/10 text-zinc-300 text-[9px] md:text-xs font-tech">{l.ram_gb} Go RAM</span>
             )}
           </div>
         )}
 
         {/* Prix — 1 ligne */}
-        <div className="font-tech font-black text-transparent bg-clip-text bg-gradient-to-r from-[#ffe680] to-[#f5bf26] text-[12px] truncate">
+        <div className="font-tech font-black text-transparent bg-clip-text bg-gradient-to-r from-[#ffe680] to-[#f5bf26] text-[12px] md:text-lg truncate">
           {formatF(l.price_min)} – {formatF(l.price_max)} F
         </div>
 
@@ -186,9 +186,9 @@ const ListingCard: React.FC<{ listing: MarketplaceListing }> = ({ listing: l }) 
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackMarketplaceContactSeller(l.id, l.price_max)}
-          className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#075e54] hover:bg-[#128c7e] border border-emerald-500/20 text-white font-tech font-black text-[10px] uppercase tracking-wider transition-colors active:scale-[0.97]"
+          className="flex items-center justify-center gap-1.5 py-2 md:py-2.5 rounded-xl bg-[#075e54] hover:bg-[#128c7e] border border-emerald-500/20 text-white font-tech font-black text-[10px] md:text-xs uppercase tracking-wider transition-colors active:scale-[0.97]"
         >
-          <MessageCircle className="w-3 h-3 shrink-0" />
+          <MessageCircle className="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" />
           Je veux ça
         </a>
       </div>
@@ -226,79 +226,81 @@ export const MarketplaceBrowsePage: React.FC = () => {
   }), [listings, fMin, fMax, search]);
 
   return (
-    <div className="w-full min-h-screen bg-[#09090c] pb-28 relative">
+    <div className="w-full min-h-screen bg-[#09090c]/40 pb-28 md:pb-16 relative">
 
       {/* Header sticky */}
-      <div className="sticky top-0 z-30 bg-[#09090c]/95 backdrop-blur-xl border-b border-white/8 px-4 pt-3 pb-3">
+      <div className="sticky top-0 z-30 bg-[#09090c]/90 backdrop-blur-xl border-b border-white/8 px-4 md:px-6 lg:px-8 pt-3 pb-3">
+        <div className="max-w-7xl mx-auto md:flex md:items-center md:justify-between md:gap-4">
 
-        {/* Recherche */}
-        <div className="relative mb-2.5">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="iPhone, Samsung, Xiaomi…"
-            className="w-full bg-[#171720] border border-white/12 rounded-xl pl-9 pr-3 py-2 text-white text-[12px] font-sans placeholder:text-zinc-600 focus:outline-none focus:border-amber-400/40 transition-colors"
-          />
-        </div>
+          {/* Recherche */}
+          <div className="relative mb-2.5 md:mb-0 md:max-w-md md:flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="iPhone, Samsung, Xiaomi…"
+              className="w-full bg-[#171720] border border-white/12 rounded-xl pl-9 pr-3 py-2 text-white text-[12px] md:text-sm font-sans placeholder:text-zinc-600 focus:outline-none focus:border-amber-400/40 transition-colors"
+            />
+          </div>
 
-        {/* Filtres prix + actualiser */}
-        <div className="flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-0.5 items-center">
-          {PRICE_FILTERS.map((f, i) => (
+          {/* Filtres prix + actualiser */}
+          <div className="flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-0.5 items-center">
+            {PRICE_FILTERS.map((f, i) => (
+              <button
+                key={f.label}
+                type="button"
+                onClick={() => setPriceFilter(i)}
+                className={`shrink-0 px-3 py-1 rounded-full text-[11px] md:text-xs font-tech font-bold border transition-all ${
+                  priceFilter === i
+                    ? 'bg-amber-400/20 border-amber-400/50 text-amber-300'
+                    : 'bg-white/5 border-white/10 text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
             <button
-              key={f.label}
               type="button"
-              onClick={() => setPriceFilter(i)}
-              className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-tech font-bold border transition-all ${
-                priceFilter === i
-                  ? 'bg-amber-400/20 border-amber-400/50 text-amber-300'
-                  : 'bg-white/5 border-white/10 text-zinc-400'
-              }`}
+              onClick={fetch}
+              className="ml-auto md:ml-2 shrink-0 p-1.5 rounded-lg text-zinc-400 hover:text-white transition-colors"
+              title="Actualiser"
             >
-              {f.label}
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={fetch}
-            className="ml-auto shrink-0 p-1.5 rounded-lg text-zinc-400 hover:text-white transition-colors"
-            title="Actualiser"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          </div>
         </div>
       </div>
 
       {/* Corps */}
-      <div className="px-4 pt-3">
+      <div className="px-4 md:px-6 lg:px-8 pt-3 md:pt-6 max-w-7xl mx-auto">
         {loading ? (
-          <div className="grid grid-cols-2 gap-3">
-            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5 lg:gap-6">
+            {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Smartphone className="w-10 h-10 text-zinc-600 mb-3" />
-            <div className="text-white font-tech font-bold text-[14px] mb-1">
+          <div className="flex flex-col items-center justify-center py-20 md:py-32 text-center">
+            <Smartphone className="w-10 h-10 md:w-16 md:h-16 text-zinc-600 mb-3 md:mb-4" />
+            <div className="text-white font-tech font-bold text-[14px] md:text-xl mb-1">
               {search ? 'Aucun résultat' : 'Aucune annonce pour l\'instant'}
             </div>
-            <div className="text-zinc-400 text-[11px] font-sans mb-6">
+            <div className="text-zinc-400 text-[11px] md:text-sm font-sans mb-6 md:mb-8">
               {search ? 'Essaie un autre modèle' : 'Sois le premier à publier'}
             </div>
             <button
               type="button"
               onClick={() => navigate('/marketplace/lister')}
-              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 text-black font-tech font-black text-[12px] uppercase tracking-wider"
+              className="px-5 py-2.5 md:px-7 md:py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 text-black font-tech font-black text-[12px] md:text-sm uppercase tracking-wider hover:opacity-90 transition-opacity"
             >
               Lister mon appareil
             </button>
           </div>
         ) : (
           <>
-            <div className="text-zinc-500 text-[10px] font-sans mb-2.5">
+            <div className="text-zinc-500 text-[10px] md:text-sm font-sans mb-2.5 md:mb-4">
               {filtered.length} annonce{filtered.length > 1 ? 's' : ''}
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5 lg:gap-6">
               {filtered.map((l) => <ListingCard key={l.id} listing={l} />)}
             </div>
           </>

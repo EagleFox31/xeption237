@@ -83,8 +83,21 @@ const LINK_TARGETS: Record<string, NotificationLink> = {
   marketplace: { label: 'Voir la marketplace', url: '/marketplace' },
 };
 
+/**
+ * Onglets admin capables d'ouvrir un élément depuis /admin/<onglet>/<id>
+ * (cf. parseAdminItemIdFromPath dans utils/adminRoutes.ts).
+ */
+const ITEM_LINK_LABELS: Record<string, string> = {
+  inventory: 'Ouvrir le produit',
+  troc: 'Ouvrir le dossier',
+};
+
 export const notificationLink = (n: StaffNotification, ctx: StaffNotifyContext): NotificationLink => {
   const tab = n.link_to_tab?.trim() ?? '';
+  const id = n.link_to_id?.trim() ?? '';
+  if (id && ITEM_LINK_LABELS[tab]) {
+    return { label: ITEM_LINK_LABELS[tab], url: `${ctx.siteUrl}/admin/${tab}/${encodeURIComponent(id)}` };
+  }
   const target = LINK_TARGETS[tab] ??
     (/^[a-zA-Z]+$/.test(tab) ? { label: "Ouvrir l'admin", url: `/admin/${tab}` } : { label: "Ouvrir l'admin", url: '/admin' });
   return { label: target.label, url: `${ctx.siteUrl}${target.url}` };

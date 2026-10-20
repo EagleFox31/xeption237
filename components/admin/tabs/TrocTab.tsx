@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { RefreshCw, Check, X, CheckCircle2 } from 'lucide-react';
 import type { Product, TradeInRequest, TrocSession, TrocPayment } from '../../../types';
 import type { TransitionResult } from '../../../hooks/admin/useTrocManager';
@@ -8,7 +8,7 @@ import { PaymentChannelBadge, PaymentStatusBadge, TierBadge } from '../shared/tr
 import { VoucherExpiryBadge } from '../shared/VoucherExpiryBadge';
 import { buildTrocDossierRows, phonesMatch } from '../../../utils/trocDossierJoin';
 import { resteAPayer } from '../../../services/trocCheckoutService';
-import { notifyError, notifySuccess } from '../../../utils/notify';
+import { notifyError, notifyInfo, notifySuccess } from '../../../utils/notify';
 import { AlertTriangle } from 'lucide-react';
 import { detectDuplicates } from '../../../utils/trocDuplicates';
 
@@ -24,6 +24,10 @@ interface TrocTabProps {
     to: TradeInRequest['status'],
     opts?: { reason?: string },
   ) => Promise<TransitionResult>;
+  /** Dossier à ouvrir (lien direct /admin/troc/<id>). */
+  focusRequestId?: string | null;
+  /** Appelé une fois le dossier ouvert (ou introuvable) pour nettoyer l'URL. */
+  onFocusHandled?: () => void;
 }
 
 type FilterValue = TradeInRequest['status'] | 'all';
@@ -151,6 +155,8 @@ export const TrocTab: React.FC<TrocTabProps> = ({
   isLoadingPayments = false,
   onRefresh,
   onTransition,
+  focusRequestId,
+  onFocusHandled,
 }) => {
   const [filter, setFilter] = useState<FilterValue>('all');
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilterValue>('all');
@@ -158,6 +164,15 @@ export const TrocTab: React.FC<TrocTabProps> = ({
   const [search, setSearch] = useState('');
   const [showFunnel, setShowFunnel] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TradeInRequest | null>(null);
+
+  // Attend la liste des dossiers : un lien Telegram peut arriver avant le chargement.
+  useEffect(() => {
+    if (!focusRequestId || requests.length === 0) return;
+    const target = requests.find((r) => r.id === focusRequestId);
+    if (target) setSelectedRequest(target);
+    else notifyInfo('Dossier troc introuvable', 'Actualise la liste ou vérifie le lien.');
+    onFocusHandled?.();
+  }, [focusRequestId, requests]);
 
   const targetPriceById = useMemo(() => {
     const map = new Map<string, number>();

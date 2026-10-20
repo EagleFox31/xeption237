@@ -231,7 +231,8 @@ export interface AdminNotification {
   message: string;
   timestamp: Date;
   read: boolean;
-  linkToTab?: string; 
+  linkToTab?: string;
+  linkToId?: string;
 }
 
 export enum PaymentMethod {

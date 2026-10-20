@@ -152,9 +152,9 @@ export const useAdminNotifications = () => {
   const toggleDrawer = useCallback(() => setIsNotifDrawerOpen((prev) => !prev), []);
 
   const handleInteraction = useCallback(
-    (notification: AdminNotification, onNavigate: (tab: string) => void) => {
+    (notification: AdminNotification, onNavigate: (tab: string, id?: string) => void) => {
       void markAsRead(notification.id);
-      if (notification.linkToTab) onNavigate(notification.linkToTab);
+      if (notification.linkToTab) onNavigate(notification.linkToTab, notification.linkToId);
       setIsNotifDrawerOpen(false);
       setCurrentToast(null);
     },

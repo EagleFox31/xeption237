@@ -75,6 +75,7 @@ export const rowToNotification = (row: NotificationRow): AdminNotification => ({
   timestamp: new Date(row.created_at),
   read: row.read_at !== null,
   linkToTab: row.link_to_tab ?? undefined,
+  linkToId: row.link_to_id ?? undefined,
 });
 
 /** Mappe un `event_type` DB vers l'énum de couleur UI legacy. */

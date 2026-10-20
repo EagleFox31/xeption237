@@ -19,7 +19,7 @@ import BackToShopLink from './layout/BackToShopLink';
 import ConfirmationModal from './modals/ConfirmationModal';
 import NotificationToast from './notifications/NotificationToast';
 import NotificationDrawer from './notifications/NotificationDrawer';
-import { notifyError } from '../../utils/notify';
+import { notifyError, notifyInfo } from '../../utils/notify';
 
 // Feature Tabs
 import DashboardTab from './tabs/DashboardTab';
@@ -41,8 +41,10 @@ import MySalesTab from './tabs/MySalesTab';
 import SalesTargetsTab from './tabs/SalesTargetsTab';
 import StockMovementsTab from './tabs/StockMovementsTab';
 import {
+  adminItemPath,
   adminTabPath,
   buildAdminMenuBadges,
+  parseAdminItemIdFromPath,
   parseAdminTabFromPath,
   resolveAdminLandingTab,
 } from '../../utils/adminRoutes';
@@ -248,6 +250,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   );
 
   const activeTab = parseAdminTabFromPath(location.pathname) ?? 'dashboard';
+  const deepLinkId = parseAdminItemIdFromPath(location.pathname);
 
   const menuBadges = useMemo(
     () => buildAdminMenuBadges(data.orders, trocMgr.requests),
@@ -276,6 +279,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
     goToTab(getFirstAccessibleAdminTab(staffRole, pendingOrderCount), { replace: true });
   }, [location.pathname, staffRole, pendingOrderCount]);
 
+  // Lien direct /admin/inventory/<id> : ouvre la fiche une fois le catalogue chargé, puis
+  // l'URL revient à l'onglet pour que fermer l'éditeur ne la rouvre pas.
+  useEffect(() => {
+    if (activeTab !== 'inventory' || !deepLinkId || products.length === 0) return;
+    const product = products.find((p) => p.id === deepLinkId);
+    if (product) inventory.setEditingProduct(product);
+    else notifyInfo('Produit introuvable', 'Il a peut-être été supprimé.');
+    goToTab('inventory', { replace: true });
+  }, [activeTab, deepLinkId, products]);
+
   useEffect(() => {
     if (!offlinePos.isOnline || products.length === 0) return;
     void offlinePos.cacheCatalog({
@@ -287,9 +300,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
 
   // 4. Wiring Handlers (View -> Logic -> Feedback)
   const handleNotifyClick = (n: AdminNotification) =>
-    notifs.handleInteraction(n, (tab) => {
+    notifs.handleInteraction(n, (tab, id) => {
       if (tab && parseAdminTabFromPath(`/admin/${tab}`) && canAccessAdminTab(staffRole, tab as AdminTabId)) {
-        goToTab(tab as AdminTabId);
+        navigate(id ? adminItemPath(tab as AdminTabId, id) : adminTabPath(tab as AdminTabId));
       }
     });
 
@@ -699,6 +712,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         isLoadingPayments={trocMgr.isLoadingPayments}
                         onRefresh={trocMgr.refreshAll}
                         onTransition={trocMgr.transitionStatus}
+                        focusRequestId={deepLinkId}
+                        onFocusHandled={() => goToTab('troc', { replace: true })}
                       />
                     )}
                     {activeTab === 'trocDashboard' && <TrocDashboardTab />}

@@ -18,6 +18,21 @@ export const parseAdminTabFromPath = (pathname: string): AdminTabId | null => {
   return isAdminTabId(segment) ? segment : null;
 };
 
+/** Lien direct vers un élément d'un onglet : /admin/<onglet>/<id> (liens Telegram, notifications). */
+export const adminItemPath = (tab: AdminTabId, id: string): string =>
+  `${adminTabPath(tab)}/${encodeURIComponent(id)}`;
+
+/** Id de l'élément ciblé (/admin/<onglet>/<id>), ou null. */
+export const parseAdminItemIdFromPath = (pathname: string): string | null => {
+  const raw = pathname.replace(/^\/admin\/?/, '').split('/')[1];
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw).trim() || null;
+  } catch {
+    return null;
+  }
+};
+
 /** Page d’atterrissage après /admin ou connexion staff. */
 export const resolveAdminLandingTab = (
   pendingOrderCount: number,

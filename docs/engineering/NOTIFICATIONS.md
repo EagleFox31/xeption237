@@ -122,7 +122,13 @@ Migration `20261020_002_staff_notification_deliveries.sql` + Edge Function `noti
 - **Ajouter WhatsApp** : écrire `staffNotifyChannels/whatsapp.ts` (`createWhatsAppChannel(env, fetch)`,
   texte via `formatPlainNotification`), l'ajouter dans `buildChannels()` de `notify-staff`, poser ses
   secrets. Aucune migration.
-- Le job cron lit `CRON_SECRET` dans Vault (`cron_secret`), jamais en clair dans une migration.
+- Lien du bouton (`notificationLink`) : `link_to_tab` + `link_to_id` → `/admin/<onglet>/<id>` pour
+  `inventory` (ouvre la fiche produit) et `troc` (ouvre le dossier) ; sinon l'onglet seul. L'admin lit
+  l'id via `parseAdminItemIdFromPath` (`utils/adminRoutes.ts`), ouvre l'élément puis revient à
+  `/admin/<onglet>`. Le tiroir de notifications in-app suit le même chemin.
+- Les jobs cron (`notify-staff-every-minute`, `snapshot-market-prices-weekly`) lisent `CRON_SECRET`
+  dans Vault (`cron_secret`), jamais en clair dans une migration. Rotation :
+  `node scripts/rotate-cron-secret.mjs` (Vault + secret Edge, valeur jamais affichée).
 
 ## Comment ajouter un nouvel événement
 

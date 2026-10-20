@@ -21,6 +21,9 @@ interface TrocWorkspaceTabProps {
     to: TradeInRequest['status'],
     opts?: { reason?: string },
   ) => Promise<TransitionResult>;
+  /** Dossier à ouvrir (lien direct /admin/troc/<id>). */
+  focusRequestId?: string | null;
+  onFocusHandled?: () => void;
 }
 
 const SECTIONS: Array<{
@@ -42,6 +45,8 @@ const TrocWorkspaceTab: React.FC<TrocWorkspaceTabProps> = ({
   isLoadingPayments,
   onRefresh,
   onTransition,
+  focusRequestId,
+  onFocusHandled,
 }) => {
   const [activeSection, setActiveSection] = useState<TrocWorkspaceSection>('dossiers');
 
@@ -81,6 +86,8 @@ const TrocWorkspaceTab: React.FC<TrocWorkspaceTabProps> = ({
             isLoadingPayments={isLoadingPayments}
             onRefresh={onRefresh}
             onTransition={onTransition}
+            focusRequestId={focusRequestId}
+            onFocusHandled={onFocusHandled}
           />
         )}
         {activeSection === 'argus' && <ArgusTab />}

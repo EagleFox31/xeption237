@@ -1,3 +1,9 @@
+> **Architecture corrigée (20/10/2026).** Trigenys Notify est le responsable central des canaux WhatsApp. Xeption conserve la file `admin_notifications` / `notification_deliveries` et envoie un événement canonique à `https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/v1/dispatch/xeption/whatsapp`. Aucun appel direct de Xeption vers WAHA ni clé fournisseur WAHA côté Xeption. Voir [Trigenys Notify](https://github.com/Trigenys/trigenys-notify/blob/main/docs/central-whatsapp-dispatch.md).
+
+**Configuration Xeption restante :** `WAHA_ENABLED=true` uniquement après la bascule, et `XEPTION_NOTIFY_INGEST_KEY` (secret partagé avec le Worker Trigenys Notify, distinct de `WAHA_API_KEY`). Les anciens secrets `WAHA_BASE_URL`, `WAHA_API_KEY`, `WAHA_SESSION`, `WAHA_STAFF_GROUP_ID` saisis dans Supabase ne sont plus consommés par le nouvel adaptateur ; les retirer après validation. Le texte des étapes historiques ci-dessous est conservé à titre de contexte et **ne doit pas servir de procédure de déploiement**.
+
+---
+
 # Trigenys Notify → WhatsApp via WAHA (OVH)
 
 État au 20/10/2026 : le VPS OVH dispose de Docker, WAHA NOWEB et de la session `trigenys-test` au statut WORKING. Un message privé et un message de test dans TRIGENYS GROUP ont été **reçus**. L'API WAHA écoute **seulement sur 127.0.0.1:3000**. Ce document ne suppose PAS que le relais automatique est déjà actif.

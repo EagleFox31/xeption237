@@ -56,6 +56,15 @@ const migrationFile = fileArg ? resolve(root, fileArg) : DEFAULT_MIGRATION;
 
 const sha256 = (text) => createHash('sha256').update(text, 'utf8').digest('hex');
 
+/**
+ * Le checkout Windows (core.autocrlf) réécrit les fins de ligne : un fichier inchangé dans Git
+ * peut avoir un SHA différent de celui enregistré. On compare donc aussi les variantes LF / CRLF.
+ */
+const sameChecksum = (recorded, text) => {
+  const lf = text.replace(/\r\n/g, '\n');
+  return [text, lf, lf.replace(/\n/g, '\r\n')].some((variant) => sha256(variant) === recorded);
+};
+
 /** Fichiers .sql du dossier migrations, triés (le nom porte la date → ordre chronologique). */
 const listMigrationFiles = () =>
   existsSync(MIGRATIONS_DIR)
@@ -213,8 +222,7 @@ async function printStatus(client) {
       console.log(`  ⏳ EN ATTENTE  ${file}`);
       continue;
     }
-    const current = sha256(readFileSync(resolve(MIGRATIONS_DIR, file), 'utf8'));
-    const drift = row.checksum && row.checksum !== current;
+    const drift = row.checksum && !sameChecksum(row.checksum, readFileSync(resolve(MIGRATIONS_DIR, file), 'utf8'));
     const date = new Date(row.applied_at).toISOString().slice(0, 10);
     console.log(
       drift
@@ -369,7 +377,7 @@ async function main() {
     const previous = (await readApplied(client)).get(version);
     if (previous && !force) {
       const date = new Date(previous.applied_at).toISOString().slice(0, 19).replace('T', ' ');
-      if (previous.checksum && previous.checksum !== checksum) {
+      if (previous.checksum && !sameChecksum(previous.checksum, sql)) {
         console.error(
           `✗ ${version} a été appliquée le ${date}, mais le fichier a CHANGÉ depuis.\n` +
             '  Le disque et la production ont divergé. Écris une nouvelle migration\n' +

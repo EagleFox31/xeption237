@@ -289,3 +289,21 @@ carte, points forts), sans toucher aux données. Migration `20261019_005_fiches_
 `getPublicSpecs` (test `tests/unit/publicSpecs.test.ts`) ; une spec de traçabilité ajoutée à
 l'import s'ajoute à `INTERNAL_SPEC_LABELS`. Une fiche copiée d'une autre se vérifie spec par spec
 contre la fiche constructeur avant publication.
+
+## 2026-10-20 — Migration appliquée signalée « MODIFIÉ » après un rebase (fins de ligne CRLF)
+
+**Symptôme** : juste après `db:apply` de `20261020_015_telegram_staff_hr.sql`, un `git pull --rebase`
+a réécrit le fichier en CRLF (`core.autocrlf=true`). `db:status` l'a alors marqué « MODIFIÉ », et
+un `db:apply` suivant l'aurait refusé, alors que son contenu Git n'avait pas changé. Les tests qui
+lisaient le SQL avec `\n` en dur ont aussi échoué.
+
+**Cause racine** : le checksum de `scripts/apply-migration.mjs` portait sur les octets bruts du
+fichier, fins de ligne comprises, alors que ces fins de ligne dépendent du checkout.
+
+**Résolution** : `sameChecksum()` compare la valeur enregistrée aux variantes brute, LF et CRLF.
+L'enregistrement reste inchangé (SHA brut), donc les checksums existants restent valides. Les
+tests de `tests/telegram-staff-hr.test.ts` normalisent `\r\n` avant de comparer.
+
+**Comment ne plus la refaire** : un test qui lit un fichier source normalise les fins de ligne.
+Un « MODIFIÉ » sur une migration qu'on n'a pas éditée se vérifie d'abord avec `git diff` : s'il est
+vide, c'est un artefact de checkout et non une divergence.

@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const sql = readFileSync('supabase/migrations/20261020_015_telegram_staff_hr.sql', 'utf8');
-const bot = readFileSync('supabase/functions/telegram-bot-entry/index.ts', 'utf8');
-const targetsMigration = readFileSync('supabase/migrations/20260824_025_erp_step7_sales_targets.sql', 'utf8');
+const read = (path: string) => readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+const sql = read('supabase/migrations/20261020_015_telegram_staff_hr.sql');
+const bot = read('supabase/functions/telegram-bot-entry/index.ts');
+const targetsMigration = read('supabase/migrations/20260824_025_erp_step7_sales_targets.sql');
 
 const body = (src: string, fn: string) => {
   const start = src.indexOf(`FUNCTION public.${fn}(`);

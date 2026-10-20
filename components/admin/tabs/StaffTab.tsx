@@ -6,6 +6,7 @@ import { getStaffRoleLabel, getStaffRoleShortLabel } from '../../../constants/st
 import { staffInitials } from '../../../hooks/admin/useCurrentStaffSession';
 import TableShell from '../shared/TableShell';
 import { adminUi } from '../shared/adminUi';
+import { isGeneratedStaffEmail } from '../../../utils/staffLoginEmail';
 
 interface StaffTabProps {
   staffMembers: Staff[];
@@ -114,8 +115,10 @@ const StaffTab: React.FC<StaffTabProps> = ({
                                     </div>
                                     <div className="min-w-0">
                                       <p className="font-bold text-white truncate">{s.name}</p>
-                                      {s.email && (
-                                        <p className="text-xs text-white/50 truncate">{s.email}</p>
+                                      {(isGeneratedStaffEmail(s.email) ? s.phone : s.email) && (
+                                        <p className="text-xs text-white/50 truncate">
+                                          {isGeneratedStaffEmail(s.email) ? s.phone : s.email}
+                                        </p>
                                       )}
                                     </div>
                                   </div>

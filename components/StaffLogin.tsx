@@ -653,7 +653,7 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin, mode = 'erp' }) => {
                     value={email}
                     onChange={(e) => handleIdentifierChange(e.target.value)}
                     className={`${adminUi.input} pl-10 py-3.5`}
-                    placeholder={isStudio ? 'fondateur@xeption237.com' : 'marie@… ou Marie'}
+                    placeholder={isStudio ? 'fondateur@xeption237.com' : 'Marie, 6XX XX XX XX ou email'}
                     autoComplete="username"
                     autoFocus
                   />

@@ -9,6 +9,7 @@ import {
   provisionStaffAuthUser,
 } from '../../services/staffAuthProvisioning';
 import { logSecurityEvent } from '../../services/staffSecurity';
+import { staffLoginEmailFromPhone } from '../../utils/staffLoginEmail';
 
 interface UseStaffManagerProps {
     staffMembers: Staff[];
@@ -115,8 +116,9 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
     const saveStaff = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingStaff) return;
-        if (!editingStaff.name?.trim() || !editingStaff.email?.trim()) {
-            throw new Error('Nom et email obligatoires.');
+        const loginEmail = editingStaff.email?.trim() || staffLoginEmailFromPhone(editingStaff.phone);
+        if (!editingStaff.name?.trim() || !loginEmail) {
+            throw new Error('Nom et email (ou numéro de téléphone) obligatoires.');
         }
 
         setIsSaving(true);
@@ -130,9 +132,9 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
         
         const payload = {
             [DB_SCHEMA.STAFF.NAME]: cleanData.name!.trim(),
-            [DB_SCHEMA.STAFF.EMAIL]: cleanData.email!.trim().toLowerCase(),
+            [DB_SCHEMA.STAFF.EMAIL]: loginEmail.toLowerCase(),
             [DB_SCHEMA.STAFF.ROLE]: normalizeStaffRole(cleanData.role),
-            [DB_SCHEMA.STAFF.PHONE]: cleanData.phone,
+            [DB_SCHEMA.STAFF.PHONE]: cleanData.phone?.trim() || null,
             [DB_SCHEMA.STAFF.STORE_ID]: cleanData.store_id || null,
         };
         
@@ -149,6 +151,7 @@ export const useStaffManager = ({ staffMembers, setStaffMembers, onFeedback }: U
                 name: savedDb[DB_SCHEMA.STAFF.NAME],
                 email: savedDb[DB_SCHEMA.STAFF.EMAIL],
                 role: normalizeStaffRole(savedDb[DB_SCHEMA.STAFF.ROLE]),
+                phone: savedDb[DB_SCHEMA.STAFF.PHONE] ?? undefined,
                 store_id: savedDb[DB_SCHEMA.STAFF.STORE_ID] ?? null,
             };
 

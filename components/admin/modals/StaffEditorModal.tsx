@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Crown,
   Mail,
+  Phone,
   Shield,
   ShoppingBag,
   Sparkles,
@@ -20,6 +21,10 @@ import {
   normalizeStaffRole,
 } from '../../../constants/staffRoles';
 import { adminUi } from '../shared/adminUi';
+import {
+  isGeneratedStaffEmail,
+  normalizeStaffPhone,
+} from '../../../utils/staffLoginEmail';
 
 interface StaffEditorModalProps {
   staff: Staff;
@@ -203,13 +208,24 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
   );
 
   const name = staff.name || '';
-  const email = staff.email || '';
+  const rawEmail = isGeneratedStaffEmail(staff.email) ? '' : staff.email || '';
+  const phone = staff.phone || '';
+  const phoneValid = normalizeStaffPhone(phone) !== null;
+  // Sans email, l'identifiant de connexion est dérivé du numéro.
+  const email = rawEmail.trim() ? rawEmail : '';
   const nameError = touched.name && name.trim().length < 2 ? 'Indiquez le nom complet.' : null;
+  const phoneError =
+    touched.email && phone.trim() && !phoneValid ? 'Numéro invalide — 9 chiffres, ex. 6 41 89 10 31.' : null;
   const emailError =
-    touched.email && !isValidEmail(email) ? 'Email invalide — même adresse que le compte de connexion.' : null;
+    touched.email && email && !isValidEmail(email)
+      ? 'Email invalide.'
+      : touched.email && !email && !phoneValid
+        ? 'Indiquez un email ou un numéro de téléphone.'
+        : null;
 
   const canGoIdentity = !!selectedDefinition;
-  const canGoConfirm = name.trim().length >= 2 && isValidEmail(email);
+  const canGoConfirm =
+    name.trim().length >= 2 && (email ? isValidEmail(email) : phoneValid) && (!phone.trim() || phoneValid);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,8 +276,33 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
           {nameError && <p className="mt-1.5 text-xs text-red-400">{nameError}</p>}
         </div>
         <div>
+          <label htmlFor="staff-phone" className={`${adminUi.label} block mb-1.5`}>
+            Téléphone
+          </label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/35" />
+            <input
+              id="staff-phone"
+              type="tel"
+              inputMode="tel"
+              className={`${adminUi.input} pl-10 ${phoneError ? 'border-red-400/60' : ''}`}
+              placeholder="+237 6 41 89 10 31"
+              value={phone}
+              onChange={(e) => onChange({ phone: e.target.value })}
+              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            />
+          </div>
+          {phoneError ? (
+            <p className="mt-1.5 text-xs text-red-400">{phoneError}</p>
+          ) : (
+            <p className="mt-1.5 text-xs text-white/55">
+              Le membre pourra se connecter avec son nom ou ce numéro.
+            </p>
+          )}
+        </div>
+        <div>
           <label htmlFor="staff-email" className={`${adminUi.label} block mb-1.5`}>
-            Email de connexion
+            Email (facultatif)
           </label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/35" />
@@ -279,7 +320,7 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
             <p className="mt-1.5 text-xs text-red-400">{emailError}</p>
           ) : (
             <p className="mt-1.5 text-xs text-white/55">
-              Utilisé pour la connexion — le compte Auth sera créé automatiquement à l’enregistrement.
+              Sans email, le compte de connexion est créé à partir du numéro.
             </p>
           )}
         </div>
@@ -306,13 +347,13 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({
           </p>
         </div>
       </div>
-      <ProfilePreview name={name} email={email} role={selectedDefinition} />
+      <ProfilePreview name={name} email={email || phone} role={selectedDefinition} />
     </div>
   );
 
   const renderConfirmation = () => (
     <div className="space-y-5">
-      <ProfilePreview name={name} email={email} role={selectedDefinition} />
+      <ProfilePreview name={name} email={email || phone} role={selectedDefinition} />
 
       <div className={`${adminUi.hintCard} space-y-3`}>
         <p className="text-sm font-bold text-white flex items-center gap-2">

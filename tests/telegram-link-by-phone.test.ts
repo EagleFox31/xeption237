@@ -28,7 +28,19 @@ describe('Telegram link by shared phone number', () => {
 
   it('bot only accepts the sender own contact', () => {
     expect(bot).toContain('contact.user_id !== fromId');
-    expect(bot).toContain('request_contact:true');
+    expect(bot).toMatch(/request_contact:\s*true/);
+    expect(bot).toContain('"telegram_staff_link_by_phone"');
+    expect(bot).not.toContain('bind_staff_by_phone');
+  });
+
+  it('bot troc actions go through the audited RPC', () => {
+    expect(bot).toContain('"telegram_staff_troc_action"');
+    expect(bot).not.toMatch(/from\("trade_in_requests"\)[^;]*\.update\(/);
+  });
+
+  it('legacy bind_staff_by_phone is no longer executable by any API role', () => {
+    const revoke = readFileSync('supabase/migrations/20261020_011_disable_bind_staff_by_phone.sql', 'utf8');
+    expect(revoke).toMatch(/REVOKE ALL ON FUNCTION public\.bind_staff_by_phone\(TEXT, TEXT\)\s+FROM PUBLIC, anon, authenticated, service_role;/);
   });
 
   it('Mini App scopes a vendeur stock view to their own store', () => {

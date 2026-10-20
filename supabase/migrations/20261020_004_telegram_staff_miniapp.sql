@@ -124,4 +124,133 @@ COMMENT ON TABLE public.telegram_staff_links IS
 COMMENT ON FUNCTION public.ack_staff_notification_from_telegram(UUID, TEXT) IS
   'Atomic role-gated team-shared notification acknowledgement with audit trail; service-role only.';
 
+
+-- Restricted Smart Troc actions, matching the existing Xeption transition map:
+-- accepted -> contacted; pending/accepted/contacted/appointment -> refused (reason mandatory).
+CREATE OR REPLACE FUNCTION public.telegram_staff_troc_action(
+  p_request_id TEXT,
+  p_action TEXT,
+  p_telegram_user_id TEXT,
+  p_reason TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_auth_user_id UUID;
+  v_staff_role TEXT;
+  v_status TEXT;
+BEGIN
+  SELECT l.auth_user_id, lower(s.role) INTO v_auth_user_id, v_staff_role
+  FROM public.telegram_staff_links l
+  JOIN auth.users u ON u.id = l.auth_user_id
+  JOIN public.staff s ON lower(s.email) = lower(u.email)
+  WHERE l.telegram_user_id = p_telegram_user_id AND l.revoked_at IS NULL
+  LIMIT 1;
+
+  IF v_auth_user_id IS NULL OR v_staff_role NOT IN
+      ('responsable', 'manager', 'manager_vente', 'direction', 'admin', 'super_admin') THEN
+    RAISE EXCEPTION 'Action requires responsable or higher' USING ERRCODE = '42501';
+  END IF;
+
+  IF length(p_request_id) < 1 OR length(p_request_id) > 100 THEN
+    RAISE EXCEPTION 'Invalid request ID' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT status INTO v_status
+  FROM public.trade_in_requests
+  WHERE id = p_request_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN RETURN jsonb_build_object('changed', false, 'reason', 'not_found'); END IF;
+
+  IF p_action = 'contacted' THEN
+    IF v_status = 'contacted' THEN RETURN jsonb_build_object('changed', false, 'status', v_status); END IF;
+    IF v_status <> 'accepted' THEN
+      RAISE EXCEPTION 'Invalid troc transition' USING ERRCODE = '22023';
+    END IF;
+  ELSIF p_action = 'refused' THEN
+    IF v_status = 'refused' THEN RETURN jsonb_build_object('changed', false, 'status', v_status); END IF;
+    IF v_status NOT IN ('pending','accepted','contacted','appointment') THEN
+      RAISE EXCEPTION 'Invalid troc transition' USING ERRCODE = '22023';
+    END IF;
+    IF p_reason IS NULL OR length(trim(p_reason)) < 5 OR length(trim(p_reason)) > 300 THEN
+      RAISE EXCEPTION 'A reason between 5 and 300 characters is required' USING ERRCODE = '22023';
+    END IF;
+  ELSE
+    RAISE EXCEPTION 'Unsupported troc action' USING ERRCODE = '22023';
+  END IF;
+
+  UPDATE public.trade_in_requests
+    SET status = p_action,
+        redemption_reason = CASE WHEN p_action = 'refused' THEN trim(p_reason) ELSE redemption_reason END,
+        updated_at = now()
+  WHERE id = p_request_id;
+
+  INSERT INTO public.telegram_staff_action_audit
+    (telegram_user_id, auth_user_id, action, resource_id)
+  VALUES
+    (p_telegram_user_id, v_auth_user_id, 'troc.' || p_action, p_request_id);
+
+  RETURN jsonb_build_object('changed', true, 'status', p_action);
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.telegram_staff_troc_action(TEXT, TEXT, TEXT, TEXT)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.telegram_staff_troc_action(TEXT, TEXT, TEXT, TEXT)
+  TO service_role;
+
+-- Marking a currently-active Marketplace listing as sold is a supported state change.
+CREATE OR REPLACE FUNCTION public.telegram_staff_mark_marketplace_sold(
+  p_listing_id UUID,
+  p_telegram_user_id TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_auth_user_id UUID;
+  v_staff_role TEXT;
+  v_status TEXT;
+BEGIN
+  SELECT l.auth_user_id, lower(s.role) INTO v_auth_user_id, v_staff_role
+  FROM public.telegram_staff_links l
+  JOIN auth.users u ON u.id = l.auth_user_id
+  JOIN public.staff s ON lower(s.email) = lower(u.email)
+  WHERE l.telegram_user_id = p_telegram_user_id AND l.revoked_at IS NULL
+  LIMIT 1;
+
+  IF v_auth_user_id IS NULL OR v_staff_role NOT IN
+      ('responsable', 'manager', 'manager_vente', 'direction', 'admin', 'super_admin') THEN
+    RAISE EXCEPTION 'Action requires responsable or higher' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT status INTO v_status
+  FROM public.marketplace_listings
+  WHERE id = p_listing_id
+  FOR UPDATE;
+
+  IF NOT FOUND OR v_status <> 'active' THEN RETURN FALSE; END IF;
+
+  UPDATE public.marketplace_listings SET status = 'sold' WHERE id = p_listing_id;
+
+  INSERT INTO public.telegram_staff_action_audit
+    (telegram_user_id, auth_user_id, action, resource_id)
+  VALUES
+    (p_telegram_user_id, v_auth_user_id, 'marketplace.mark_sold', p_listing_id::text);
+
+  RETURN TRUE;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.telegram_staff_mark_marketplace_sold(UUID, TEXT)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.telegram_staff_mark_marketplace_sold(UUID, TEXT)
+  TO service_role;
+
 COMMIT;

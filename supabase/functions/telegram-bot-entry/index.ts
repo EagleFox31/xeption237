@@ -223,7 +223,7 @@ const LINK_REFUSALS: Record<string, string> = {
   phone_not_found: "Ce numéro n'est enregistré pour aucun membre du staff. Demandez à la direction de l'ajouter dans l'ERP (écran Équipe).",
   phone_ambiguous: "Ce numéro est enregistré sur plusieurs fiches staff. La direction doit corriger l'ERP.",
   use_erp_code: "Les comptes direction s'associent depuis l'ERP Xeption → « Lier mon Telegram ».",
-  no_account: "Votre compte Xeption n'est pas encore activé. Demandez à la direction de générer votre mot de passe (🔑, écran Équipe).",
+  no_account: "Votre compte Xeption n'est pas encore activé et aucun membre de la direction n'est joignable sur Telegram. Demandez-lui de l'activer dans l'ERP (🔑, écran Équipe).",
   telegram_already_linked: "Ce compte Telegram est déjà associé à un autre membre du staff.",
   staff_already_linked: "Ce membre du staff est déjà associé à un autre compte Telegram. Contactez la direction."
 };
@@ -232,7 +232,6 @@ const LINK_REFUSALS: Record<string, string> = {
 async function handleContact(message: Obj, chatId: number | string): Promise<void> {
   const contact = message.contact as Obj;
   const fromId = (message.from as Obj | undefined)?.id;
-  const removeKeyboard = { remove_keyboard: true };
   if (typeof fromId !== "number" || contact.user_id !== fromId || typeof contact.phone_number !== "string") {
     await telegram("sendMessage", {
       chat_id: chatId, reply_markup: shareKeyboard,
@@ -253,34 +252,148 @@ async function handleContact(message: Obj, chatId: number | string): Promise<voi
     await telegram("sendMessage", { chat_id: chatId, text: "Association indisponible pour le moment." });
     return;
   }
-  const result = data as {
-    linked: boolean; changed?: boolean; reason?: string; name?: string;
-    store?: string | null; notify_telegram_ids?: string[];
-  };
+  const result = data as LinkResult;
+  if (!result.linked && result.reason === "no_account" && result.request_id) {
+    await requestActivation(chatId, result);
+    return;
+  }
   if (!result.linked) {
     await telegram("sendMessage", {
-      chat_id: chatId, reply_markup: removeKeyboard,
+      chat_id: chatId, reply_markup: { remove_keyboard: true },
       text: LINK_REFUSALS[result.reason ?? ""] ?? "Association refusée."
     });
     return;
   }
-  const name = escapeHtml(result.name ?? "");
-  const store = result.store ? " · " + escapeHtml(result.store) : "";
+  await announceLink(chatId, String(fromId), result);
+}
+
+interface LinkResult {
+  linked: boolean; changed?: boolean; reason?: string; name?: string;
+  store?: string | null; notify_telegram_ids?: string[];
+  request_id?: string; throttled?: boolean;
+}
+
+const staffLabel = (result: { name?: string; store?: string | null }) =>
+  "<b>" + escapeHtml(result.name ?? "") + "</b>" + (result.store ? " · " + escapeHtml(result.store) : "");
+
+/** Welcome the newly linked member, open their menu and alert the direction. */
+async function announceLink(chatId: number | string, telegramUserId: string, result: LinkResult, skipAlertFor = ""): Promise<void> {
   await telegram("sendMessage", {
-    chat_id: chatId, parse_mode: "HTML", reply_markup: removeKeyboard,
-    text: "✅ Compte associé : <b>" + name + "</b>" + store +
+    chat_id: chatId, parse_mode: "HTML", reply_markup: { remove_keyboard: true },
+    text: "✅ Compte associé : " + staffLabel(result) +
       "\n\nTapez <code>/stock iPhone 13</code> devant un client ou utilisez le menu ci-dessous."
   });
-  const staff = await getStaff(String(fromId));
+  const staff = await getStaff(telegramUserId);
   if (staff) await renderScreen(chatId, undefined, await screenMain(staff));
   if (!result.changed) return;
   for (const id of result.notify_telegram_ids ?? []) {
+    if (id === skipAlertFor) continue;
     // A failed alert to one manager must not undo the link nor block the others.
     await telegram("sendMessage", {
       chat_id: id, parse_mode: "HTML",
-      text: "🔗 <b>" + name + "</b>" + store + " a associé son Telegram à l'espace staff Xeption."
+      text: "🔗 " + staffLabel(result) + " a associé son Telegram à l'espace staff Xeption."
     }).catch(() => console.error("telegram-bot-entry: manager alert failed"));
   }
+}
+
+/** No Auth account yet: ask the linked direction to approve (✅ / ❌) from Telegram. */
+async function requestActivation(chatId: number | string, result: LinkResult): Promise<void> {
+  const removeKeyboard = { remove_keyboard: true };
+  const keyboard = [[
+    { text: "✅ Activer", callback_data: "nav:act:ok:" + result.request_id },
+    { text: "❌ Refuser", callback_data: "nav:act:no:" + result.request_id }
+  ]];
+  let delivered = 0;
+  for (const id of result.notify_telegram_ids ?? []) {
+    await telegram("sendMessage", {
+      chat_id: id, parse_mode: "HTML", reply_markup: { inline_keyboard: keyboard },
+      text: "🆕 " + staffLabel(result) + " demande l'accès à l'espace staff Xeption " +
+        "(numéro vérifié par Telegram).\n\nActiver crée son compte et l'associe à ce Telegram."
+    }).then(() => delivered++)
+      .catch(() => console.error("telegram-bot-entry: activation request alert failed"));
+  }
+  const text = delivered > 0 || result.throttled
+    ? "⏳ Votre compte n'est pas encore activé. La direction a reçu votre demande : vous serez prévenu ici dès sa validation."
+    : LINK_REFUSALS.no_account;
+  await telegram("sendMessage", { chat_id: chatId, reply_markup: removeKeyboard, text });
+}
+
+/** A random password nobody sees: Telegram needs the account, not a login. */
+function unusablePassword(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, x => x.toString(16).padStart(2, "0")).join("");
+}
+
+/** Direction decision on an activation request. Rank and single decision live in SQL. */
+async function actionActivation(staff: StaffMember, decision: string, requestId: string): Promise<Screen> {
+  const done: InlineButton[][] = [homeRow];
+  if (staff.rank < RANK_DIRECTION) {
+    return { text: "🔒 Activation réservée à la direction.", reply_markup: { inline_keyboard: done } };
+  }
+  const supabase = db();
+  if (!supabase || (decision !== "ok" && decision !== "no") || !/^[0-9a-f-]{36}$/.test(requestId)) {
+    return { text: "Action invalide.", reply_markup: { inline_keyboard: done } };
+  }
+  const { data, error } = await supabase.rpc("telegram_staff_activation_decide", {
+    p_request_id: requestId, p_telegram_user_id: staff.telegram_user_id,
+    p_decision: decision === "ok" ? "approve" : "reject"
+  });
+  if (error || !data) {
+    if (error?.code !== "42501") console.error("telegram-bot-entry: activation decision failed", { code: error?.code });
+    const text = error?.code === "42501" ? "🔒 Activation réservée à la direction." : "Activation indisponible pour le moment.";
+    return { text, reply_markup: { inline_keyboard: done } };
+  }
+  const result = data as {
+    changed: boolean; status?: string; reason?: string; telegram_user_id?: string;
+    phone_digits?: string; email?: string; name?: string; store?: string | null;
+  };
+  const who = staffLabel(result);
+  if (result.reason === "not_found") return { text: "❌ Demande introuvable.", reply_markup: { inline_keyboard: done } };
+  if (result.reason === "stale") {
+    return { text: "⚠️ Le numéro de " + who + " a changé dans l'ERP depuis la demande : demande annulée. Il doit repartager son numéro.", reply_markup: { inline_keyboard: done } };
+  }
+  if (!result.changed) {
+    const state = result.status === "approved" ? "déjà activée" : "déjà refusée";
+    return { text: "ℹ️ Demande de " + who + " " + state + ".", reply_markup: { inline_keyboard: done } };
+  }
+  const requester = result.telegram_user_id ?? "";
+
+  if (result.status === "rejected") {
+    await telegram("sendMessage", {
+      chat_id: requester, text: "❌ Votre demande d'accès à l'espace staff a été refusée. Rapprochez-vous de la direction."
+    }).catch(() => console.error("telegram-bot-entry: rejection notice failed"));
+    return { text: "❌ Demande de " + who + " refusée par <b>" + escapeHtml(staff.name) + "</b>.", reply_markup: { inline_keyboard: done } };
+  }
+
+  // Approved: create the Auth account (already existing = fine), then link with the verified number.
+  const displayName = (result.name ?? "").trim() || (result.email ?? "").split("@")[0];
+  const { error: createError } = await supabase.auth.admin.createUser({
+    email: result.email ?? "", password: unusablePassword(), email_confirm: true,
+    user_metadata: { full_name: displayName, name: displayName, display_name: displayName, staff_name: displayName }
+  });
+  if (createError && !/already|exists|registered/i.test(createError.message ?? "")) {
+    console.error("telegram-bot-entry: auth account creation failed", { status: createError.status });
+    return { text: "⚠️ Compte de " + who + " non créé (email invalide ?). Vérifiez sa fiche dans l'ERP ; il pourra repartager son numéro.", reply_markup: { inline_keyboard: done } };
+  }
+  const { error: syncError } = await supabase.rpc("sync_staff_auth_display_name", { p_email: result.email, p_name: displayName });
+  if (syncError) console.error("telegram-bot-entry: display name sync failed", { code: syncError.code });
+
+  const { data: linkData, error: linkError } = await supabase.rpc("telegram_staff_link_by_phone", {
+    p_telegram_user_id: requester, p_phone: result.phone_digits ?? ""
+  });
+  const link = linkData as LinkResult | null;
+  if (linkError || !link?.linked) {
+    console.error("telegram-bot-entry: link after activation failed", { code: linkError?.code, reason: link?.reason });
+    return { text: "⚠️ Compte de " + who + " créé, mais l'association a échoué (" + escapeHtml(link?.reason ?? "erreur") + "). Il peut repartager son numéro.", reply_markup: { inline_keyboard: done } };
+  }
+  await announceLink(requester, requester, link, staff.telegram_user_id)
+    .catch(() => console.error("telegram-bot-entry: welcome after activation failed"));
+  return {
+    text: "✅ " + who + " activé et associé par <b>" + escapeHtml(staff.name) + "</b>." +
+      "\n\n<i>Pour l'ERP web, générez-lui un mot de passe (🔑, écran Équipe).</i>",
+    reply_markup: { inline_keyboard: done }
+  };
 }
 
 async function productLookupReply(query: string, telegramUserId: string): Promise<string> {
@@ -828,6 +941,8 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     screen = await actionTroc(staff, parts[2] ?? "", parts[3] ?? "", parts[4]);
   } else if (action === "sales") {
     screen = await screenSalesToday(staff, parts[2]);
+  } else if (action === "act") {
+    screen = await actionActivation(staff, parts[2] ?? "", parts[3] ?? "");
   } else {
     screen = await screenMain(staff);
   }

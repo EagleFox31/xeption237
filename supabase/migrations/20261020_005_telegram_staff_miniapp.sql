@@ -137,7 +137,7 @@ RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   v_auth_user_id UUID;
   v_staff_role TEXT;
@@ -196,7 +196,7 @@ BEGIN
 
   RETURN jsonb_build_object('changed', true, 'status', p_action);
 END;
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.telegram_staff_troc_action(TEXT, TEXT, TEXT, TEXT)
   FROM PUBLIC, anon, authenticated;
@@ -212,7 +212,7 @@ RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   v_auth_user_id UUID;
   v_staff_role TEXT;
@@ -246,7 +246,7 @@ BEGIN
 
   RETURN TRUE;
 END;
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.telegram_staff_mark_marketplace_sold(UUID, TEXT)
   FROM PUBLIC, anon, authenticated;

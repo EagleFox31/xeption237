@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-10-20 — Migration `20261020_005` : délimiteur `$` au lieu de `$$`
+
+**Symptôme** : `npm run db:apply` → `syntax error at or near "$"` (ligne `AS $`). La transaction
+a échoué en bloc, rien n'a été appliqué.
+
+**Cause racine** : 2 des 3 fonctions de la migration avaient `AS $` / `$;` au lieu de `AS $$` /
+`$$;` — `$$` mangé à l'écriture du fichier (expansion shell : `$$` = PID). Ni les tests de la PR
+ni la CI ne parsent le SQL : l'erreur n'apparaît qu'à l'exécution sur Postgres.
+
+**Résolution** : délimiteurs corrigés, migration appliquée et vérifiée (2 tables, 3 RPC
+exécutables par `service_role` seulement).
+
+**Comment ne plus la refaire** : `tests/unit/migrationDollarQuotes.test.ts` refuse tout
+délimiteur `$` isolé dans `supabase/migrations/`. Écrire le SQL avec l'outil d'écriture de
+fichier (jamais via un heredoc ou une chaîne shell non quotée).
+
+---
+
 ## 2026-10-19 — `gtm-setup-tags.mjs` : IDs GTM faux dans l'en-tête du script
 
 - **Symptôme** : preflight du script en échec trois fois de suite : `Account ID 6578376268 PAS trouvé`, puis `Container ID 284954836 PAS trouvé`, puis `Workspace ID 2 PAS trouvé`.

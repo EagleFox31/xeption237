@@ -1,0 +1,3 @@
+# The bot webhook authenticates Telegram's x-telegram-bot-api-secret-token.
+# The /configure route requires Xeption's existing CRON_SECRET.
+verify_jwt = false

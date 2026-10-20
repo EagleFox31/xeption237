@@ -110,15 +110,23 @@ async function handleUpdate(request: Request): Promise<Response> {
   }
   await telegram("sendMessage",{
     chat_id:chatId,
-    text:"👋 Bienvenue sur Xeption Staff !\n\n📦 Stocks, 🖼️ produits sans images, 🔄 Smart Troc et 🛍️ Marketplace : retrouvez les opérations dans votre Mini App.\n\n🔐 Pour accéder aux données, associez votre compte professionnel Xeption.",
+    text:
+      "👋 <b>Espace Staff Xeption</b>\n\n" +
+      "Retrouvez vos notifications et actions prioritaires :\n\n" +
+      "▸ 📦 Surveiller les stocks faibles\n" +
+      "▸ 🔄 Traiter les demandes de troc\n" +
+      "▸ 🛍️ Valider les annonces marketplace\n" +
+      "▸ 🖼️ Compléter les photos manquantes\n\n" +
+      "🔐 <i>Pour accéder aux données, associez votre compte professionnel Xeption.</i>",
+    parse_mode:"HTML",
     reply_markup:{
-      inline_keyboard:[[{text:"📲 Ouvrir Xeption Operations",web_app:{url:miniApp}}]]
+      inline_keyboard:[[{text:"📲 Accéder aux opérations",web_app:{url:miniApp}}]]
     }
   });
   return json(200,{ok:true});
 }
 
-Deno.serve(async request => {
+Deno.serve(async (request: Request) => {
   if (!token || !adminSecret) return json(503,{error:"UNCONFIGURED"});
   const pathname = new URL(request.url).pathname;
   if (request.method !== "POST") return json(405,{error:"METHOD_NOT_ALLOWED"});

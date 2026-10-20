@@ -1,81 +1,61 @@
-import { describe, expect, it, vi } from 'vitest';
+import {describe,it,expect,vi} from 'vitest';
 import {
-  createWahaChannel, safeWahaText, WAHA_DEFAULT_EVENT_TYPES
+  createWahaChannel,toNotifyEvent,WAHA_DEFAULT_EVENT_TYPES,
+  NOTIFY_EVENT_ALIASES
 } from '../supabase/functions/_shared/staffNotifyChannels/waha';
 
-const sample = {
-  notification_id: '123e4567-e89b-12d3-a456-426614174000',
-  event_type: 'stock_low',
-  title: 'Stock bas - numéro +237600000000',
-  message: 'John Doe — +237600000000 — john@example.com',
-  link_to_tab: 'inventory',
-  link_to_id: '123e4567-e89b-12d3-a456-426614174111'
+const sample={
+  notification_id:'123e4567-e89b-12d3-a456-426614174000',
+  event_type:'stock_low',
+  title:'John Doe +237600000000',
+  message:'+237600000000 — john@example.com',
+  link_to_tab:'inventory',
+  link_to_id:'123e4567-e89b-12d3-a456-426614174111'
 };
-const ctx = { siteUrl: 'https://www.xeptionetwork.shop' };
-const goodEnv: Record<string, string> = {
-  WAHA_ENABLED: 'true',
-  WAHA_BASE_URL: 'https://waha-notify.example.com',
-  WAHA_API_KEY: 'a'.repeat(64),
-  WAHA_SESSION: 'trigenys-test',
-  WAHA_STAFF_GROUP_ID: '123456789-987654321@g.us'
-};
-const reader = (values: Record<string,string>) => (key: string) => values[key];
+const ctx={siteUrl:'https://www.xeptionetwork.shop'};
+const env={WAHA_ENABLED:'true',XEPTION_NOTIFY_INGEST_KEY:'I'.repeat(48)};
+const reader=(values:Record<string,string>)=>(name:string)=>values[name];
 
-describe('Xeption opt-in WAHA channel', () => {
-  it('stays off by default and refuses invalid endpoints/group IDs', () => {
-    expect(createWahaChannel(reader({...goodEnv, WAHA_ENABLED: 'false'}))).toBeNull();
-    expect(createWahaChannel(reader({...goodEnv, WAHA_API_KEY: ''}))).toBeNull();
-    expect(createWahaChannel(reader({...goodEnv, WAHA_BASE_URL: 'http://127.0.0.1:3000'}))).toBeNull();
-    expect(createWahaChannel(reader({...goodEnv, WAHA_BASE_URL: 'https://admin:pass@example.com'}))).toBeNull();
-    expect(createWahaChannel(reader({...goodEnv, WAHA_BASE_URL: 'https://example.com/private'}))).toBeNull();
-    expect(createWahaChannel(reader({...goodEnv, WAHA_STAFF_GROUP_ID: '237600000000@c.us'}))).toBeNull();
-    expect(createWahaChannel(reader({...goodEnv, WAHA_SESSION: '../foo'}))).toBeNull();
+describe('Xeption producer -> Trigenys Notify',()=>{
+  it('requires opt-in and a dedicated ingest key, not WAHA credentials',()=>{
+    expect(createWahaChannel(reader({...env,WAHA_ENABLED:'false'}))).toBeNull();
+    expect(createWahaChannel(reader({...env,XEPTION_NOTIFY_INGEST_KEY:''}))).toBeNull();
+    expect(createWahaChannel(reader({...env,XEPTION_NOTIFY_INGEST_KEY:'x'}))).toBeNull();
+    expect(createWahaChannel(reader(env))?.eventTypes).toEqual(WAHA_DEFAULT_EVENT_TYPES);
   });
-
-  it('sends generic messages to the group, not raw customer records', async () => {
-    const fake = vi.fn(async (_url: URL | RequestInfo, init?: RequestInit) => {
-      const json = JSON.parse(String(init?.body));
-      expect(String(_url)).toBe('https://waha-notify.example.com/api/sendText');
-      expect(init?.method).toBe('POST');
-      expect(new Headers(init?.headers).get('X-Api-Key')).toBe(goodEnv.WAHA_API_KEY);
-      expect(json.session).toBe('trigenys-test');
-      expect(json.chatId).toBe(goodEnv.WAHA_STAFF_GROUP_ID);
-      expect(json.linkPreview).toBe(false);
-      expect(json.text).toContain('Alerte : stock faible');
-      expect(json.text).toContain('https://www.xeptionetwork.shop/admin/inventory/');
-      expect(json.text).not.toContain('John Doe');
-      expect(json.text).not.toContain('+237');
-      expect(json.text).not.toContain('john@example.com');
-      return new Response('{}', {status: 201});
+  it('normalizes Xeption event without private content or provider destinations',async()=>{
+    const fetcher=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+      expect(String(input)).toBe('https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/v1/dispatch/xeption/whatsapp');
+      expect(new Headers(init?.headers).get('x-notify-auth')).toBe(env.XEPTION_NOTIFY_INGEST_KEY);
+      expect(new Headers(init?.headers).has('X-Api-Key')).toBe(false);
+      const p=JSON.parse(String(init?.body));
+      expect(p.project).toBe('xeption');
+      expect(p.type).toBe('inventory.stock_low');
+      expect(p.priority).toBe('high');
+      expect(p.actionUrl).toContain('https://www.xeptionetwork.shop/admin/inventory/');
+      expect(JSON.stringify(p)).not.toMatch(/John Doe|john@example.com|\+237/);
+      expect(JSON.stringify(p)).not.toMatch(/trigenys-test|@g.us|WAHA_API_KEY/);
+      return new Response('{}',{status:202});
     });
-    const channel = createWahaChannel(reader(goodEnv), fake as typeof fetch);
+    const channel=createWahaChannel(reader(env),fetcher as typeof fetch);
     expect(channel?.id).toBe('whatsapp_waha');
-    expect(channel?.eventTypes).toEqual(WAHA_DEFAULT_EVENT_TYPES);
-    expect(await channel?.send(sample, ctx)).toBeNull();
-    expect(fake).toHaveBeenCalledTimes(1);
-    expect(safeWahaText(sample, ctx)).not.toContain(sample.title);
+    expect(await channel?.send(sample,ctx)).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(toNotifyEvent(sample,ctx).id).toBe(sample.notification_id);
   });
-
-  it('returns redacted provider codes and does not expose response bodies', async () => {
-    const failure = createWahaChannel(reader(goodEnv),
-      vi.fn(async () => new Response('secret: +237 and API key', {status: 429})) as typeof fetch);
-    expect(await failure?.send(sample, ctx)).toBe('waha_http_429');
-    const network = createWahaChannel(reader(goodEnv),
-      vi.fn(async () => {throw new Error('token and phone secret');}) as typeof fetch);
-    expect(await network?.send(sample, ctx)).toBe('waha_network_error');
+  it('supports only types the platform has mapped',()=>{
+    const channel=createWahaChannel(reader({...env,
+      WAHA_EVENT_TYPES:'stock_out,not_supported,marketplace_listed,stock_out'
+    }));
+    expect(channel?.eventTypes).toEqual(['stock_out','marketplace_listed']);
+    expect(Object.keys(NOTIFY_EVENT_ALIASES)).toContain('stock_low');
+    expect(()=>toNotifyEvent({...sample,event_type:'not_supported'},ctx)).toThrow();
   });
-
-  it('allows only templates already recognized by the channel', async () => {
-    const requests: unknown[] = [];
-    const fake = vi.fn(async (_url: URL | RequestInfo, init?: RequestInit) => {
-      requests.push(JSON.parse(String(init?.body)));
-      return new Response('{}', {status: 201});
-    });
-    const channel = createWahaChannel(reader({...goodEnv,
-      WAHA_EVENT_TYPES: 'stock_out, event_not_allowed, marketplace_listed,stock_out'
-    }), fake as typeof fetch);
-    expect(channel?.eventTypes).toEqual(['stock_out', 'marketplace_listed']);
-    await channel?.send({...sample,event_type:'event_not_allowed'},ctx);
-    expect(JSON.stringify(requests)).not.toMatch(/John Doe|\+237|john@example/);
+  it('preserves retry failures but does not leak upstream bodies',async()=>{
+    const remote=createWahaChannel(reader(env),vi.fn(async()=>new Response('secret +237',{status:503})) as typeof fetch);
+    expect(await remote?.send(sample,ctx)).toBe('notify_http_503');
+    const failed=createWahaChannel(reader(env),
+      vi.fn(async()=>{throw Error('access token secret');}) as typeof fetch);
+    expect(await failed?.send(sample,ctx)).toBe('notify_network_error');
   });
 });

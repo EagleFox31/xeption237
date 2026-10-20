@@ -15,6 +15,9 @@ import {
 /** Limite Telegram d'un message texte. */
 export const TELEGRAM_MAX_MESSAGE_LENGTH = 4096;
 
+/** Repère visuel devant le produit concerné (Telegram n'accepte pas de couleur). */
+const SUBJECT_ICON = '📱';
+
 export const escapeTelegramHtml = (text: string): string =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -22,7 +25,7 @@ export const escapeTelegramHtml = (text: string): string =>
 export const formatTelegramNotification = (n: StaffNotification): string => {
   const v = toNotificationView(n);
   const lines = [`${v.icon} <b>${escapeTelegramHtml(v.heading.toUpperCase())}</b>`];
-  if (v.subject) lines.push('', `<b>${escapeTelegramHtml(v.subject)}</b>`);
+  if (v.subject) lines.push('', `${SUBJECT_ICON} <b><u>${escapeTelegramHtml(v.subject)}</u></b>`);
   for (const d of v.details) lines.push(`▫️ ${escapeTelegramHtml(d)}`);
   return lines.join('\n').slice(0, TELEGRAM_MAX_MESSAGE_LENGTH);
 };

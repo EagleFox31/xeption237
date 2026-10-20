@@ -22,6 +22,6 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
       - name: WAHA channel behavior and privacy
         run: npx vitest run tests/waha-notify-channel.test.ts

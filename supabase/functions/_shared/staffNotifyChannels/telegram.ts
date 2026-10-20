@@ -30,9 +30,30 @@ export const formatTelegramNotification = (n: StaffNotification): string => {
   return lines.join('\n').slice(0, TELEGRAM_MAX_MESSAGE_LENGTH);
 };
 
-export const telegramReplyMarkup = (n: StaffNotification, ctx: StaffNotifyContext) => {
+/** Group notifications must not disclose customer phone or private troc details. */
+export const redactForStaffGroup = (n: StaffNotification): StaffNotification => {
+  if (!n.event_type.startsWith('troc_')) return n;
+  const subject = n.message.split(' — ')[0]?.trim() || 'Dossier de troc';
+  return { ...n, message: subject + ' — Détails accessibles uniquement dans Xeption.' };
+};
+
+const trustedMiniAppLink = (raw: string | undefined): string | null => {
+  if (!raw) return null;
+  try {
+    const link = new URL(raw);
+    if (link.protocol !== 'https:' || link.hostname !== 't.me' ||
+        !/^\/[a-zA-Z0-9_]+\/[a-zA-Z0-9_]+\/?$/.test(link.pathname)) return null;
+    return link.href;
+  } catch { return null; }
+};
+
+export const telegramReplyMarkup = (n: StaffNotification, ctx: StaffNotifyContext, miniAppUrl?: string) => {
   const link = notificationLink(n, ctx);
-  return { inline_keyboard: [[{ text: `${link.label} ↗`, url: link.url }]] };
+  const miniApp = trustedMiniAppLink(miniAppUrl);
+  const button = miniApp
+    ? { text: 'Gérer dans Telegram ↗', url: miniApp }
+    : { text: link.label + ' ↗', url: link.url };
+  return { inline_keyboard: [[button]] };
 };
 
 /** Renvoie null si le canal n'est pas configuré (il est alors simplement ignoré). */
@@ -43,6 +64,7 @@ export const createTelegramChannel = (
   const token = env('TELEGRAM_BOT_TOKEN') ?? '';
   const chatId = env('TELEGRAM_CHAT_ID') ?? '';
   if (!token || !chatId) return null;
+  const miniAppUrl = env('TELEGRAM_MINIAPP_LINK');
 
   return {
     id: 'telegram',
@@ -53,10 +75,10 @@ export const createTelegramChannel = (
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: chatId,
-          text: formatTelegramNotification(notification),
+          text: formatTelegramNotification(redactForStaffGroup(notification)),
           parse_mode: 'HTML',
           disable_web_page_preview: true,
-          reply_markup: telegramReplyMarkup(notification, ctx),
+          reply_markup: telegramReplyMarkup(notification, ctx, miniAppUrl),
         }),
       });
       if (res.ok) return null;

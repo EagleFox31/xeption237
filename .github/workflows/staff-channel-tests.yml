@@ -1,0 +1,27 @@
+name: Staff channel tests
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/functions/_shared/staffNotify*'
+      - 'supabase/functions/_shared/staffNotifyChannels/**'
+      - 'supabase/functions/notify-staff/**'
+      - 'tests/waha-notify-channel.test.ts'
+      - '.github/workflows/staff-channel-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: WAHA channel behavior and privacy
+        run: npx vitest run tests/waha-notify-channel.test.ts

@@ -12,14 +12,16 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { StaffNotification, StaffNotifyChannel, StaffNotifyContext } from '../_shared/staffNotify.ts';
 import { createTelegramChannel } from '../_shared/staffNotifyChannels/telegram.ts';
+import { createWahaChannel } from '../_shared/staffNotifyChannels/waha.ts';
 
 const CLAIM_BATCH_SIZE = 20;
 
 const env = (name: string) => Deno.env.get(name);
 
-/** Registre des canaux : ajouter WhatsApp ici (createWhatsAppChannel(env)). */
+/** Registre opt-in : WhatsApp n'est activé que lorsque WAHA_ENABLED=true et les secrets sont complets. */
 const buildChannels = (): StaffNotifyChannel[] =>
-  [createTelegramChannel(env)].filter((c): c is StaffNotifyChannel => c !== null);
+  [createTelegramChannel(env), createWahaChannel(env)]
+    .filter((c): c is StaffNotifyChannel => c !== null);
 
 const json = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });

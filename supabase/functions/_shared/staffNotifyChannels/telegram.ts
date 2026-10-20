@@ -30,9 +30,23 @@ export const formatTelegramNotification = (n: StaffNotification): string => {
   return lines.join('\n').slice(0, TELEGRAM_MAX_MESSAGE_LENGTH);
 };
 
-export const telegramReplyMarkup = (n: StaffNotification, ctx: StaffNotifyContext) => {
+const trustedMiniAppLink = (raw: string | undefined): string | null => {
+  if (!raw) return null;
+  try {
+    const link = new URL(raw);
+    if (link.protocol !== 'https:' || link.hostname !== 't.me' ||
+        !/^\/[a-zA-Z0-9_]+\/[a-zA-Z0-9_]+\/?$/.test(link.pathname)) return null;
+    return link.href;
+  } catch { return null; }
+};
+
+export const telegramReplyMarkup = (n: StaffNotification, ctx: StaffNotifyContext, miniAppUrl?: string) => {
   const link = notificationLink(n, ctx);
-  return { inline_keyboard: [[{ text: `${link.label} ↗`, url: link.url }]] };
+  const miniApp = trustedMiniAppLink(miniAppUrl);
+  // Lien direct vers l'élément + Mini App côte à côte : le staff choisit le site ou Telegram.
+  const row = [{ text: `${link.label} ↗`, url: link.url }];
+  if (miniApp) row.push({ text: 'Gérer dans Telegram ↗', url: miniApp });
+  return { inline_keyboard: [row] };
 };
 
 /** Renvoie null si le canal n'est pas configuré (il est alors simplement ignoré). */
@@ -43,6 +57,7 @@ export const createTelegramChannel = (
   const token = env('TELEGRAM_BOT_TOKEN') ?? '';
   const chatId = env('TELEGRAM_CHAT_ID') ?? '';
   if (!token || !chatId) return null;
+  const miniAppUrl = env('TELEGRAM_MINIAPP_LINK');
 
   return {
     id: 'telegram',
@@ -56,7 +71,7 @@ export const createTelegramChannel = (
           text: formatTelegramNotification(notification),
           parse_mode: 'HTML',
           disable_web_page_preview: true,
-          reply_markup: telegramReplyMarkup(notification, ctx),
+          reply_markup: telegramReplyMarkup(notification, ctx, miniAppUrl),
         }),
       });
       if (res.ok) return null;

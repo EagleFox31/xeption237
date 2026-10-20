@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/staff",
+      "destination": "https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/miniapp"
+    },
+    {
+      "source": "/miniapp/:path*",
+      "destination": "https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/miniapp/:path*"
+    },
+    {
+      "source": "/v1/miniapp/:path*",
+      "destination": "https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/v1/miniapp/:path*"
+    },
+    {
       "source": "/((?!assets/|.*\\..*).*)",
       "destination": "/index.html"
     }

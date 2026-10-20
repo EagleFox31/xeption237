@@ -18,7 +18,8 @@ declare const Deno: {
 
 const token = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const adminSecret = Deno.env.get("CRON_SECRET") ?? "";
-const miniApp = "https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/miniapp";
+// Served through the main domain (vercel.json proxy): some mobile carriers reset *.workers.dev.
+const miniApp = "https://www.xeptionetwork.shop/staff";
 const webhookUrl = "https://tawnusmfyvugqczaydat.supabase.co/functions/v1/telegram-bot-entry";
 const encoder = new TextEncoder();
 

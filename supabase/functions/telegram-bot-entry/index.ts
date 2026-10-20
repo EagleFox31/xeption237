@@ -134,8 +134,7 @@ const shareKeyboard = {
   resize_keyboard: true,
   one_time_keyboard: true
 };
-const linkHint = "🔐 Associez d'abord votre compte : touchez « " + SHARE_PHONE_TEXT +
-  " » (vendeurs) ou ERP Xeption → « Lier mon Telegram » (direction).";
+const linkHint = "🔐 Associez d'abord votre compte : touchez « " + SHARE_PHONE_TEXT + " » (tapez /start s'il n'apparaît pas).";
 
 async function staffByAuthUser(authUserId: string): Promise<Omit<StaffMember, "telegram_user_id"> | null> {
   const supabase = db();
@@ -223,7 +222,7 @@ const scopeLabel = (store: Store | null) => (store ? store.name : "Toutes boutiq
 const LINK_REFUSALS: Record<string, string> = {
   phone_not_found: "Ce numéro n'est enregistré pour aucun membre du staff. Demandez à la direction de l'ajouter dans l'ERP (écran Équipe).",
   phone_ambiguous: "Ce numéro est enregistré sur plusieurs fiches staff. La direction doit corriger l'ERP.",
-  use_erp_code: "Les comptes direction s'associent depuis l'ERP Xeption → « Lier mon Telegram ».",
+  use_erp_code: "Votre rôle dans l'ERP ne donne pas accès à l'espace staff Telegram. Contactez la direction.",
   no_account: "Votre compte Xeption n'est pas encore activé et aucun membre de la direction n'est joignable sur Telegram. Demandez-lui de l'activer dans l'ERP (🔑, écran Équipe).",
   telegram_already_linked: "Ce compte Telegram est déjà associé à un autre membre du staff.",
   staff_already_linked: "Ce membre du staff est déjà associé à un autre compte Telegram. Contactez la direction."

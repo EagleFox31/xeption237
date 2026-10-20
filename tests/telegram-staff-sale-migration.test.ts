@@ -85,4 +85,25 @@ describe('Telegram bot sale wiring', () => {
   it('only offers the sale from the seller own store', () => {
     expect(bot).toMatch(/staff\.store && store\?\.id === staff\.store\.id && product\.stock > 0 && cbFits\(/);
   });
+
+  it('"Précédent" on the payment screen returns to the product category', () => {
+    expect(bot).toContain('saleStartCb(product.id, backCat)');
+    expect(bot).not.toContain('`nav:p:${product.id}:apple`');
+  });
+
+  it('daily sales read the real orders columns', () => {
+    const fn = bot.slice(bot.indexOf('async function screenSalesToday'), bot.indexOf('const TRANSFER_COOLDOWN_MS'));
+    expect(fn).not.toMatch(/total_amount|created_at/);
+    expect(fn).toContain('.select("id, total").gte("date"');
+  });
+});
+
+describe('POS sale payment status', () => {
+  const paid = read('supabase/migrations/20261021_001_pos_sale_paid.sql');
+  it('a delivered counter sale is created paid, so SAV returns stay possible', () => {
+    expect(paid).toContain('discount_amount, payment_status, paid_at');
+    expect(paid).toContain("CASE WHEN order_status = 'delivered' THEN 'paid' ELSE 'pending' END");
+    expect(paid).not.toMatch(/GRANT EXECUTE ON FUNCTION public\._pos_sale_core/);
+    expect(paid).toMatch(/^COMMIT;/m);
+  });
 });

@@ -23,7 +23,8 @@ export const isPayCode = (value: string): value is PayCode =>
 export const payLabel = (method: string): string =>
   PAY_LABEL[method as PayMethod] ?? method;
 
-export const saleStartCb = (productId: string) => `nav:sv:${productId}`;
+/** backCat lets "⬅️ Précédent" return to the product the seller came from. */
+export const saleStartCb = (productId: string, backCat: string) => `nav:sv:${productId}:${backCat}`;
 export const salePayCb = (code: PayCode, productId: string) => `nav:sp:${code}:${productId}`;
 export const saleConfirmCb = (draftId: string) => `nav:sc:${draftId}`;
 export const saleCancelCb = (draftId: string) => `nav:sx:${draftId}`;

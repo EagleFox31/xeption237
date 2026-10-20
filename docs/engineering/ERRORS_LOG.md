@@ -324,3 +324,21 @@ créer un objectif `weekly`.
 **Comment ne plus la refaire** : `tests/upsert-sales-target-weekly.test.ts` vérifie que chaque clé
 de `TARGET_PERIOD_LABELS` est acceptée par la RPC. Pour élargir une valeur d'énum, chercher toutes
 les fonctions qui la valident (`pg_get_functiondef ~ '<ancienne liste>'`) avant de déclarer fini.
+
+## 2026-10-21 — Bot : « Ventes du jour » toujours vide, ventes comptoir non marquées payées
+
+**Symptôme** : l'écran 📊 Ventes du jour du bot affichait 0 commande. Les ventes comptoir (ERP et
+bot) étaient créées avec `payment_status = 'pending'`, alors que l'argent est reçu sur place : le
+retour SAV (« commande livrée et payée uniquement ») les aurait refusées.
+
+**Cause racine** : `screenSalesToday` interrogeait `orders.total_amount` / `orders.created_at`,
+colonnes qui n'existent pas (les vraies sont `total` / `date`) ; l'erreur PostgREST était ignorée.
+`complete_pos_sale_atomic` n'a jamais renseigné `payment_status`, resté au DEFAULT `'pending'`.
+
+**Résolution** : requête sur `total` / `date` hors commandes annulées ou retournées ;
+`20261021_001_pos_sale_paid.sql` crée les ventes livrées en `paid` avec `paid_at`. Aucune vente
+POS existante en prod : pas de rattrapage.
+
+**Comment ne plus la refaire** : `tests/telegram-staff-sale-migration.test.ts` vérifie les colonnes
+lues par l'écran et le statut payé. Leçon : toute requête PostgREST écrite à la main se vérifie
+contre `information_schema.columns` avant le commit.

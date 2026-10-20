@@ -47,7 +47,7 @@ describe('payment codes', () => {
 
 describe('callback_data', () => {
   it('fits Telegram 64 bytes with 36-char ids', () => {
-    for (const cb of [saleStartCb(uuid), salePayCb('M', uuid), saleConfirmCb(uuid), saleCancelCb(uuid)]) {
+    for (const cb of [saleStartCb(uuid, 'apple'),salePayCb('M', uuid), saleConfirmCb(uuid), saleCancelCb(uuid)]) {
       expect(fits(cb)).toBe(true);
     }
   });

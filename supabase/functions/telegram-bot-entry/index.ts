@@ -876,8 +876,9 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
 
   const rows: InlineButton[][] = [];
   // Selling only from one's own store; the RPC re-checks store and stock.
-  if (staff.store && store?.id === staff.store.id && product.stock > 0 && cbFits(salePayCb("C", product.id))) {
-    rows.push([{ text: "🛒 Vendre ce produit", callback_data: saleStartCb(product.id) }]);
+  if (staff.store && store?.id === staff.store.id && product.stock > 0 && cbFits(salePayCb("C", product.id)) &&
+    cbFits(saleStartCb(product.id, backCat))) {
+    rows.push([{ text: "🛒 Vendre ce produit", callback_data: saleStartCb(product.id, backCat) }]);
   }
   // A transfer request only makes sense for someone attached to a store.
   if (staff.store) rows.push([{ text: "🚚 Demander transfert", callback_data: `nav:trans:${product.id}:${backCat}${suffix}` }]);
@@ -912,7 +913,7 @@ function saleRefusal(result: { reason?: string; error?: string; order_id?: strin
   return saleMessage("❌ " + base + (result.error ? " : " + escapeHtml(result.error) : "") + ".");
 }
 
-async function screenSalePayment(staff: StaffMember, productId: string): Promise<Screen> {
+async function screenSalePayment(staff: StaffMember, productId: string, backCat: string): Promise<Screen> {
   if (!staff.store) return saleRefusal({ reason: "no_store" });
   const [product] = await stockRows(staff.store, { productId, limit: 1, ascending: false });
   if (!product || product.stock < 1) return saleRefusal({ reason: product ? "out_of_stock" : "not_found" });
@@ -924,7 +925,7 @@ async function screenSalePayment(staff: StaffMember, productId: string): Promise
     reply_markup: {
       inline_keyboard: [
         ...codes.map(c => [{ text: payLabel(PAY_CODES[c]), callback_data: salePayCb(c, product.id) }]),
-        [{ text: "⬅️ Précédent", callback_data: `nav:p:${product.id}:apple` }, ...saleHome]
+        [{ text: "⬅️ Précédent", callback_data: `nav:p:${product.id}:${backCat}${scopeSuffix(staff.store)}` }, ...saleHome]
       ]
     }
   };
@@ -1212,12 +1213,14 @@ async function screenSalesToday(staff: StaffMember, storeCode?: string): Promise
   const store = await scopedStore(staff, storeCode);
   if (staff.rank < RANK_DIRECTION && !store) return deniedScreen();
   const supabase = db();
-  let query = supabase?.from("orders").select("id, total_amount").gte("created_at", todayStartDouala());
+  // Columns of orders are total and date; cancelled and returned orders are not sales.
+  let query = supabase?.from("orders").select("id, total").gte("date", todayStartDouala())
+    .not("status", "in", "(cancelled,returned)");
   if (store) query = query?.eq("store_id", store.id);
   const { data } = await query ?? { data: [] };
 
-  const orders = (data ?? []) as { id: string; total_amount: number | null }[];
-  const total = orders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+  const orders = (data ?? []) as { id: string; total: number | null }[];
+  const total = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
   return {
     text:
@@ -1354,7 +1357,7 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
   } else if (action === "trans") {
     screen = await screenTransferConfirm(staff, parts[2] ?? "", parts[3] || "apple", parts[4]);
   } else if (action === "sv") {
-    screen = await screenSalePayment(staff, parts[2] ?? "");
+    screen = await screenSalePayment(staff, parts[2] ?? "", parts[3] || "apple");
   } else if (action === "sp") {
     const refusal = await actionSaleOpen(staff, parts[2] ?? "", parts[3] ?? "", chatId);
     if (!refusal) return;

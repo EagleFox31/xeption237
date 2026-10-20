@@ -91,6 +91,13 @@ describe('Telegram bot sale wiring', () => {
     expect(bot).not.toContain('`nav:p:${product.id}:apple`');
   });
 
+  it('category lists are paginated with a stable order', () => {
+    expect(bot).toContain('limit: CATEGORY_PAGE_SIZE + 1, offset: (page - 1) * CATEGORY_PAGE_SIZE');
+    expect(bot).toContain('Page suivante ▶️');
+    expect(bot).toContain('.order("product_id").range(from, to)');
+    expect(bot).toContain('.order("id").range(from, to)');
+  });
+
   it('daily sales read the real orders columns', () => {
     const fn = bot.slice(bot.indexOf('async function screenSalesToday'), bot.indexOf('const TRANSFER_COOLDOWN_MS'));
     expect(fn).not.toMatch(/total_amount|created_at/);

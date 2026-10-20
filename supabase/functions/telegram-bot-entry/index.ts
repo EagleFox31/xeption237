@@ -810,10 +810,12 @@ async function screenStocksCategories(staff: StaffMember, storeCode?: string): P
 interface StockRow { id: string; name: string; price: number | string | null; stock: number }
 
 /** Products with the stock of the scoped store (store_stock) or the global stock. */
-async function stockRows(store: Store | null, opts: { names?: string[]; max?: number; productId?: string; limit: number; ascending: boolean }): Promise<StockRow[]> {
+async function stockRows(store: Store | null, opts: { names?: string[]; max?: number; productId?: string; limit: number; offset?: number; ascending: boolean }): Promise<StockRow[]> {
   const supabase = db();
   if (!supabase) return [];
   const nameFilter = opts.names?.map(n => `name.ilike.%${n}%`).join(",");
+  const from = opts.offset ?? 0;
+  const to = from + opts.limit - 1;
   if (store) {
     let query = supabase.from("store_stock")
       .select("quantity, products!inner(id, name, price)")
@@ -821,7 +823,8 @@ async function stockRows(store: Store | null, opts: { names?: string[]; max?: nu
     if (nameFilter) query = query.or(nameFilter, { referencedTable: "products" });
     if (opts.productId) query = query.eq("product_id", opts.productId);
     if (opts.max !== undefined) query = query.lte("quantity", opts.max);
-    const { data } = await query.order("quantity", { ascending: opts.ascending }).limit(opts.limit);
+    // Tie-break on the product id so pages never overlap or skip a product.
+    const { data } = await query.order("quantity", { ascending: opts.ascending }).order("product_id").range(from, to);
     return ((data ?? []) as { quantity: number; products: { id: string; name: string; price: number | string | null } }[])
       .map(r => ({ id: r.products.id, name: r.products.name, price: r.products.price, stock: r.quantity }));
   }
@@ -829,16 +832,34 @@ async function stockRows(store: Store | null, opts: { names?: string[]; max?: nu
   if (nameFilter) query = query.or(nameFilter);
   if (opts.productId) query = query.eq("id", opts.productId);
   if (opts.max !== undefined) query = query.lte("stock", opts.max);
-  const { data } = await query.order("stock", { ascending: opts.ascending }).limit(opts.limit);
+  const { data } = await query.order("stock", { ascending: opts.ascending }).order("id").range(from, to);
   return (data ?? []) as StockRow[];
 }
 
-async function screenCategory(staff: StaffMember, cat: string, storeCode?: string): Promise<Screen> {
-  const category = CATEGORIES[cat] ?? CATEGORIES.apple;
-  const catKey = CATEGORIES[cat] ? cat : "apple";
+const CATEGORY_PAGE_SIZE = 6;
+
+/** "android.3" → page 3 of android; the page rides in backCat so "Précédent" from a product keeps it. */
+function parseCategoryToken(token: string): { cat: string; page: number } {
+  const [name, rawPage] = token.split(".");
+  const cat = CATEGORIES[name] ? name : "apple";
+  const page = Math.max(1, Math.min(Number.parseInt(rawPage ?? "1", 10) || 1, 99));
+  return { cat, page };
+}
+
+const categoryToken = (cat: string, page: number) => page > 1 ? `${cat}.${page}` : cat;
+
+async function screenCategory(staff: StaffMember, token: string, storeCode?: string): Promise<Screen> {
+  const { cat, page } = parseCategoryToken(token);
+  const category = CATEGORIES[cat];
+  const catKey = categoryToken(cat, page);
   const store = await scopedStore(staff, storeCode);
   const suffix = scopeSuffix(store);
-  const products = await stockRows(store, { names: category.names, limit: 6, ascending: false });
+  // One extra row tells whether a next page exists.
+  const rows = await stockRows(store, {
+    names: category.names, limit: CATEGORY_PAGE_SIZE + 1, offset: (page - 1) * CATEGORY_PAGE_SIZE, ascending: false
+  });
+  const hasNext = rows.length > CATEGORY_PAGE_SIZE;
+  const products = rows.slice(0, CATEGORY_PAGE_SIZE);
 
   const buttons: InlineButton[][] = [];
   for (const p of products) {
@@ -846,6 +867,10 @@ async function screenCategory(staff: StaffMember, cat: string, storeCode?: strin
     const shortName = p.name.length > 28 ? p.name.slice(0, 26) + "…" : p.name;
     buttons.push([{ text: `${shortName} (${p.stock} dispo)`, callback_data: `nav:p:${p.id}:${catKey}${suffix}` }]);
   }
+  const pager: InlineButton[] = [];
+  if (page > 1) pager.push({ text: "◀️ Page précédente", callback_data: `nav:cat:${categoryToken(cat, page - 1)}${suffix}` });
+  if (hasNext) pager.push({ text: "Page suivante ▶️", callback_data: `nav:cat:${categoryToken(cat, page + 1)}${suffix}` });
+  if (pager.length) buttons.push(pager);
   buttons.push([
     { text: "⬅️ Précédent (Catégories)", callback_data: "nav:stocks" + suffix },
     { text: "🏠 Accueil", callback_data: "nav:main" }
@@ -853,8 +878,9 @@ async function screenCategory(staff: StaffMember, cat: string, storeCode?: strin
 
   return {
     text:
-      `📂 <b>${escapeHtml(category.label)}</b> — ${escapeHtml(scopeLabel(store))}\n\n` +
-      (buttons.length === 1
+      `📂 <b>${escapeHtml(category.label)}</b> — ${escapeHtml(scopeLabel(store))}` +
+      (page > 1 || hasNext ? ` · page ${page}` : "") + `\n\n` +
+      (products.length === 0
         ? "Aucun produit trouvé dans cette catégorie."
         : "Sélectionnez un modèle pour voir son détail :"),
     reply_markup: { inline_keyboard: buttons }

@@ -3,8 +3,8 @@
  * Secrets : TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID ; optionnel TELEGRAM_EVENT_TYPES.
  */
 import {
-  eventIcon,
   parseEventTypes,
+  toNotificationView,
   type EnvReader,
   type StaffNotification,
   type StaffNotifyChannel,
@@ -17,11 +17,17 @@ export const TELEGRAM_MAX_MESSAGE_LENGTH = 4096;
 export const escapeTelegramHtml = (text: string): string =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-export const formatTelegramNotification = (n: StaffNotification, ctx?: StaffNotifyContext): string => {
-  const lines = [`${eventIcon(n.event_type)} <b>${escapeTelegramHtml(n.title)}</b>`, escapeTelegramHtml(n.message)];
-  if (ctx?.adminUrl) lines.push(`<a href="${escapeTelegramHtml(ctx.adminUrl)}">Ouvrir l'admin</a>`);
+/** Corps du message ; le lien admin est porté par un bouton (telegramReplyMarkup). */
+export const formatTelegramNotification = (n: StaffNotification): string => {
+  const v = toNotificationView(n);
+  const lines = [`${v.icon} <b>${escapeTelegramHtml(v.heading.toUpperCase())}</b>`];
+  if (v.subject) lines.push('', `<b>${escapeTelegramHtml(v.subject)}</b>`);
+  for (const d of v.details) lines.push(`▫️ ${escapeTelegramHtml(d)}`);
   return lines.join('\n').slice(0, TELEGRAM_MAX_MESSAGE_LENGTH);
 };
+
+export const telegramReplyMarkup = (ctx?: StaffNotifyContext) =>
+  ctx?.adminUrl ? { inline_keyboard: [[{ text: "Ouvrir l'admin ↗", url: ctx.adminUrl }]] } : undefined;
 
 /** Renvoie null si le canal n'est pas configuré (il est alors simplement ignoré). */
 export const createTelegramChannel = (
@@ -41,9 +47,10 @@ export const createTelegramChannel = (
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: chatId,
-          text: formatTelegramNotification(notification, ctx),
+          text: formatTelegramNotification(notification),
           parse_mode: 'HTML',
           disable_web_page_preview: true,
+          reply_markup: telegramReplyMarkup(ctx),
         }),
       });
       if (res.ok) return null;

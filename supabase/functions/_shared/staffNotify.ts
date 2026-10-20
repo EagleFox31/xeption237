@@ -64,6 +64,33 @@ export const parseEventTypes = (raw: string | undefined | null): string[] => {
   return list.length ? list : [...DEFAULT_STAFF_EVENT_TYPES];
 };
 
+/** Séparateur des champs dans admin_notifications.message (triggers SQL). */
+const MESSAGE_FIELD_SEPARATOR = ' — ';
+
+/** 45000 → « 45 000 » dans les champs exprimés en FCFA. */
+const formatAmounts = (field: string): string =>
+  /FCFA/i.test(field) ? field.replace(/\d{4,}/g, (d) => d.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')) : field;
+
+/** Vue structurée commune à tous les canaux : chaque adaptateur ne fait que la mise en forme. */
+export interface StaffNotificationView {
+  icon: string;
+  heading: string;
+  subject: string;
+  details: string[];
+}
+
+export const toNotificationView = (n: StaffNotification): StaffNotificationView => {
+  const [subject = '', ...details] = n.message
+    .split(MESSAGE_FIELD_SEPARATOR)
+    .map((f) => formatAmounts(f.trim()))
+    .filter(Boolean);
+  return { icon: eventIcon(n.event_type), heading: n.title.trim(), subject, details };
+};
+
 /** Texte brut commun (canaux sans mise en forme : SMS, WhatsApp texte…). */
-export const formatPlainNotification = (n: StaffNotification, ctx?: StaffNotifyContext): string =>
-  [`${eventIcon(n.event_type)} ${n.title}`, n.message, ctx?.adminUrl].filter(Boolean).join('\n');
+export const formatPlainNotification = (n: StaffNotification, ctx?: StaffNotifyContext): string => {
+  const v = toNotificationView(n);
+  return [`${v.icon} ${v.heading}`, v.subject, ...v.details.map((d) => `• ${d}`), ctx?.adminUrl]
+    .filter(Boolean)
+    .join('\n');
+};

@@ -35,7 +35,8 @@ const trustedMiniAppLink = (raw: string | undefined): string | null => {
   try {
     const link = new URL(raw);
     if (link.protocol !== 'https:' || link.hostname !== 't.me' ||
-        !/^\/[a-zA-Z0-9_]+\/[a-zA-Z0-9_]+\/?$/.test(link.pathname)) return null;
+        // t.me/<bot>/<app> (named Mini App) or t.me/<bot>?startapp (bot's main Mini App)
+        !/^\/[a-zA-Z0-9_]+(\/[a-zA-Z0-9_]+)?\/?$/.test(link.pathname)) return null;
     return link.href;
   } catch { return null; }
 };

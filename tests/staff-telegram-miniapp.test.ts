@@ -37,6 +37,19 @@ describe('Existing Xeption Telegram bot → Mini App integration', () => {
     ]);
   });
 
+  it("accepts the bot's main Mini App link", () => {
+    expect(urls(telegramReplyMarkup(notification, context, 'https://t.me/Xeption_bot?startapp'))).toEqual([
+      'https://www.xeptionetwork.shop/admin/troc/123',
+      'https://t.me/Xeption_bot?startapp',
+    ]);
+  });
+
+  it('rejects a t.me link with a nested path', () => {
+    expect(urls(telegramReplyMarkup(notification, context, 'https://t.me/a/b/c'))).toEqual([
+      'https://www.xeptionetwork.shop/admin/troc/123',
+    ]);
+  });
+
   it('reuses the configured bot and keeps full troc details for the staff group', async () => {
     const sent: Array<Record<string, unknown>> = [];
     const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {

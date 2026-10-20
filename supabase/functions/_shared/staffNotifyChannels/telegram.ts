@@ -30,13 +30,6 @@ export const formatTelegramNotification = (n: StaffNotification): string => {
   return lines.join('\n').slice(0, TELEGRAM_MAX_MESSAGE_LENGTH);
 };
 
-/** Group notifications must not disclose customer phone or private troc details. */
-export const redactForStaffGroup = (n: StaffNotification): StaffNotification => {
-  if (!n.event_type.startsWith('troc_')) return n;
-  const subject = n.message.split(' — ')[0]?.trim() || 'Dossier de troc';
-  return { ...n, message: subject + ' — Détails accessibles uniquement dans Xeption.' };
-};
-
 const trustedMiniAppLink = (raw: string | undefined): string | null => {
   if (!raw) return null;
   try {
@@ -50,10 +43,10 @@ const trustedMiniAppLink = (raw: string | undefined): string | null => {
 export const telegramReplyMarkup = (n: StaffNotification, ctx: StaffNotifyContext, miniAppUrl?: string) => {
   const link = notificationLink(n, ctx);
   const miniApp = trustedMiniAppLink(miniAppUrl);
-  const button = miniApp
-    ? { text: 'Gérer dans Telegram ↗', url: miniApp }
-    : { text: link.label + ' ↗', url: link.url };
-  return { inline_keyboard: [[button]] };
+  // Lien direct vers l'élément + Mini App côte à côte : le staff choisit le site ou Telegram.
+  const row = [{ text: `${link.label} ↗`, url: link.url }];
+  if (miniApp) row.push({ text: 'Gérer dans Telegram ↗', url: miniApp });
+  return { inline_keyboard: [row] };
 };
 
 /** Renvoie null si le canal n'est pas configuré (il est alors simplement ignoré). */
@@ -75,7 +68,7 @@ export const createTelegramChannel = (
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: chatId,
-          text: formatTelegramNotification(redactForStaffGroup(notification)),
+          text: formatTelegramNotification(notification),
           parse_mode: 'HTML',
           disable_web_page_preview: true,
           reply_markup: telegramReplyMarkup(notification, ctx, miniAppUrl),

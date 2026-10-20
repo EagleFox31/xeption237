@@ -3,6 +3,7 @@
  * Secrets : TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID ; optionnel TELEGRAM_EVENT_TYPES.
  */
 import {
+  notificationLink,
   parseEventTypes,
   toNotificationView,
   type EnvReader,
@@ -17,7 +18,7 @@ export const TELEGRAM_MAX_MESSAGE_LENGTH = 4096;
 export const escapeTelegramHtml = (text: string): string =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Corps du message ; le lien admin est porté par un bouton (telegramReplyMarkup). */
+/** Corps du message ; le lien direct est porté par un bouton (telegramReplyMarkup). */
 export const formatTelegramNotification = (n: StaffNotification): string => {
   const v = toNotificationView(n);
   const lines = [`${v.icon} <b>${escapeTelegramHtml(v.heading.toUpperCase())}</b>`];
@@ -26,8 +27,10 @@ export const formatTelegramNotification = (n: StaffNotification): string => {
   return lines.join('\n').slice(0, TELEGRAM_MAX_MESSAGE_LENGTH);
 };
 
-export const telegramReplyMarkup = (ctx?: StaffNotifyContext) =>
-  ctx?.adminUrl ? { inline_keyboard: [[{ text: "Ouvrir l'admin ↗", url: ctx.adminUrl }]] } : undefined;
+export const telegramReplyMarkup = (n: StaffNotification, ctx: StaffNotifyContext) => {
+  const link = notificationLink(n, ctx);
+  return { inline_keyboard: [[{ text: `${link.label} ↗`, url: link.url }]] };
+};
 
 /** Renvoie null si le canal n'est pas configuré (il est alors simplement ignoré). */
 export const createTelegramChannel = (
@@ -50,7 +53,7 @@ export const createTelegramChannel = (
           text: formatTelegramNotification(notification),
           parse_mode: 'HTML',
           disable_web_page_preview: true,
-          reply_markup: telegramReplyMarkup(ctx),
+          reply_markup: telegramReplyMarkup(notification, ctx),
         }),
       });
       if (res.ok) return null;

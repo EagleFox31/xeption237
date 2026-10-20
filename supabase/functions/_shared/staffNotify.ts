@@ -16,8 +16,8 @@ export interface StaffNotification {
 }
 
 export interface StaffNotifyContext {
-  /** URL de l'admin, ajoutée en lien au message. */
-  adminUrl: string;
+  /** URL publique du site (sans / final) : base des liens directs. */
+  siteUrl: string;
 }
 
 export interface StaffNotifyChannel {
@@ -64,6 +64,30 @@ export const parseEventTypes = (raw: string | undefined | null): string[] => {
   return list.length ? list : [...DEFAULT_STAFF_EVENT_TYPES];
 };
 
+export interface NotificationLink {
+  label: string;
+  url: string;
+}
+
+/**
+ * Destination d'une notification selon link_to_tab. Les onglets admin sont des chemins
+ * (/admin/<onglet>, cf. utils/adminRoutes.ts) ; les annonces marketplace n'ont pas d'onglet
+ * admin et ouvrent la page publique.
+ */
+const LINK_TARGETS: Record<string, NotificationLink> = {
+  inventory: { label: 'Voir le stock', url: '/admin/inventory' },
+  troc: { label: 'Voir les trocs', url: '/admin/troc' },
+  orders: { label: 'Voir les commandes', url: '/admin/orders' },
+  marketplace: { label: 'Voir la marketplace', url: '/marketplace' },
+};
+
+export const notificationLink = (n: StaffNotification, ctx: StaffNotifyContext): NotificationLink => {
+  const tab = n.link_to_tab?.trim() ?? '';
+  const target = LINK_TARGETS[tab] ??
+    (/^[a-zA-Z]+$/.test(tab) ? { label: "Ouvrir l'admin", url: `/admin/${tab}` } : { label: "Ouvrir l'admin", url: '/admin' });
+  return { label: target.label, url: `${ctx.siteUrl}${target.url}` };
+};
+
 /** Séparateur des champs dans admin_notifications.message (triggers SQL). */
 const MESSAGE_FIELD_SEPARATOR = ' — ';
 
@@ -90,7 +114,7 @@ export const toNotificationView = (n: StaffNotification): StaffNotificationView 
 /** Texte brut commun (canaux sans mise en forme : SMS, WhatsApp texte…). */
 export const formatPlainNotification = (n: StaffNotification, ctx?: StaffNotifyContext): string => {
   const v = toNotificationView(n);
-  return [`${v.icon} ${v.heading}`, v.subject, ...v.details.map((d) => `• ${d}`), ctx?.adminUrl]
+  return [`${v.icon} ${v.heading}`, v.subject, ...v.details.map((d) => `• ${d}`), ctx && notificationLink(n, ctx).url]
     .filter(Boolean)
     .join('\n');
 };

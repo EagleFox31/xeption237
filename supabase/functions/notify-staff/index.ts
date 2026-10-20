@@ -80,7 +80,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!channels.length) return json(200, { channels: {}, note: 'no_channel_configured' });
 
   const siteUrl = (env('SITE_URL') ?? 'https://www.xeptionetwork.shop').replace(/\/$/, '');
-  const ctx: StaffNotifyContext = { adminUrl: `${siteUrl}/admin` };
+  const ctx: StaffNotifyContext = { siteUrl };
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
   const results: Record<string, unknown> = {};

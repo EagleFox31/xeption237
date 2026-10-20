@@ -211,7 +211,7 @@ async function list(category: string, staff: Staff): Promise<Json[]> {
         .or("image.is.null,image.eq.,image.ilike.*placeholder*,image.ilike.*icon-192*").order("name").limit(60); break;
     case "trocs":
       result = await supabase.from("trade_in_requests").select(
-        "id,device_brand,device_model,status,trade_in_value_cash,trade_in_value,target_product_name,created_at")
+        "id,device_brand,device_model,status,trade_in_value_cash,trade_in_value,target_product_name,photo_urls,created_at")
         .in("status",["pending","accepted","contacted","appointment"])
         .order("created_at",{ascending:false}).limit(60); break;
     case "marketplace":
@@ -271,7 +271,7 @@ Deno.serve(async (request: Request) => {
       const category = new URL(request.url).searchParams.get("category") || "alerts";
       return answer(200,{category,items:await list(category,staff)});
     }
-    if (["ack","troc-action","marketplace-sold"].includes(endpoint) && request.method === "POST") {
+    if (["ack","troc-action","marketplace-sold","restock"].includes(endpoint) && request.method === "POST") {
       if (!WRITE_ENABLED) throw new ApiError(403,"MINIAPP_READ_ONLY");
       const staff = await linkedStaff(telegramUserId);
       const input = await inputJson(request);
@@ -286,7 +286,7 @@ Deno.serve(async (request: Request) => {
       if (!allowed(staff.role,"responsable")) throw new ApiError(403,"INSUFFICIENT_ROLE");
       if (endpoint === "troc-action") {
         if (typeof input.id !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(input.id) ||
-          (input.action !== "contacted" && input.action !== "refused") ||
+          !["contacted","validated","refused"].includes(String(input.action)) ||
           (input.reason !== undefined && (typeof input.reason !== "string" || input.reason.length > 300))) {
           throw new ApiError(400,"INVALID_TROC_ACTION");
         }
@@ -295,6 +295,19 @@ Deno.serve(async (request: Request) => {
         }
         const {data,error} = await supabase.rpc("telegram_staff_troc_action",{
           p_request_id:input.id,p_action:input.action,p_reason:input.reason || null,
+          p_telegram_user_id:telegramUserId
+        });
+        if (error) throw new ApiError(409,"ACTION_REJECTED");
+        return answer(200,data as object);
+      }
+      if (endpoint === "restock") {
+        if (typeof input.id !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(input.id) ||
+          !Number.isInteger(input.quantity) || (input.quantity as number) < 1 || (input.quantity as number) > 50 ||
+          typeof input.requestId !== "string" || !UUID_RE.test(input.requestId)) {
+          throw new ApiError(400,"INVALID_RESTOCK");
+        }
+        const {data,error} = await supabase.rpc("telegram_staff_restock",{
+          p_product_id:input.id,p_quantity:input.quantity,p_request_id:input.requestId,
           p_telegram_user_id:telegramUserId
         });
         if (error) throw new ApiError(409,"ACTION_REJECTED");

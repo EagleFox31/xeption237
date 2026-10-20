@@ -2,12 +2,15 @@
  * Xeption Bot — interactive private-chat entry point for Trigenys Notify Mini App.
  *
  * Existing notify-staff delivery is outbound only and remains unchanged.
- * This function intentionally ignores group traffic and never reads Xeption records.
+ * This function intentionally ignores group traffic. /stock and /prix read the catalogue
+ * only through telegram_staff_product_lookup, which requires a linked staff account.
  *
  * /configure is protected by existing CRON_SECRET (call only from Supabase Vault)
  * and FAILS CLOSED when another application already owns the bot webhook.
  * / receives Telegram updates signed by setWebhook(secret_token).
  */
+import { createClient } from "npm:@supabase/supabase-js@2";
+
 const token = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const adminSecret = Deno.env.get("CRON_SECRET") ?? "";
 const miniApp = "https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/miniapp";
@@ -64,7 +67,9 @@ async function configure(): Promise<Response> {
   await telegram("setMyCommands",{
     commands:[
       {command:"start",description:"Ouvrir l'espace staff Xeption"},
-      {command:"aide",description:"Accéder au centre de gestion"}
+      {command:"aide",description:"Accéder au centre de gestion"},
+      {command:"stock",description:"Stock d'un produit, ex. /stock iPhone 13"},
+      {command:"prix",description:"Prix boutique, ex. /prix S24"}
     ],
     scope:{type:"all_private_chats"}
   });
@@ -83,7 +88,35 @@ async function configure(): Promise<Response> {
     });
   }
   return json(200,{status:"CONFIGURED",webhook: webhookUrl,menu_button:true,
-    commands:["start","aide"],existing_webhook_reused:existing === webhookUrl});
+    commands:["start","aide","stock","prix"],existing_webhook_reused:existing === webhookUrl});
+}
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const money = (value: unknown) =>
+  value === null || value === undefined ? "—" : new Intl.NumberFormat("fr-FR").format(Number(value)) + " F";
+
+async function productLookupReply(query: string, telegramUserId: string): Promise<string> {
+  if (!query) return "Précisez un produit, par exemple : <code>/stock iPhone 13</code>";
+  if (!/^\d{1,20}$/.test(telegramUserId)) return "Commande indisponible.";
+  const url = Deno.env.get("SUPABASE_URL") ?? "";
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!url || !key) return "Recherche indisponible pour le moment.";
+  const supabase = createClient(url,key,{auth:{persistSession:false}});
+  const {data,error} = await supabase.rpc("telegram_staff_product_lookup",{
+    p_query:query.slice(0,80),p_telegram_user_id:telegramUserId
+  });
+  if (error) {
+    return error.code === "42501"
+      ? "🔐 Associez d'abord votre compte : ERP Xeption → « Lier mon Telegram »."
+      : "Recherche indisponible pour le moment.";
+  }
+  const rows = (data ?? []) as {name: string; stock: number; price: number | string | null}[];
+  if (!rows.length) return "Aucun produit trouvé pour « " + escapeHtml(query) + " ».";
+  return "🔎 <b>" + escapeHtml(query) + "</b>\n\n" + rows.map(row =>
+    (row.stock > 0 ? "✅" : "❌") + " <b>" + escapeHtml(row.name) + "</b>\n" +
+    "    Stock : " + row.stock + " · Prix : " + money(row.price)
+  ).join("\n");
 }
 
 async function handleUpdate(request: Request): Promise<Response> {
@@ -105,6 +138,16 @@ async function handleUpdate(request: Request): Promise<Response> {
   }
   const rawText = typeof message.text === "string" ? message.text.trim() : "";
   const cmd = rawText.split(/\s+/)[0]?.split("@")[0]?.toLowerCase();
+  if (cmd === "/stock" || cmd === "/prix") {
+    const fromId = (message.from as Obj | undefined)?.id;
+    const query = rawText.slice(rawText.split(/\s+/)[0].length).trim();
+    await telegram("sendMessage",{
+      chat_id:chatId,
+      text:await productLookupReply(query,String(fromId ?? "")),
+      parse_mode:"HTML"
+    });
+    return json(200,{ok:true});
+  }
   if (cmd !== "/start" && cmd !== "/aide" && cmd !== "/menu") {
     return json(200,{ok:true});
   }
@@ -117,6 +160,7 @@ async function handleUpdate(request: Request): Promise<Response> {
       "▸ 🔄 Traiter les demandes de troc\n" +
       "▸ 🛍️ Valider les annonces marketplace\n" +
       "▸ 🖼️ Compléter les photos manquantes\n\n" +
+      "🔎 Devant un client : <code>/stock iPhone 13</code> ou <code>/prix S24</code>\n\n" +
       "🔐 <i>Pour accéder aux données, associez votre compte professionnel Xeption.</i>",
     parse_mode:"HTML",
     reply_markup:{

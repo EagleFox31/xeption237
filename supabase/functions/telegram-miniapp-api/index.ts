@@ -9,7 +9,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 type Json = Record<string, unknown>;
 type StaffRole = "vendeur" | "responsable" | "direction" | "super_admin";
-type Staff = { telegramUserId: string; authUserId: string; name: string; role: StaffRole };
+type Staff = { telegramUserId: string; authUserId: string; name: string; role: StaffRole; storeId: string | null };
 
 const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -109,16 +109,17 @@ function allowed(role: StaffRole, target: unknown): boolean {
   return needed !== null && roleRanks[role] >= roleRanks[needed];
 }
 
-async function getStaff(email: string): Promise<{name: string; role: StaffRole}> {
+async function getStaff(email: string): Promise<{name: string; role: StaffRole; storeId: string | null}> {
   const e = email.trim().toLowerCase();
-  const { data, error } = await supabase.from("staff").select("name,email,role")
+  const { data, error } = await supabase.from("staff").select("name,email,role,store_id")
     .ilike("email", e).limit(50);
   if (error) throw new ApiError(502, "STAFF_LOOKUP_FAILED");
   const row = (data || []).find((item: Json) =>
     typeof item.email === "string" && item.email.trim().toLowerCase() === e);
   const role = normalizeRole(row?.role);
   if (!row || !role) throw new ApiError(403, "NOT_XEPTION_STAFF");
-  return { name: typeof row.name === "string" ? row.name : e, role };
+  return { name: typeof row.name === "string" ? row.name : e, role,
+    storeId: typeof row.store_id === "string" ? row.store_id : null };
 }
 
 async function linkedStaff(telegramUserId: string): Promise<Staff> {
@@ -205,6 +206,16 @@ async function list(category: string, staff: Staff): Promise<Json[]> {
   let result: {data: unknown; error: unknown};
   switch (category) {
     case "stock":
+      if (staff.role === "vendeur" && staff.storeId) {
+        // A shop seller sees their own store's shelf, not the network-wide total.
+        const scoped = await supabase.from("store_stock").select("quantity,products(id,name,price)")
+          .eq("store_id",staff.storeId).lte("quantity",2).limit(60);
+        if (scoped.error || !Array.isArray(scoped.data)) throw new ApiError(502,"XEPTION_READ_FAILED");
+        return (scoped.data as Json[]).flatMap(row => {
+          const p = row.products as Json | null;
+          return p ? [{id:p.id,name:p.name,price:p.price,stock:row.quantity}] : [];
+        }).sort((a,b) => String(a.name).localeCompare(String(b.name)));
+      }
       result = await supabase.from("products").select("id,name,stock,price").lte("stock",2).order("name").limit(60); break;
     case "images":
       result = await supabase.from("products").select("id,name,image,price")

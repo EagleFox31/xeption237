@@ -96,19 +96,92 @@ const escapeHtml = (value: string) =>
 const money = (value: unknown) =>
   value === null || value === undefined ? "—" : new Intl.NumberFormat("fr-FR").format(Number(value)) + " F";
 
+function db() {
+  const url = Deno.env.get("SUPABASE_URL") ?? "";
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  return url && key ? createClient(url,key,{auth:{persistSession:false}}) : null;
+}
+
+const SHARE_PHONE_TEXT = "📱 Partager mon numéro";
+const shareKeyboard = {
+  keyboard:[[{text:SHARE_PHONE_TEXT,request_contact:true}]],
+  resize_keyboard:true,one_time_keyboard:true
+};
+const linkHint = "🔐 Associez d'abord votre compte : touchez « " + SHARE_PHONE_TEXT +
+  " » (vendeurs) ou ERP Xeption → « Lier mon Telegram » (direction).";
+
+async function isLinked(telegramUserId: string): Promise<boolean> {
+  const supabase = db();
+  if (!supabase) return false;
+  const {data} = await supabase.from("telegram_staff_links").select("telegram_user_id")
+    .eq("telegram_user_id",telegramUserId).is("revoked_at",null).limit(1);
+  return Boolean(data?.length);
+}
+
+const LINK_REFUSALS: Record<string,string> = {
+  phone_not_found: "Ce numéro n'est enregistré pour aucun membre du staff. Demandez à la direction de l'ajouter dans l'ERP (écran Équipe).",
+  phone_ambiguous: "Ce numéro est enregistré sur plusieurs fiches staff. La direction doit corriger l'ERP.",
+  use_erp_code: "Les comptes direction s'associent depuis l'ERP Xeption → « Lier mon Telegram ».",
+  no_account: "Votre compte Xeption n'est pas encore activé. Demandez à la direction de générer votre mot de passe (🔑, écran Équipe).",
+  telegram_already_linked: "Ce compte Telegram est déjà associé à un autre membre du staff.",
+  staff_already_linked: "Ce membre du staff est déjà associé à un autre compte Telegram. Contactez la direction."
+};
+
+/** Contact shared via request_contact. Only the sender's own number is accepted. */
+async function handleContact(message: Obj, chatId: number | string): Promise<void> {
+  const contact = message.contact as Obj;
+  const fromId = (message.from as Obj | undefined)?.id;
+  const removeKeyboard = {remove_keyboard:true};
+  if (typeof fromId !== "number" || contact.user_id !== fromId || typeof contact.phone_number !== "string") {
+    await telegram("sendMessage",{chat_id:chatId,reply_markup:shareKeyboard,
+      text:"Pour des raisons de sécurité, seul votre propre numéro est accepté : utilisez le bouton « " + SHARE_PHONE_TEXT + " »."});
+    return;
+  }
+  const supabase = db();
+  if (!supabase) {
+    await telegram("sendMessage",{chat_id:chatId,text:"Association indisponible pour le moment."});
+    return;
+  }
+  const {data,error} = await supabase.rpc("telegram_staff_link_by_phone",{
+    p_telegram_user_id:String(fromId),p_phone:contact.phone_number.slice(0,32)
+  });
+  if (error || !data) {
+    console.error("telegram-bot-entry: phone link failed",{code:error?.code});
+    await telegram("sendMessage",{chat_id:chatId,text:"Association indisponible pour le moment."});
+    return;
+  }
+  const result = data as {linked:boolean; changed?:boolean; reason?:string; name?:string;
+    store?:string | null; notify_telegram_ids?:string[]};
+  if (!result.linked) {
+    await telegram("sendMessage",{chat_id:chatId,reply_markup:removeKeyboard,
+      text:LINK_REFUSALS[result.reason ?? ""] ?? "Association refusée."});
+    return;
+  }
+  const name = escapeHtml(result.name ?? "");
+  const store = result.store ? " · " + escapeHtml(result.store) : "";
+  await telegram("sendMessage",{chat_id:chatId,parse_mode:"HTML",reply_markup:removeKeyboard,
+    text:"✅ Compte associé : <b>" + name + "</b>" + store +
+      "\n\nTapez <code>/stock iPhone 13</code> devant un client ou ouvrez l'espace staff."});
+  if (!result.changed) return;
+  for (const id of result.notify_telegram_ids ?? []) {
+    // A failed alert to one manager must not undo the link nor block the others.
+    await telegram("sendMessage",{chat_id:id,parse_mode:"HTML",
+      text:"🔗 <b>" + name + "</b>" + store + " a associé son Telegram à l'espace staff Xeption."})
+      .catch(() => console.error("telegram-bot-entry: manager alert failed"));
+  }
+}
+
 async function productLookupReply(query: string, telegramUserId: string): Promise<string> {
   if (!query) return "Précisez un produit, par exemple : <code>/stock iPhone 13</code>";
   if (!/^\d{1,20}$/.test(telegramUserId)) return "Commande indisponible.";
-  const url = Deno.env.get("SUPABASE_URL") ?? "";
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!url || !key) return "Recherche indisponible pour le moment.";
-  const supabase = createClient(url,key,{auth:{persistSession:false}});
+  const supabase = db();
+  if (!supabase) return "Recherche indisponible pour le moment.";
   const {data,error} = await supabase.rpc("telegram_staff_product_lookup",{
     p_query:query.slice(0,80),p_telegram_user_id:telegramUserId
   });
   if (error) {
     return error.code === "42501"
-      ? "🔐 Associez d'abord votre compte : ERP Xeption → « Lier mon Telegram »."
+      ? linkHint
       : "Recherche indisponible pour le moment.";
   }
   const rows = (data ?? []) as {name: string; stock: number; price: number | string | null}[];
@@ -134,6 +207,10 @@ async function handleUpdate(request: Request): Promise<Response> {
   const chatId = chat?.id;
   if (chat?.type !== "private" ||
     (typeof chatId !== "number" && typeof chatId !== "string")) {
+    return json(200,{ok:true});
+  }
+  if (message.contact && typeof message.contact === "object") {
+    await handleContact(message,chatId);
     return json(200,{ok:true});
   }
   const rawText = typeof message.text === "string" ? message.text.trim() : "";
@@ -167,6 +244,12 @@ async function handleUpdate(request: Request): Promise<Response> {
       inline_keyboard:[[{text:"📲 Accéder aux opérations",web_app:{url:miniApp}}]]
     }
   });
+  const fromId = (message.from as Obj | undefined)?.id;
+  if (typeof fromId === "number" && !(await isLinked(String(fromId)))) {
+    await telegram("sendMessage",{chat_id:chatId,reply_markup:shareKeyboard,
+      text:"Vendeur ou responsable boutique ? Touchez « " + SHARE_PHONE_TEXT +
+        " » pour associer votre compte en un geste."});
+  }
   return json(200,{ok:true});
 }
 

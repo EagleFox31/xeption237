@@ -10,6 +10,11 @@
  */
 // @ts-ignore — Deno npm specifier for Supabase Edge Functions runtime
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  HR_PERIODS, HR_TARGET_PRESETS_K, NO_STORE, ROLE_LABEL, UUID_RE,
+  isHrPeriod, memberLine, objectivePrompt, parseObjectiveTag, parseTargetAmount,
+  type HrMember, type HrPending, type HrPeriodKey
+} from "../_shared/telegramHr.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -396,6 +401,284 @@ async function actionActivation(staff: StaffMember, decision: string, requestId:
   };
 }
 
+// ── Gestion RH (direction) ────────────────────────────────────────────────────
+// Reads and writes go through telegram_staff_hr_* RPCs, which re-check the sender's rank.
+
+const HR_MAX_MEMBER_BUTTONS = 30;
+const HR_MAX_TEXT = 3500;
+const hrBack: InlineButton[] = [{ text: "⬅️ Retour RH", callback_data: "nav:rh" }];
+
+function hrDenied(): Screen {
+  return { text: "🔒 Gestion RH réservée à la direction.", reply_markup: { inline_keyboard: [homeRow] } };
+}
+
+function hrMessage(text: string, back: InlineButton[] = hrBack): Screen {
+  return { text, reply_markup: { inline_keyboard: [back, homeRow] } };
+}
+
+async function hrOverview(staff: StaffMember): Promise<{ members: HrMember[]; pending: HrPending[] } | Screen> {
+  const supabase = db();
+  if (!supabase) return hrMessage("Gestion RH indisponible pour le moment.", homeRow);
+  const { data, error } = await supabase.rpc("telegram_staff_hr_overview", { p_telegram_user_id: staff.telegram_user_id });
+  if (error || !data) {
+    if (error?.code === "42501") return hrDenied();
+    console.error("telegram-bot-entry: hr overview failed", { code: error?.code });
+    return hrMessage("Gestion RH indisponible pour le moment.", homeRow);
+  }
+  return data as { members: HrMember[]; pending: HrPending[] };
+}
+
+const hrStoreKey = (m: HrMember) => m.store_code ?? NO_STORE;
+
+async function screenHr(staff: StaffMember): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return hrDenied();
+  const hr = await hrOverview(staff);
+  if ("text" in hr) return hr;
+
+  const groups = new Map<string, { name: string; count: number }>();
+  for (const m of hr.members) {
+    const key = hrStoreKey(m);
+    const group = groups.get(key) ?? { name: m.store_name ?? "Sans boutique", count: 0 };
+    group.count++;
+    groups.set(key, group);
+  }
+  const noAccount = hr.members.filter(m => !m.has_account).length;
+  const rows: InlineButton[][] = [...groups]
+    .filter(([key]) => cbFits("nav:rh_s:" + key))
+    .map(([key, g]) => [{ text: `🏪 ${g.name} (${g.count})`, callback_data: "nav:rh_s:" + key }]);
+  rows.push([
+    { text: `⏳ Demandes (${hr.pending.length})`, callback_data: "nav:rh_p" },
+    { text: `👻 Sans compte (${noAccount})`, callback_data: "nav:rh_na" }
+  ]);
+  rows.push(homeRow);
+  return {
+    text:
+      `👥 <b>Gestion RH</b>\n\n` +
+      `• Membres : <b>${hr.members.length}</b>\n` +
+      `• Demandes d'activation : <b>${hr.pending.length}</b>\n` +
+      `• Sans compte : <b>${noAccount}</b>\n\n` +
+      `Choisissez une boutique :`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+/** Lines joined under the Telegram message limit, with "… +N" for the rest. */
+function hrLines(lines: string[]): string {
+  let text = "";
+  for (let i = 0; i < lines.length; i++) {
+    if (text.length + lines[i].length > HR_MAX_TEXT) return text + `… +${lines.length - i}`;
+    text += lines[i] + "\n";
+  }
+  return text;
+}
+
+async function screenHrStore(staff: StaffMember, storeKey: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return hrDenied();
+  const hr = await hrOverview(staff);
+  if ("text" in hr) return hr;
+  const members = hr.members.filter(m => hrStoreKey(m) === storeKey);
+  if (!members.length) return hrMessage("Aucun membre dans cette boutique.");
+
+  const buttons = members.slice(0, HR_MAX_MEMBER_BUTTONS).map(m => ({
+    text: (m.has_account && !m.active ? "⛔ " : "") + m.name, callback_data: "nav:rh_m:" + m.id
+  }));
+  const rows: InlineButton[][] = [];
+  for (let i = 0; i < buttons.length; i += 2) rows.push(buttons.slice(i, i + 2));
+  rows.push(hrBack, homeRow);
+  return {
+    text:
+      `🏪 <b>${escapeHtml(members[0].store_name ?? "Sans boutique")}</b> — ${members.length} membre(s)\n\n` +
+      hrLines(members.map(memberLine)),
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function screenHrPending(staff: StaffMember): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return hrDenied();
+  const hr = await hrOverview(staff);
+  if ("text" in hr) return hr;
+  if (!hr.pending.length) return hrMessage("✅ Aucune demande d'activation en attente.");
+  const rows: InlineButton[][] = hr.pending.map(r => [
+    { text: "✅ " + r.name, callback_data: "nav:act:ok:" + r.request_id },
+    { text: "❌ Refuser", callback_data: "nav:act:no:" + r.request_id }
+  ]);
+  rows.push(hrBack, homeRow);
+  return {
+    text: `⏳ <b>Demandes d'activation</b>\n\n` + hrLines(hr.pending.map(r =>
+      `• <b>${escapeHtml(r.name)}</b>${r.store_name ? " — " + escapeHtml(r.store_name) : ""}`)),
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function screenHrNoAccount(staff: StaffMember): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return hrDenied();
+  const hr = await hrOverview(staff);
+  if ("text" in hr) return hr;
+  const members = hr.members.filter(m => !m.has_account);
+  if (!members.length) return hrMessage("✅ Tous les membres ont un compte.");
+  return hrMessage(
+    `👻 <b>Membres sans compte</b>\n\n` + hrLines(members.map(m =>
+      `• <b>${escapeHtml(m.name)}</b>${m.store_name ? " — " + escapeHtml(m.store_name) : ""}`)) +
+    `\n<i>Le membre tape /start puis « ${SHARE_PHONE_TEXT} » : sa demande apparaît dans ⏳ Demandes. ` +
+    `Son numéro doit être renseigné dans sa fiche ERP.</i>`
+  );
+}
+
+async function hrMember(staff: StaffMember, staffId: string): Promise<HrMember | Screen> {
+  if (staff.rank < RANK_DIRECTION) return hrDenied();
+  if (!UUID_RE.test(staffId)) return hrMessage("Action invalide.");
+  const hr = await hrOverview(staff);
+  if ("text" in hr) return hr;
+  return hr.members.find(m => m.id === staffId) ?? hrMessage("❌ Membre introuvable.");
+}
+
+const hrMemberBack = (staffId: string): InlineButton[] => [{ text: "⬅️ Retour fiche", callback_data: "nav:rh_m:" + staffId }];
+
+async function screenHrMember(staff: StaffMember, staffId: string): Promise<Screen> {
+  const m = await hrMember(staff, staffId);
+  if ("text" in m) return m;
+  const account = !m.has_account ? "👻 aucun" : m.active ? "✅ actif" : "⛔ désactivé";
+  const targets = (Object.keys(HR_PERIODS) as HrPeriodKey[])
+    .map(p => `   ${HR_PERIODS[p].label} : ${money(m.targets?.[HR_PERIODS[p].kind])}`).join("\n");
+  const rows: InlineButton[][] = [];
+  if ((ROLE_RANK[m.role] ?? 99) <= RANK_RESPONSABLE) rows.push([{ text: "🎯 Objectifs", callback_data: "nav:rh_o:" + m.id }]);
+  if (m.has_account && m.id !== staff.id) {
+    rows.push([m.active
+      ? { text: "⛔ Désactiver", callback_data: "nav:rh_xc:" + m.id }
+      : { text: "✅ Réactiver", callback_data: "nav:rh_x:1:" + m.id }]);
+  }
+  rows.push([{ text: "⬅️ Retour boutique", callback_data: "nav:rh_s:" + hrStoreKey(m) }], homeRow);
+  return {
+    text:
+      `👤 <b>${escapeHtml(m.name)}</b>\n\n` +
+      `• Rôle : ${escapeHtml(ROLE_LABEL[m.role] ?? m.role)}\n` +
+      `• Boutique : ${escapeHtml(m.store_name ?? "—")}\n` +
+      `• Téléphone : ${escapeHtml(m.phone ?? "—")}\n` +
+      `• Compte : ${account}\n` +
+      `• Telegram : ${m.telegram_linked ? "✅ relié" : "❌ non relié"}\n` +
+      `• Objectifs :\n${targets}`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function screenHrDeactivateConfirm(staff: StaffMember, staffId: string): Promise<Screen> {
+  const m = await hrMember(staff, staffId);
+  if ("text" in m) return m;
+  return {
+    text: `⛔ Désactiver <b>${escapeHtml(m.name)}</b> ?\n\nCela coupe son accès à l'ERP, au bot Telegram et à la Mini App.`,
+    reply_markup: {
+      inline_keyboard: [[
+        { text: "⛔ Confirmer", callback_data: "nav:rh_x:0:" + m.id },
+        { text: "Annuler", callback_data: "nav:rh_m:" + m.id }
+      ]]
+    }
+  };
+}
+
+const HR_ACTIVE_REFUSALS: Record<string, string> = {
+  not_found: "❌ Membre introuvable.",
+  self: "🔒 Vous ne pouvez pas modifier votre propre accès.",
+  rank: "🔒 Réservé à un rang supérieur.",
+  no_account: "👻 Ce membre n'a pas encore de compte."
+};
+
+async function actionHrActive(staff: StaffMember, flag: string, staffId: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return hrDenied();
+  const supabase = db();
+  if (!supabase || (flag !== "0" && flag !== "1") || !UUID_RE.test(staffId)) return hrMessage("Action invalide.");
+  const { data, error } = await supabase.rpc("telegram_staff_set_member_active", {
+    p_telegram_user_id: staff.telegram_user_id, p_staff_id: staffId, p_active: flag === "1"
+  });
+  if (error || !data) {
+    if (error?.code === "42501") return hrDenied();
+    console.error("telegram-bot-entry: hr member active failed", { code: error?.code });
+    return hrMessage("Action indisponible pour le moment.", hrMemberBack(staffId));
+  }
+  const result = data as { changed: boolean; active?: boolean; reason?: string; name?: string };
+  const back = hrMemberBack(staffId);
+  if (result.reason) return hrMessage(HR_ACTIVE_REFUSALS[result.reason] ?? "Action refusée.", back);
+  const who = "<b>" + escapeHtml(result.name ?? "") + "</b>";
+  if (!result.changed) return hrMessage(`ℹ️ ${who} est déjà ${result.active ? "actif" : "désactivé"}.`, back);
+  return hrMessage(
+    (result.active
+      ? `✅ ${who} réactivé. Il devra repartager son numéro pour retrouver le bot Telegram.`
+      : `⛔ ${who} désactivé : accès ERP, Telegram et Mini App coupés.`) +
+    `\n\nOpération par <b>${escapeHtml(staff.name)}</b>.`,
+    back
+  );
+}
+
+async function screenHrTargetPeriod(staff: StaffMember, staffId: string): Promise<Screen> {
+  const m = await hrMember(staff, staffId);
+  if ("text" in m) return m;
+  return {
+    text: `🎯 Objectif de <b>${escapeHtml(m.name)}</b> : choisissez la période.`,
+    reply_markup: {
+      inline_keyboard: [
+        (Object.keys(HR_PERIODS) as HrPeriodKey[]).map(p => ({
+          text: HR_PERIODS[p].label, callback_data: `nav:rh_op:${p}:${m.id}`
+        })),
+        hrMemberBack(m.id)
+      ]
+    }
+  };
+}
+
+async function screenHrTargetAmount(staff: StaffMember, period: string, staffId: string): Promise<Screen> {
+  if (!isHrPeriod(period)) return hrMessage("Action invalide.");
+  const m = await hrMember(staff, staffId);
+  if ("text" in m) return m;
+  const presets = HR_TARGET_PRESETS_K[period].map(k => ({
+    text: money(k * 1000), callback_data: `nav:rh_ov:${period}:${k}:${m.id}`
+  }));
+  const rows: InlineButton[][] = [];
+  for (let i = 0; i < presets.length; i += 2) rows.push(presets.slice(i, i + 2));
+  rows.push([
+    { text: "✏️ Autre montant", callback_data: `nav:rh_oc:${period}:${m.id}` },
+    { text: "🗑 Retirer", callback_data: `nav:rh_ov:${period}:0:${m.id}` }
+  ]);
+  rows.push(hrMemberBack(m.id));
+  return {
+    text:
+      `🎯 Objectif ${HR_PERIODS[period].label.toLowerCase()} de <b>${escapeHtml(m.name)}</b>\n` +
+      `Actuel : <b>${money(m.targets?.[HR_PERIODS[period].kind])}</b>`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function actionHrTarget(staff: StaffMember, period: string, amountXaf: number, staffId: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return hrDenied();
+  const supabase = db();
+  if (!supabase || !isHrPeriod(period) || !Number.isInteger(amountXaf) || amountXaf < 0 || !UUID_RE.test(staffId)) {
+    return hrMessage("Action invalide.");
+  }
+  const back = hrMemberBack(staffId);
+  const { data, error } = await supabase.rpc("telegram_staff_set_sales_target", {
+    p_telegram_user_id: staff.telegram_user_id, p_staff_id: staffId,
+    p_period_kind: HR_PERIODS[period].kind, p_target_amount: amountXaf
+  });
+  if (error || !data) {
+    if (error?.code === "42501") return hrDenied();
+    if (error?.code === "22023") return hrMessage("Montant invalide.", back);
+    console.error("telegram-bot-entry: hr target failed", { code: error?.code });
+    return hrMessage("Objectif non enregistré, réessayez.", back);
+  }
+  const result = data as { changed: boolean; reason?: string; name?: string };
+  const who = "<b>" + escapeHtml(result.name ?? "") + "</b>";
+  const label = HR_PERIODS[period].label.toLowerCase();
+  if (result.reason === "not_found") return hrMessage("❌ Membre introuvable.");
+  if (result.reason === "not_seller") return hrMessage("🔒 Objectifs réservés aux vendeurs et responsables.", back);
+  if (result.reason === "none") return hrMessage(`ℹ️ ${who} n'a pas d'objectif ${label}.`, back);
+  const done = amountXaf === 0
+    ? `🗑 Objectif ${label} de ${who} retiré.`
+    : `🎯 Objectif ${label} de ${who} : <b>${money(amountXaf)}</b>.`;
+  return hrMessage(
+    done + (result.changed ? "" : "\n\n<i>Déjà dans cet état : aucune modification.</i>") +
+    `\n\nOpération par <b>${escapeHtml(staff.name)}</b>.`,
+    back
+  );
+}
+
 async function productLookupReply(query: string, telegramUserId: string): Promise<string> {
   if (!query) return "Précisez un produit, par exemple : <code>/stock iPhone 13</code>";
   if (!/^\d{1,20}$/.test(telegramUserId)) return "Commande indisponible.";
@@ -444,6 +727,7 @@ async function screenMain(staff: StaffMember): Promise<Screen> {
             { text: "📊 Ventes du Jour", callback_data: "nav:sales" },
             { text: "⚠️ Stocks Faibles", callback_data: "nav:stock_low" }
           ],
+          [{ text: "👥 Gestion RH", callback_data: "nav:rh" }],
           [{ text: "📲 Ouvrir Xeption App", web_app: { url: miniApp } }]
         ]
       }
@@ -943,6 +1227,39 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     screen = await screenSalesToday(staff, parts[2]);
   } else if (action === "act") {
     screen = await actionActivation(staff, parts[2] ?? "", parts[3] ?? "");
+  } else if (action === "rh") {
+    screen = await screenHr(staff);
+  } else if (action === "rh_s") {
+    screen = await screenHrStore(staff, parts[2] ?? "");
+  } else if (action === "rh_p") {
+    screen = await screenHrPending(staff);
+  } else if (action === "rh_na") {
+    screen = await screenHrNoAccount(staff);
+  } else if (action === "rh_m") {
+    screen = await screenHrMember(staff, parts[2] ?? "");
+  } else if (action === "rh_xc") {
+    screen = await screenHrDeactivateConfirm(staff, parts[2] ?? "");
+  } else if (action === "rh_x") {
+    screen = await actionHrActive(staff, parts[2] ?? "", parts[3] ?? "");
+  } else if (action === "rh_o") {
+    screen = await screenHrTargetPeriod(staff, parts[2] ?? "");
+  } else if (action === "rh_op") {
+    screen = await screenHrTargetAmount(staff, parts[2] ?? "", parts[3] ?? "");
+  } else if (action === "rh_ov") {
+    screen = await actionHrTarget(staff, parts[2] ?? "", Number(parts[3]) * 1000, parts[4] ?? "");
+  } else if (action === "rh_oc") {
+    // Free amount: a ForceReply whose text carries the context (see handleMessage).
+    const period = parts[2] ?? "";
+    const m = isHrPeriod(period) ? await hrMember(staff, parts[3] ?? "") : hrMessage("Action invalide.");
+    if ("text" in m) {
+      screen = m;
+    } else {
+      await telegram("sendMessage", {
+        chat_id: chatId, text: objectivePrompt(period as HrPeriodKey, m.id, m.name),
+        reply_markup: { force_reply: true, input_field_placeholder: "1500000" }
+      });
+      return;
+    }
   } else {
     screen = await screenMain(staff);
   }
@@ -963,6 +1280,25 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
   const rawText = typeof message.text === "string" ? message.text.trim() : "";
   const [first = "", ...rest] = rawText.split(/\s+/);
   const cmd = first.split("@")[0].toLowerCase();
+
+  // Reply to an "Autre montant" prompt. The tag is context only: the RPC re-checks the rank.
+  const reply = message.reply_to_message as Obj | undefined;
+  const objective = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parseObjectiveTag(String(reply?.text ?? ""))
+    : null;
+  if (objective) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    const amount = parseTargetAmount(rawText);
+    const screen = amount === null
+      ? hrMessage("Montant invalide (ex. 1500000 ou 1,5m). Touchez à nouveau « ✏️ Autre montant ».", hrMemberBack(objective.staffId))
+      : await actionHrTarget(staff, objective.period, amount, objective.staffId);
+    await renderScreen(chatId, undefined, screen);
+    return;
+  }
 
   if (cmd === "/stock" || cmd === "/prix") {
     await telegram("sendMessage", {

@@ -31,6 +31,9 @@ export type NotificationEventType =
   | 'sync_success'
   | 'sync_failure'
   | 'stock_alert'
+  | 'stock_low'
+  | 'stock_out'
+  | 'marketplace_listed'
   | 'security_alert'
   | 'manual';
 

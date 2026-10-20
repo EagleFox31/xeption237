@@ -8,6 +8,7 @@ import { getProductSlug } from '../utils/slug';
 import { getProductDisplayName } from '../utils/productDisplay';
 import { PageSEO, JsonLd, productJsonLd, breadcrumbJsonLd, faqJsonLd, toOgImage } from '../utils/seo';
 import { buildProductFaq } from '../utils/productFaq';
+import { buildProductSeoDescription } from '../utils/productSeo';
 import { buildShopReturnPath } from '../utils/shopFilterStorage';
 import SkeletonLoader from '../components/common/SkeletonLoader';
 import { trackViewItem } from '../utils/analytics';
@@ -120,10 +121,14 @@ const ProductPage: React.FC<ProductPageProps> = ({
     const productImages = [product.image, ...(product.images || [])].filter(Boolean);
     const ogImage = toOgImage(productImages[0]) ?? null;
     const seoTitle = `${displayName} — Acheter au Cameroun | Xeption`;
-    const seoDescription = (product.description || '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 160) || `${displayName} disponible chez Xeption Network. Livraison Yaoundé & Douala, paiement Mobile Money.`;
+    const inStock = product.stock > 0;
+    const productCondition = product.condition === 'refurbished' ? 'refurbished' : 'new';
+    const seoDescription = buildProductSeoDescription({
+        displayName,
+        description: product.description,
+        price: product.price,
+        inStock,
+    });
 
     return (
         <>
@@ -133,6 +138,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 path={productPath}
                 ogImage={ogImage}
                 ogType="product"
+                productOffer={product.price > 0 ? {
+                    retailerItemId: product.id,
+                    price: product.price,
+                    inStock,
+                    condition: productCondition,
+                } : undefined}
             />
             <JsonLd
                 data={[
@@ -143,8 +154,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         brand: product.brand,
                         price: product.price,
                         currency: 'XAF',
-                        availability: product.stock > 0 ? 'InStock' : 'OutOfStock',
-                        condition: product.condition === 'refurbished' ? 'refurbished' : 'new',
+                        availability: inStock ? 'InStock' : 'OutOfStock',
+                        condition: productCondition,
                         specs: product.specs,
                         url: productUrl,
                         rating: product.rating && product.reviews?.length

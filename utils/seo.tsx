@@ -18,6 +18,17 @@ export interface PageSEOProps {
   noindex?: boolean;
   /** Type Open Graph : 'website' (défaut) ou 'product'. */
   ogType?: 'website' | 'product' | 'article';
+  /** Offre produit (balises Open Graph `product:*`), liée au catalogue Meta par `retailerItemId`. */
+  productOffer?: ProductOgOffer;
+}
+
+export interface ProductOgOffer {
+  /** Doit être égal à l'`id` du flux catalogue (`product.id`). */
+  retailerItemId: string;
+  price: number;
+  currency?: string;
+  inStock: boolean;
+  condition?: 'new' | 'refurbished';
 }
 
 /**
@@ -32,6 +43,7 @@ export const PageSEO: React.FC<PageSEOProps> = ({
   ogImage,
   noindex = false,
   ogType = 'website',
+  productOffer,
 }) => {
   const url = `${SITE_URL}${path}`;
   const image = ogImage || DEFAULT_OG_IMAGE;
@@ -48,7 +60,18 @@ export const PageSEO: React.FC<PageSEOProps> = ({
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={image} />
+      <meta property="og:image:alt" content={title} />
       <meta property="og:site_name" content="Xeption Network" />
+      <meta property="og:locale" content="fr_FR" />
+
+      {/* Helmet refuse les fragments : tableau d'éléments à clé. */}
+      {productOffer && [
+        <meta key="rid" property="product:retailer_item_id" content={productOffer.retailerItemId} />,
+        <meta key="amount" property="product:price:amount" content={String(productOffer.price)} />,
+        <meta key="currency" property="product:price:currency" content={productOffer.currency || 'XAF'} />,
+        <meta key="avail" property="product:availability" content={productOffer.inStock ? 'in stock' : 'out of stock'} />,
+        <meta key="cond" property="product:condition" content={productOffer.condition || 'new'} />,
+      ]}
 
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:url" content={url} />

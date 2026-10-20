@@ -91,7 +91,9 @@ Garanties :
 | `order_paid` | Client code (webhook paiement) | tous staff | in-app + email | 🟡 Roadmap |
 | `order_shipped` | Admin action manuelle | **client (email)** | email | 🟡 Roadmap |
 | `sync_success` / `sync_failure` | Hook `useOfflinePos` (déjà intégré via shim) | vendeur concerné | in-app (silencieux pour `success`) | ✅ MVP (via shim legacy) |
-| `stock_alert` | RPC stock sur seuil bas | `responsable`+ | in-app | 🟡 Roadmap |
+| `stock_low` / `stock_out` | Trigger DB sur `products.stock` (franchissement du seuil 2, puis 0) | tous staff | in-app + Telegram | ✅ |
+| `marketplace_listed` | Trigger DB sur `marketplace_listings` (INSERT) | tous staff | in-app + Telegram | ✅ |
+| `stock_alert` | (remplacé par `stock_low` / `stock_out`) | — | — | — |
 | `security_alert` | `useAdminData` sur `security_events` (déjà intégré via shim) | `direction`+ | in-app | ✅ MVP (via shim legacy) |
 
 ### Événements SMART TROC intermédiaires (`accepted → contacted → appointment`)
@@ -102,6 +104,24 @@ Garanties :
 - Elles sont **traçables** dans la timeline du modal `TrocDetailsModal` (livré par #11) et dans le dashboard conversion (livré par #12).
 
 Si le besoin d'une notif intermédiaire émerge (ex: "le dossier n'a pas été contacté depuis 48h"), c'est un cas de notification *dérivée du temps* — pas de l'événement — et doit passer par un cron DB plutôt que ce trigger. Hors MVP #17.
+
+## Relais externes multi-canal (Telegram, puis WhatsApp…)
+
+Migration `20261020_002_staff_notification_deliveries.sql` + Edge Function `notify-staff`.
+
+- `admin_notifications` = boîte d'envoi, indépendante des canaux. `notification_deliveries`
+  trace l'envoi par `(notification_id, channel)`.
+- pg_cron (`notify-staff-every-minute`) appelle `notify-staff` tant qu'une notification a moins de 24 h.
+  Pour chaque canal configuré : `claim_notification_deliveries(channel, event_types)` réclame
+  (`FOR UPDATE SKIP LOCKED`, 5 essais max), l'adaptateur envoie, puis `sent_at` est posé.
+  Échec → `last_error`, nouvel essai à la minute suivante.
+- Contrat d'un canal : `StaffNotifyChannel` (`_shared/staffNotify.ts`). Adaptateurs dans
+  `_shared/staffNotifyChannels/` (Telegram : `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
+  `TELEGRAM_EVENT_TYPES` optionnel). Un canal sans ses secrets est ignoré.
+- **Ajouter WhatsApp** : écrire `staffNotifyChannels/whatsapp.ts` (`createWhatsAppChannel(env, fetch)`,
+  texte via `formatPlainNotification`), l'ajouter dans `buildChannels()` de `notify-staff`, poser ses
+  secrets. Aucune migration.
+- Le job cron lit `CRON_SECRET` dans Vault (`cron_secret`), jamais en clair dans une migration.
 
 ## Comment ajouter un nouvel événement
 

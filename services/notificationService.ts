@@ -26,6 +26,7 @@ export type NotificationEventType =
   | 'troc_completed'
   | 'troc_refused'
   | 'order_created'
+  | 'pos_sale'
   | 'order_paid'
   | 'order_shipped'
   | 'sync_success'

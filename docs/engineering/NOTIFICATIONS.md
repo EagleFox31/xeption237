@@ -88,6 +88,7 @@ Garanties :
 | `troc_completed` | Trigger DB sur `trade_in_requests` (`completed`) | tous staff | in-app | ✅ MVP |
 | `troc_refused` | Trigger DB sur `trade_in_requests` (`refused`) | tous staff | in-app | ✅ MVP |
 | `order_created` | Client code `useOrderProcess` success | tous staff | in-app | 🟡 Roadmap |
+| `pos_sale` | RPC `telegram_staff_complete_sale` (vente comptoir du bot Telegram) | tous staff | in-app + groupe Telegram | ✅ |
 | `order_paid` | Client code (webhook paiement) | tous staff | in-app + email | 🟡 Roadmap |
 | `order_shipped` | Admin action manuelle | **client (email)** | email | 🟡 Roadmap |
 | `sync_success` / `sync_failure` | Hook `useOfflinePos` (déjà intégré via shim) | vendeur concerné | in-app (silencieux pour `success`) | ✅ MVP (via shim legacy) |

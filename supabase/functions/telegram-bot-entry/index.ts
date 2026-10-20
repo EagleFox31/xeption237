@@ -15,6 +15,10 @@ import {
   isHrPeriod, memberLine, objectivePrompt, parseObjectiveTag, parseTargetAmount,
   type HrMember, type HrPending, type HrPeriodKey
 } from "../_shared/telegramHr.ts";
+import {
+  PAY_CODES, SALE_REASON_TEXT, isPayCode, parseCustomerReply, parseSaleTag, payLabel,
+  saleCancelCb, saleConfirmCb, salePayCb, salePrompt, saleRecap, saleStartCb, type SaleLine
+} from "../_shared/telegramSale.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -738,6 +742,8 @@ async function screenMain(staff: StaffMember): Promise<Screen> {
     { text: "📦 Stocks & Prix", callback_data: "nav:stocks" },
     { text: "⚠️ Stocks Faibles", callback_data: "nav:stock_low" }
   ]];
+  // A sale starts from a product sheet: the entry point is the store catalogue.
+  if (staff.store) rows.push([{ text: "🛒 Enregistrer une vente", callback_data: "nav:stocks" }]);
   if (staff.rank >= RANK_RESPONSABLE) {
     rows.push([
       { text: "🔄 Smart Troc", callback_data: "nav:troc" },
@@ -869,6 +875,10 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
   }
 
   const rows: InlineButton[][] = [];
+  // Selling only from one's own store; the RPC re-checks store and stock.
+  if (staff.store && store?.id === staff.store.id && product.stock > 0 && cbFits(salePayCb("C", product.id))) {
+    rows.push([{ text: "🛒 Vendre ce produit", callback_data: saleStartCb(product.id) }]);
+  }
   // A transfer request only makes sense for someone attached to a store.
   if (staff.store) rows.push([{ text: "🚚 Demander transfert", callback_data: `nav:trans:${product.id}:${backCat}${suffix}` }]);
   rows.push([
@@ -882,6 +892,134 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
       `• Stock ${escapeHtml(scopeLabel(store))} : <b>${product.stock} unité(s)</b>`,
     reply_markup: { inline_keyboard: rows }
   };
+}
+
+// ── Vente comptoir (scénario 1 : 1 article, paiement unique) ──────────────────
+// Produit → moyen de paiement → client (ForceReply #VTE:) → récapitulatif → encaissement.
+// État dans telegram_sale_drafts ; boutique, vendeur et prix résolus par les RPC.
+
+const saleHome: InlineButton[] = [{ text: "🏠 Accueil", callback_data: "nav:main" }];
+
+function saleMessage(text: string): Screen {
+  return { text, reply_markup: { inline_keyboard: [saleHome] } };
+}
+
+function saleRefusal(result: { reason?: string; error?: string; order_id?: string }): Screen {
+  if (result.reason === "completed") {
+    return saleMessage(`ℹ️ Vente déjà enregistrée (commande <b>${escapeHtml(result.order_id ?? "")}</b>).`);
+  }
+  const base = SALE_REASON_TEXT[result.reason ?? ""] ?? "Vente non enregistrée, réessayez.";
+  return saleMessage("❌ " + base + (result.error ? " : " + escapeHtml(result.error) : "") + ".");
+}
+
+async function screenSalePayment(staff: StaffMember, productId: string): Promise<Screen> {
+  if (!staff.store) return saleRefusal({ reason: "no_store" });
+  const [product] = await stockRows(staff.store, { productId, limit: 1, ascending: false });
+  if (!product || product.stock < 1) return saleRefusal({ reason: product ? "out_of_stock" : "not_found" });
+  const codes = Object.keys(PAY_CODES) as (keyof typeof PAY_CODES)[];
+  return {
+    text:
+      `🛒 <b>${escapeHtml(product.name)}</b> — ${money(product.price)}\n\n` +
+      `Comment le client paie-t-il ?`,
+    reply_markup: {
+      inline_keyboard: [
+        ...codes.map(c => [{ text: payLabel(PAY_CODES[c]), callback_data: salePayCb(c, product.id) }]),
+        [{ text: "⬅️ Précédent", callback_data: `nav:p:${product.id}:apple` }, ...saleHome]
+      ]
+    }
+  };
+}
+
+/** Opens the draft and asks for the customer; returns a Screen only on refusal. */
+async function actionSaleOpen(staff: StaffMember, code: string, productId: string, chatId: string | number): Promise<Screen | null> {
+  const supabase = db();
+  if (!supabase || !isPayCode(code) || !productId) return saleMessage("Action invalide.");
+  const { data, error } = await supabase.rpc("telegram_staff_sale_draft_open", {
+    p_telegram_user_id: staff.telegram_user_id, p_product_id: productId, p_payment_method: PAY_CODES[code]
+  });
+  if (error || !data) {
+    console.error("telegram-bot-entry: sale draft open failed", { code: error?.code });
+    return saleMessage("Vente non démarrée, réessayez.");
+  }
+  const result = data as { changed: boolean; reason?: string; draft_id?: string; product_name?: string; price?: number };
+  if (!result.changed || !result.draft_id) return saleRefusal(result);
+  await telegram("sendMessage", {
+    chat_id: chatId,
+    text: salePrompt(result.draft_id, result.product_name ?? "", Number(result.price ?? 0), PAY_CODES[code]),
+    reply_markup: { force_reply: true, input_field_placeholder: "Paul 699123456" }
+  });
+  return null;
+}
+
+async function actionSaleCustomer(staff: StaffMember, draftId: string, rawText: string): Promise<Screen> {
+  const supabase = db();
+  const customer = parseCustomerReply(rawText);
+  if (!customer) {
+    return {
+      text: "Format non reconnu. Exemple : <b>Paul 699123456</b> (prénom puis numéro WhatsApp à 9 chiffres).",
+      reply_markup: { inline_keyboard: [[{ text: "❌ Annuler la vente", callback_data: saleCancelCb(draftId) }]] }
+    };
+  }
+  if (!supabase || !UUID_RE.test(draftId)) return saleMessage("Action invalide.");
+  const { data, error } = await supabase.rpc("telegram_staff_sale_draft_set_customer", {
+    p_telegram_user_id: staff.telegram_user_id, p_draft_id: draftId,
+    p_customer_name: customer.name, p_customer_phone: customer.phone
+  });
+  if (error || !data) {
+    console.error("telegram-bot-entry: sale customer failed", { code: error?.code });
+    return saleMessage("Client non enregistré, réessayez.");
+  }
+  const result = data as {
+    changed: boolean; reason?: string; order_id?: string; lines?: SaleLine[]; payment_method?: string;
+    discount_amount?: number; customer_name?: string; customer_phone?: string;
+  };
+  if (!result.changed) return saleRefusal(result);
+  return {
+    text: saleRecap({
+      lines: (result.lines ?? []).map(l => ({ ...l, unit_price: Number(l.unit_price), quantity: Number(l.quantity) })),
+      payment_method: result.payment_method ?? "", discount_amount: Number(result.discount_amount ?? 0),
+      customer_name: result.customer_name ?? customer.name, customer_phone: result.customer_phone ?? customer.phone
+    }),
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "✅ Valider l'encaissement", callback_data: saleConfirmCb(draftId) }],
+        [{ text: "❌ Annuler", callback_data: saleCancelCb(draftId) }]
+      ]
+    }
+  };
+}
+
+async function actionSaleComplete(staff: StaffMember, draftId: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase || !UUID_RE.test(draftId)) return saleMessage("Action invalide.");
+  const { data, error } = await supabase.rpc("telegram_staff_complete_sale", {
+    p_telegram_user_id: staff.telegram_user_id, p_draft_id: draftId
+  });
+  if (error || !data) {
+    console.error("telegram-bot-entry: sale complete failed", { code: error?.code });
+    return saleMessage("Encaissement non confirmé. Vérifiez « 📊 Ventes du Jour » avant de réessayer.");
+  }
+  const result = data as { changed: boolean; reason?: string; error?: string; order_id?: string; total?: number; customer_name?: string; payment_method?: string };
+  if (!result.changed) return saleRefusal(result);
+  return saleMessage(
+    `✅ <b>Vente enregistrée</b>\n\n` +
+    `Commande : <b>${escapeHtml(result.order_id ?? "")}</b>\n` +
+    `Total : <b>${money(result.total)}</b> — ${escapeHtml(payLabel(result.payment_method ?? ""))}\n` +
+    `Client : ${escapeHtml(result.customer_name ?? "")}\n\n` +
+    `Stock de la boutique mis à jour, équipe prévenue.`
+  );
+}
+
+async function actionSaleCancel(staff: StaffMember, draftId: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase || !UUID_RE.test(draftId)) return saleMessage("Action invalide.");
+  const { data, error } = await supabase.rpc("telegram_staff_sale_draft_cancel", {
+    p_telegram_user_id: staff.telegram_user_id, p_draft_id: draftId
+  });
+  if (error || !data) return saleMessage("Annulation non confirmée, réessayez.");
+  const result = data as { changed: boolean; reason?: string; order_id?: string };
+  if (!result.changed && result.reason !== "cancelled") return saleRefusal(result);
+  return saleMessage("🗑 Vente annulée. Aucun encaissement enregistré.");
 }
 
 async function screenStockLow(staff: StaffMember, storeCode?: string): Promise<Screen> {
@@ -1215,6 +1353,16 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     screen = await screenStockLow(staff, parts[2]);
   } else if (action === "trans") {
     screen = await screenTransferConfirm(staff, parts[2] ?? "", parts[3] || "apple", parts[4]);
+  } else if (action === "sv") {
+    screen = await screenSalePayment(staff, parts[2] ?? "");
+  } else if (action === "sp") {
+    const refusal = await actionSaleOpen(staff, parts[2] ?? "", parts[3] ?? "", chatId);
+    if (!refusal) return;
+    screen = refusal;
+  } else if (action === "sc") {
+    screen = await actionSaleComplete(staff, parts[2] ?? "");
+  } else if (action === "sx") {
+    screen = await actionSaleCancel(staff, parts[2] ?? "");
   } else if (action === "troc") {
     screen = await screenTrocList(staff);
   } else if (action === "t_v") {
@@ -1297,6 +1445,20 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
       ? hrMessage("Montant invalide (ex. 1500000 ou 1,5m). Touchez à nouveau « ✏️ Autre montant ».", hrMemberBack(objective.staffId))
       : await actionHrTarget(staff, objective.period, amount, objective.staffId);
     await renderScreen(chatId, undefined, screen);
+    return;
+  }
+
+  // Reply to a sale prompt (#VTE:). The tag is context only: the RPC re-checks the owner.
+  const sale = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parseSaleTag(String(reply?.text ?? ""))
+    : null;
+  if (sale) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    await renderScreen(chatId, undefined, await actionSaleCustomer(staff, sale.draftId, rawText));
     return;
   }
 

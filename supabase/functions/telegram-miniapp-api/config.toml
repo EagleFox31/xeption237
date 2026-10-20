@@ -1,0 +1,3 @@
+# Telegram Mini App carries signed Telegram initData instead of a Supabase JWT.
+# Function verifies HMAC and current Xeption staff role server-side on every call.
+verify_jwt = false

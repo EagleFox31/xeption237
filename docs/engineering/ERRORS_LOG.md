@@ -307,3 +307,20 @@ tests de `tests/telegram-staff-hr.test.ts` normalisent `\r\n` avant de comparer.
 **Comment ne plus la refaire** : un test qui lit un fichier source normalise les fins de ligne.
 Un « MODIFIÉ » sur une migration qu'on n'a pas éditée se vérifie d'abord avec `git diff` : s'il est
 vide, c'est un artefact de checkout et non une divergence.
+
+## 2026-10-20 — Objectif hebdomadaire impossible à enregistrer depuis l'ERP
+
+**Symptôme** : l'onglet Objectifs de l'ERP propose « Cette semaine », mais l'enregistrement échoue
+avec « Paramètres invalides ». Seul le bot Telegram (écriture directe en service_role) pouvait
+créer un objectif `weekly`.
+
+**Cause racine** : `20260906_001_objectifs_hebdomadaires.sql` a ajouté `weekly` à la contrainte
+`sales_targets_period_kind_check` et à `get_sales_targets_progress`, mais pas à la validation de
+`upsert_sales_target` (`20260824_025`). Élargir un énum a laissé un de ses consommateurs en retard.
+
+**Résolution** : `20261020_016_upsert_sales_target_weekly.sql` reprend le corps de prod et ajoute
+`weekly` à la liste.
+
+**Comment ne plus la refaire** : `tests/upsert-sales-target-weekly.test.ts` vérifie que chaque clé
+de `TARGET_PERIOD_LABELS` est acceptée par la RPC. Pour élargir une valeur d'énum, chercher toutes
+les fonctions qui la valident (`pg_get_functiondef ~ '<ancienne liste>'`) avant de déclarer fini.

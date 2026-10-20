@@ -137,24 +137,62 @@ async function linkedStaff(telegramUserId: string): Promise<Staff> {
   return { telegramUserId, authUserId:id, ...staff };
 }
 
-async function link(telegramUserId: string, input: Json): Promise<object> {
-  const accessToken = input.xeptionAccessToken;
+const LINK_CODE_RE = /^[0-9a-f]{32}$/;
+
+async function sha256Hex(input: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", encode(input)));
+  return Array.from(digest, b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** One-time code issued by the ERP (create_telegram_link_code): burnt by a single UPDATE. */
+async function userFromLinkCode(code: string, telegramUserId: string): Promise<{id: string; email: string}> {
+  const { data, error } = await supabase.from("telegram_link_codes")
+    .update({ used_at: new Date().toISOString(), used_by_telegram_user_id: telegramUserId })
+    .eq("code_hash", await sha256Hex(code))
+    .is("used_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .select("auth_user_id");
+  if (error) throw new ApiError(502, "LINK_LOOKUP_FAILED");
+  const id = data?.[0]?.auth_user_id;
+  if (!id) throw new ApiError(401, "LINK_CODE_INVALID");
+  const { data: found, error: userError } = await supabase.auth.admin.getUserById(id);
+  if (userError || !found?.user?.email) throw new ApiError(403, "XEPTION_ACCOUNT_DISABLED");
+  if (found.user.banned_until && Date.parse(found.user.banned_until) > Date.now()) {
+    throw new ApiError(403, "XEPTION_ACCOUNT_DISABLED");
+  }
+  return { id, email: found.user.email };
+}
+
+async function userFromAccessToken(accessToken: unknown): Promise<{id: string; email: string}> {
   if (typeof accessToken !== "string" || accessToken.length < 20 || accessToken.length > 5000) {
     throw new ApiError(401, "XEPTION_AUTH_FAILED");
   }
   const { data, error } = await supabase.auth.getUser(accessToken);
   if (error || !data.user?.id || !data.user.email) throw new ApiError(401, "XEPTION_AUTH_FAILED");
-  const staff = await getStaff(data.user.email);
+  return { id: data.user.id, email: data.user.email };
+}
+
+async function link(telegramUserId: string, input: Json): Promise<object> {
+  let user: {id: string; email: string};
+  if (input.linkCode !== undefined) {
+    if (typeof input.linkCode !== "string" || !LINK_CODE_RE.test(input.linkCode)) {
+      throw new ApiError(401, "LINK_CODE_INVALID");
+    }
+    user = await userFromLinkCode(input.linkCode, telegramUserId);
+  } else {
+    user = await userFromAccessToken(input.xeptionAccessToken);
+  }
+  const staff = await getStaff(user.email);
   const { data: existing, error: findError } = await supabase.from("telegram_staff_links")
     .select("auth_user_id,revoked_at").eq("telegram_user_id",telegramUserId).maybeSingle();
   if (findError) throw new ApiError(502,"LINK_LOOKUP_FAILED");
-  if (existing && !existing.revoked_at && existing.auth_user_id !== data.user.id) {
+  if (existing && !existing.revoked_at && existing.auth_user_id !== user.id) {
     throw new ApiError(409, "TELEGRAM_ALREADY_LINKED");
   }
   const { error: updateError } = await supabase.from("telegram_staff_links")
     .upsert({
       telegram_user_id:telegramUserId,
-      auth_user_id:data.user.id,
+      auth_user_id:user.id,
       revoked_at:null
     }, {onConflict:"telegram_user_id"});
   if (updateError) throw new ApiError(409, "ALREADY_LINKED");

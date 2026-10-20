@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY: string;
   readonly VITE_ENABLE_TROC_AI: string;
   readonly VITE_GTM_ID?: string;
+  readonly VITE_TELEGRAM_MINIAPP_LINK?: string;
   readonly DEV?: boolean;
 }
 

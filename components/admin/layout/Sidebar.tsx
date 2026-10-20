@@ -6,6 +6,7 @@ import { ADMIN_MENU_GROUPS, type AdminMenuGroup } from './adminMenuConfig';
 import type { AdminTabId } from './adminMenuConfig';
 import { adminUi } from '../shared/adminUi';
 import BackToShopLink from './BackToShopLink';
+import LinkTelegramButton from './LinkTelegramButton';
 import MenuBadge from '../shared/MenuBadge';
 import type { AdminMenuBadges } from '../../../utils/adminRoutes';
 
@@ -123,6 +124,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
           {onChangePassword && <KeyRound className="w-3.5 h-3.5 text-white/40 ml-auto shrink-0" />}
         </button>
+
+        <LinkTelegramButton />
 
         <BackToShopLink />
 

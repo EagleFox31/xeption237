@@ -16,6 +16,7 @@ import { findMenuItem } from './layout/adminMenuConfig';
 import { adminUi } from './shared/adminUi';
 import Logo from '../Logo';
 import BackToShopLink from './layout/BackToShopLink';
+import LinkTelegramButton from './layout/LinkTelegramButton';
 import ConfirmationModal from './modals/ConfirmationModal';
 import NotificationToast from './notifications/NotificationToast';
 import NotificationDrawer from './notifications/NotificationDrawer';
@@ -473,6 +474,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                    </div>
                  </div>
                  <div className="flex items-center gap-1">
+                   <LinkTelegramButton variant="compact" />
                    <BackToShopLink variant="compact" />
                    <button type="button" onClick={handleLogout} className={`text-red-400 p-2 rounded-md hover:bg-red-500/10 ${adminUi.focusRing}`} aria-label="Déconnexion">
                      <LogOut className="w-5 h-5"/>

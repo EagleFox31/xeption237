@@ -41,6 +41,7 @@ export const DEFAULT_STAFF_EVENT_TYPES = [
   'stock_out',
   'marketplace_listed',
   'order_created',
+  'product_missing_image',
 ] as const;
 
 const EVENT_ICONS: Record<string, string> = {
@@ -51,6 +52,7 @@ const EVENT_ICONS: Record<string, string> = {
   stock_out: '🚨',
   marketplace_listed: '🛒',
   order_created: '🧾',
+  product_missing_image: '🖼️',
 };
 const DEFAULT_ICON = '🔔';
 

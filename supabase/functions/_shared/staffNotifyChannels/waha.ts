@@ -1,12 +1,11 @@
 /**
- * Optional WAHA NOWEB channel for Xeption staff notifications.
+ * Xeption is an EVENT PRODUCER, never a direct WAHA provider client.
  *
- * WAHA is running on Trigenys Notify's OVH VPS. The VPS currently binds its
- * API to 127.0.0.1:3000, so this channel is DISABLED until a secured HTTPS
- * ingress exists and server-side WAHA secrets have been configured.
+ * Its existing durable outbox/cron sends a versioned event to Trigenys Notify.
+ * Trigenys Notify owns the WAHA credentials, WhatsApp session and group.
  *
- * Never send free-form notification content, names, phone numbers or messages
- * to a WhatsApp group; the existing admin UI provides authorized details.
+ * The WhatsApp channel remains disabled until WAHA_ENABLED=true and the
+ * separate server-to-server ingress key has been configured.
  */
 import {
   notificationLink,
@@ -16,85 +15,73 @@ import {
   type StaffNotifyContext,
 } from '../staffNotify.ts';
 
-const SAFE_TEMPLATES: Record<string, string> = {
-  troc_submitted: '🔄 Nouveau dossier de troc à examiner',
-  troc_completed: '✅ Un dossier de troc a été clôturé',
-  troc_refused: '⛔ Un dossier de troc a été refusé',
-  stock_low: '📦 Alerte : stock faible',
-  stock_out: '🚨 Alerte : rupture de stock',
-  marketplace_listed: '🛍️ Nouvelle annonce marketplace',
-  order_created: '🧾 Nouvelle commande',
-  product_missing_image: '🖼️ Photo de produit manquante',
+export const WAHA_DEFAULT_EVENT_TYPES = [
+  'stock_low', 'stock_out', 'product_missing_image'
+];
+
+export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
+  stock_low:'inventory.stock_low',
+  stock_out:'inventory.stock_out',
+  product_missing_image:'catalog.product_missing_image',
+  troc_submitted:'barter.requested',
+  marketplace_listed:'marketplace.listing_created'
 };
 
-export const WAHA_DEFAULT_EVENT_TYPES = ['stock_low', 'stock_out', 'product_missing_image'];
+const DISPATCH_URL =
+  'https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/v1/dispatch/xeption/whatsapp';
 
-export function safeWahaText(notification: StaffNotification, ctx: StaffNotifyContext): string {
-  const header = Object.hasOwn(SAFE_TEMPLATES, notification.event_type)
-    ? SAFE_TEMPLATES[notification.event_type]
-    : '🔔 Nouvelle alerte du personnel';
-  const link = notificationLink(notification, ctx).url;
-  // The URL may contain a source-generated item ID; never copy customer details.
-  return [header, 'Consultez Xeption pour les détails.', link].join('\n');
-}
-
-function trustedEndpoint(raw: string): string | null {
-  try {
-    const url = new URL(raw);
-    if (url.protocol !== 'https:' || url.username || url.password ||
-        url.port || url.search || url.hash || url.pathname !== '/' ||
-        !/^[a-z0-9.-]+$/i.test(url.hostname)) return null;
-    return url.origin + '/api/sendText';
-  } catch { return null; }
-}
-
-/**
- * Fully opt-in: WAHA_ENABLED must be true and every credential present.
- * Fail-closed validation NEVER disrupts the existing Telegram channel.
- */
-export const createWahaChannel = (
-  env: EnvReader, fetchImpl: typeof fetch = fetch,
-): StaffNotifyChannel | null => {
-  if (env('WAHA_ENABLED') !== 'true') return null;
-  const endpoint = trustedEndpoint(env('WAHA_BASE_URL') ?? '');
-  const apiKey = env('WAHA_API_KEY') ?? '';
-  const session = env('WAHA_SESSION') ?? '';
-  const groupId = env('WAHA_STAFF_GROUP_ID') ?? '';
-  if (!endpoint || apiKey.length < 32 ||
-      !/^[a-zA-Z0-9_-]{1,48}$/.test(session) ||
-      !/^[0-9-]+@g\.us$/.test(groupId)) return null;
-
-  const types = (env('WAHA_EVENT_TYPES') || WAHA_DEFAULT_EVENT_TYPES.join(','))
-    .split(',').map(s => s.trim()).filter(s => Object.hasOwn(SAFE_TEMPLATES, s));
-  if (!types.length) return null;
-
+/** Canonical Trigenys Notify event. No freeform names, phone, email, title or message. */
+export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
+  const type=NOTIFY_EVENT_ALIASES[n.event_type];
+  if(!type) throw new Error('UNSUPPORTED_NOTIFY_EVENT');
+  const kind=type.startsWith('inventory.')?'inventory':
+    type.startsWith('catalog.')?'catalog':
+    type.startsWith('barter.')?'barter':'marketplace';
   return {
-    id: 'whatsapp_waha', // Separate durable outbox from channel 'telegram'.
-    eventTypes: [...new Set(types)],
-    async send(notification, ctx) {
+    version:1,project:'xeption',id:n.notification_id,type,
+    occurredAt:new Date().toISOString(),
+    priority:n.event_type==='stock_out'?'critical':
+      n.event_type==='stock_low'?'high':'normal',
+    resource:{kind,id:n.notification_id},
+    audience:'staff',
+    // Do not use a client-controlled origin from message or source settings.
+    actionUrl:notificationLink(n,{siteUrl:'https://www.xeptionetwork.shop'}).url
+  };
+}
+
+/** This ID is stable to preserve Xeption's (notification_id, channel) outbox. */
+export const createWahaChannel = (
+  env:EnvReader,fetchImpl:typeof fetch=fetch
+):StaffNotifyChannel|null => {
+  if(env('WAHA_ENABLED')!=='true') return null;
+  const ingestKey=env('XEPTION_NOTIFY_INGEST_KEY')??'';
+  if(ingestKey.length<32)return null;
+  const types=(env('WAHA_EVENT_TYPES')??WAHA_DEFAULT_EVENT_TYPES.join(','))
+    .split(',').map(s=>s.trim()).filter(s=>Object.hasOwn(NOTIFY_EVENT_ALIASES,s));
+  if(!types.length)return null;
+  return {
+    id:'whatsapp_waha',
+    eventTypes:[...new Set(types)],
+    async send(notification,ctx) {
       try {
-        const response = await fetchImpl(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Api-Key': apiKey,
+        const event=toNotifyEvent(notification,ctx);
+        const res=await fetchImpl(DISPATCH_URL,{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'Accept':'application/json',
+            'x-notify-auth':ingestKey
           },
-          body: JSON.stringify({
-            session,
-            chatId: groupId,
-            text: safeWahaText(notification, ctx),
-            linkPreview: false,
-          }),
-          signal: AbortSignal.timeout(12_000),
+          body:JSON.stringify(event),
+          signal:AbortSignal.timeout(12000)
         });
-        // Do not leak upstream response bodies, phone numbers, chat IDs or keys.
-        // HTTP 2xx indicates WAHA accepted the request, not user delivery.
-        if (response.ok) return null;
-        return `waha_http_${response.status}`;
-      } catch {
-        return 'waha_network_error';
+        // HTTP 202 is acceptance by Trigenys Notify's WAHA provider.
+        // No provider credential nor WhatsApp group ID exists in Xeption.
+        if(res.status===202)return null;
+        return 'notify_http_'+res.status;
+      }catch{
+        return 'notify_network_error';
       }
-    },
+    }
   };
 };

@@ -78,7 +78,25 @@ export const createWahaChannel = (
         // HTTP 202 is acceptance by Trigenys Notify's WAHA provider.
         // No provider credential nor WhatsApp group ID exists in Xeption.
         if(res.status===202)return null;
-        return 'notify_http_'+res.status;
+        // Trigenys Notify publishes a narrow error-code contract.
+        // Record ONLY allowlisted values; never log response bodies,
+        // credentials, chat IDs, phone numbers or customer data.
+        const knownCodes = new Set([
+          'CHANNEL_DISABLED', 'WAHA_NOT_CONFIGURED',
+          'WAHA_INVALID_CONFIG', 'INGEST_NOT_CONFIGURED',
+          'UNAUTHORIZED', 'NETWORK_ERROR', 'PROVIDER_UNAVAILABLE',
+          'PROVIDER_REJECTED', 'RATE_LIMITED', 'INVALID_EVENT'
+        ]);
+        let detail = '';
+        if(res.status===503 || res.status===502) {
+          try {
+            const body = await res.json() as {error?:unknown};
+            if(typeof body?.error === 'string' && knownCodes.has(body.error)) {
+              detail = '_' + body.error;
+            }
+          }catch { /* do not inspect provider content */ }
+        }
+        return 'notify_http_'+res.status+detail;
       }catch{
         return 'notify_network_error';
       }

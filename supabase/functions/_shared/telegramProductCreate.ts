@@ -113,3 +113,25 @@ export function parseProductStock(text: string): number | null {
   return stock >= 1 && stock <= 500 ? stock : null;
 }
 
+
+// ── Normalisation catalogue (miroir Deno de utils/productDisplay.ts + utils/productBrand.ts) ──
+
+/** Nom saisi au bot : espaces compactés et graphie officielle « Galaxy » (pas « Galaxie »). */
+export function normalizeProductName(raw: string): string {
+  return raw.replace(/\s+/g, " ").trim().replace(/\bGalaxie\b/gi, "Galaxy");
+}
+
+export interface BrandOption {
+  id: string;
+  name: string;
+  slug?: string | null;
+}
+
+const isCanonicalSamsung = (b: BrandOption) => b.slug === "samsung" || b.name.trim().toLowerCase() === "samsung";
+
+/** Une seule entrée « Samsung » dans le sélecteur — pas Samsung + Samsung Galaxy. */
+export function dedupeBrandOptions<T extends BrandOption>(brands: readonly T[]): T[] {
+  const samsung = brands.find(isCanonicalSamsung);
+  if (!samsung) return [...brands];
+  return brands.filter((b) => b === samsung || !b.name.toLowerCase().includes("samsung"));
+}

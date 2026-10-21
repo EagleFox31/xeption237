@@ -1,3 +1,5 @@
+declare const Deno: { env: { get(key: string): string | undefined } };
+
 const DEEPSEEK_TIMEOUT_MS = 45_000;
 
 export const deepseekChatJson = async (

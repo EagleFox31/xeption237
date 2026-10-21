@@ -42,6 +42,7 @@ const TrocUpgradeChoice: React.FC<TrocUpgradeChoiceProps> = ({ credit, deviceBra
       .from('products')
       .select('*')
       .gt('stock', 0)
+      .eq('is_published', true)
       .then(({ data }) => {
         if (data) setProducts((data as any[]).map(mapRow));
         setLoading(false);

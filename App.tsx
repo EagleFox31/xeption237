@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef, useMemo } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import { Product, CartItem, Pack } from './types';
@@ -18,6 +18,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { notifyError } from './utils/notify';
 import { trackAddToCart } from './utils/analytics';
 import { getProductSlug } from './utils/slug';
+import { filterStorefrontProducts } from './utils/productVisibility';
 import MobileBottomNav from './components/MobileBottomNav';
 // Pages critiques (landing + commerce) : eager pour éviter un fallback au premier paint.
 import HomePage from './pages/HomePage';
@@ -60,6 +61,7 @@ const OverlayFallback: React.FC = () => (
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const storefrontProducts = useMemo(() => filterStorefrontProducts(products), [products]);
   const [packs, setPacks] = useState<Pack[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -330,7 +332,7 @@ const App: React.FC = () => {
           <Header
             cartCount={cartCount}
             onOpenCart={() => setIsCartOpen(true)}
-            products={products}
+            products={storefrontProducts}
             onProductSelect={(p) => navigate(`/product/${getProductSlug(p)}`)}
           />
         </div>
@@ -350,7 +352,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={
             <HomePage
-              products={products}
+              products={storefrontProducts}
               packs={packs}
               onAddToCart={addToCart}
               onAddPackToCart={addPackToCart}
@@ -361,14 +363,14 @@ const App: React.FC = () => {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/shop" element={
             <ShopPage
-              products={products}
+              products={storefrontProducts}
               onAddToCart={addToCart}
             />
           } />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/product/:slug" element={
             <ProductPage
-              products={products}
+              products={storefrontProducts}
               onAddToCart={addToCart}
               cartCount={cartCount}
               onOpenCart={() => setIsCartOpen(true)}
@@ -376,7 +378,7 @@ const App: React.FC = () => {
           } />
           <Route path="/troc" element={
             <TrocPage
-              products={products}
+              products={storefrontProducts}
               onAddToCart={addToCart}
             />
           } />

@@ -152,7 +152,8 @@ export const MobileTrocResult: React.FC<MobileTrocResultProps> = ({
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .gt('stock', 0);
+          .gt('stock', 0)
+          .eq('is_published', true);
 
         if (error || !data || data.length === 0) return;
 

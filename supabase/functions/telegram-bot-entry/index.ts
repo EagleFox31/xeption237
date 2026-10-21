@@ -32,7 +32,8 @@ import {
   prodCreateBrandCb, prodCreateCancelCb, prodCreateCatCb, prodCreateCondCb,
   prodCreateConfirmCb, prodCreateDupCb, prodCreateRamCb, prodCreateSkipPhotosCb,
   prodCreateStartCb, prodCreateStorageCb, prodCreateStoreCb, prodPendingListCb,
-  prodPublishCb, prodRejectCb, prodRejectConfirmCb, prodReviewCb, type ProductDraft
+  prodPublishCb, prodRejectCb, prodRejectConfirmCb, prodReviewCb, type ProductDraft,
+  dedupeBrandOptions, normalizeProductName
 } from "../_shared/telegramProductCreate.ts";
 import { deepseekChatJson } from "../_shared/deepseekTextJson.ts";
 import { buildProductEnricherPrompt, parseProductEnricherOutput } from "../_shared/personas/productEnricher.ts";
@@ -1570,7 +1571,7 @@ async function promptProductName(staff: StaffMember, storeCode: string): Promise
 }
 
 async function handleProdCreateNameReply(staff: StaffMember, rawName: string): Promise<Screen> {
-  const name = rawName.trim();
+  const name = normalizeProductName(rawName);
   if (name.length < 3) {
     return {
       text: "❌ Nom trop court. Tapez un nom valide d'au moins 3 caractères.",
@@ -1664,8 +1665,8 @@ async function handleProdCreateCat(staff: StaffMember, category: string): Promis
     p_patch: { category, step: "brand" }
   });
 
-  const { data: brands } = await supabase.from("brands").select("id, name").order("name");
-  const brandList = (brands ?? []) as { id: string; name: string }[];
+  const { data: brands } = await supabase.from("brands").select("id, name, slug").order("name");
+  const brandList = dedupeBrandOptions((brands ?? []) as { id: string; name: string; slug: string | null }[]);
 
   const rows: InlineButton[][] = [];
   let curRow: InlineButton[] = [];

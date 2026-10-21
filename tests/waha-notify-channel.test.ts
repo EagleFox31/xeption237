@@ -54,6 +54,14 @@ describe('Xeption producer -> Trigenys Notify',()=>{
   it('preserves retry failures but does not leak upstream bodies',async()=>{
     const remote=createWahaChannel(reader(env),vi.fn(async()=>new Response('secret +237',{status:503})) as typeof fetch);
     expect(await remote?.send(sample,ctx)).toBe('notify_http_503');
+    const configured = createWahaChannel(reader(env),
+      vi.fn(async()=>new Response(JSON.stringify({error:'WAHA_NOT_CONFIGURED'}),{
+        status:503,headers:{'content-type':'application/json'}
+      })) as typeof fetch);
+    expect(await configured?.send(sample,ctx)).toBe('notify_http_503_WAHA_NOT_CONFIGURED');
+    const attacker = createWahaChannel(reader(env),
+      vi.fn(async()=>new Response(JSON.stringify({error:'SECRET_leak_key'}),{status:503})) as typeof fetch);
+    expect(await attacker?.send(sample,ctx)).toBe('notify_http_503');
     const failed=createWahaChannel(reader(env),
       vi.fn(async()=>{throw Error('access token secret');}) as typeof fetch);
     expect(await failed?.send(sample,ctx)).toBe('notify_network_error');

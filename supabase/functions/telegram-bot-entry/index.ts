@@ -19,6 +19,10 @@ import {
   PAY_CODES, SALE_REASON_TEXT, isPayCode, parseCustomerReply, parseSaleTag, payLabel,
   saleCancelCb, saleConfirmCb, salePayCb, salePrompt, saleRecap, saleStartCb, type SaleLine
 } from "../_shared/telegramSale.ts";
+import {
+  STOCK_REASON_TEXT, parseCorrectionReply, parseReceiveReply, parseStockTag, stockCorrectCb,
+  stockReceiveCb, stockTag, type StockOp
+} from "../_shared/telegramStock.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -982,6 +986,14 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
   }
   // A transfer request only makes sense for someone attached to a store.
   if (staff.store) rows.push([{ text: "🚚 Demander transfert", callback_data: `nav:trans:${product.id}:${backCat}${suffix}` }]);
+  // Stock edits target one store: responsable on their own, direction on the scoped one. The RPC re-checks.
+  if (store && staff.rank >= RANK_RESPONSABLE && (staff.rank >= RANK_DIRECTION || staff.store?.id === store.id) &&
+    cbFits(stockReceiveCb(product.id, store.code)) && cbFits(stockCorrectCb(product.id, store.code))) {
+    rows.push([
+      { text: "➕ Réception", callback_data: stockReceiveCb(product.id, store.code) },
+      { text: "✏️ Corriger le stock", callback_data: stockCorrectCb(product.id, store.code) }
+    ]);
+  }
   rows.push([
     { text: backCat === "search" ? "⬅️ Précédent (Catégories)" : "⬅️ Précédent", callback_data: back },
     { text: "🏠 Accueil", callback_data: "nav:main" }
@@ -993,6 +1005,80 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
       `• Stock ${escapeHtml(scopeLabel(store))} : <b>${product.stock} unité(s)</b>`,
     reply_markup: { inline_keyboard: rows }
   };
+}
+
+// ── Stock : réception (+N) et correction d'inventaire (chiffre compté + motif) ──
+// Fiche produit → invite ForceReply (#STK:) → RPC. Clé d'idempotence = chat:message_id de l'invite.
+
+function stockResult(text: string, productId: string, storeCode: string): Screen {
+  return {
+    text,
+    reply_markup: {
+      inline_keyboard: [[
+        { text: "⬅️ Retour au produit", callback_data: `nav:p:${productId}:stocks:${storeCode}` },
+        { text: "🏠 Accueil", callback_data: "nav:main" }
+      ]]
+    }
+  };
+}
+
+async function actionStockPrompt(staff: StaffMember, op: StockOp, productId: string, storeCode: string, chatId: string | number): Promise<Screen | null> {
+  if (staff.rank < RANK_RESPONSABLE) return deniedScreen();
+  const store = await scopedStore(staff, storeCode);
+  if (!store || store.code !== storeCode) return deniedScreen();
+  const [product] = await stockRows(store, { productId, limit: 1, ascending: false });
+  if (!product) return stockResult("❌ " + STOCK_REASON_TEXT.not_found, productId, storeCode);
+  const head = `${product.name} — ${store.name}\nStock actuel : ${product.stock}\n`;
+  const text = op === "R"
+    ? "➕ Réception : " + head + "Répondez à ce message avec la quantité reçue (ex. 5).\n"
+    : "✏️ Correction : " + head +
+      "Répondez à ce message avec le nombre compté et le motif (ex. 8 casse).\n";
+  await telegram("sendMessage", {
+    chat_id: chatId,
+    text: text + stockTag(op, product.id, store.code),
+    reply_markup: { force_reply: true, input_field_placeholder: op === "R" ? "5" : "8 casse" }
+  });
+  return null;
+}
+
+async function actionStockReply(
+  staff: StaffMember, tag: { op: StockOp; productId: string; storeCode: string }, rawText: string, requestKey: string
+): Promise<Screen> {
+  const { op, productId, storeCode } = tag;
+  const supabase = db();
+  if (!supabase) return stockResult("Service indisponible, réessayez.", productId, storeCode);
+  const receive = op === "R" ? parseReceiveReply(rawText) : null;
+  const correction = op === "C" ? parseCorrectionReply(rawText) : null;
+  if (receive === null && correction === null) {
+    return stockResult(op === "R"
+      ? "Quantité non reconnue (nombre entre 1 et 500). Touchez à nouveau « ➕ Réception »."
+      : "Format non reconnu. Exemple : <b>8 casse</b> (nombre compté puis motif). Touchez à nouveau « ✏️ Corriger le stock ».",
+    productId, storeCode);
+  }
+  const { data, error } = receive !== null
+    ? await supabase.rpc("telegram_staff_stock_receive", {
+      p_telegram_user_id: staff.telegram_user_id, p_product_id: productId, p_store_code: storeCode,
+      p_quantity: receive, p_request_key: requestKey
+    })
+    : await supabase.rpc("telegram_staff_stock_correct", {
+      p_telegram_user_id: staff.telegram_user_id, p_product_id: productId, p_store_code: storeCode,
+      p_counted: correction!.counted, p_reason: correction!.reason, p_request_key: requestKey
+    });
+  if (error || !data) {
+    console.error("telegram-bot-entry: stock update failed", { code: error?.code });
+    return stockResult(error?.code === "42501"
+      ? "⛔ Action réservée aux responsables, sur leur boutique."
+      : "❌ Stock non modifié, réessayez.", productId, storeCode);
+  }
+  const result = data as { changed: boolean; reason?: string; before?: number; after?: number; delta?: number };
+  if (!result.changed) {
+    return stockResult("ℹ️ " + (STOCK_REASON_TEXT[result.reason ?? ""] ?? "Stock non modifié."), productId, storeCode);
+  }
+  return stockResult(receive !== null
+    ? `✅ Réception enregistrée : +${receive}\nStock : ${result.before} → <b>${result.after}</b>`
+    : `✅ Stock corrigé : ${result.before} → <b>${result.after}</b> (${(result.delta ?? 0) > 0 ? "+" : ""}${result.delta})\n` +
+      `Motif : ${escapeHtml(correction!.reason)}\nLe groupe staff est prévenu.`,
+  productId, storeCode);
 }
 
 // ── Vente comptoir (scénario 1 : 1 article, paiement unique) ──────────────────
@@ -1466,6 +1552,10 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     screen = await actionSaleComplete(staff, parts[2] ?? "");
   } else if (action === "sx") {
     screen = await actionSaleCancel(staff, parts[2] ?? "");
+  } else if (action === "sr" || action === "sk") {
+    const refusal = await actionStockPrompt(staff, action === "sr" ? "R" : "C", parts[2] ?? "", parts[3] ?? "", chatId);
+    if (!refusal) return;
+    screen = refusal;
   } else if (action === "troc") {
     screen = await screenTrocList(staff);
   } else if (action === "t_v") {
@@ -1562,6 +1652,21 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
       return;
     }
     await renderScreen(chatId, undefined, await actionSaleCustomer(staff, sale.draftId, rawText));
+    return;
+  }
+
+  // Reply to a stock prompt (#STK:). The prompt's message_id makes the update idempotent.
+  const stock = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parseStockTag(String(reply?.text ?? ""))
+    : null;
+  if (stock) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    const requestKey = `${chatId}:${String(reply?.message_id ?? "")}`;
+    await renderScreen(chatId, undefined, await actionStockReply(staff, stock, rawText, requestKey));
     return;
   }
 

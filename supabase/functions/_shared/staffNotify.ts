@@ -43,6 +43,7 @@ export const DEFAULT_STAFF_EVENT_TYPES = [
   'order_created',
   'pos_sale',
   'product_missing_image',
+  'stock_correction',
 ] as const;
 
 const EVENT_ICONS: Record<string, string> = {
@@ -55,6 +56,7 @@ const EVENT_ICONS: Record<string, string> = {
   order_created: '🧾',
   pos_sale: '💰',
   product_missing_image: '🖼️',
+  stock_correction: '✏️',
 };
 const DEFAULT_ICON = '🔔';
 

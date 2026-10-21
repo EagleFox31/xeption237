@@ -36,6 +36,7 @@ export type NotificationEventType =
   | 'stock_out'
   | 'marketplace_listed'
   | 'product_missing_image'
+  | 'stock_correction'
   | 'security_alert'
   | 'manual';
 

@@ -95,6 +95,7 @@ Garanties :
 | `stock_low` / `stock_out` | Trigger DB sur `products.stock` (franchissement du seuil 2, puis 0) | tous staff | in-app + Telegram | ✅ |
 | `marketplace_listed` | Trigger DB sur `marketplace_listings` (INSERT) | tous staff | in-app + Telegram | ✅ |
 | `product_missing_image` | Trigger DB sur `products` (INSERT ou `image` vidée/invalide), 1 fois par jour et par produit | tous staff | in-app + Telegram | ✅ |
+| `stock_correction` | RPC `telegram_staff_stock_correct` (bot : « ✏️ Corriger le stock », chiffre compté + motif), 1 par correction | tous staff | in-app + Telegram | ✅ |
 | `stock_alert` | (remplacé par `stock_low` / `stock_out`) | — | — | — |
 | `security_alert` | `useAdminData` sur `security_events` (déjà intégré via shim) | `direction`+ | in-app | ✅ MVP (via shim legacy) |
 

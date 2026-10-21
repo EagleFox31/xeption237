@@ -359,3 +359,24 @@ protège rien hors du bot.
 **Comment ne plus la refaire** : `tests/telegram-search-fuzzy.test.ts` vérifie le REVOKE/GRANT.
 Toute RPC `telegram_*` : `REVOKE ALL … FROM PUBLIC, anon, authenticated` puis `GRANT … TO
 service_role`, jamais `anon`.
+
+## 2026-10-21 — Publication Telegram exécutable par anon (récidive, faille réelle)
+
+**Symptôme** : après `20261021_008_telegram_product_direction_publish`, `telegram_staff_product_publish`,
+`_reject` et `_pending_products_count` étaient exécutables par `anon` et `authenticated` (ACL vérifiée
+en prod). Avec l'identifiant Telegram (non secret) d'un membre de la direction, n'importe qui pouvait
+passer le prix d'un produit **déjà en ligne** à 500 FCFA. Le refus, lui, échouait toujours : il supprimait
+dans `store_stock_movements` (table inexistante) et aurait effacé l'historique de stock.
+
+**Cause racine** : même oubli que le near miss précédent (`GRANT … TO authenticated` sans `REVOKE … FROM
+PUBLIC, anon`). La règle était écrite mais aucun contrôle ne couvrait les nouvelles migrations.
+Le schéma (nom de table, FK sur `products`) n'avait pas été introspecté avant d'écrire le DELETE.
+
+**Résolution** : `20261021_009_telegram_product_publish_acl.sql` (REVOKE, service_role seul ; publier
+refuse un produit déjà publié) et `20261021_010_telegram_product_reject_traced.sql` (refus = sortie de
+stock tracée par `_store_stock_delta` + `products.rejected_at`, aucun DELETE ; refusé si déjà vendu).
+
+**Comment ne plus la refaire** : erreur répétée → contrôle automatique.
+`tests/migrations-security-definer-acl.test.ts` échoue si une fonction `SECURITY DEFINER` d'une
+migration ≥ `20261021` n'est pas révoquée de `PUBLIC, anon`, ou si un `GRANT … anon` n'est pas annulé
+ensuite. Jamais de DELETE sur des tables de stock : on compense par un mouvement.

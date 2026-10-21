@@ -165,6 +165,7 @@ const App: React.FC = () => {
             warrantyMonths: p.warranty_months || p.warrantyMonths || 0,
             releaseYear: p.release_year ?? p.releaseYear ?? undefined,
             isFeatured: p.is_featured || p.isFeatured || false,
+            isPublished: p.is_published ?? true,
             brand: p.brand || null,
             productRange: p.product_range || p.productRange || null
           }));

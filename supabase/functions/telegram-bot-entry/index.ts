@@ -25,6 +25,18 @@ import {
   stockBulkCatListCb, stockBulkExecCb, stockBulkMenuCb, stockBulkPreviewCb, stockCorrectCb,
   stockReceiveCb, stockSplitManualCb, stockSplitPresetCb, stockSplitScreenCb, stockTag, type StockOp
 } from "../_shared/telegramStock.ts";
+import {
+  CONDITION_OPTIONS, PC_TAG_NAME, PC_TAG_PRICE, PC_TAG_PUB_PRICE_PREFIX, PC_TAG_STOCK,
+  PRODUCT_CATEGORIES, RAM_OPTIONS, STORAGE_OPTIONS, parsePcPubPriceTag, parsePcTag,
+  parseProductPrice, parseProductStock, prodAiEnrichCb, prodChangePriceCb,
+  prodCreateBrandCb, prodCreateCancelCb, prodCreateCatCb, prodCreateCondCb,
+  prodCreateConfirmCb, prodCreateDupCb, prodCreateRamCb, prodCreateSkipPhotosCb,
+  prodCreateStartCb, prodCreateStorageCb, prodCreateStoreCb, prodPendingListCb,
+  prodPublishCb, prodRejectCb, prodRejectConfirmCb, prodReviewCb, type ProductDraft
+} from "../_shared/telegramProductCreate.ts";
+import { deepseekChatJson } from "../_shared/deepseekTextJson.ts";
+import { buildProductEnricherPrompt, parseProductEnricherOutput } from "../_shared/personas/productEnricher.ts";
+
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -822,6 +834,19 @@ async function screenStocksCategories(staff: StaffMember, storeCode?: string): P
   ];
   if (staff.rank >= RANK_DIRECTION) {
     rows.push([{ text: "🔀 Ventilation en masse (Réseau)", callback_data: stockBulkMenuCb() }]);
+    const supabase = db();
+    if (supabase) {
+      const { data: countData } = await supabase.rpc("telegram_staff_pending_products_count", {
+        p_telegram_user_id: staff.telegram_user_id
+      });
+      const pendingCount = typeof countData === "number" ? countData : 0;
+      if (pendingCount > 0) {
+        rows.push([{ text: `📝 Produits en attente (${pendingCount})`, callback_data: prodPendingListCb() }]);
+      }
+    }
+  }
+  if (staff.rank >= RANK_RESPONSABLE) {
+    rows.push([{ text: "➕ Ajouter un produit (Magasin)", callback_data: prodCreateStartCb(store?.code ?? "") }]);
   }
   rows.push([{ text: "🏠 Menu Principal", callback_data: "nav:main" }]);
   return {
@@ -1458,6 +1483,808 @@ async function actionBulkExecute(
   };
 }
 
+// ── Ajout de produit en magasin (Responsables & Direction) ───────────────────
+// Parcours conversationnel : nom -> fuzzy duplicate check -> catégorie -> marque -> specs -> prix -> stock -> photos facultatives -> commit masqué.
+
+async function downloadTelegramFile(fileId: string): Promise<{ data: Uint8Array; mime: string } | null> {
+  try {
+    const fileInfo = await telegram("getFile", { file_id: fileId });
+    const filePath = (fileInfo.result as Obj)?.file_path;
+    if (typeof filePath !== "string") return null;
+    const url = `https://api.telegram.org/file/bot${token}/${filePath}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const arrayBuffer = await res.arrayBuffer();
+    const mime = res.headers.get("content-type") || "image/jpeg";
+    return { data: new Uint8Array(arrayBuffer), mime };
+  } catch (err) {
+    console.error("downloadTelegramFile error:", err);
+    return null;
+  }
+}
+
+async function uploadProductPhoto(telegramUserId: string, fileData: Uint8Array, mime: string): Promise<string | null> {
+  const supabase = db();
+  if (!supabase) return null;
+  const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
+  const path = `products/tg_${telegramUserId}_${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("xeption237").upload(path, fileData, {
+    contentType: mime,
+    upsert: true
+  });
+  if (error) {
+    console.error("Storage upload error:", error);
+    return null;
+  }
+  const { data: pubUrl } = supabase.storage.from("xeption237").getPublicUrl(path);
+  return pubUrl?.publicUrl ?? null;
+}
+
+async function getProductDraft(telegramUserId: string): Promise<ProductDraft | null> {
+  const supabase = db();
+  if (!supabase) return null;
+  const { data } = await supabase.from("telegram_product_drafts").select("*").eq("telegram_user_id", telegramUserId).maybeSingle();
+  return (data as ProductDraft | null) ?? null;
+}
+
+async function handleProdCreateStart(staff: StaffMember, storeCode?: string): Promise<Screen> {
+  if (staff.rank < RANK_RESPONSABLE) return deniedScreen();
+  if (staff.rank >= RANK_DIRECTION && !storeCode) {
+    const stores = await listStores();
+    const rows = stores.map(s => [{ text: `🏬 ${s.name}`, callback_data: prodCreateStoreCb(s.code) }]);
+    rows.push([{ text: "⬅️ Annuler", callback_data: "nav:stocks" }]);
+    return {
+      text: "🏬 <b>Dans quelle boutique ce produit sera-t-il enregistré ?</b>\n\nChoisissez la boutique cible :",
+      reply_markup: { inline_keyboard: rows }
+    };
+  }
+  const resolvedCode = storeCode || staff.store?.code || "siege";
+  return await promptProductName(staff, resolvedCode);
+}
+
+async function handleProdCreateStore(staff: StaffMember, storeCode: string): Promise<Screen> {
+  if (staff.rank < RANK_RESPONSABLE) return deniedScreen();
+  return await promptProductName(staff, storeCode);
+}
+
+async function promptProductName(staff: StaffMember, storeCode: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+  await supabase.rpc("telegram_staff_product_draft_upsert", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: storeCode,
+    p_patch: { step: "name", images: [] }
+  });
+  await telegram("sendMessage", {
+    chat_id: staff.telegram_user_id,
+    text:
+      "📱 <b>Nouveau produit en boutique</b>\n\n" +
+      "Entrez le nom complet de l'appareil (ex: <i>iPhone 15 Pro 128Go</i> ou <i>HP EliteBook 840 G8</i>) :\n\n" +
+      PC_TAG_NAME,
+    reply_markup: { force_reply: true, input_field_placeholder: "iPhone 15 Pro 128Go" }
+  });
+  return {
+    text: "⏳ <i>Répondez au message ci-dessus pour entrer le nom de l'appareil...</i>",
+    reply_markup: { inline_keyboard: [[{ text: "❌ Annuler la création", callback_data: prodCreateCancelCb() }]] }
+  };
+}
+
+async function handleProdCreateNameReply(staff: StaffMember, rawName: string): Promise<Screen> {
+  const name = rawName.trim();
+  if (name.length < 3) {
+    return {
+      text: "❌ Nom trop court. Tapez un nom valide d'au moins 3 caractères.",
+      reply_markup: { inline_keyboard: [[{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]] }
+    };
+  }
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  // Détection de doublon tolérante aux fautes
+  const { data: fuzzyMatches } = await supabase.rpc("telegram_search_products_fuzzy", {
+    p_query: name.slice(0, 80),
+    p_store_code: null,
+    p_telegram_user_id: staff.telegram_user_id,
+    p_limit: 1
+  });
+
+  const bestMatch = (fuzzyMatches ?? [])[0] as { id: string; name: string; stock: number } | undefined;
+
+  if (bestMatch && bestMatch.name.toLowerCase() !== name.toLowerCase()) {
+    await supabase.rpc("telegram_staff_product_draft_upsert", {
+      p_telegram_user_id: staff.telegram_user_id,
+      p_store_code: null,
+      p_patch: { name, step: "duplicate_check", fuzzy_match_id: bestMatch.id }
+    });
+    return {
+      text:
+        `⚠️ <b>Ce modèle existe peut-être déjà dans le catalogue :</b>\n\n` +
+        `👉 <b>${escapeHtml(bestMatch.name)}</b>\n` +
+        `Stock total réseau : <b>${bestMatch.stock} unité(s)</b>\n\n` +
+        `S'agit-il de ce modèle existant (pour faire un arrivage) ou d'un nouveau modèle différent ?`,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "✅ Oui, c'est ce modèle (Ouvrir)", callback_data: prodCreateDupCb("yes") }],
+          [{ text: "❌ Non, créer ce nouveau produit", callback_data: prodCreateDupCb("no") }],
+          [{ text: "🚫 Annuler", callback_data: prodCreateCancelCb() }]
+        ]
+      }
+    };
+  }
+
+  await supabase.rpc("telegram_staff_product_draft_upsert", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null,
+    p_patch: { name, step: "category" }
+  });
+  return screenProdCreateCategory(name);
+}
+
+async function handleProdCreateDupAnswer(staff: StaffMember, choice: "yes" | "no"): Promise<Screen> {
+  const draft = await getProductDraft(staff.telegram_user_id);
+  if (!draft) return { text: "Brouillon introuvable.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  if (choice === "yes" && draft.fuzzy_match_id) {
+    const supabase = db();
+    if (supabase) await supabase.rpc("telegram_staff_product_draft_cancel", { p_telegram_user_id: staff.telegram_user_id });
+    return await screenProductDetail(staff, draft.fuzzy_match_id, "stocks");
+  }
+
+  const supabase = db();
+  if (supabase) {
+    await supabase.rpc("telegram_staff_product_draft_upsert", {
+      p_telegram_user_id: staff.telegram_user_id,
+      p_store_code: null,
+      p_patch: { step: "category" }
+    });
+  }
+  return screenProdCreateCategory(draft.name ?? "");
+}
+
+function screenProdCreateCategory(name: string): Screen {
+  const rows = PRODUCT_CATEGORIES.map(c => [
+    { text: `${c.icon} ${c.label}`, callback_data: prodCreateCatCb(c.slug) }
+  ]);
+  rows.push([{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]);
+  return {
+    text:
+      `📱 <b>Catégorie du produit</b>\n` +
+      `Modèle : <b>${escapeHtml(name)}</b>\n\n` +
+      `Choisissez le type d'appareil :`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function handleProdCreateCat(staff: StaffMember, category: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+  await supabase.rpc("telegram_staff_product_draft_upsert", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null,
+    p_patch: { category, step: "brand" }
+  });
+
+  const { data: brands } = await supabase.from("brands").select("id, name").order("name");
+  const brandList = (brands ?? []) as { id: string; name: string }[];
+
+  const rows: InlineButton[][] = [];
+  let curRow: InlineButton[] = [];
+  for (const b of brandList) {
+    curRow.push({ text: b.name, callback_data: prodCreateBrandCb(b.id) });
+    if (curRow.length === 2) {
+      rows.push(curRow);
+      curRow = [];
+    }
+  }
+  if (curRow.length > 0) rows.push(curRow);
+  rows.push([{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]);
+
+  return {
+    text: `🏷️ <b>Marque du produit</b>\n\nChoisissez la marque :`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function handleProdCreateBrand(staff: StaffMember, brandId: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  const { data: draftData } = await supabase.rpc("telegram_staff_product_draft_upsert", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null,
+    p_patch: { brand_id: brandId, step: "specs_storage" }
+  });
+  const draft = draftData as ProductDraft;
+
+  // Si accessoires : pas de stockage ni RAM, direct état
+  if (draft.category === "accessories") {
+    return screenProdCreateCondition();
+  }
+
+  // Téléphones, PC, tablettes : choix stockage
+  const rows = STORAGE_OPTIONS.map(s => [{ text: `💾 ${s}`, callback_data: prodCreateStorageCb(s) }]);
+  rows.push([{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]);
+  return {
+    text: `💾 <b>Capacité de stockage</b>\n\nChoisissez le stockage de l'appareil :`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function handleProdCreateStorage(staff: StaffMember, storage: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+  await supabase.rpc("telegram_staff_product_draft_upsert", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null,
+    p_patch: { storage, step: "specs_ram" }
+  });
+
+  const rows = RAM_OPTIONS.map(r => [{ text: `⚡ ${r}`, callback_data: prodCreateRamCb(r) }]);
+  rows.push([{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]);
+  return {
+    text: `⚡ <b>Mémoire RAM</b>\n\nChoisissez la RAM de l'appareil :`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function handleProdCreateRam(staff: StaffMember, ram: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+  await supabase.rpc("telegram_staff_product_draft_upsert", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null,
+    p_patch: { ram, step: "condition" }
+  });
+  return screenProdCreateCondition();
+}
+
+function screenProdCreateCondition(): Screen {
+  const rows: InlineButton[][] = CONDITION_OPTIONS.map(c => [{ text: c.label, callback_data: prodCreateCondCb(c.value) }]);
+  rows.push([{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]);
+  return {
+    text: `✨ <b>État de l'appareil</b>\n\nChoisissez l'état :`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function handleProdCreateCond(staff: StaffMember, condition: "refurbished" | "new"): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+  await supabase.rpc("telegram_staff_product_draft_upsert", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null,
+    p_patch: { condition, step: "price" }
+  });
+
+  await telegram("sendMessage", {
+    chat_id: staff.telegram_user_id,
+    text:
+      "💰 <b>Prix de vente en boutique (FCFA)</b>\n\n" +
+      "Entrez le montant en FCFA (ex: <i>450 000</i> ou <i>450k</i>) :\n\n" +
+      PC_TAG_PRICE,
+    reply_markup: { force_reply: true, input_field_placeholder: "450 000" }
+  });
+
+  return {
+    text: "⏳ <i>Répondez avec le prix boutique...</i>",
+    reply_markup: { inline_keyboard: [[{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]] }
+  };
+}
+
+async function handleProdCreatePriceReply(staff: StaffMember, rawPrice: string): Promise<Screen> {
+  const price = parseProductPrice(rawPrice);
+  if (!price) {
+    return {
+      text: "❌ Prix invalide (minimum 500 FCFA). Exemple : 450 000 ou 450k.",
+      reply_markup: { inline_keyboard: [[{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]] }
+    };
+  }
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+  await supabase.rpc("telegram_staff_product_draft_upsert", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null,
+    p_patch: { price, step: "stock" }
+  });
+
+  await telegram("sendMessage", {
+    chat_id: staff.telegram_user_id,
+    text:
+      "📦 <b>Quantité initiale reçue en boutique</b>\n\n" +
+      "Combien d'unités avez-vous en magasin ? (ex: <i>1</i> ou <i>2</i>) :\n\n" +
+      PC_TAG_STOCK,
+    reply_markup: { force_reply: true, input_field_placeholder: "1" }
+  });
+
+  return {
+    text: "⏳ <i>Répondez avec la quantité reçue en stock...</i>",
+    reply_markup: { inline_keyboard: [[{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]] }
+  };
+}
+
+async function handleProdCreateStockReply(staff: StaffMember, rawStock: string): Promise<Screen> {
+  const stock = parseProductStock(rawStock);
+  if (!stock) {
+    return {
+      text: "❌ Quantité invalide (doit être comprise entre 1 et 500).",
+      reply_markup: { inline_keyboard: [[{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]] }
+    };
+  }
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+  const { data: draftData } = await supabase.rpc("telegram_staff_product_draft_upsert", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null,
+    p_patch: { stock, step: "photos" }
+  });
+  return screenProdCreatePhotos(draftData as ProductDraft);
+}
+
+function screenProdCreatePhotos(draft: ProductDraft): Screen {
+  const photoCount = draft.images?.length ?? 0;
+  return {
+    text:
+      `📸 <b>Photos de l'appareil (Facultatif)</b>\n\n` +
+      `📱 <b>${escapeHtml(draft.name ?? "")}</b>\n` +
+      `• Prix : <b>${money(draft.price)}</b> | Stock : <b>${draft.stock} unité(s)</b>\n\n` +
+      `<i>Photos enregistrées : <b>${photoCount} photo(s)</b></i>\n\n` +
+      `Envoyez des photos directement dans cette discussion (face avant, arrière, tranche).\n` +
+      `💡 <i>Vous pouvez aussi valider dès maintenant sans photo pour pouvoir vendre immédiatement au comptoir. Le produit restera masqué du site web tant que la direction ne l'a pas validé.</i>`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🚀 Terminer et Enregistrer le produit", callback_data: prodCreateConfirmCb() }],
+        [{ text: "❌ Annuler la création", callback_data: prodCreateCancelCb() }]
+      ]
+    }
+  };
+}
+
+async function handleProdCreatePhotoMessage(staff: StaffMember, message: Obj, chatId: number | string): Promise<void> {
+  const draft = await getProductDraft(staff.telegram_user_id);
+  if (!draft || draft.step !== "photos") return;
+
+  const photos = message.photo as Obj[] | undefined;
+  if (!photos || photos.length === 0) return;
+
+  // Telegram envoie plusieurs résolutions : la dernière est la plus haute qualité
+  const best = photos[photos.length - 1];
+  const fileId = best.file_id;
+  if (typeof fileId !== "string") return;
+
+  const file = await downloadTelegramFile(fileId);
+  if (!file) {
+    await telegram("sendMessage", { chat_id: chatId, text: "❌ Échec de réception de la photo, réessayez." });
+    return;
+  }
+
+  const url = await uploadProductPhoto(staff.telegram_user_id, file.data, file.mime);
+  if (!url) {
+    await telegram("sendMessage", { chat_id: chatId, text: "❌ Échec d'enregistrement de la photo, réessayez." });
+    return;
+  }
+
+  const nextImages = [...(draft.images ?? []), url];
+  const supabase = db();
+  if (supabase) {
+    await supabase.rpc("telegram_staff_product_draft_upsert", {
+      p_telegram_user_id: staff.telegram_user_id,
+      p_store_code: null,
+      p_patch: { images: nextImages }
+    });
+  }
+
+  const screen = screenProdCreatePhotos({ ...draft, images: nextImages });
+  await telegram("sendMessage", {
+    chat_id: chatId,
+    parse_mode: "HTML",
+    text: `📸 Photo reçue et enregistrée ! (Total : ${nextImages.length})\n\n` + screen.text,
+    reply_markup: screen.reply_markup
+  });
+}
+
+async function handleProdCreateCommit(staff: StaffMember, chatId: number | string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+  const requestKey = `${chatId}:${Date.now()}`;
+  const { data, error } = await supabase.rpc("telegram_staff_product_commit", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_request_key: requestKey
+  });
+
+  if (error || !data) {
+    console.error("handleProdCreateCommit error:", error);
+    return {
+      text: "❌ Erreur lors de l'enregistrement du produit.",
+      reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] }
+    };
+  }
+
+  const res = data as {
+    success: boolean;
+    product_id: string;
+    name: string;
+    store_name: string;
+    stock: number;
+    price: number;
+    reason?: string;
+  };
+
+  if (!res.success) {
+    return {
+      text: "❌ Impossible d'enregistrer le produit (" + (res.reason ?? "erreur") + ").",
+      reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] }
+    };
+  }
+
+  // Alerte vers le groupe Telegram staff / direction pour validation
+  const staffChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+  if (staffChatId) {
+    try {
+      await telegram("sendMessage", {
+        chat_id: staffChatId,
+        parse_mode: "HTML",
+        text:
+          `🆕 <b>Nouveau produit en boutique</b>\n\n` +
+          `📱 <b>${escapeHtml(res.name)}</b>\n` +
+          `🏬 Boutique : <b>${escapeHtml(res.store_name)}</b>\n` +
+          `💰 Prix comptoir : <b>${money(res.price)}</b>\n` +
+          `📦 Stock initial : <b>${res.stock} unité(s)</b>\n` +
+          `👤 Enregistré par : <b>${escapeHtml(staff.name)}</b>\n\n` +
+          `🔒 <i>Statut : Masqué du site public (En attente de validation Direction)</i>`,
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "👁️ Examiner / Valider le produit", callback_data: prodReviewCb(res.product_id) }]
+          ]
+        }
+      });
+    } catch (e) {
+      console.warn("Failed to notify staff chat on product commit:", e);
+    }
+  }
+
+  return {
+    text:
+      `✅ <b>Produit enregistré en boutique !</b>\n\n` +
+      `📱 <b>${escapeHtml(res.name)}</b>\n` +
+      `🏬 Boutique : <b>${escapeHtml(res.store_name)}</b>\n` +
+      `💰 Prix boutique : <b>${money(res.price)}</b>\n` +
+      `📦 Stock disponible : <b>${res.stock} unité(s)</b>\n\n` +
+      `🔒 <b>Visibilité : MASQUÉ DU SITE PUBLIC</b>\n` +
+      `Ce produit est immédiatement vendable au comptoir dans votre magasin, mais reste masqué de la boutique en ligne jusqu'à validation par la Direction.\n\n` +
+      `📢 <i>Le groupe Direction est informé pour la relecture et la mise en ligne.</i>`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🛒 Vendre ce produit", callback_data: saleStartCb(res.product_id, "stocks") }],
+        [{ text: "📦 Retour aux stocks", callback_data: "nav:stocks" }],
+        [{ text: "🏠 Accueil", callback_data: "nav:main" }]
+      ]
+    }
+  };
+}
+
+async function handleProdCreateCancel(staff: StaffMember): Promise<Screen> {
+  const supabase = db();
+  if (supabase) {
+    await supabase.rpc("telegram_staff_product_draft_cancel", { p_telegram_user_id: staff.telegram_user_id });
+  }
+  return await screenStocksCategories(staff);
+}
+
+// ── Direction : Validation & Publication de Produits (Jordan & Jennifer) ──────
+
+async function screenPendingProductsList(staff: StaffMember): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  const { data: prods } = await supabase
+    .from("products")
+    .select("id, name, price, stock, category, created_at")
+    .eq("is_published", false)
+    .is("rejected_at", null)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const list = (prods ?? []) as { id: string; name: string; price: number; stock: number; category: string }[];
+  if (list.length === 0) {
+    return {
+      text:
+        `✅ <b>Aucun produit en attente</b>\n\n` +
+        `Tous les produits du catalogue sont actuellement validés et publiés sur le site web.`,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "📦 Retour aux stocks", callback_data: "nav:stocks" }],
+          [{ text: "🏠 Accueil", callback_data: "nav:main" }]
+        ]
+      }
+    };
+  }
+
+  const rows: InlineButton[][] = list.map(p => [
+    { text: `📱 ${p.name.slice(0, 26)} (${money(p.price)})`, callback_data: prodReviewCb(p.id) }
+  ]);
+  rows.push([{ text: "📦 Retour aux stocks", callback_data: "nav:stocks" }, { text: "🏠 Accueil", callback_data: "nav:main" }]);
+
+  return {
+    text:
+      `📝 <b>Produits en attente de publication (${list.length})</b>\n\n` +
+      `Ces produits ont été créés par les responsables en magasin mais sont masqués du site web public.\n` +
+      `Sélectionnez un appareil pour examiner sa fiche, enrichir sa description avec l'IA ou le publier :`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function screenReviewPendingProduct(staff: StaffMember, productId: string, bannerNotice?: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  const { data: prod } = await supabase
+    .from("products")
+    .select("id, name, price, stock, category, condition, specs, description, images, is_published, brands(name)")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (!prod) {
+    return {
+      text: "❌ Produit introuvable ou déjà supprimé.",
+      reply_markup: { inline_keyboard: [[{ text: "📝 Liste en attente", callback_data: prodPendingListCb() }]] }
+    };
+  }
+
+  const { data: stocks } = await supabase
+    .from("store_stock")
+    .select("quantity, stores(name)")
+    .eq("product_id", productId);
+
+  const stockLines: string[] = [];
+  for (const s of (stocks ?? []) as any[]) {
+    if (s.stores?.name && (s.quantity ?? 0) > 0) {
+      stockLines.push(`• ${s.stores.name} : <b>${s.quantity} unité(s)</b>`);
+    }
+  }
+
+  const brandName = (prod as any).brands?.name ?? "";
+  const condText = prod.condition === "new" ? "✨ Neuf scellé" : "🌟 Reconditionné / Occasion propre";
+  const specs = Array.isArray(prod.specs) ? (prod.specs as { label: string; value: string }[]) : [];
+  const specsSummary = specs.length > 0
+    ? specs.map(s => `${s.label}: <b>${escapeHtml(s.value)}</b>`).join(" | ")
+    : "<i>Aucune spec renseignée</i>";
+
+  const photoCount = Array.isArray(prod.images) ? prod.images.length : 0;
+  const desc = prod.description ? escapeHtml(prod.description) : "<i>Aucune description marketing</i>";
+
+  let body = "";
+  if (bannerNotice) {
+    body += `${bannerNotice}\n\n`;
+  }
+  body +=
+    `📝 <b>Examen de Fiche Produit (Direction)</b>\n\n` +
+    `📱 <b>${escapeHtml(prod.name)}</b>\n` +
+    (brandName ? `🏷️ Marque : <b>${escapeHtml(brandName)}</b>\n` : "") +
+    `📂 Catégorie : <b>${escapeHtml(prod.category)}</b>\n` +
+    `✨ État : <b>${condText}</b>\n` +
+    `⚙️ Caractéristiques : ${specsSummary}\n` +
+    `📸 Photos : <b>${photoCount} photo(s)</b>\n\n` +
+    `🏬 <b>Stock physique par boutique :</b>\n` +
+    (stockLines.length > 0 ? stockLines.join("\n") : "<i>Aucun stock boutique</i>") + "\n\n" +
+    `💰 <b>Prix actuel : ${money(prod.price)}</b>\n\n` +
+    `📝 <b>Description actuelle :</b>\n${desc}\n\n` +
+    `🔒 <b>Visibilité actuelle :</b> ${prod.is_published ? "🟢 <b>Publié sur le site web</b>" : "🟡 <b>Masqué du site public</b>"}`;
+
+  const rows: InlineButton[][] = [];
+  if (!prod.is_published) {
+    rows.push([{ text: "🤖 Enrichir avec l'IA (DeepSeek)", callback_data: prodAiEnrichCb(productId) }]);
+    rows.push([{ text: "✏️ Modifier le prix public", callback_data: prodChangePriceCb(productId) }]);
+    rows.push([{ text: "🌐 Valider & Publier sur le site", callback_data: prodPublishCb(productId) }]);
+    rows.push([{ text: "🗑️ Rejeter / Supprimer ce produit", callback_data: prodRejectCb(productId) }]);
+  } else {
+    rows.push([{ text: "✏️ Modifier le prix", callback_data: prodChangePriceCb(productId) }]);
+  }
+  rows.push([
+    { text: "📝 Liste en attente", callback_data: prodPendingListCb() },
+    { text: "📦 Stocks", callback_data: "nav:stocks" }
+  ]);
+
+  return {
+    text: body,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function handleDirectionAiEnrich(staff: StaffMember, productId: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  const { data: prod } = await supabase
+    .from("products")
+    .select("id, name, category, description, specs")
+    .eq("id", productId)
+    .single();
+
+  if (!prod) return { text: "❌ Produit introuvable.", reply_markup: { inline_keyboard: [[{ text: "📝 Liste en attente", callback_data: prodPendingListCb() }]] } };
+
+  try {
+    const existingDesc = typeof prod.description === "string" ? prod.description : undefined;
+    const prompt = buildProductEnricherPrompt(
+      prod.name,
+      prod.category,
+      "all",
+      existingDesc ? { description: existingDesc } : undefined
+    );
+
+    const rawAiText = await deepseekChatJson(prompt, { maxTokens: 1600 });
+    const enriched = parseProductEnricherOutput(rawAiText, "all");
+
+    // Fusionner les specs existantes (RAM, Stockage) avec les specs générées par l'IA
+    const existingSpecs = Array.isArray(prod.specs) ? (prod.specs as { label: string; value: string }[]) : [];
+    const finalSpecs: { label: string; value: string }[] = [];
+    for (const s of existingSpecs) {
+      if (s?.label && s?.value) finalSpecs.push({ label: s.label, value: s.value });
+    }
+    for (const s of enriched.specs) {
+      if (s?.label && s?.value && !existingSpecs.some(e => e.label.toLowerCase() === s.label.toLowerCase())) {
+        finalSpecs.push({ label: s.label, value: s.value });
+      }
+    }
+
+    await supabase
+      .from("products")
+      .update({
+        description: enriched.description,
+        specs: finalSpecs,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", productId);
+
+    return await screenReviewPendingProduct(
+      staff,
+      productId,
+      "✨ <b>Enrichissement IA DeepSeek réussi !</b>\nDescription marketing et caractéristiques générées avec succès."
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("handleDirectionAiEnrich error:", err);
+    return await screenReviewPendingProduct(
+      staff,
+      productId,
+      `⚠️ <b>Échec de l'enrichissement IA</b> (${escapeHtml(msg)}).`
+    );
+  }
+}
+
+async function handleDirectionChangePricePrompt(staff: StaffMember, productId: string, chatId: number | string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  await telegram("sendMessage", {
+    chat_id: chatId,
+    text:
+      "💰 <b>Modifier le prix public</b>\n\n" +
+      "Entrez le nouveau prix en FCFA (ex: <i>350 000</i> ou <i>350k</i>) :\n\n" +
+      PC_TAG_PUB_PRICE_PREFIX + productId,
+    reply_markup: { force_reply: true, input_field_placeholder: "350 000" }
+  });
+  return {
+    text: "⏳ <i>Répondez au message ci-dessus avec le nouveau montant...</i>",
+    reply_markup: { inline_keyboard: [[{ text: "⬅️ Annuler", callback_data: prodReviewCb(productId) }]] }
+  };
+}
+
+async function handleDirectionPriceReply(staff: StaffMember, productId: string, rawText: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const price = parseProductPrice(rawText);
+  if (!price) {
+    return await screenReviewPendingProduct(
+      staff,
+      productId,
+      "❌ <b>Prix non reconnu</b>. Entrez un montant valide (ex: 350 000 ou 350k)."
+    );
+  }
+
+  const supabase = db();
+  if (supabase) {
+    // Pending products only: a published price changes through the ERP, not this review screen.
+    await supabase.from("products").update({ price, updated_at: new Date().toISOString() })
+      .eq("id", productId).eq("is_published", false);
+  }
+  return await screenReviewPendingProduct(staff, productId, `✅ <b>Prix public mis à jour : ${money(price)}</b>`);
+}
+
+async function handleDirectionPublish(staff: StaffMember, productId: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  const { data, error } = await supabase.rpc("telegram_staff_product_publish", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_product_id: productId
+  });
+
+  if (error || !data) {
+    console.error("handleDirectionPublish error:", error);
+    return {
+      text: "❌ Erreur lors de la publication du produit.",
+      reply_markup: { inline_keyboard: [[{ text: "📝 Liste en attente", callback_data: prodPendingListCb() }]] }
+    };
+  }
+
+  const res = data as { success: boolean; name: string; price: number; reason?: string };
+  if (!res.success) {
+    return {
+      text: "❌ Impossible de publier : " + (res.reason ?? "erreur"),
+      reply_markup: { inline_keyboard: [[{ text: "📝 Liste en attente", callback_data: prodPendingListCb() }]] }
+    };
+  }
+
+  return {
+    text:
+      `🎉 <b>Produit validé et publié sur le site web !</b>\n\n` +
+      `📱 <b>${escapeHtml(res.name)}</b>\n` +
+      `💰 Prix public final : <b>${money(res.price)}</b>\n\n` +
+      `🌐 <i>Ce produit est désormais visible et achetable par tous les clients sur <b>xeptionetwork.shop</b>.</i>`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📝 Autres produits en attente", callback_data: prodPendingListCb() }],
+        [{ text: "📦 Retour aux stocks", callback_data: "nav:stocks" }],
+        [{ text: "🏠 Accueil", callback_data: "nav:main" }]
+      ]
+    }
+  };
+}
+
+async function handleDirectionRejectPrompt(staff: StaffMember, productId: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  return {
+    text:
+      `⚠️ <b>Supprimer ce produit en attente ?</b>\n\n` +
+      `Cette action va rejeter le produit et supprimer définitivement son stock du magasin.\n\n` +
+      `Confirmez-vous la suppression ?`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🗑️ Oui, supprimer définitivement", callback_data: prodRejectConfirmCb(productId) }],
+        [{ text: "⬅️ Non, annuler", callback_data: prodReviewCb(productId) }]
+      ]
+    }
+  };
+}
+
+async function handleDirectionRejectConfirm(staff: StaffMember, productId: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  const { data, error } = await supabase.rpc("telegram_staff_product_reject", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_product_id: productId
+  });
+
+  const result = data as { success?: boolean; reason?: string } | null;
+  if (error || !result?.success) {
+    if (error) console.error("handleDirectionRejectConfirm error:", error);
+    const refusals: Record<string, string> = {
+      has_sales: "Ce produit a déjà été vendu : il ne peut pas être refusé.",
+      stock_reserved: "Du stock de ce produit est réservé : libérez-le avant de refuser.",
+      cannot_reject_published_product: "Ce produit est déjà publié sur le site.",
+      product_not_found: "Produit introuvable."
+    };
+    return {
+      text: "❌ " + (refusals[result?.reason ?? ""] ?? "Erreur lors du refus du produit."),
+      reply_markup: { inline_keyboard: [[{ text: "📝 Liste en attente", callback_data: prodPendingListCb() }]] }
+    };
+  }
+
+  return {
+    text: `🗑️ <b>Produit refusé.</b>\nIl reste masqué du site et son stock a été sorti (mouvement tracé).`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📝 Liste en attente", callback_data: prodPendingListCb() }],
+        [{ text: "📦 Retour aux stocks", callback_data: "nav:stocks" }]
+      ]
+    }
+  };
+}
+
+
 // ── Vente comptoir (scénario 1 : 1 article, paiement unique) ──────────────────
 // Produit → moyen de paiement → client (ForceReply #VTE:) → récapitulatif → encaissement.
 // État dans telegram_sale_drafts ; boutique, vendeur et prix résolus par les RPC.
@@ -1954,6 +2781,40 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     screen = await screenBulkPreview(staff, parts[2] as any, parts[3] ?? "", parts[4] as any);
   } else if (action === "sbe") {
     screen = await actionBulkExecute(staff, parts[2] as any, parts[3] ?? "", parts[4] as any);
+  } else if (action === "pcs") {
+    screen = await handleProdCreateStart(staff, parts[2]);
+  } else if (action === "pcst") {
+    screen = await handleProdCreateStore(staff, parts[2] ?? "");
+  } else if (action === "pcdu") {
+    screen = await handleProdCreateDupAnswer(staff, parts[2] as "yes" | "no");
+  } else if (action === "pcc") {
+    screen = await handleProdCreateCat(staff, parts[2] ?? "");
+  } else if (action === "pcb") {
+    screen = await handleProdCreateBrand(staff, parts[2] ?? "");
+  } else if (action === "pcso") {
+    screen = await handleProdCreateStorage(staff, parts[2] ?? "");
+  } else if (action === "pcrm") {
+    screen = await handleProdCreateRam(staff, parts[2] ?? "");
+  } else if (action === "pccn") {
+    screen = await handleProdCreateCond(staff, parts[2] as "refurbished" | "new");
+  } else if (action === "pc_skip_ph" || action === "pc_commit") {
+    screen = await handleProdCreateCommit(staff, chatId);
+  } else if (action === "pc_cancel") {
+    screen = await handleProdCreateCancel(staff);
+  } else if (action === "pcr_list") {
+    screen = await screenPendingProductsList(staff);
+  } else if (action === "pcr_v") {
+    screen = await screenReviewPendingProduct(staff, parts[2] ?? "");
+  } else if (action === "pcr_ai") {
+    screen = await handleDirectionAiEnrich(staff, parts[2] ?? "");
+  } else if (action === "pcr_pr") {
+    screen = await handleDirectionChangePricePrompt(staff, parts[2] ?? "", chatId);
+  } else if (action === "pcr_pub") {
+    screen = await handleDirectionPublish(staff, parts[2] ?? "");
+  } else if (action === "pcr_del") {
+    screen = await handleDirectionRejectPrompt(staff, parts[2] ?? "");
+  } else if (action === "pcr_del_cf") {
+    screen = await handleDirectionRejectConfirm(staff, parts[2] ?? "");
   } else if (action === "troc") {
     screen = await screenTrocList(staff);
   } else if (action === "t_v") {
@@ -2080,6 +2941,49 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
     }
     await renderScreen(chatId, undefined, await actionSplitReply(staff, split.productId, rawText));
     return;
+  }
+
+  // Reply to a product creation prompt (#PC:)
+  const pcTag = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parsePcTag(String(reply?.text ?? ""))
+    : null;
+  if (pcTag) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    if (pcTag === "NAME") {
+      await renderScreen(chatId, undefined, await handleProdCreateNameReply(staff, rawText));
+    } else if (pcTag === "PRICE") {
+      await renderScreen(chatId, undefined, await handleProdCreatePriceReply(staff, rawText));
+    } else if (pcTag === "STOCK") {
+      await renderScreen(chatId, undefined, await handleProdCreateStockReply(staff, rawText));
+    }
+    return;
+  }
+
+  // Reply to Direction public price change (#PC:PUB_PRICE:<productId>)
+  const pubPriceProductId = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parsePcPubPriceTag(String(reply?.text ?? ""))
+    : null;
+  if (pubPriceProductId) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    await renderScreen(chatId, undefined, await handleDirectionPriceReply(staff, pubPriceProductId, rawText));
+    return;
+  }
+
+  // Photos sent during product creation
+  if (Array.isArray(message.photo) && message.photo.length > 0) {
+    const staff = await getStaff(fromId);
+    if (staff) {
+      await handleProdCreatePhotoMessage(staff, message, chatId);
+      return;
+    }
   }
 
   if (cmd === "/aide") {

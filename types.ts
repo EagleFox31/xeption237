@@ -44,7 +44,8 @@ export interface Product {
   video?: string;
   stock: number;
   isPromo?: boolean;
-  isFeatured?: boolean; 
+  isFeatured?: boolean;
+  isPublished?: boolean;
   rating?: number;
   reviewShort?: string;
   specs?: { label: string; value: string }[];

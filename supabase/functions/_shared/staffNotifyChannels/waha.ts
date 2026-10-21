@@ -84,7 +84,7 @@ export const createWahaChannel = (
         const knownCodes = new Set([
           'CHANNEL_DISABLED', 'WAHA_NOT_CONFIGURED',
           'WAHA_INVALID_CONFIG', 'INGEST_NOT_CONFIGURED',
-          'UNAUTHORIZED', 'NETWORK_ERROR', 'PROVIDER_UNAVAILABLE',
+          'UNAUTHORIZED', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'NETWORK_TRANSPORT', 'PROVIDER_UNAVAILABLE',
           'PROVIDER_REJECTED', 'RATE_LIMITED', 'INVALID_EVENT'
         ]);
         let detail = '';

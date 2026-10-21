@@ -99,6 +99,29 @@ Bonjour Jennifer (Super Admin)
 [ 📲 Ouvrir Xeption App ]
 ```
 
+### 4.3 Recherche Express Tolérante aux Fautes de Frappe (Fuzzy Search)
+Pour aller encore plus vite qu'en parcourant les catégories au pouce :
+* Le vendeur écrit directement la marque ou le modèle dans la discussion (ex: `radmi`, `15c`, `a3 pro`, `iphne 13`, `samsng`, `pixel 6`).
+* **Tolérance aux fautes d'orthographe** : L'algorithme combine le substring match, la similarité trigramme (`pg_trgm`) et la distance de Levenshtein (tolérance de 2 à 3 caractères).
+* **Résultats interactifs** : Le bot répond instantanément avec les modèles correspondants sous forme de boutons tactiles :
+```text
+🔍 Résultats pour « radmi » — Toutes boutiques
+
+Sélectionnez un modèle pour voir son stock, son prix ou vendre :
+
+[ Xiaomi Redmi 15C (100 dispo) ]
+[ Xiaomi Redmi A3 Pro 128 Go (100 dispo) ]
+[ Xiaomi Redmi A5 (100 dispo) ]
+[ Xiaomi redmi 9 activ (12 dispo) ]
+[ Xiaomi Redmi 15 (12 dispo) ]
+[ Xiaomi Redmi 14C 256 Go (10 dispo) ]
+
+[ 📦 Voir Catégories ]   [ 🏠 Accueil ]
+```
+* **Un clic pour agir** : Taper sur n'importe quel bouton ouvre la fiche du modèle avec stock boutique, prix et le bouton `[ 🛒 Vendre ce produit ]`.
+* **Fonction DB** : `public.telegram_search_products_fuzzy(p_query, p_store_code, p_telegram_user_id, p_limit)` (migration `20261021_002_telegram_search_products_fuzzy.sql`).
+
+
 ---
 
 ## 5. Tunnel de Vente Comptoir (Spécification Cible — En attente de validation architecte)

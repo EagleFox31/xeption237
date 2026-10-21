@@ -790,7 +790,8 @@ async function screenStocksCategories(staff: StaffMember, storeCode?: string): P
   return {
     text:
       `📦 <b>Gestion des Stocks & Prix</b> — ${escapeHtml(scopeLabel(store))}\n\n` +
-      `Touchez une catégorie pour voir les modèles disponibles :`,
+      `🔍 <i>Astuce : tapez directement un nom dans le chat (ex: <b>redmi</b>, <b>a3 pro</b>, <b>s24</b>) pour trouver le stock direct.</i>\n\n` +
+      `Ou touchez une catégorie pour voir les modèles disponibles :`,
     reply_markup: {
       inline_keyboard: [
         [
@@ -804,6 +805,77 @@ async function screenStocksCategories(staff: StaffMember, storeCode?: string): P
         [{ text: "🏠 Menu Principal", callback_data: "nav:main" }]
       ]
     }
+  };
+}
+
+async function screenSearchResults(staff: StaffMember, query: string, storeCode?: string): Promise<Screen> {
+  const store = await scopedStore(staff, storeCode);
+  const suffix = scopeSuffix(store);
+  const supabase = db();
+  if (!supabase) {
+    return {
+      text: "❌ Service de recherche temporairement indisponible.",
+      reply_markup: { inline_keyboard: [homeRow] }
+    };
+  }
+
+  const { data, error } = await supabase.rpc("telegram_search_products_fuzzy", {
+    p_query: query.slice(0, 80),
+    p_store_code: store?.code ?? null,
+    p_telegram_user_id: staff.telegram_user_id,
+    p_limit: 6
+  });
+
+  if (error) {
+    console.error("telegram-bot-entry: fuzzy search failed", { code: error?.code, message: error?.message });
+    return {
+      text: "❌ Erreur lors de la recherche.",
+      reply_markup: { inline_keyboard: [homeRow] }
+    };
+  }
+
+  const products = (data ?? []) as {
+    id: string;
+    name: string;
+    price: number | string | null;
+    stock: number;
+    store_stock: number;
+  }[];
+
+  const buttons: InlineButton[][] = [];
+  for (const p of products) {
+    if (!cbFits(`nav:p:${p.id}:search${suffix}`)) continue;
+    const shortName = p.name.length > 28 ? p.name.slice(0, 26) + "…" : p.name;
+    const effectiveStock = store ? p.store_stock : p.stock;
+    const stockInfo = store && p.store_stock !== p.stock
+      ? `${p.store_stock} ici · ${p.stock} réseau`
+      : `${effectiveStock} dispo`;
+    buttons.push([{
+      text: `${shortName} (${stockInfo})`,
+      callback_data: `nav:p:${p.id}:search${suffix}`
+    }]);
+  }
+
+  buttons.push([
+    { text: "📦 Voir Catégories", callback_data: "nav:stocks" + suffix },
+    { text: "🏠 Accueil", callback_data: "nav:main" }
+  ]);
+
+  if (products.length === 0) {
+    return {
+      text:
+        `🔍 <b>Recherche : « ${escapeHtml(query)} »</b> — ${escapeHtml(scopeLabel(store))}\n\n` +
+        `Aucun modèle correspondant trouvé à 2-3 caractères près.\n\n` +
+        `💡 <i>Vérifiez l'orthographe ou parcourez directement par catégories ci-dessous :</i>`,
+      reply_markup: { inline_keyboard: buttons }
+    };
+  }
+
+  return {
+    text:
+      `🔍 <b>Résultats pour « ${escapeHtml(query)} »</b> — ${escapeHtml(scopeLabel(store))}\n\n` +
+      `Sélectionnez un modèle pour voir son stock, son prix ou vendre :`,
+    reply_markup: { inline_keyboard: buttons }
   };
 }
 
@@ -891,7 +963,9 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
   const store = await scopedStore(staff, storeCode);
   const suffix = scopeSuffix(store);
   const [product] = await stockRows(store, { productId, limit: 1, ascending: false });
-  const back = `nav:cat:${backCat}${suffix}`;
+  const back = backCat === "search" || backCat === "stocks"
+    ? `nav:stocks${suffix}`
+    : `nav:cat:${backCat}${suffix}`;
 
   if (!product) {
     return {
@@ -909,7 +983,7 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
   // A transfer request only makes sense for someone attached to a store.
   if (staff.store) rows.push([{ text: "🚚 Demander transfert", callback_data: `nav:trans:${product.id}:${backCat}${suffix}` }]);
   rows.push([
-    { text: "⬅️ Précédent", callback_data: back },
+    { text: backCat === "search" ? "⬅️ Précédent (Catégories)" : "⬅️ Précédent", callback_data: back },
     { text: "🏠 Accueil", callback_data: "nav:main" }
   ]);
   return {
@@ -1491,16 +1565,46 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
     return;
   }
 
-  if (cmd === "/stock" || cmd === "/prix") {
+  if (cmd === "/aide") {
     await telegram("sendMessage", {
-      chat_id: chatId, parse_mode: "HTML",
-      text: await productLookupReply(rest.join(" "), fromId)
+      chat_id: chatId,
+      parse_mode: "HTML",
+      text:
+        `ℹ️ <b>Aide Xeption Bot Staff</b>\n\n` +
+        `• <b>Recherche express :</b> écrivez directement la marque ou le modèle dans la discussion (ex: <i>redmi</i>, <i>a3 pro</i>, <i>iphne 13</i>, <i>s24</i>).\n` +
+        `  Le bot trouve le modèle correspondant même avec 2 à 3 fautes de frappe !\n\n` +
+        `• <b>Vente comptoir :</b> touchez le modèle trouvé puis « 🛒 Vendre ce produit ».\n\n` +
+        `• <b>Commandes :</b>\n` +
+        `  /start ou /menu — Ouvrir le menu principal tactile\n` +
+        `  /stock ou /prix &lt;modèle&gt; — Rechercher un modèle`
     });
+    return;
+  }
+
+  if (cmd === "/stock" || cmd === "/prix") {
+    const query = rest.join(" ").trim();
+    if (!query) {
+      await telegram("sendMessage", {
+        chat_id: chatId, parse_mode: "HTML",
+        text: "Précisez un produit, par exemple : <code>/stock iPhone 13</code> ou tapez directement <b>iPhone 13</b>."
+      });
+      return;
+    }
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    await renderScreen(chatId, undefined, await screenSearchResults(staff, query));
     return;
   }
 
   const staff = await getStaff(fromId);
   if (staff) {
+    if (cmd !== "/start" && cmd !== "/menu" && rawText.length >= 2) {
+      await renderScreen(chatId, undefined, await screenSearchResults(staff, rawText));
+      return;
+    }
     await renderScreen(chatId, undefined, await screenMain(staff));
     return;
   }
@@ -1558,9 +1662,9 @@ async function handleUpdate(request: Request): Promise<Response> {
 const COMMANDS = [
   { command: "start", description: "Ouvrir le menu principal tactile" },
   { command: "menu", description: "Accéder au tableau de bord staff" },
-  { command: "stock", description: "Stock d'un produit, ex. /stock iPhone 13" },
-  { command: "prix", description: "Prix boutique, ex. /prix S24" },
-  { command: "aide", description: "Associer son compte et utiliser le bot" }
+  { command: "stock", description: "Stock d'un produit (ou tapez le nom direct)" },
+  { command: "prix", description: "Prix boutique d'un modèle" },
+  { command: "aide", description: "Astuces de recherche et aide staff" }
 ];
 
 async function configure(): Promise<Response> {

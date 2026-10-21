@@ -342,3 +342,20 @@ POS existante en prod : pas de rattrapage.
 **Comment ne plus la refaire** : `tests/telegram-staff-sale-migration.test.ts` vérifie les colonnes
 lues par l'écran et le statut payé. Leçon : toute requête PostgREST écrite à la main se vérifie
 contre `information_schema.columns` avant le commit.
+
+## 2026-10-21 — Recherche Telegram exposée à la clé anon (near miss)
+
+**Symptôme** : après `20261021_002`, `telegram_search_products_fuzzy` était exécutable par
+PUBLIC, `anon` et `authenticated`, et `telegram_staff_product_lookup` par `authenticated` (ACL
+vérifiée en prod).
+
+**Cause racine** : la migration a fait un `GRANT … TO service_role, authenticated, anon` sans
+`REVOKE … FROM PUBLIC` (Postgres accorde EXECUTE à PUBLIC par défaut), contrairement à la règle
+des RPC du bot. Le contrôle « compte lié » repose sur un `telegram_user_id` non secret : il ne
+protège rien hors du bot.
+
+**Résolution** : `20261021_003_telegram_search_acl.sql` ramène les deux fonctions à `service_role`.
+
+**Comment ne plus la refaire** : `tests/telegram-search-fuzzy.test.ts` vérifie le REVOKE/GRANT.
+Toute RPC `telegram_*` : `REVOKE ALL … FROM PUBLIC, anon, authenticated` puis `GRANT … TO
+service_role`, jamais `anon`.

@@ -20,8 +20,10 @@ import {
   saleCancelCb, saleConfirmCb, salePayCb, salePrompt, saleRecap, saleStartCb, type SaleLine
 } from "../_shared/telegramSale.ts";
 import {
-  STOCK_REASON_TEXT, parseCorrectionReply, parseReceiveReply, parseStockTag, stockCorrectCb,
-  stockReceiveCb, stockTag, type StockOp
+  STOCK_REASON_TEXT, calculateProductPreset, parseCorrectionReply, parseManualSplitReply,
+  parseReceiveReply, parseSplitTag, parseStockTag, presetRatios, splitTag, stockBulkBrandListCb,
+  stockBulkCatListCb, stockBulkExecCb, stockBulkMenuCb, stockBulkPreviewCb, stockCorrectCb,
+  stockReceiveCb, stockSplitManualCb, stockSplitPresetCb, stockSplitScreenCb, stockTag, type StockOp
 } from "../_shared/telegramStock.ts";
 
 declare const Deno: {
@@ -52,6 +54,8 @@ interface StaffMember {
   role: string;
   rank: number;
   store: Store | null;
+  /** Store last opened by direction in the bot; scopes free-text search. */
+  scope_store_code: string | null;
 }
 
 interface InlineButton {
@@ -149,7 +153,7 @@ const shareKeyboard = {
 };
 const linkHint = "🔐 Associez d'abord votre compte : touchez « " + SHARE_PHONE_TEXT + " » (tapez /start s'il n'apparaît pas).";
 
-async function staffByAuthUser(authUserId: string): Promise<Omit<StaffMember, "telegram_user_id"> | null> {
+async function staffByAuthUser(authUserId: string): Promise<Omit<StaffMember, "telegram_user_id" | "scope_store_code"> | null> {
   const supabase = db();
   if (!supabase) return null;
   const { data: auth, error: authError } = await supabase.auth.admin.getUserById(authUserId);
@@ -184,14 +188,29 @@ async function getStaff(telegramUserId: string): Promise<StaffMember | null> {
   if (!supabase || !/^\d{1,20}$/.test(telegramUserId)) return null;
   const { data: links } = await supabase
     .from("telegram_staff_links")
-    .select("auth_user_id")
+    .select("auth_user_id, scope_store_code")
     .eq("telegram_user_id", telegramUserId)
     .is("revoked_at", null)
     .limit(1);
   const authUserId = links?.[0]?.auth_user_id;
   if (typeof authUserId !== "string") return null;
   const staff = await staffByAuthUser(authUserId);
-  return staff ? { telegram_user_id: telegramUserId, ...staff } : null;
+  const scope = links?.[0]?.scope_store_code;
+  return staff
+    ? { telegram_user_id: telegramUserId, ...staff, scope_store_code: typeof scope === "string" ? scope : null }
+    : null;
+}
+
+/** Remembers the store direction is browsing (null = network view). Writes only on change. */
+async function rememberScope(staff: StaffMember, storeCode: string | null): Promise<void> {
+  const supabase = db();
+  if (!supabase || staff.rank < RANK_DIRECTION || staff.scope_store_code === storeCode) return;
+  const { error } = await supabase
+    .from("telegram_staff_links")
+    .update({ scope_store_code: storeCode })
+    .eq("telegram_user_id", staff.telegram_user_id);
+  if (error) console.error("telegram-bot-entry: scope update failed", error);
+  else staff.scope_store_code = storeCode;
 }
 
 /** Telegram ids of linked responsables / direction, sender excluded. */
@@ -791,23 +810,27 @@ const CATEGORIES: Record<string, { label: string; names: string[] }> = {
 async function screenStocksCategories(staff: StaffMember, storeCode?: string): Promise<Screen> {
   const store = await scopedStore(staff, storeCode);
   const suffix = scopeSuffix(store);
+  const rows: InlineButton[][] = [
+    [
+      { text: "🍏 Apple / iPhone", callback_data: "nav:cat:apple" + suffix },
+      { text: "🤖 Samsung & Android", callback_data: "nav:cat:android" + suffix }
+    ],
+    [
+      { text: "💻 PC & Tablettes", callback_data: "nav:cat:pc" + suffix },
+      { text: "⚠️ Stocks Faibles", callback_data: "nav:stock_low" + suffix }
+    ]
+  ];
+  if (staff.rank >= RANK_DIRECTION) {
+    rows.push([{ text: "🔀 Ventilation en masse (Réseau)", callback_data: stockBulkMenuCb() }]);
+  }
+  rows.push([{ text: "🏠 Menu Principal", callback_data: "nav:main" }]);
   return {
     text:
       `📦 <b>Gestion des Stocks & Prix</b> — ${escapeHtml(scopeLabel(store))}\n\n` +
       `🔍 <i>Astuce : tapez directement un nom dans le chat (ex: <b>redmi</b>, <b>a3 pro</b>, <b>s24</b>) pour trouver le stock direct.</i>\n\n` +
       `Ou touchez une catégorie pour voir les modèles disponibles :`,
     reply_markup: {
-      inline_keyboard: [
-        [
-          { text: "🍏 Apple / iPhone", callback_data: "nav:cat:apple" + suffix },
-          { text: "🤖 Samsung & Android", callback_data: "nav:cat:android" + suffix }
-        ],
-        [
-          { text: "💻 PC & Tablettes", callback_data: "nav:cat:pc" + suffix },
-          { text: "⚠️ Stocks Faibles", callback_data: "nav:stock_low" + suffix }
-        ],
-        [{ text: "🏠 Menu Principal", callback_data: "nav:main" }]
-      ]
+      inline_keyboard: rows
     }
   };
 }
@@ -994,6 +1017,9 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
       { text: "✏️ Corriger le stock", callback_data: stockCorrectCb(product.id, store.code) }
     ]);
   }
+  if (staff.rank >= RANK_DIRECTION && product.stock > 0 && cbFits(stockSplitScreenCb(product.id, backCat))) {
+    rows.push([{ text: "🔀 Répartir ce modèle", callback_data: stockSplitScreenCb(product.id, backCat) }]);
+  }
   rows.push([
     { text: backCat === "search" ? "⬅️ Précédent (Catégories)" : "⬅️ Précédent", callback_data: back },
     { text: "🏠 Accueil", callback_data: "nav:main" }
@@ -1079,6 +1105,357 @@ async function actionStockReply(
     : `✅ Stock corrigé : ${result.before} → <b>${result.after}</b> (${(result.delta ?? 0) > 0 ? "+" : ""}${result.delta})\n` +
       `Motif : ${escapeHtml(correction!.reason)}\nLe groupe staff est prévenu.`,
   productId, storeCode);
+}
+
+// ── Ventilation / Répartition de stock (Direction : Jordan & Jennifer) ────────
+// Par modèle précis (fiche produit) ou en masse (par catégorie / marque).
+
+function splitResult(text: string, productId?: string, backCat = "apple"): Screen {
+  const rows: InlineButton[][] = [];
+  if (productId) {
+    rows.push([{ text: "⬅️ Retour au produit", callback_data: `nav:p:${productId}:${backCat}` }]);
+  }
+  rows.push([{ text: "📦 Retour aux stocks", callback_data: "nav:stocks" }, { text: "🏠 Accueil", callback_data: "nav:main" }]);
+  return { text, reply_markup: { inline_keyboard: rows } };
+}
+
+async function screenProductSplit(staff: StaffMember, productId: string, backCat: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return splitResult("Service indisponible.");
+  const { data: prod } = await supabase.from("products").select("id, name, stock, price").eq("id", productId).single();
+  if (!prod) return splitResult("❌ Produit introuvable.");
+
+  const { data: stocks } = await supabase.from("store_stock").select("quantity, stores(code, name)").eq("product_id", productId);
+  let siegeQty = 0;
+  let mfoundiQty = 0;
+  let olembeQty = 0;
+  for (const s of (stocks ?? []) as any[]) {
+    const code = s.stores?.code;
+    if (code === "siege") siegeQty = s.quantity ?? 0;
+    else if (code === "MFOUNDI") mfoundiQty = s.quantity ?? 0;
+    else if (code === "OLEMBE") olembeQty = s.quantity ?? 0;
+  }
+
+  const rows: InlineButton[][] = [
+    [
+      { text: "⚖️ 50% Mfoundi / 50% Olembé", callback_data: stockSplitPresetCb("5050", productId, backCat) }
+    ],
+    [
+      { text: "🏢 100% Mfoundi", callback_data: stockSplitPresetCb("100m", productId, backCat) },
+      { text: "🏬 100% Olembé", callback_data: stockSplitPresetCb("100o", productId, backCat) }
+    ],
+    [
+      { text: "📦 Rapatrier au Siège (100%)", callback_data: stockSplitPresetCb("100s", productId, backCat) },
+      { text: "✏️ Saisie manuelle", callback_data: stockSplitManualCb(productId, backCat) }
+    ],
+    [
+      { text: "⬅️ Retour au produit", callback_data: `nav:p:${productId}:${backCat}` },
+      { text: "🏠 Accueil", callback_data: "nav:main" }
+    ]
+  ];
+
+  return {
+    text:
+      `🔀 <b>Ventilation de stock</b>\n` +
+      `📱 <b>${escapeHtml(prod.name)}</b>\n\n` +
+      `• Stock Total Catalogue : <b>${prod.stock} unité(s)</b>\n\n` +
+      `<b>Répartition actuelle :</b>\n` +
+      `• Xeption Siège (Entrepôt) : <b>${siegeQty}</b>\n` +
+      `• Mfoundi Mall : <b>${mfoundiQty}</b>\n` +
+      `• Olembé : <b>${olembeQty}</b>\n\n` +
+      `<i>Touchez une option pour appliquer la nouvelle répartition :</i>`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function actionSplitPreset(
+  staff: StaffMember, preset: "5050" | "100m" | "100o" | "100s", productId: string, backCat: string
+): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return splitResult("Service indisponible.", productId, backCat);
+  const { data: prod } = await supabase.from("products").select("id, name, stock").eq("id", productId).single();
+  if (!prod) return splitResult("❌ Produit introuvable.", productId, backCat);
+
+  const target = calculateProductPreset(prod.stock, preset);
+  const { data, error } = await supabase.rpc("telegram_staff_redistribute_product", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_product_id: productId,
+    p_mfoundi_qty: target.mfoundi,
+    p_olembe_qty: target.olembe,
+    p_siege_qty: target.siege
+  });
+
+  if (error || !data) {
+    console.error("actionSplitPreset error:", error);
+    return splitResult("❌ Erreur lors de la ventilation du stock.", productId, backCat);
+  }
+
+  const res = data as { success: boolean; reason?: string; mfoundi: number; olembe: number; siege: number };
+  if (!res.success) {
+    return splitResult("❌ " + (STOCK_REASON_TEXT[res.reason ?? ""] ?? "Impossible d'effectuer la ventilation."), productId, backCat);
+  }
+
+  return splitResult(
+    `✅ <b>Stock ventilé avec succès !</b>\n` +
+    `📱 <b>${escapeHtml(prod.name)}</b> (Total: ${prod.stock})\n\n` +
+    `<b>Nouvelle répartition :</b>\n` +
+    `• Mfoundi Mall : <b>${res.mfoundi} unité(s)</b>\n` +
+    `• Olembé : <b>${res.olembe} unité(s)</b>\n` +
+    `• Siège : <b>${res.siege} unité(s)</b>`,
+    productId, backCat
+  );
+}
+
+async function actionSplitManualPrompt(staff: StaffMember, productId: string, backCat: string, chatId: number | string): Promise<void> {
+  if (staff.rank < RANK_DIRECTION) return;
+  const supabase = db();
+  if (!supabase) return;
+  const { data: prod } = await supabase.from("products").select("name, stock").eq("id", productId).single();
+  if (!prod) return;
+
+  await telegram("sendMessage", {
+    chat_id: chatId,
+    text:
+      `✏️ Répartition manuelle : ${prod.name}\n` +
+      `Stock total : ${prod.stock} unité(s)\n\n` +
+      `Répondez avec les quantités (Mfoundi Olembe Siège) :\n` +
+      `Exemple : 5 5 0 ou simplement 5 5 (le reste va au Siège).\n` +
+      splitTag(productId),
+    reply_markup: { force_reply: true, input_field_placeholder: "5 5 0" }
+  });
+}
+
+async function actionSplitReply(staff: StaffMember, productId: string, rawText: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return splitResult("Service indisponible.", productId);
+  const { data: prod } = await supabase.from("products").select("name, stock").eq("id", productId).single();
+  if (!prod) return splitResult("❌ Produit introuvable.", productId);
+
+  const parsed = parseManualSplitReply(rawText, prod.stock);
+  if (!parsed) {
+    return splitResult(
+      `❌ <b>Répartition invalide.</b>\n\n` +
+      `La somme doit faire exactement <b>${prod.stock}</b> unités.\n` +
+      `Format attendu : <code>Mfoundi Olembé Siège</code> (ex: <code>3 2 0</code>).`,
+      productId
+    );
+  }
+
+  const { data, error } = await supabase.rpc("telegram_staff_redistribute_product", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_product_id: productId,
+    p_mfoundi_qty: parsed.mfoundi,
+    p_olembe_qty: parsed.olembe,
+    p_siege_qty: parsed.siege
+  });
+
+  if (error || !data) {
+    return splitResult("❌ Erreur lors de la ventilation.", productId);
+  }
+
+  const res = data as { success: boolean; reason?: string; mfoundi: number; olembe: number; siege: number };
+  if (!res.success) {
+    return splitResult("❌ " + (STOCK_REASON_TEXT[res.reason ?? ""] ?? "Erreur de ventilation."), productId);
+  }
+
+  return splitResult(
+    `✅ <b>Répartition manuelle enregistrée !</b>\n` +
+    `📱 <b>${escapeHtml(prod.name)}</b> (Total: ${prod.stock})\n\n` +
+    `• Mfoundi Mall : <b>${res.mfoundi}</b>\n` +
+    `• Olembé : <b>${res.olembe}</b>\n` +
+    `• Siège : <b>${res.siege}</b>`,
+    productId
+  );
+}
+
+// ── Ventilation en masse (Réseau) ─────────────────────────────────────────────
+
+async function screenBulkMenu(staff: StaffMember): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  return {
+    text:
+      `🔀 <b>Ventilation des Stocks en Masse</b>\n\n` +
+      `Permet à la Direction de répartir des lots de stock depuis l'entrepôt Siège vers les boutiques physiques (Mfoundi & Olembé).\n\n` +
+      `Choisissez le mode de ventilation :`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📱 Par Catégorie (Smartphones, PC...)", callback_data: stockBulkCatListCb() }],
+        [{ text: "🏷️ Par Marque (Apple, Samsung, Xiaomi...)", callback_data: stockBulkBrandListCb() }],
+        [{ text: "🌐 Tout le Stock du Réseau (Global)", callback_data: stockBulkPreviewCb("a", "all", "5050") }],
+        [{ text: "⬅️ Retour aux Stocks", callback_data: "nav:stocks" }, { text: "🏠 Accueil", callback_data: "nav:main" }]
+      ]
+    }
+  };
+}
+
+async function screenBulkCategories(staff: StaffMember): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  return {
+    text: `🔀 <b>Ventilation par Catégorie</b>\n\nChoisissez la catégorie à répartir sur le réseau :`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📱 Smartphones", callback_data: stockBulkPreviewCb("c", "phones", "5050") }],
+        [{ text: "💻 Ordinateurs", callback_data: stockBulkPreviewCb("c", "computer", "5050") }],
+        [{ text: "🎧 Accessoires", callback_data: stockBulkPreviewCb("c", "accessories", "5050") }],
+        [{ text: "📲 Tablettes", callback_data: stockBulkPreviewCb("c", "tablettes", "5050") }],
+        [{ text: "⬅️ Précédent", callback_data: stockBulkMenuCb() }, { text: "🏠 Accueil", callback_data: "nav:main" }]
+      ]
+    }
+  };
+}
+
+async function screenBulkBrands(staff: StaffMember): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  return {
+    text: `🔀 <b>Ventilation par Marque</b>\n\nChoisissez la marque à répartir :`,
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "🍏 Apple", callback_data: stockBulkPreviewCb("b", "Apple", "5050") },
+          { text: "🤖 Samsung", callback_data: stockBulkPreviewCb("b", "Samsung", "5050") }
+        ],
+        [
+          { text: "🟠 Xiaomi", callback_data: stockBulkPreviewCb("b", "Xiaomi", "5050") },
+          { text: "💻 HP", callback_data: stockBulkPreviewCb("b", "HP", "5050") }
+        ],
+        [
+          { text: "🌐 Google Pixel", callback_data: stockBulkPreviewCb("b", "Google Pixel", "5050") },
+          { text: "🖥️ Dell", callback_data: stockBulkPreviewCb("b", "Dell", "5050") }
+        ],
+        [
+          { text: "⚡ Tecno", callback_data: stockBulkPreviewCb("b", "Tecno", "5050") },
+          { text: "🚀 Infinix", callback_data: stockBulkPreviewCb("b", "Infinix", "5050") }
+        ],
+        [{ text: "⬅️ Précédent", callback_data: stockBulkMenuCb() }, { text: "🏠 Accueil", callback_data: "nav:main" }]
+      ]
+    }
+  };
+}
+
+async function screenBulkPreview(
+  staff: StaffMember, type: "c" | "b" | "a", val: string, preset: "5050" | "100m" | "100o" | "7030"
+): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return splitResult("Service indisponible.");
+
+  const filterType = type === "c" ? "category" : type === "b" ? "brand" : "all";
+  const { m, o, s } = presetRatios(preset);
+
+  const { data, error } = await supabase.rpc("telegram_staff_redistribute_preview", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_filter_type: filterType,
+    p_filter_value: val,
+    p_mfoundi_pct: m,
+    p_olembe_pct: o,
+    p_siege_pct: s
+  });
+
+  if (error || !data) {
+    return splitResult("❌ Erreur lors du calcul de prévision.");
+  }
+
+  const p = data as { count_products: number; total_units: number; mfoundi: number; olembe: number; siege: number };
+  const filterLabel = type === "c"
+    ? `Catégorie : ${val}`
+    : type === "b"
+      ? `Marque : ${val}`
+      : "Tout le stock catalogue";
+
+  const presetLabel = preset === "5050"
+    ? "50% Mfoundi / 50% Olembé"
+    : preset === "7030"
+      ? "70% Mfoundi / 30% Olembé"
+      : preset === "100m"
+        ? "100% Mfoundi Mall"
+        : "100% Olembé";
+
+  const rows: InlineButton[][] = [
+    [
+      { text: preset === "5050" ? "🔘 50/50" : "50/50", callback_data: stockBulkPreviewCb(type, val, "5050") },
+      { text: preset === "7030" ? "🔘 70/30" : "70/30", callback_data: stockBulkPreviewCb(type, val, "7030") },
+      { text: preset === "100m" ? "🔘 100% M" : "100% M", callback_data: stockBulkPreviewCb(type, val, "100m") },
+      { text: preset === "100o" ? "🔘 100% O" : "100% O", callback_data: stockBulkPreviewCb(type, val, "100o") }
+    ],
+    [
+      { text: "✅ Confirmer et ventiler", callback_data: stockBulkExecCb(type, val, preset) }
+    ],
+    [
+      { text: "❌ Annuler", callback_data: stockBulkMenuCb() },
+      { text: "🏠 Accueil", callback_data: "nav:main" }
+    ]
+  ];
+
+  return {
+    text:
+      `🔀 <b>Aperçu avant ventilation</b>\n\n` +
+      `• Cible : <b>${escapeHtml(filterLabel)}</b>\n` +
+      `• Règle : <b>${escapeHtml(presetLabel)}</b>\n\n` +
+      `📊 <b>Statistiques :</b>\n` +
+      `• Modèles concernés : <b>${p.count_products} modèles</b>\n` +
+      `• Total unités : <b>${p.total_units} unités</b>\n\n` +
+      `<b>Répartition résultante :</b>\n` +
+      `• Mfoundi Mall : <b>${p.mfoundi} unités</b>\n` +
+      `• Olembé : <b>${p.olembe} unités</b>\n` +
+      `• Siège (reliquat) : <b>${p.siege} unités</b>\n\n` +
+      `<i>Touchez « ✅ Confirmer » pour appliquer cette ventilation en base de données.</i>`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function actionBulkExecute(
+  staff: StaffMember, type: "c" | "b" | "a", val: string, preset: "5050" | "100m" | "100o" | "7030"
+): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return splitResult("Service indisponible.");
+
+  const filterType = type === "c" ? "category" : type === "b" ? "brand" : "all";
+  const { m, o, s } = presetRatios(preset);
+
+  const { data, error } = await supabase.rpc("telegram_staff_redistribute_bulk", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_filter_type: filterType,
+    p_filter_value: val,
+    p_mfoundi_pct: m,
+    p_olembe_pct: o,
+    p_siege_pct: s
+  });
+
+  if (error || !data) {
+    console.error("actionBulkExecute error:", error);
+    return splitResult("❌ Erreur lors de l'exécution de la ventilation en masse.");
+  }
+
+  const res = data as {
+    success: boolean;
+    products_updated: number;
+    total_units: number;
+    allocated_mfoundi: number;
+    allocated_olembe: number;
+    allocated_siege: number;
+  };
+
+  return {
+    text:
+      `🎉 <b>Ventilation en masse terminée avec succès !</b>\n\n` +
+      `• Modèles mis à jour : <b>${res.products_updated}</b>\n` +
+      `• Total unités distribuées : <b>${res.total_units}</b>\n\n` +
+      `<b>Nouveaux stocks du réseau :</b>\n` +
+      `• Mfoundi Mall : <b>${res.allocated_mfoundi} unités</b>\n` +
+      `• Olembé : <b>${res.allocated_olembe} unités</b>\n` +
+      `• Siège : <b>${res.allocated_siege} unités</b>\n\n` +
+      `Tous les vendeurs de Mfoundi et d'Olembé ont désormais accès à ces stocks sur Telegram et dans l'ERP.`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📦 Retour aux stocks", callback_data: "nav:stocks" }],
+        [{ text: "🏠 Accueil", callback_data: "nav:main" }]
+      ]
+    }
+  };
 }
 
 // ── Vente comptoir (scénario 1 : 1 article, paiement unique) ──────────────────
@@ -1529,6 +1906,10 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
   const parts = data.split(":");
   const action = parts[1];
 
+  // Free-text search has no context: remember where direction is browsing.
+  if (action === "store" || action === "stocks") await rememberScope(staff, parts[2] || null);
+  else if (action === "main") await rememberScope(staff, null);
+
   let screen: Screen;
   if (action === "store") {
     screen = await screenStore(staff, parts[2] ?? "");
@@ -1556,6 +1937,23 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     const refusal = await actionStockPrompt(staff, action === "sr" ? "R" : "C", parts[2] ?? "", parts[3] ?? "", chatId);
     if (!refusal) return;
     screen = refusal;
+  } else if (action === "sps") {
+    screen = await screenProductSplit(staff, parts[2] ?? "", parts[3] || "apple");
+  } else if (action === "spp") {
+    screen = await actionSplitPreset(staff, parts[2] as any, parts[3] ?? "", parts[4] || "apple");
+  } else if (action === "spm") {
+    await actionSplitManualPrompt(staff, parts[2] ?? "", parts[3] || "apple", chatId);
+    return;
+  } else if (action === "sbm") {
+    screen = await screenBulkMenu(staff);
+  } else if (action === "sbc_list") {
+    screen = await screenBulkCategories(staff);
+  } else if (action === "sbb_list") {
+    screen = await screenBulkBrands(staff);
+  } else if (action === "sbp") {
+    screen = await screenBulkPreview(staff, parts[2] as any, parts[3] ?? "", parts[4] as any);
+  } else if (action === "sbe") {
+    screen = await actionBulkExecute(staff, parts[2] as any, parts[3] ?? "", parts[4] as any);
   } else if (action === "troc") {
     screen = await screenTrocList(staff);
   } else if (action === "t_v") {
@@ -1670,6 +2068,20 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
     return;
   }
 
+  // Reply to a stock redistribution prompt (#SPLIT:)
+  const split = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parseSplitTag(String(reply?.text ?? ""))
+    : null;
+  if (split) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    await renderScreen(chatId, undefined, await actionSplitReply(staff, split.productId, rawText));
+    return;
+  }
+
   if (cmd === "/aide") {
     await telegram("sendMessage", {
       chat_id: chatId,
@@ -1700,16 +2112,17 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
       await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
       return;
     }
-    await renderScreen(chatId, undefined, await screenSearchResults(staff, query));
+    await renderScreen(chatId, undefined, await screenSearchResults(staff, query, staff.scope_store_code ?? undefined));
     return;
   }
 
   const staff = await getStaff(fromId);
   if (staff) {
     if (cmd !== "/start" && cmd !== "/menu" && rawText.length >= 2) {
-      await renderScreen(chatId, undefined, await screenSearchResults(staff, rawText));
+      await renderScreen(chatId, undefined, await screenSearchResults(staff, rawText, staff.scope_store_code ?? undefined));
       return;
     }
+    await rememberScope(staff, null);
     await renderScreen(chatId, undefined, await screenMain(staff));
     return;
   }

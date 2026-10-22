@@ -8,20 +8,26 @@ import { getBandwidthTier, type BandwidthTier } from './bandwidthDetector';
 
 const IMAGE_FALLBACK = '/icons/icon-192x192.png';
 
-const imageQualityForTier = (tier: BandwidthTier): string => {
-  if (tier === 'slow') return 'q_auto:low';
-  if (tier === 'fast') return 'q_auto:good';
-  return 'q_auto:eco';
+/**
+ * Cloudinary facture chaque chaîne de transformation distincte (crédits « Transformations »).
+ * On borne donc les variantes : quelques paliers de largeur, une seule qualité, pas de dpr_auto
+ * (qui crée une variante par densité d'écran). Le réseau lent descend d'un palier de largeur.
+ */
+export const IMAGE_WIDTH_BUCKETS = [160, 320, 480, 800, 1280] as const;
+const IMAGE_QUALITY = 'q_auto:eco';
+const PLACEHOLDER_WIDTH = 32;
+
+const tierMaxWidth = (tier: BandwidthTier): number => {
+  if (tier === 'slow') return 800;
+  return 1280;
 };
 
-const capWidthForTier = (width: number, tier: BandwidthTier): number => {
-  if (tier === 'slow') return Math.min(width, 640);
-  if (tier === 'medium') return Math.min(width, 1024);
-  return width;
+/** Plus petit palier >= width, plafonné selon la bande passante. */
+export const snapWidth = (width: number, tier: BandwidthTier = 'fast'): number => {
+  const max = tierMaxWidth(tier);
+  const bucket = IMAGE_WIDTH_BUCKETS.find((b) => b >= width) ?? IMAGE_WIDTH_BUCKETS[IMAGE_WIDTH_BUCKETS.length - 1];
+  return Math.min(bucket, max);
 };
-
-/** Au-delà : écran Retina utile (fiche produit). En dessous : vignettes grille. */
-const DPR_AUTO_MIN_WIDTH = 800;
 
 const buildCloudinaryTransform = (
   parts: string[],
@@ -31,23 +37,16 @@ const buildCloudinaryTransform = (
 export const optimizeImage = (
   url: string | undefined,
   width: number = 800,
-  options?: { dpr?: boolean },
+  // Conservé pour compatibilité d'appel ; dpr_auto n'est plus émis (voir IMAGE_WIDTH_BUCKETS).
+  _options?: { dpr?: boolean },
 ): string => {
   if (!url) return IMAGE_FALLBACK;
 
   // Si ce n'est pas une image Cloudinary, on retourne l'URL telle quelle
   if (!url.includes('cloudinary.com')) return url;
 
-  const tier = getBandwidthTier();
-  const cappedWidth = capWidthForTier(width, tier);
-  const quality = imageQualityForTier(tier);
-  const useDpr = options?.dpr ?? cappedWidth >= DPR_AUTO_MIN_WIDTH;
-
   // f_auto : format optimal (AVIF / WebP)
-  // q_auto:* : qualité selon bande passante détectée
-  // dpr_auto : uniquement grandes images (zoom fiche produit), pas les vignettes
-  const dpr = useDpr ? ',dpr_auto' : '';
-  const transformation = `f_auto,${quality},w_${cappedWidth}${dpr},c_limit`;
+  const transformation = `f_auto,${IMAGE_QUALITY},w_${snapWidth(width, getBandwidthTier())},c_limit`;
 
   const parts = url.split('/upload/');
   if (parts.length === 2) {
@@ -61,12 +60,12 @@ export const optimizeImage = (
  * Génère un placeholder LQIP (Low-Quality Image Placeholder) flouté ultra-léger (~250 octets)
  * Téléchargé instantanément même en 2G/3G, permettant un affichage flou immédiat des vraies couleurs.
  */
-export const optimizeImagePlaceholder = (url: string | undefined, width: number = 24): string => {
+export const optimizeImagePlaceholder = (url: string | undefined, _width?: number): string => {
   if (!url) return IMAGE_FALLBACK;
   if (!url.includes('cloudinary.com')) return url;
 
-  // w_24, e_blur:200, q_auto:low, f_auto : micro-vignette floue ultra-légère
-  const transformation = `f_auto,q_auto:low,w_${width},e_blur:200,c_limit`;
+  // Largeur fixe : une seule variante floue par image, quel que soit l'appelant
+  const transformation = `f_auto,q_auto:low,w_${PLACEHOLDER_WIDTH},e_blur:200,c_limit`;
   const parts = url.split('/upload/');
   if (parts.length === 2) {
     return buildCloudinaryTransform(parts, transformation);
@@ -84,7 +83,9 @@ export const generateCloudinarySrcSet = (
 ): string | undefined => {
   if (!url || !url.includes('cloudinary.com')) return undefined;
 
-  return widths
+  const tier = getBandwidthTier();
+  const snapped = [...new Set(widths.map((w) => snapWidth(w, tier)))].sort((a, b) => a - b);
+  return snapped
     .map((w) => `${optimizeImage(url, w)} ${w}w`)
     .join(', ');
 };
@@ -94,10 +95,8 @@ export const optimizeProductThumb = (url: string | undefined, size: number = 400
   if (!url) return IMAGE_FALLBACK;
   if (!url.includes('cloudinary.com')) return url;
 
-  const tier = getBandwidthTier();
-  const cappedSize = capWidthForTier(size, tier);
-  const quality = imageQualityForTier(tier);
-  const transformation = `f_auto,${quality},w_${cappedSize},h_${cappedSize},c_fill,g_center`;
+  const s = snapWidth(size, getBandwidthTier());
+  const transformation = `f_auto,${IMAGE_QUALITY},w_${s},h_${s},c_fill,g_center`;
 
   const parts = url.split('/upload/');
   if (parts.length === 2) {

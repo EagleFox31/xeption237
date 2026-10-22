@@ -26,4 +26,4 @@ jobs:
           node-version: 24
           cache: npm
       - name: Build existing Xeption frontend with storage adapter
-        run: npm install --ignore-scripts --no-audit --no-fund && npm run build
+        run: npm install --ignore-scripts --no-audit --no-fund && npx vite build

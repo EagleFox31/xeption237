@@ -62,7 +62,7 @@ const CLOUDINARY_FOLDER = 'xeption';
 export const uploadImageToCloudinary = async (file: File): Promise<string> => {
   if (USE_TRIGENYS_STORAGE) {
     try { return await uploadImageToTrigenysStorage(file); }
-    catch (error) { console.warn('Trigenys Storage upload failed; trying legacy provider'); }
+    catch (error) { console.warn('Trigenys Storage upload failed; trying legacy provider', error); }
   }
   try {
     const formData = new FormData();

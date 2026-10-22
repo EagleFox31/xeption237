@@ -1,0 +1,52 @@
+/** Allowlisted business fields from the persisted notification, not live product state.
+ * Customer/contact fragments and arbitrary notification titles never leave Xeption.
+ */
+import type {StaffNotification} from './staffNotify.ts';
+
+const contact=/@|https?:\/\/|www\.|\+\s*\d(?:[\s().-]*\d){7,}|\b\d{9,15}\b|\b(?:237[\s.-]*)?[26]\d{2}(?:[\s.-]*\d{3}){2}\b/i;
+const label=(raw:string|undefined,max:number):string|undefined=>{
+  if(!raw)return undefined;
+  const value=raw.normalize('NFC').replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069*_~`]/g,' ')
+    .replace(/\s+/g,' ').trim();
+  return value&&value.length<=max&&!contact.test(value)?value:undefined;
+};
+const money=(raw:string):number|undefined=>{
+  const value=Number(raw.replace(/[\s\u00a0\u202f]/g,''));
+  return Number.isSafeInteger(value)&&value>=0&&value<=1_000_000_000_000?value:undefined;
+};
+
+export const extractNotificationFacts=(n:StaffNotification)=>{
+  const parts=n.message.slice(0,4000).split(' — ').map(s=>s.trim()).filter(Boolean);
+  const facts:Record<string,string|number>={};
+  const subject=label(parts[0],160);if(subject)facts.subject=subject;
+  const actor=label(parts.find(s=>/^Par\s*:/i.test(s))?.replace(/^Par\s*:\s*/i,''),80);
+  if(actor)facts.actor=actor;
+  if(n.event_type==='stock_low'||n.event_type==='stock_out'){
+    const count=parts.map(s=>s.match(/^(\d+) restant\(s\)$/i)).find(Boolean);
+    if(count){const value=Number(count[1]);if(Number.isSafeInteger(value)&&value<=1_000_000_000)facts.stockRemaining=value;}
+  }else if(n.event_type==='troc_submitted'){
+    const condition=label(parts.find(s=>s.startsWith('État : '))?.slice('État : '.length),180);
+    const target=label(parts.find(s=>s.startsWith('Cible : '))?.slice('Cible : '.length),160);
+    if(condition)facts.condition=condition;
+    if(target)facts.target=target;
+    const offers=parts.find(s=>s.startsWith('Offre estimée : '))??'';
+    for(const match of offers.matchAll(/(\d[\d\s\u00a0\u202f]*(?:\.0+)?) FCFA (cash|bon d'achat)/g)){
+      const value=money(match[1]);
+      if(value!==undefined)facts[match[2]==='cash'?'cashOfferXaf':'voucherOfferXaf']=value;
+    }
+  }else if(n.event_type==='marketplace_listed'){
+    const specification=parts.find(s=>/^\d{1,4} Go(?: \/ \d{1,4} Go)?$/.test(s));
+    if(specification)facts.specification=specification;
+    const grade=parts.map(s=>s.match(/^grade ([A-F][+-]?)$/i)).find(Boolean);
+    if(grade)facts.grade=grade[1].toUpperCase();
+    const priceIndex=parts.findIndex(s=>/^[\d\s.]+ à [\d\s.]+ FCFA$/.test(s));
+    if(priceIndex>=0){
+      const price=parts[priceIndex].match(/^([\d\s.]+) à ([\d\s.]+) FCFA$/)!;
+      const min=money(price[1]),max=money(price[2]);
+      if(min!==undefined&&max!==undefined&&min<=max){facts.priceMinXaf=min;facts.priceMaxXaf=max;}
+      const city=label(parts[priceIndex+1],80);
+      if(city&&/^[\p{L}][\p{L} '\-]*$/u.test(city))facts.city=city;
+    }
+  }
+  return Object.keys(facts).length?facts:undefined;
+};

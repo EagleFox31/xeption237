@@ -8,6 +8,8 @@
 
 export interface StaffNotification {
   notification_id: string;
+  /** Persisted event time, hydrated for the canonical WhatsApp envelope. */
+  created_at?: string;
   event_type: string;
   title: string;
   message: string;
@@ -137,3 +139,4 @@ export const formatPlainNotification = (n: StaffNotification, ctx?: StaffNotifyC
     .filter(Boolean)
     .join('\n');
 };
+

@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-10-22 — Alertes WhatsApp génériques et horodatage instable
+
+**Symptôme** : les alertes WhatsApp ne précisent pas le produit, le stock restant ni l'auteur, contrairement au message déjà enregistré pour Telegram. Un réessai de l'adaptateur recrée aussi la date de l'événement, ce qui peut être rejeté par l'empreinte immuable du destinataire après une livraison partielle.
+
+**Cause racine** : le producteur supprimait tous les détails et utilisait l'heure d'envoi ; Trigenys Notify ne recevait donc qu'un type d'alerte générique.
+
+**Résolution** : extraire seulement les faits métier reconnus de l'instantané de notification, relire sa date de création en un lot pour WhatsApp, puis formater les champs contrôlés dans Trigenys Notify. Aucun corps libre ni fragment client/contact n'est recopié. Le relais et la mise en forme Telegram restent inchangés.
+
+**Comment ne plus la refaire** : tests de contrat entre source et destinataire, invariance du payload pendant les réessais, refus des instantanés sans date persistée, quantité zéro, détails troc/marketplace sans identité client, et nom de produit avec modèle/année qui ne doit pas être pris pour un numéro de téléphone. Déployer d'abord le consommateur compatible. Aucun ancien stock n'est affiché sans instantané qui le capture.
+
+
 ## 2026-10-20 — Migration `20261020_005` : délimiteur `$` au lieu de `$$`
 
 **Symptôme** : `npm run db:apply` → `syntax error at or near "$"` (ligne `AS $`). La transaction

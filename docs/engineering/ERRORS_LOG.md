@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-10-22 — CI ciblée stockage : lockfile désynchronisé et postbuild dépendant des secrets
+
+- **Symptôme :** la première validation du pilote Trigenys Storage échoue avant la compilation : npm ci refuse le package-lock.json existant (@emnapi/core et @emnapi/wasi-threads manquants). Après passage à npm install, la compilation Vite réussit, mais npm run build exécute le postbuild lié à Supabase et échoue car le runner de PR n'a volontairement pas les secrets .env de production.
+- **Cause racine :** dette antérieure de synchronisation du lockfile, et CI pilote déclenchant une étape d'exploitation Supabase qui n'est pas nécessaire pour tester un changement uploadService.ts ; périmètre de validation trop large (anti-pattern RAIDER).
+- **Résolution du pilote :** CI limitée à npm install --ignore-scripts + npx vite build ; aucun secret Supabase injecté dans GitHub Actions.
+- **Prévention :** distinguer frontend build et postbuild Supabase ; corriger séparément le lockfile pour restaurer npm ci et la reproductibilité. Conserver VITE_TRIGENYS_STORAGE_ENABLED à false jusqu'à la validation E2E de l'upload staff.
+
+---
+
 ## 2026-10-22 — Alertes WhatsApp génériques et horodatage instable
 
 **Symptôme** : les alertes WhatsApp ne précisent pas le produit, le stock restant ni l'auteur, contrairement au message déjà enregistré pour Telegram. Un réessai de l'adaptateur recrée aussi la date de l'événement, ce qui peut être rejeté par l'empreinte immuable du destinataire après une livraison partielle.

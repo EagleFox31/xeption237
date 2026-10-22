@@ -1,6 +1,7 @@
 /**
  * Adaptateur Telegram (Bot API, parse_mode HTML).
- * Secrets : TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID ; optionnel TELEGRAM_EVENT_TYPES.
+ * Secrets : TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID ; optionnels TELEGRAM_EVENT_TYPES,
+ * TELEGRAM_MINIAPP_LINK, TELEGRAM_BOT_USERNAME (sinon déduit du lien Mini App).
  */
 import {
   notificationLink,
@@ -11,6 +12,7 @@ import {
   type StaffNotifyChannel,
   type StaffNotifyContext,
 } from '../staffNotify.ts';
+import { botChatLink, buildStartPayload, resolveBotUsername } from '../telegramStartPayload.ts';
 
 /** Limite Telegram d'un message texte. */
 export const TELEGRAM_MAX_MESSAGE_LENGTH = 4096;
@@ -41,13 +43,23 @@ const trustedMiniAppLink = (raw: string | undefined): string | null => {
   } catch { return null; }
 };
 
-export const telegramReplyMarkup = (n: StaffNotification, ctx: StaffNotifyContext, miniAppUrl?: string) => {
+export const telegramReplyMarkup = (
+  n: StaffNotification,
+  ctx: StaffNotifyContext,
+  miniAppUrl?: string,
+  botUsername?: string | null,
+) => {
   const link = notificationLink(n, ctx);
   const miniApp = trustedMiniAppLink(miniAppUrl);
   // Lien direct vers l'élément + Mini App côte à côte : le staff choisit le site ou Telegram.
   const row = [{ text: `${link.label} ↗`, url: link.url }];
   if (miniApp) row.push({ text: 'Gérer dans Telegram ↗', url: miniApp });
-  return { inline_keyboard: [row] };
+  const keyboard = [row];
+  // Discussion privée du bot, ouverte directement sur l'élément quand il a un écran bot.
+  if (botUsername) {
+    keyboard.push([{ text: '💬 Gérer avec le bot', url: botChatLink(botUsername, buildStartPayload(n.link_to_tab, n.link_to_id)) }]);
+  }
+  return { inline_keyboard: keyboard };
 };
 
 /** Renvoie null si le canal n'est pas configuré (il est alors simplement ignoré). */
@@ -59,6 +71,7 @@ export const createTelegramChannel = (
   const chatId = env('TELEGRAM_CHAT_ID') ?? '';
   if (!token || !chatId) return null;
   const miniAppUrl = env('TELEGRAM_MINIAPP_LINK');
+  const botUsername = resolveBotUsername(env('TELEGRAM_BOT_USERNAME'), miniAppUrl);
 
   return {
     id: 'telegram',
@@ -72,7 +85,7 @@ export const createTelegramChannel = (
           text: formatTelegramNotification(notification),
           parse_mode: 'HTML',
           disable_web_page_preview: true,
-          reply_markup: telegramReplyMarkup(notification, ctx, miniAppUrl),
+          reply_markup: telegramReplyMarkup(notification, ctx, miniAppUrl, botUsername),
         }),
       });
       if (res.ok) return null;

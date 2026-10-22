@@ -37,6 +37,7 @@ import {
 } from "../_shared/telegramProductCreate.ts";
 import { deepseekChatJson } from "../_shared/deepseekTextJson.ts";
 import { buildProductEnricherPrompt, parseProductEnricherOutput } from "../_shared/personas/productEnricher.ts";
+import { parseStartPayload } from "../_shared/telegramStartPayload.ts";
 
 
 declare const Deno: {
@@ -3025,6 +3026,16 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
   if (staff) {
     if (cmd !== "/start" && cmd !== "/menu" && rawText.length >= 2) {
       await renderScreen(chatId, undefined, await screenSearchResults(staff, rawText, staff.scope_store_code ?? undefined));
+      return;
+    }
+    // Deep link from a staff notification (t.me/<bot>?start=<payload>): open the item directly.
+    const target = cmd === "/start" ? parseStartPayload(rest[0]) : null;
+    if (target?.kind === "product") {
+      await renderScreen(chatId, undefined, await screenProductDetail(staff, target.id, "stocks", staff.scope_store_code ?? undefined));
+      return;
+    }
+    if (target?.kind === "troc") {
+      await renderScreen(chatId, undefined, await screenTrocDetail(staff, target.id));
       return;
     }
     await rememberScope(staff, null);

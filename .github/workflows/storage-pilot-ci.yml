@@ -1,0 +1,29 @@
+name: Xeption Media Storage Pilot CI
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/uploadService.ts"
+      - "supabase/functions/storage-upload-intent/**"
+      - ".github/workflows/storage-pilot-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "services/uploadService.ts"
+      - "supabase/functions/storage-upload-intent/**"
+      - ".github/workflows/storage-pilot-ci.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  frontend-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Build existing Xeption frontend with storage adapter
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm run build

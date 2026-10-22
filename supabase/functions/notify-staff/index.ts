@@ -12,7 +12,7 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { StaffNotification, StaffNotifyChannel, StaffNotifyContext } from '../_shared/staffNotify.ts';
 import { createTelegramChannel } from '../_shared/staffNotifyChannels/telegram.ts';
-import { createWahaChannel } from '../_shared/staffNotifyChannels/waha.ts';
+import { createWahaChannel, withNotificationDates } from '../_shared/staffNotifyChannels/waha.ts';
 
 const CLAIM_BATCH_SIZE = 20;
 
@@ -41,12 +41,26 @@ const relayChannel = async (
     return { claimed: 0, sent: 0, failed: 0, error: 'claim_failed' };
   }
 
-  const rows = (data ?? []) as StaffNotification[];
+  let rows = (data ?? []) as StaffNotification[];
+  let snapshotUnavailable = false;
+  if (channel.id === 'whatsapp_waha' && rows.length) {
+    try {
+      rows = await withNotificationDates(rows, async (ids) => {
+        const {data: snapshots, error: snapshotError} = await supabase
+          .from('admin_notifications').select('id,created_at').in('id', ids);
+        if (snapshotError) throw snapshotError;
+        return snapshots ?? [];
+      });
+    } catch {
+      snapshotUnavailable = true;
+      console.error('notify-staff: persisted notification timestamp unavailable', {channel: channel.id});
+    }
+  }
   let sent = 0;
   let failed = 0;
   // Séquentiel : garde l'ordre chronologique et reste sous les limites de débit des API.
   for (const row of rows) {
-    const sendError = await channel
+    const sendError = snapshotUnavailable ? 'notify_snapshot_unavailable' : await channel
       .send(row, ctx)
       .catch((e: unknown) => `exception: ${e instanceof Error ? e.message : String(e)}`);
     const patch = sendError
@@ -91,3 +105,4 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
   return json(200, { channels: results });
 });
+

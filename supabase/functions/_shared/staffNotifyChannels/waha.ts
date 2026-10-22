@@ -14,6 +14,7 @@ import {
   type StaffNotifyChannel,
   type StaffNotifyContext,
 } from '../staffNotify.ts';
+import {extractNotificationFacts} from '../staffNotifyFacts.ts';
 
 export const WAHA_DEFAULT_EVENT_TYPES = [
   'stock_low', 'stock_out', 'product_missing_image'
@@ -30,20 +31,41 @@ export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
 const DISPATCH_URL =
   'https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/v1/dispatch/xeption/whatsapp';
 
-/** Canonical Trigenys Notify event. No freeform names, phone, email, title or message. */
+/** Hydrate only persisted timestamps in one read; never invent a time on retry. */
+export async function withNotificationDates(
+  rows:StaffNotification[],
+  read:(ids:string[])=>Promise<Array<{id:string;created_at:string}>>
+):Promise<StaffNotification[]>{
+  if(!rows.length)return rows;
+  const dates=new Map((await read([...new Set(rows.map(r=>r.notification_id))]))
+    .map(r=>[r.id,r.created_at]));
+  return rows.map(row=>{
+    const created_at=dates.get(row.notification_id);
+    if(!created_at)throw Error('NOTIFICATION_SNAPSHOT_MISSING');
+    return {...row,created_at};
+  });
+}
+
+/** Canonical envelope with allowlisted business facts, never raw title/message/contact data. */
 export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
   const type=NOTIFY_EVENT_ALIASES[n.event_type];
   if(!type) throw new Error('UNSUPPORTED_NOTIFY_EVENT');
   const kind=type.startsWith('inventory.')?'inventory':
     type.startsWith('catalog.')?'catalog':
     type.startsWith('barter.')?'barter':'marketplace';
+  if(!n.created_at||!Number.isFinite(Date.parse(n.created_at)))
+    throw new Error('NOTIFICATION_TIMESTAMP_REQUIRED');
+  const facts=extractNotificationFacts(n);
+  const resourceId=n.link_to_id&&/^[a-zA-Z0-9._:-]{1,128}$/.test(n.link_to_id)
+    ?n.link_to_id:n.notification_id;
   return {
     version:1,project:'xeption',id:n.notification_id,type,
-    occurredAt:new Date().toISOString(),
+    occurredAt:new Date(n.created_at).toISOString(),
     priority:n.event_type==='stock_out'?'critical':
       n.event_type==='stock_low'?'high':'normal',
-    resource:{kind,id:n.notification_id},
+    resource:{kind,id:resourceId},
     audience:'staff',
+    ...(facts?{facts}:{}),
     // Do not use a client-controlled origin from message or source settings.
     actionUrl:notificationLink(n,{siteUrl:'https://www.xeptionetwork.shop'}).url
   };
@@ -103,3 +125,4 @@ export const createWahaChannel = (
     }
   };
 };
+

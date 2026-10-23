@@ -1,9 +1,9 @@
 import { supabase } from './supabaseClient';
 
 
-// Opt-in cutover: unchanged Cloudinary behavior until Vite flag is enabled.
-// VITE_ values are public config only; tenant credentials stay in Supabase Vault.
-const USE_TRIGENYS_STORAGE = import.meta.env.VITE_TRIGENYS_STORAGE_ENABLED === 'true';
+// R2 first for authenticated users; only explicit 'false' restores the legacy provider.
+// VITE_ values are public config only; tenant credentials remain in Supabase Vault.
+const USE_TRIGENYS_STORAGE = import.meta.env.VITE_TRIGENYS_STORAGE_ENABLED !== 'false';
 const WEBP_QUALITY = 0.85;
 const MAX_SIDE = 2048;
 
@@ -61,8 +61,17 @@ const CLOUDINARY_FOLDER = 'xeption';
  */
 export const uploadImageToCloudinary = async (file: File): Promise<string> => {
   if (USE_TRIGENYS_STORAGE) {
-    try { return await uploadImageToTrigenysStorage(file); }
-    catch (error) { console.warn('Trigenys Storage upload failed; trying legacy provider', error); }
+    // Unauthenticated consumer upload flows retain Cloudinary temporarily.
+    // Only sessions with a verified Supabase login can request the signed intent.
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (!sessionError && session?.access_token) {
+      try {
+        return await uploadImageToTrigenysStorage(file);
+      } catch {
+        // Preserve UX on a storage outage while the legacy migration is incomplete.
+        console.warn('Trigenys Storage indisponible : fournisseur historique utilisé');
+      }
+    }
   }
   try {
     const formData = new FormData();

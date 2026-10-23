@@ -95,7 +95,7 @@ export const createWahaChannel = (
             'x-notify-auth':ingestKey
           },
           body:JSON.stringify(event),
-          signal:AbortSignal.timeout(12000)
+          signal:AbortSignal.timeout(35000)
         });
         // HTTP 202 is acceptance by Trigenys Notify's WAHA provider.
         // No provider credential nor WhatsApp group ID exists in Xeption.
@@ -106,7 +106,7 @@ export const createWahaChannel = (
         const knownCodes = new Set([
           'CHANNEL_DISABLED', 'WAHA_NOT_CONFIGURED',
           'WAHA_INVALID_CONFIG', 'INGEST_NOT_CONFIGURED',
-          'UNAUTHORIZED', 'NETWORK_ERROR', 'PROVIDER_UNAVAILABLE',
+          'UNAUTHORIZED', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'NETWORK_TRANSPORT', 'PROVIDER_UNAVAILABLE',
           'PROVIDER_REJECTED', 'RATE_LIMITED', 'INVALID_EVENT'
         ]);
         let detail = '';

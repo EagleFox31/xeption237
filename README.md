@@ -10,7 +10,7 @@
 [![Stage: production](https://img.shields.io/badge/Stage-production-0969da)](#scope-and-limits)
 [![Runtime: React + Supabase](https://img.shields.io/badge/Runtime-React%20%2B%20Supabase-263238)](#integration-map)
 
-[**Overview**](#product-orientation) · [**Architecture**](#integration-map) · [**Limits**](#scope-and-limits) · [**Source**](App.tsx)
+[**Overview**](#product-orientation) · [**Architecture**](#integration-map) · [**Limits**](#scope-and-limits) · [**Source**](#integration-map)
 
 </div>
 
@@ -25,7 +25,7 @@ A customer explores products and places an order through the storefront while au
 
 React 18/Vite storefront + staff ERP UI -> Supabase Edge Functions and PostgreSQL with access policies -> payments, stock, fulfillment and notifications integrations.
 
-**Source evidence:** [Public storefront](App.tsx) · [Operational workflows](pages/) · [Database migrations](supabase/migrations/).
+**Source evidence:** [Public storefront](./App.tsx) · [Operational workflows](pages/) · [Database migrations](supabase/migrations/).
 
 ## Commerce and operations
 

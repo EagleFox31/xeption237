@@ -13,7 +13,7 @@
       "name": "Public storefront",
       "description": "Source-backed product surface and engineering boundary: public storefront.",
       "status": "shipped",
-      "evidence": "components/"
+      "evidence": "./App.tsx"
     },
     {
       "name": "Operational workflows",
@@ -101,7 +101,7 @@
       },
       {
         "label": "Source",
-        "href": "App.tsx"
+        "href": "#integration-map"
       }
     ]
   }

@@ -19,7 +19,7 @@
       "name": "Operational workflows",
       "description": "Source-backed product surface and engineering boundary: operational workflows.",
       "status": "shipped",
-      "evidence": "components/"
+      "evidence": "./pages/"
     },
     {
       "name": "Database migrations",

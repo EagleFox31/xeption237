@@ -1,4 +1,49 @@
+<!-- appfactory:hero:start -->
+<div align="center">
+
 # XEPTION Network
+
+### The storefront is only half the operation.
+
+**Cameroon-focused e-commerce storefront connected to inventory, orders, payments and operational tools for XEPTION.**
+
+[![Stage: production](https://img.shields.io/badge/Stage-production-0969da)](#scope-and-limits)
+[![Runtime: React + Supabase](https://img.shields.io/badge/Runtime-React%20%2B%20Supabase-263238)](#integration-map)
+
+[**Overview**](#product-orientation) · [**Architecture**](#integration-map) · [**Limits**](#scope-and-limits)
+
+</div>
+
+---
+<!-- appfactory:hero:end -->
+
+## Product orientation
+
+A customer explores products and places an order through the storefront while authorized staff manage stock, fulfillment and the customer's after-sales process through separate operational roles.
+
+## Integration map
+
+React 18/Vite storefront + staff ERP UI -> Supabase Edge Functions and PostgreSQL with access policies -> payments, stock, fulfillment and notifications integrations.
+
+**Source evidence:** [Public storefront](./App.tsx) · [Operational workflows](./pages/) · [Database migrations](supabase/migrations/).
+
+## Commerce and operations
+
+```text
+Customer storefront → product catalogue → checkout / order tracking
+                                │
+Authorized operations ← staff workflows ← Supabase and PostgreSQL
+                        ├→ inventory / point of sale
+                        ├→ payments / fulfillment
+                        └→ trade-in / after-sales
+```
+
+The original production screenshots remain part of this README, and all live business-data boundaries stay in Supabase policies and trusted backend functions.
+
+## Scope and limits
+
+**Production application**, not a reusable retail-service template. Payment integrations are not proof of live merchant balances or revenue; customer records and secrets never belong in this public documentation. [Storefront code](App.tsx) · [Database migration history](supabase/migrations/).
+
 
 **Production e-commerce and operations platform built for XEPTION in Cameroon.**
 

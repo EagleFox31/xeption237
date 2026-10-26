@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "name": "XEPTION Network",
+  "stage": "production",
+  "tagline": "Cameroon-focused e-commerce storefront connected to inventory, orders, payments and operational tools for XEPTION.",
+  "problem": "A live catalogue cannot support a retail operation on its own without consistent stock, fulfillment, local payments and access-controlled staff workflows.",
+  "scenario": "A customer explores products and places an order through the storefront while authorized staff manage stock, fulfillment and the customer's after-sales process through separate operational roles.",
+  "differentiation": "The platform connects public browsing and local commerce to a managed backend with separate business processes instead of treating sales and inventory as disconnected spreadsheets.",
+  "architecture": "React 18/Vite storefront + staff ERP UI -> Supabase Edge Functions and PostgreSQL with access policies -> payments, stock, fulfillment and notifications integrations.",
+  "limitations": "Public README content must not reveal customer records, supplier prices, production secrets or private staff routing. Mentioned payment gateways require valid configured merchant accounts; no revenue/customer statistics are assumed.",
+  "capabilities": [
+    {
+      "name": "Public storefront",
+      "description": "Source-backed product surface and engineering boundary: public storefront.",
+      "status": "shipped",
+      "evidence": "./App.tsx"
+    },
+    {
+      "name": "Operational workflows",
+      "description": "Source-backed product surface and engineering boundary: operational workflows.",
+      "status": "shipped",
+      "evidence": "./pages/"
+    },
+    {
+      "name": "Database migrations",
+      "description": "Source-backed product surface and engineering boundary: database migrations.",
+      "status": "shipped",
+      "evidence": "supabase/migrations/"
+    }
+  ],
+  "roadmap": [
+    {
+      "name": "Transaction reliability",
+      "exitCriteria": "Test stock and payment failure paths without changing production records."
+    },
+    {
+      "name": "Media and listing quality",
+      "exitCriteria": "Review storefront image coverage and SEO metadata with real published assets."
+    },
+    {
+      "name": "Staff access regression",
+      "exitCriteria": "Verify unauthorized customer access to ERP operations is denied."
+    }
+  ],
+  "references": [
+    {
+      "name": "RAIDER README contract",
+      "url": "https://github.com/Trigenys/appfactory/blob/main/docs/product-readme-contract.md",
+      "relevance": "Shared evidence-aware documentation and read-only validation."
+    }
+  ],
+  "requiredHeadings": [
+    "Product orientation",
+    "Integration map",
+    "Scope and limits"
+  ],
+  "requiredTerms": [
+    "Cameroon",
+    "Supabase",
+    "stock",
+    "payments",
+    "ERP",
+    "storefront"
+  ],
+  "requiredFiles": [
+    "App.tsx",
+    "pages/",
+    "supabase/migrations/",
+    "docs/readme/xeption-home.jpg"
+  ],
+  "presentation": {
+    "variant": "centered",
+    "headline": "The storefront is only half the operation.",
+    "summary": "Cameroon-focused e-commerce storefront connected to inventory, orders, payments and operational tools for XEPTION.",
+    "badges": [
+      {
+        "label": "Stage",
+        "value": "production",
+        "color": "0969da",
+        "href": "#scope-and-limits"
+      },
+      {
+        "label": "Runtime",
+        "value": "React + Supabase",
+        "color": "263238",
+        "href": "#integration-map"
+      }
+    ],
+    "navigation": [
+      {
+        "label": "Overview",
+        "href": "#product-orientation"
+      },
+      {
+        "label": "Architecture",
+        "href": "#integration-map"
+      },
+      {
+        "label": "Limits",
+        "href": "#scope-and-limits"
+      }
+    ]
+  }
+}

@@ -149,9 +149,23 @@ npx supabase functions deploy <nom> --project-ref tawnusmfyvugqczaydat --no-veri
 - `--use-api` : bundle sans Docker (Windows).
 - Project ref : `tawnusmfyvugqczaydat`.
 
+## Règles de livraison — tout agent (Claude, Gemini, Cursor, Codex…)
+
+Issues de la revue du 27/10/2026 (module caisse/dettes du bot). Non négociables.
+
+1. **RLS : jamais `USING (true)` pour `authenticated`.** Les clients sont `authenticated` (lien magique du formulaire troc). Table interne : aucun `GRANT` à `anon`/`authenticated` si seul le bot (service_role) y accède ; sinon policy `public.is_staff_member()` / `public.is_direction_staff()`. Toujours `REVOKE ALL … FROM PUBLIC, anon`. Contrôle : `npm run db:inventory`.
+2. **Migrations** : appliquer **uniquement** via `npm run db:apply -- <fichier>` (jamais le SQL editor). Une migration appliquée est **figée** : pour corriger, écrire une **nouvelle** migration (`db:status` signale « MODIFIÉ »). Préfixe `AAAAMMJJ_NNN` **unique** : lister `supabase/migrations/<date>_*` avant de choisir `NNN`. Migration avant le code qui l'utilise ; idempotente (`IF [NOT] EXISTS`, `DROP POLICY IF EXISTS` avant `CREATE POLICY`).
+3. **Rien en prod qui ne soit dans git.** Avant tout déploiement (fonction ou migration), proposer le commit au user ; à défaut, lister précisément dans `PASSATION.md` ce qui est déployé et non commité. `tests/` est gitignoré : nouveau fichier de test → `git add -f`.
+4. **Modules, pas monolithes.** `telegram-bot-entry/index.ts` ne fait que router : toute fonctionnalité va dans `supabase/functions/_shared/<feature>.ts` avec tests. Diff > ~300 lignes dans un seul fichier → découper.
+5. **Changement de comportement par défaut = annoncé.** Retirer/ajouter un type d'événement, un canal, un défaut de config : le dire explicitement au user et dans `docs/engineering/NOTIFICATIONS.md`.
+6. **Encodage UTF-8 propre.** Avant commit : aucun `Ã` / `â€` dans le diff (`git diff | Select-String 'Ã|â€'`).
+7. **Données** : jamais de vraies données client (nom, téléphone, IMEI) dans tests, docs ou logs ; jamais de secret dans un log ou une sortie.
+8. **Preuve avant « terminé »** : `npx vitest run <tests concernés>`, tests des helpers ajoutés, `db:status` / `db:verify` après migration, puis compte rendu : fichiers touchés, déployé ou non, migrations appliquées, tests lancés et résultat.
+9. **Erreur ou near miss** → entrée dans `docs/engineering/ERRORS_LOG.md` (symptôme, cause racine, résolution, prévention vérifiable).
+
 ## Git & livraison
 
-- **Ne pas commit** sans demande explicite du user.
+- **Ne pas commit** sans demande explicite du user (mais voir règle 3 ci-dessus : jamais de code déployé hors git).
 - **Ne pas push** sans demande explicite.
 - Diffs minimaux : pas de refactor hors scope.
 

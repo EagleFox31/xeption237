@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-10-27 — Sécurité : tables caisse/dettes ouvertes à tout utilisateur connecté (clients compris)
+
+- **Symptôme :** revue du module caisse du bot : `store_debts`, `store_cash_reports`, `store_cash_drafts` avaient des policies `FOR ALL TO authenticated USING (true) WITH CHECK (true)`. Un client connecté (lien magique du formulaire troc, `hooks/useTradeIn.ts`) pouvait lire et modifier dettes (noms, téléphones) et rapports de caisse.
+- **Cause racine :** confusion « authenticated = staff ». Dans ce projet, les clients sont aussi `authenticated` ; seul `public.is_staff_member()` identifie le staff. La migration `20261023_005` a en plus été éditée après application (disque ≠ prod).
+- **Résolution :** `20261027_001_store_cash_rls_staff_only.sql` : suppression des policies ouvertes, `REVOKE ALL` à `PUBLIC`/`anon`/`authenticated`, accès complet `service_role` (bot), lecture seule staff via `is_staff_member()`.
+- **Comment ne plus la refaire :** règle 1 et 2 de `AGENTS.md` § « Règles de livraison — tout agent » ; `npm run db:inventory` après toute migration qui crée une table ou une policy.
+
+---
+
+## 2026-10-23 — Notifications : Clôture de caisse non diffusée sur WhatsApp par absence d'alias Trigenys Notify et attente passive d'un clic manuel
+
+- **Symptôme :** Lors de la validation de clôture de caisse dans le bot Telegram, le rapport partait bien dans le groupe Telegram Staff, mais pour WhatsApp le système proposait uniquement un bouton d'ouverture manuelle de lien wa.me, sans diffusion d'événement automatique vers le groupe WhatsApp de l'équipe.
+- **Cause racine :**
+  1. `store_cash_report` n'était pas déclaré dans `WAHA_DEFAULT_EVENT_TYPES` ni mappé dans `NOTIFY_EVENT_ALIASES` de l'adaptateur Trigenys Notify (`_shared/staffNotifyChannels/waha.ts`).
+  2. `toNotifyEvent` rejetait les notifications financières avec `UNSUPPORTED_NOTIFY_EVENT`.
+  3. L'action de soumission `actionCashReportSubmit` se contentait d'une insertion en base sans émission directe vers le point d'ingestion Trigenys Notify (`DISPATCH_URL`).
+- **Résolution :**
+  1. Ajout de `store_cash_report: 'cash_report.closed'` dans `NOTIFY_EVENT_ALIASES` et dans `WAHA_DEFAULT_EVENT_TYPES`.
+  2. Extraction canonique des faits financiers dans `staffNotifyFacts.ts` (`closingCashXaf`, `totalInflowXaf`, `totalOutflowXaf`, `actor`).
+  3. Déclenchement automatique de l'événement dès validation de la clôture via `wahaChannel.send(...)` vers Trigenys Notify, qui prend le relais pour router vers le groupe WhatsApp dédié.
+- **Comment ne plus la refaire :** Ne jamais forcer un caissier à faire du copier-coller ou du partage manuel pour un processus critique d'entreprise. Tout événement métier de clôture doit être émis comme un événement canonique dans la file outbox et acheminé automatiquement par le bus multi-canal (Telegram + Trigenys Notify / WhatsApp).
+
+---
+
+## 2026-10-23 — Bot Telegram : Absence de validation typée dans les wizards de saisie et troncature des abréviations de montants (k/M)
+
+- **Symptôme :**
+  1. Lors de la saisie d'un rapport de caisse / dette client, la saisie `125k` était tronquée à `125 FCFA` au lieu de `125 000 FCFA` par `parseFloat`.
+  2. À l'étape demandant le produit/modèle d'appareil, la saisie d'un montant (ex: `250k`) était prise aveuglément comme nom de modèle (`Raoul Kamba — 250k`) sans vérification dans le catalogue de stock.
+- **Cause racine :**
+  1. `parseAmount` utilisait un parsing primitif sans gestion des multiplicateurs courants (`k`, `M`, `million`).
+  2. Absence de validation contextuelle par étape dans les prompts conversationnels Telegram (aucun garde-fou vérifiant si la chaîne est un montant, un nom ou un modèle).
+  3. Absence de vérification catalogue pour qualifier les produits (in-catalogue vs hors catalogue).
+- **Résolution :**
+  1. `parseAmount` étendu avec multiplicateurs `k` (x1 000), `m`/`M`/`million` (x1 000 000), gestion des décimales et des additions (`125k + 25k`).
+  2. `isLikelyAmount` et `isValidCustomerName` intégrés à `parseCustomerNameAndPhone` et au routeur Telegram pour rejeter les montants saisis à la place d'un nom ou d'un produit, avec réitération du prompt sans perte du draft.
+  3. Interrogation du catalogue via `telegram_search_products_fuzzy` : si absent, suffixage systématique par `(Hors catalogue)` et notification explicite du vendeur.
+- **Comment ne plus la refaire :** Règle d'or de conception bot/wizard : chaque invite utilisateur doit avoir un type de domaine strict (Name, Product, Amount, Phone). Ne jamais avancer d'étape si la saisie correspond au type d'une autre étape (ex. montant au lieu de produit). Consigner et tester unitairement chaque helper de parsing dans `tests/telegram-cash-report.test.ts`.
+
+---
+
 ## 2026-10-22 — CI ciblée stockage : lockfile désynchronisé et postbuild dépendant des secrets
 
 - **Symptôme :** la première validation du pilote Trigenys Storage échoue avant la compilation : npm ci refuse le package-lock.json existant (@emnapi/core et @emnapi/wasi-threads manquants). Après passage à npm install, la compilation Vite réussit, mais npm run build exécute le postbuild lié à Supabase et échoue car le runner de PR n'a volontairement pas les secrets .env de production.

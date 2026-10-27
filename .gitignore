@@ -69,3 +69,4 @@ dist-ssr
 
 # TypeScript build info
 *.tsbuildinfo
+scripts/.cloudinary-r2-map.json

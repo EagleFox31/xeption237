@@ -3,6 +3,7 @@ const Deno = globalThis.Deno;
 
 import { SCREEN_CONDITIONS, BODY_CONDITIONS, CAMERA_CONDITIONS, REPAIR_OPTIONS } from '../_shared/conditions.ts';
 import { resolveTier, type TrocTier } from '../_shared/trocTiers.ts';
+import { matchTradeInModel } from '../_shared/tradeInModelMatch.ts';
 
 export {};
 
@@ -369,6 +370,23 @@ Deno.serve(async (req: Request) => {
           if (Array.isArray(rows) && rows[0]) {
             if (rows[0].base_price) basePrice = Number(rows[0].base_price) || 0;
             if (rows[0].id && !tradeInModelId) tradeInModelId = rows[0].id;
+          }
+        }
+      } catch { /* pas de prix argus */ }
+    }
+
+    // 3) Repli tolérant (« Galaxy Z Fold5 » → « Z Fold 5 », fautes de frappe) sur le catalogue entier.
+    if (basePrice <= 0) {
+      try {
+        const catalogRes = await fetchWithTimeout(
+          `${supabaseUrl}/rest/v1/trade_in_models?select=id,brand,model_name,base_price&limit=2000`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+        );
+        if (catalogRes.ok) {
+          const match = matchTradeInModel(deviceBrand, deviceModel, await catalogRes.json());
+          if (match?.base_price) {
+            basePrice = Number(match.base_price) || 0;
+            if (!tradeInModelId) tradeInModelId = match.id;
           }
         }
       } catch { /* pas de prix argus */ }

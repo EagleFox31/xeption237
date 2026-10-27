@@ -4,7 +4,12 @@ const Deno = globalThis.Deno;
 import { SCREEN_CONDITIONS, BODY_CONDITIONS, CAMERA_CONDITIONS, REPAIR_OPTIONS } from '../_shared/conditions.ts';
 import { resolveTier, type TrocTier } from '../_shared/trocTiers.ts';
 import { matchTradeInModel } from '../_shared/tradeInModelMatch.ts';
-import { offerPatchIfChanged, RECALC_LOCKED_STATUSES, tradeInRowToPricingInput } from '../_shared/tradeInRecalc.ts';
+import {
+  customerContactTask,
+  offerPatchIfChanged,
+  RECALC_LOCKED_STATUSES,
+  tradeInRowToPricingInput,
+} from '../_shared/tradeInRecalc.ts';
 import { assertAuthenticatedStaff, staffAuthJsonResponse } from '../_shared/staffAuth.ts';
 
 export {};
@@ -445,7 +450,28 @@ const handleRecalculate = async (req: Request, body: any): Promise<Response> => 
     after: { trade_in_value: offer.tradeInValue, blocker_reason: offer.blocker ?? null },
   });
   const updated = await patchRes.json();
-  return jsonResponse({ changed: true, basePrice, offer, request: Array.isArray(updated) ? updated[0] : updated });
+
+  // Le client a vu l'ancienne offre : tâche staff pour le prévenir (diffusée par notify-staff).
+  // Best effort : un échec ici ne doit pas annuler le recalcul déjà enregistré.
+  let customerTaskQueued = false;
+  const task = customerContactTask(row, patch);
+  if (task) {
+    try {
+      const taskRes = await fetchWithTimeout(`${supabaseUrl}/rest/v1/admin_notifications?on_conflict=dedup_key`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' },
+        body: JSON.stringify({ ...task, created_by: auth.email ?? 'system' }),
+      });
+      customerTaskQueued = taskRes.ok;
+      if (!taskRes.ok) console.error('[save-trade-in] customer_task_error', { requestId: row.id, status: taskRes.status, body: await taskRes.text() });
+    } catch (error) {
+      console.error('[save-trade-in] customer_task_error', { requestId: row.id, error });
+    }
+  }
+  return jsonResponse({
+    changed: true, basePrice, offer, customerTaskQueued,
+    request: Array.isArray(updated) ? updated[0] : updated,
+  });
 };
 
 Deno.serve(async (req: Request) => {

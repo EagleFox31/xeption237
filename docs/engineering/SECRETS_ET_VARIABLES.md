@@ -17,6 +17,29 @@ endroit est le principal risque de ce projet.
 
 ---
 
+## 0. Inventaire réel par hébergeur — relevé du 2026-10-27
+
+Noms seulement, relevés en ligne (jamais les valeurs). À refaire après tout ajout de secret.
+
+| hébergeur | commande | secrets présents |
+|---|---|---|
+| **Supabase** (Edge Functions) | `npx supabase secrets list --project-ref tawnusmfyvugqczaydat` | `CAMPAY_API_TOKEN`, `CAMPAY_BASE_URL`, `CAMPAY_WEBHOOK_KEY`, `CRON_SECRET`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GEMINI_API_KEY_FALLBACK`, `GROQ_API_KEY`, `IMEI_INFO_API_KEY`, `META_CAPI_TOKEN`, `MINIAPP_WRITES_ENABLED`, `SMTP_PASSWORD`, `SMTP_USER`, `SUPER_ADMIN_EMAILS`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_MINIAPP_LINK`, `WAHA_API_KEY`, `WAHA_BASE_URL`, `WAHA_ENABLED`, `WAHA_SESSION`, `WAHA_STAFF_GROUP_ID`, `XEPTION_NOTIFY_INGEST_KEY` + injectés : `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `SUPABASE_JWKS`, `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS` |
+| **GitHub Actions** (`EagleFox31/xeption237`) | `gh secret list` | `DATABASE_URL`, `PROJECT_TOKEN` |
+| **Cloudflare** (Worker `trigenys-storage-api`) | `npx wrangler secret list -c wrangler.production.jsonc` | `MIGRATION_ENABLED`, `MIGRATION_SOURCES_JSON`, `TENANT_CONFIG_JSON`, `TOKEN_SIGNING_SECRET` — le code du Worker ne lit aucune clé Supabase |
+| **Vercel** (projet `xeption237`) | `npx vercel env ls --project xeption237` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_TRIGENYS_STORAGE_ENABLED`, `VITE_GTM_ID`, `VITE_ERP_MODULES_OFF`, `INDEXNOW_KEY` (reliquat `API_KEY` supprimé le 2026-10-27 ; la clé elle-même est à révoquer chez son fournisseur) |
+| **`.env` local** | § 6 | voir § 3 |
+| **pg_cron** | `cron.job.command` | aucun JWT ni clé en dur (5 jobs vérifiés) |
+
+**Clé `service_role`** : présente uniquement dans Supabase (injectée) et, facultativement, le `.env` local.
+Une rotation ne demande aucune mise à jour chez GitHub, Cloudflare, Vercel ni dans les jobs cron.
+En revanche, désactiver les clés legacy coupe aussi `VITE_SUPABASE_ANON_KEY` (Vercel) : passer d'abord le
+front sur une clé `sb_publishable_…`.
+
+**Écarts avec le § 2** : `OPENROUTER_API_KEY` (secours vision `evaluate-device`), `IMEI_PREMIUM_API_KEY`
+et `BING_SEARCH_API_KEY` ne sont **pas** définies ; `GROQ_API_KEY` reste un reliquat supprimable.
+
+---
+
 ## 1. Pour activer le workflow de rendu — **un seul secret**
 
 **Nom** : `DATABASE_URL`

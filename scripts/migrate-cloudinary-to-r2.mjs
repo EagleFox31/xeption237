@@ -178,7 +178,7 @@ async function migrateRow(client, secret, cfg, row, map, dead, stats) {
 
   // Relecture juste avant l'écriture : on ne remplace que si la ligne n'a pas bougé entre-temps.
   const { data: fresh, error } = await client.from(cfg.table).select(cfg.select).eq('id', row.id).maybeSingle();
-  if (error || !fresh) { stats.failed++; console.warn(`  relecture ${row.id} impossible`); return; }
+  if (error || !fresh) { stats.failed++; console.warn(`  relecture ${row.id} impossible : ${error?.message ?? 'ligne introuvable'}`); return; }
   if (JSON.stringify(cfg.urls(fresh)) !== JSON.stringify(cfg.urls(row))) {
     stats.skipped++;
     console.warn(`  ${row.id} modifiée pendant la migration : ignorée (relancer)`);
@@ -204,7 +204,7 @@ async function main() {
   let secret = null;
   if (APPLY) {
     const { data, error } = await client.rpc('trigenys_storage_xeption_credential');
-    if (error || typeof data !== 'string' || data.length < 32) throw new Error('Secret de stockage indisponible');
+    if (error || typeof data !== 'string' || data.length < 32) throw new Error(`Secret de stockage indisponible : ${error?.message ?? 'réponse invalide'}`);
     secret = data;
   }
 

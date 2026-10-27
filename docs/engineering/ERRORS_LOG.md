@@ -441,3 +441,18 @@ stock tracée par `_store_stock_delta` + `products.rejected_at`, aucun DELETE ; 
 `tests/migrations-security-definer-acl.test.ts` échoue si une fonction `SECURITY DEFINER` d'une
 migration ≥ `20261021` n'est pas révoquée de `PUBLIC, anon`, ou si un `GRANT … anon` n'est pas annulé
 ensuite. Jamais de DELETE sur des tables de stock : on compense par un mouvement.
+
+## 2026-10-27 — Migration R2 interrompue : `fetch failed` (TLS post-quantique, Node 24)
+
+**Symptôme** : `migrate-cloudinary-to-r2.mjs --apply` réussit 3 lignes puis « relecture … impossible » en série ;
+les relances échouent sur « Secret de stockage indisponible ». On a d'abord cru à une clé révoquée.
+
+**Cause racine** : Node 24 (OpenSSL 3.5) envoie un ClientHello post-quantique (ML-KEM) que le réseau local
+coupe (`ECONNRESET`, alors que TCP 443 passe). Même cause que le « TLS handshake timeout » du Supabase CLI (Go).
+Le script masquait l'erreur réelle (message générique).
+
+**Résolution** : `NODE_OPTIONS=--tls-max-v1.2` (ou courbe `X25519:P-256`) ; le script affiche désormais
+`error.message` sur la relecture et la récupération du secret.
+
+**Comment ne plus la refaire** : erreur réseau Node (`fetch failed`/`ECONNRESET`) → tester d'abord TLS avant de
+soupçonner les clés ; les scripts ne remplacent jamais une erreur par un message générique.

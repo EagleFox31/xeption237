@@ -55,12 +55,19 @@ import {
   isValidCustomerName,
   formatCustomerName,
   formatDailyCashReport,
-  formatDailyCashReportForWhatsApp,
   parseCrTag,
   crPrompt,
   type CrTag
 } from "../_shared/telegramCashReport.ts";
-import { createWahaChannel } from "../_shared/staffNotifyChannels/waha.ts";
+import {
+  screenCashReportChooseStore as screenCashReportChooseStoreExt,
+  screenCashReportHub as screenCashReportHubExt,
+  screenCashReportExpenses as screenCashReportExpensesExt,
+  screenCashReportPreview as screenCashReportPreviewExt,
+  actionCashReportSubmit as actionCashReportSubmitExt,
+  handleCashReportActionReply,
+  EXPENSE_PRESETS
+} from "../_shared/telegramCashScreens.ts";
 
 
 declare const Deno: {
@@ -2814,255 +2821,29 @@ async function actionTroc(staff: StaffMember, action: string, trocId: string, re
   };
 }
 
-/** Midnight in Douala (UTC+1, no DST). */
-function todayStartDouala(): string {
-  return new Date(Date.now() + 3600_000).toISOString().slice(0, 10) + "T00:00:00+01:00";
-}
 
-async function screenSalesToday(staff: StaffMember, storeCode?: string): Promise<Screen> {
-  if (staff.rank < RANK_RESPONSABLE) return deniedScreen();
-  const store = await scopedStore(staff, storeCode);
-  if (staff.rank < RANK_DIRECTION && !store) return deniedScreen();
-  const supabase = db();
-  // Columns of orders are total and date; cancelled and returned orders are not sales.
-  let query = supabase?.from("orders").select("id, total").gte("date", todayStartDouala())
-    .not("status", "in", "(cancelled,returned)");
-  if (store) query = query?.eq("store_id", store.id);
-  const { data } = await query ?? { data: [] };
+// ── Rapport de Caisse & Clôture Journalière Staff (délégué à _shared/telegramCashScreens) ──
 
-  const orders = (data ?? []) as { id: string; total: number | null }[];
-  const total = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-
+function cashDeps() {
   return {
-    text:
-      `📊 <b>Bilan des Ventes du Jour</b>\n` +
-      `Point de vente : <b>${escapeHtml(scopeLabel(store))}</b>\n\n` +
-      `• Commandes enregistrées : <b>${orders.length}</b>\n` +
-      `• Total estimé : <b>${money(total)}</b>\n\n` +
-      `<i>Pour les détails complets par vendeur et les clôtures de caisse, ouvrez la console Xeption App.</i>`,
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "📲 Ouvrir Xeption App", web_app: { url: miniApp } }],
-        homeRow
-      ]
-    }
+    supabase: db(),
+    listStores,
+    sendTelegram: async (chatId: string | number, payload: { text: string; parse_mode?: string; reply_markup?: unknown }) => {
+      await telegram("sendMessage", { chat_id: chatId, ...payload });
+    },
+    staffChatId: Deno.env.get("TELEGRAM_CHAT_ID"),
+    siteUrl: Deno.env.get("SITE_URL"),
+    homeRow,
+    getEnv: Deno.env.get
   };
 }
 
-// ── Rapport de Caisse & Clôture Journalière Staff ────────────────────────────
+const screenCashReportChooseStore = (staff: StaffMember) => screenCashReportChooseStoreExt(staff, cashDeps());
+const screenCashReportHub = (staff: StaffMember, storeCodeOrId?: string) => screenCashReportHubExt(staff, storeCodeOrId, cashDeps());
+const screenCashReportExpenses = (staff: StaffMember, storeId: string) => screenCashReportExpensesExt(staff, storeId, cashDeps());
+const screenCashReportPreview = (staff: StaffMember, storeId: string) => screenCashReportPreviewExt(staff, storeId, cashDeps());
+const actionCashReportSubmit = (staff: StaffMember, storeId: string) => actionCashReportSubmitExt(staff, storeId, cashDeps());
 
-async function screenCashReportChooseStore(staff: StaffMember): Promise<Screen> {
-  const stores = await listStores();
-  const rows: InlineButton[][] = [];
-  for (const s of stores) {
-    rows.push([{ text: `🏪 ${s.name}`, callback_data: `nav:cr_start:${s.code}` }]);
-  }
-  rows.push(homeRow);
-  return {
-    text:
-      `📊 <b>Clôture de Caisse — Sélection Boutique</b>\n\n` +
-      `Pour quelle boutique souhaitez-vous préparer ou consulter la clôture de caisse ?`,
-    reply_markup: { inline_keyboard: rows }
-  };
-}
-
-async function screenCashReportHub(staff: StaffMember, storeCodeOrId?: string): Promise<Screen> {
-  const supabase = db();
-  if (!supabase) {
-    return {
-      text: "❌ Service de caisse temporairement indisponible.",
-      reply_markup: { inline_keyboard: [homeRow] }
-    };
-  }
-
-  let targetCode = storeCodeOrId;
-  if (!targetCode && staff.rank >= RANK_DIRECTION && !staff.scope_store_code) {
-    return screenCashReportChooseStore(staff);
-  }
-  if (!targetCode && staff.store) {
-    targetCode = staff.store.code;
-  }
-
-  const { data: initRes, error: initErr } = await supabase.rpc("telegram_staff_cash_report_init", {
-    p_telegram_user_id: staff.telegram_user_id,
-    p_store_code: targetCode ?? null
-  });
-
-  if (initErr || !initRes || initRes.success !== true) {
-    console.error("cash report init failed", initErr, initRes);
-    return {
-      text: `❌ Impossible d'initialiser le rapport de caisse (${initRes?.reason ?? initErr?.message ?? "erreur"}).`,
-      reply_markup: { inline_keyboard: [homeRow] }
-    };
-  }
-
-  const storeId = initRes.store_id as string;
-  const storeName = initRes.store_name as string;
-  const reportDate = initRes.report_date as string;
-
-  let draft = initRes.draft;
-  if (!draft) {
-    const initialInflows: InflowItem[] = (initRes.today_pos_sales || []).map((s: any) => ({
-      label: s.label,
-      amount: Number(s.amount) || 0,
-      salesperson_name: s.salesperson_name
-    }));
-
-    const storeOperatorNames: string[] = Array.isArray(initRes.operators)
-      ? initRes.operators.map((o: any) => typeof o === "string" ? o : o?.name).filter(Boolean)
-      : [];
-    const sellersToday: string[] = Array.isArray(initRes.today_pos_sales)
-      ? initRes.today_pos_sales.map((s: any) => s.salesperson_name).filter(Boolean)
-      : [];
-    const defaultOperators = Array.from(new Set([staff.name, ...storeOperatorNames, ...sellersToday]));
-
-    const { data: newDraft, error: draftErr } = await supabase
-      .from("store_cash_drafts")
-      .upsert(
-        {
-          telegram_user_id: staff.telegram_user_id,
-          store_id: storeId,
-          report_date: reportDate,
-          opening_cash: Number(initRes.suggested_opening_cash) || 0,
-          inflow_items: initialInflows,
-          outflow_items: [],
-          operators: defaultOperators,
-          observations: null,
-          updated_at: new Date().toISOString()
-        },
-        { onConflict: "telegram_user_id,store_id" }
-      )
-      .select("id, opening_cash, inflow_items, outflow_items, operators, observations")
-      .single();
-
-    if (!draftErr && newDraft) {
-      draft = newDraft;
-    }
-  }
-
-  const openingCash = Number(draft?.opening_cash) || 0;
-  const inflowItems = (draft?.inflow_items as InflowItem[]) || [];
-  const outflowItems = (draft?.outflow_items as OutflowItem[]) || [];
-  const rawOps = (draft?.operators as any[]) || [];
-  const operators = rawOps.map((o: any) => typeof o === "string" ? o : o?.name).filter(Boolean);
-  const observations = draft?.observations as string | null;
-
-  const totalInflow = inflowItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
-  const totalOutflow = outflowItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
-  const closingCash = openingCash + totalInflow - totalOutflow;
-
-  const activeDebts = (initRes.active_debts || []) as DebtItem[];
-  const totalDebts = activeDebts.reduce((acc, d) => acc + (Number(d.remaining ?? d.amount_due) || 0), 0);
-
-  const rows: InlineButton[][] = [
-    [
-      { text: `💰 Solde Matin (${formatMoney(openingCash)})`, callback_data: `nav:cr_open:${storeId}` },
-      { text: `👥 Opérateurs (${operators.length})`, callback_data: `nav:cr_ops:${storeId}` }
-    ],
-    [
-      { text: `📥 Entrées (${inflowItems.length}) : +${formatMoney(totalInflow)}`, callback_data: `nav:cr_in:${storeId}` },
-      { text: `📤 Dépenses (${outflowItems.length}) : -${formatMoney(totalOutflow)}`, callback_data: `nav:cr_out:${storeId}` }
-    ],
-    [
-      { text: `📋 Dettes (${activeDebts.length}) : ${formatMoney(totalDebts)}`, callback_data: `nav:cr_debts:${storeId}` },
-      { text: `📝 Observations`, callback_data: `nav:cr_obs:${storeId}` }
-    ],
-    [
-      { text: "👁️ Aperçu du Rapport", callback_data: `nav:cr_prev:${storeId}` },
-      { text: "🔒 Clôturer son rapport", callback_data: `nav:cr_send:${storeId}` }
-    ],
-    homeRow
-  ];
-
-  const operatorsStr = operators.length ? escapeHtml(operators.join(" / ")) : "<i>Non renseigné</i>";
-
-  const text =
-    `📊 <b>Rapport de Caisse & Clôture</b> — <b>${escapeHtml(storeName)}</b>\n` +
-    `📅 Date : <b>${formatDateFr(reportDate)}</b>\n\n` +
-    `💰 <b>Solde trouvé ce matin :</b> ${formatMoney(openingCash)}\n` +
-    `📥 <b>Total entrées (${inflowItems.length}) :</b> <b>${formatMoney(totalInflow)}</b>\n` +
-    `📤 <b>Total dépenses (${outflowItems.length}) :</b> <b>${formatMoney(totalOutflow)}</b>\n` +
-    `💵 <b>Reste en caisse ce soir :</b> <b>${formatMoney(closingCash)}</b>\n\n` +
-    `📋 <b>Dettes actives :</b> ${activeDebts.length} client(s) (${formatMoney(totalDebts)})\n` +
-    `👥 <b>Opérateurs :</b> ${operatorsStr}\n` +
-    (observations ? `📝 <b>Observations :</b> <i>${escapeHtml(observations)}</i>\n` : "") +
-    `\n<i>💡 Touchez les boutons ci-dessous pour ajuster les montants ou les dépenses avant l'envoi au groupe.</i>`;
-
-  return { text, reply_markup: { inline_keyboard: rows } };
-}
-
-// ── Écran de Gestion des Dépenses & Actions Récurrentes ────────────────────────
-
-const EXPENSE_PRESETS: Record<string, { label: string; icon: string }> = {
-  transp: { label: "Transport", icon: "🚕" },
-  dpboss: { label: "Dépôt Boss", icon: "👑" },
-  prepay: { label: "Prépayer", icon: "⚡" },
-  s_boss: { label: "Sorties Boss", icon: "💼" },
-  ration: { label: "Ration", icon: "🍱" },
-  credit: { label: "Crédit tél", icon: "📶" }
-};
-
-async function screenCashReportExpenses(staff: StaffMember, storeId: string): Promise<Screen> {
-  const supabase = db();
-  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [homeRow] } };
-
-  const { data: draft } = await supabase
-    .from("store_cash_drafts")
-    .select("outflow_items, store_id, stores(name)")
-    .eq("telegram_user_id", staff.telegram_user_id)
-    .eq("store_id", storeId)
-    .maybeSingle();
-
-  const outflows = (draft?.outflow_items as OutflowItem[]) || [];
-  const totalOutflow = outflows.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
-  const storeName = (draft?.stores as any)?.name ?? "Boutique";
-
-  let listText = "";
-  if (outflows.length === 0) {
-    listText = "<i>Aucune dépense enregistrée pour le moment.</i>\n";
-  } else {
-    listText = outflows.map((it, idx) => {
-      return `${idx + 1}. • <b>${escapeHtml(it.label)}</b> : <b>${formatMoney(it.amount)}</b>`;
-    }).join("\n") + `\n\n<b>Total dépenses : ${formatMoney(totalOutflow)}</b>\n`;
-  }
-
-  const buttons: InlineButton[][] = [
-    [
-      { text: "🚕 Transport", callback_data: `nav:cr_oq:transp:${storeId}` },
-      { text: "👑 Dépôt Boss", callback_data: `nav:cr_oq:dpboss:${storeId}` }
-    ],
-    [
-      { text: "⚡ Prépayer", callback_data: `nav:cr_oq:prepay:${storeId}` },
-      { text: "💼 Sorties Boss", callback_data: `nav:cr_oq:s_boss:${storeId}` }
-    ],
-    [
-      { text: "🍱 Ration", callback_data: `nav:cr_oq:ration:${storeId}` },
-      { text: "📶 Crédit tél", callback_data: `nav:cr_oq:credit:${storeId}` }
-    ],
-    [
-      { text: "➕ Autre dépense (ou coller texte)", callback_data: `nav:cr_ofree:${storeId}` }
-    ]
-  ];
-
-  if (outflows.length > 0) {
-    buttons.push([
-      { text: "🗑️ Réinitialiser dépenses", callback_data: `nav:cr_oclr:${storeId}` }
-    ]);
-  }
-
-  buttons.push([
-    { text: "⬅️ Retour au Rapport", callback_data: `nav:cr_hub:${storeId}` },
-    { text: "🏠 Accueil", callback_data: "nav:main" }
-  ]);
-
-  return {
-    text:
-      `📤 <b>Gestion des Dépenses du Jour</b> — <b>${escapeHtml(storeName)}</b>\n\n` +
-      listText + `\n` +
-      `<i>💡 Touchez une action récurrente ci-dessous pour entrer son montant, ou « ➕ Autre dépense » pour un libellé personnalisé :</i>`,
-    reply_markup: { inline_keyboard: buttons }
-  };
-}
 
 async function screenCashReportDebts(staff: StaffMember, storeId: string): Promise<Screen> {
   const supabase = db();
@@ -3128,236 +2909,6 @@ async function screenCashReportDebts(staff: StaffMember, storeId: string): Promi
   };
 }
 
-async function screenCashReportPreview(staff: StaffMember, storeId: string): Promise<Screen> {
-  const supabase = db();
-  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [homeRow] } };
-
-  const { data: initRes } = await supabase.rpc("telegram_staff_cash_report_init", {
-    p_telegram_user_id: staff.telegram_user_id,
-    p_store_code: null
-  });
-
-  const { data: draft } = await supabase
-    .from("store_cash_drafts")
-    .select("opening_cash, inflow_items, outflow_items, operators, observations")
-    .eq("telegram_user_id", staff.telegram_user_id)
-    .eq("store_id", storeId)
-    .maybeSingle();
-
-  const activeDebts = ((initRes?.active_debts || []) as any[]).map((d: any) => ({
-    customer_name: d.customer_name,
-    device_model: d.device_model || undefined,
-    amount_due: Number(d.amount_due) || 0,
-    remaining: Number(d.remaining ?? d.amount_due) || 0,
-    phone: d.phone || undefined
-  }));
-
-  const reportData: CashReportData = {
-    store_name: initRes?.store_name ?? "Boutique Xeption",
-    report_date: initRes?.report_date ?? new Date().toISOString(),
-    operators: (draft?.operators as string[]) || initRes?.operators || [],
-    opening_cash: Number(draft?.opening_cash) || 0,
-    inflow_items: (draft?.inflow_items as InflowItem[]) || [],
-    outflow_items: (draft?.outflow_items as OutflowItem[]) || [],
-    debts: activeDebts,
-    observations: draft?.observations || undefined,
-    staff_progress: (initRes?.staff_progress || []) as StaffProgressItem[]
-  };
-
-  const previewText = formatDailyCashReport(reportData);
-  const waReport = formatDailyCashReportForWhatsApp(reportData);
-  const waShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(waReport)}`;
-
-  return {
-    text:
-      `👁️ <b>Aperçu du Rapport de Caisse</b>\n\n` +
-      `<i>À la clôture, le rapport est automatiquement envoyé dans le groupe Telegram Staff et diffusé au groupe WhatsApp via Trigenys Notify :</i>\n\n` +
-      previewText,
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: "🔒 Clôturer son rapport", callback_data: `nav:cr_send:${storeId}` }
-        ],
-        [
-          { text: "⬅️ Modifier", callback_data: `nav:cr_hub:${storeId}` },
-          { text: "🏠 Accueil", callback_data: "nav:main" }
-        ]
-      ]
-    }
-  };
-}
-
-async function actionCashReportSubmit(staff: StaffMember, storeId: string): Promise<Screen> {
-  const supabase = db();
-  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [homeRow] } };
-
-  const { data: initRes } = await supabase.rpc("telegram_staff_cash_report_init", {
-    p_telegram_user_id: staff.telegram_user_id,
-    p_store_code: null
-  });
-
-  const { data: draft } = await supabase
-    .from("store_cash_drafts")
-    .select("opening_cash, inflow_items, outflow_items, operators, observations")
-    .eq("telegram_user_id", staff.telegram_user_id)
-    .eq("store_id", storeId)
-    .maybeSingle();
-
-  const openingCash = Number(draft?.opening_cash) || 0;
-  const inflowItems = (draft?.inflow_items as InflowItem[]) || [];
-  const outflowItems = (draft?.outflow_items as OutflowItem[]) || [];
-  const operators = (draft?.operators as string[]) || initRes?.operators || [];
-  const observations = draft?.observations || null;
-
-  const totalInflow = inflowItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
-  const totalOutflow = outflowItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
-  const closingCash = openingCash + totalInflow - totalOutflow;
-
-  const activeDebts = ((initRes?.active_debts || []) as any[]).map((d: any) => ({
-    customer_name: d.customer_name,
-    device_model: d.device_model || undefined,
-    amount_due: Number(d.amount_due) || 0,
-    remaining: Number(d.remaining ?? d.amount_due) || 0,
-    phone: d.phone || undefined
-  }));
-
-  const payload = {
-    store_id: storeId,
-    report_date: initRes?.report_date,
-    opening_cash: openingCash,
-    total_inflow: totalInflow,
-    total_outflow: totalOutflow,
-    inflow_items: inflowItems,
-    outflow_items: outflowItems,
-    debts_snapshot: activeDebts,
-    operators: operators,
-    observations: observations,
-    staff_progress: initRes?.staff_progress || []
-  };
-
-  const { data: submitRes, error: submitErr } = await supabase.rpc("telegram_staff_cash_report_submit", {
-    p_telegram_user_id: staff.telegram_user_id,
-    p_payload: payload
-  });
-
-  if (submitErr || !submitRes || submitRes.success !== true) {
-    console.error("submit cash report failed", submitErr, submitRes);
-    return {
-      text: `❌ Échec de l'enregistrement de la clôture (${submitRes?.reason ?? submitErr?.message ?? "erreur"}).`,
-      reply_markup: { inline_keyboard: [[{ text: "⬅️ Retour", callback_data: `nav:cr_hub:${storeId}` }]] }
-    };
-  }
-
-  const reportData: CashReportData = {
-    store_name: initRes?.store_name ?? "Boutique Xeption",
-    report_date: initRes?.report_date ?? new Date().toISOString(),
-    operators,
-    opening_cash: openingCash,
-    inflow_items: inflowItems,
-    outflow_items: outflowItems,
-    debts: activeDebts,
-    observations: observations || undefined,
-    staff_progress: (initRes?.staff_progress || []) as StaffProgressItem[]
-  };
-
-  const formattedReport = formatDailyCashReport(reportData);
-
-  const staffChatId = Deno.env.get("TELEGRAM_CHAT_ID");
-  let sentToTelegram = false;
-  if (staffChatId) {
-    try {
-      await telegram("sendMessage", {
-        chat_id: staffChatId,
-        parse_mode: "HTML",
-        text: formattedReport
-      });
-      sentToTelegram = true;
-    } catch (e) {
-      console.error("Failed to send cash report to staff Telegram group", e);
-    }
-  }
-
-  const dedupKey = `cash_report.${initRes?.store_code ?? storeId}.${initRes?.report_date ?? new Date().toISOString().slice(0, 10)}`;
-  const notifPayload = {
-    dedup_key: dedupKey,
-    event_type: "store_cash_report",
-    title: `📊 Clôture de caisse — ${initRes?.store_name ?? "Boutique"}`,
-    message: `Solde soir : ${formatMoney(closingCash)} — Entrées : ${formatMoney(totalInflow)} — Dépenses : ${formatMoney(totalOutflow)} — Par : ${staff.name}`,
-    link_to_tab: "analytics",
-    link_to_id: submitRes.report_id,
-    created_by: staff.name
-  };
-
-  let notifRow: { id: string; created_at: string } | null = null;
-  try {
-    const { data: inserted, error: insertErr } = await supabase
-      .from("admin_notifications")
-      .insert(notifPayload)
-      .select("id, created_at")
-      .maybeSingle();
-    if (!insertErr && inserted) {
-      notifRow = inserted;
-    } else {
-      const { data: existing } = await supabase
-        .from("admin_notifications")
-        .select("id, created_at")
-        .eq("dedup_key", dedupKey)
-        .maybeSingle();
-      notifRow = existing;
-    }
-  } catch (notifErr) {
-    console.warn("admin_notifications insert failed for cash report", notifErr);
-  }
-
-  // Émission d'événement automatique vers Trigenys Notify pour relais vers le groupe WhatsApp
-  let sentToTrigenysNotify = false;
-  const wahaChannel = createWahaChannel(Deno.env.get);
-  if (wahaChannel && notifRow?.id && notifRow?.created_at) {
-    try {
-      const siteUrl = (Deno.env.get("SITE_URL") || "https://www.xeptionetwork.shop").replace(/\/+$/, "");
-      const sendErr = await wahaChannel.send({
-        notification_id: notifRow.id,
-        event_type: "store_cash_report",
-        title: notifPayload.title,
-        message: notifPayload.message,
-        link_to_tab: notifPayload.link_to_tab,
-        link_to_id: notifPayload.link_to_id,
-        created_at: notifRow.created_at
-      }, { siteUrl });
-
-      if (!sendErr) {
-        sentToTrigenysNotify = true;
-        await supabase.from("notification_deliveries").upsert({
-          notification_id: notifRow.id,
-          channel: "whatsapp_waha",
-          sent_at: new Date().toISOString(),
-          last_error: null
-        });
-      } else {
-        console.warn("Trigenys notify waha direct dispatch returned:", sendErr);
-      }
-    } catch (wahaErr) {
-      console.warn("Direct dispatch to Trigenys Notify failed", wahaErr);
-    }
-  }
-
-  return {
-    text:
-      `🎉 <b>Clôture de caisse validée et diffusée !</b>\n\n` +
-      `🏪 Boutique : <b>${escapeHtml(initRes?.store_name ?? "")}</b>\n` +
-      `💵 Reste en caisse ce soir : <b>${formatMoney(closingCash)}</b>\n\n` +
-      `📡 <b>Diffusion automatique des événements :</b>\n` +
-      `• Telegram : ${sentToTelegram ? "✅ <i>Publié dans le groupe Staff</i>" : "⚠️ <i>Erreur d'envoi Telegram</i>"}\n` +
-      `• WhatsApp : ${sentToTrigenysNotify ? "✅ <i>Transmis à Trigenys Notify pour le groupe WhatsApp</i>" : "⏳ <i>En file d'attente (relais Trigenys Notify)</i>"}\n\n` +
-      `<i>Le rapport complet est archivé en base de données et consultable sur le tableau de bord ERP.</i>`,
-    reply_markup: {
-      inline_keyboard: [
-        homeRow
-      ]
-    }
-  };
-}
-
 async function handleCashReportReply(staff: StaffMember, tag: CrTag, text: string): Promise<Screen> {
   const supabase = db();
   if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [homeRow] } };
@@ -3369,85 +2920,9 @@ async function handleCashReportReply(staff: StaffMember, tag: CrTag, text: strin
       .eq("telegram_user_id", staff.telegram_user_id);
   }
 
-  if (tag.action === "OPEN") {
-    const amount = parseAmount(text);
-    await supabase.from("store_cash_drafts")
-      .update({ opening_cash: amount, updated_at: new Date().toISOString() })
-      .eq("telegram_user_id", staff.telegram_user_id)
-      .eq("store_id", tag.targetId);
-    return screenCashReportHub(staff, tag.targetId);
-  }
-
-  if (tag.action === "OPS") {
-    const rawOps = text.split(/[/,;\n]+/).map(s => s.trim()).filter(Boolean);
-    await supabase.from("store_cash_drafts")
-      .update({ operators: rawOps, updated_at: new Date().toISOString() })
-      .eq("telegram_user_id", staff.telegram_user_id)
-      .eq("store_id", tag.targetId);
-    return screenCashReportHub(staff, tag.targetId);
-  }
-
-  if (tag.action === "IN") {
-    const newItems = parseExpensesText(text).map(it => ({
-      label: it.label,
-      amount: it.amount,
-      salesperson_name: staff.name
-    }));
-    if (newItems.length > 0) {
-      const { data: draft } = await supabase.from("store_cash_drafts")
-        .select("inflow_items")
-        .eq("telegram_user_id", staff.telegram_user_id)
-        .eq("store_id", tag.targetId)
-        .maybeSingle();
-      const currentInflows = (draft?.inflow_items as InflowItem[]) || [];
-      const updated = [...currentInflows, ...newItems];
-      await supabase.from("store_cash_drafts")
-        .update({ inflow_items: updated, updated_at: new Date().toISOString() })
-        .eq("telegram_user_id", staff.telegram_user_id)
-        .eq("store_id", tag.targetId);
-    }
-    return screenCashReportHub(staff, tag.targetId);
-  }
-
-  if (tag.action === "OUT_PRESET") {
-    const colonIdx = tag.targetId.indexOf(":");
-    const presetLabel = colonIdx >= 0 ? tag.targetId.slice(0, colonIdx) : tag.targetId;
-    const storeId = colonIdx >= 0 ? tag.targetId.slice(colonIdx + 1) : "";
-    const amount = parseAmount(text);
-    if (amount > 0 && storeId) {
-      const { data: draft } = await supabase.from("store_cash_drafts")
-        .select("outflow_items")
-        .eq("telegram_user_id", staff.telegram_user_id)
-        .eq("store_id", storeId)
-        .maybeSingle();
-      const currentOutflows = (draft?.outflow_items as OutflowItem[]) || [];
-      const updated = [...currentOutflows, { label: presetLabel, amount }];
-      await supabase.from("store_cash_drafts")
-        .update({ outflow_items: updated, updated_at: new Date().toISOString() })
-        .eq("telegram_user_id", staff.telegram_user_id)
-        .eq("store_id", storeId);
-      return screenCashReportExpenses(staff, storeId);
-    }
-    return screenCashReportExpenses(staff, storeId || tag.targetId);
-  }
-
-  if (tag.action === "OUT") {
-    const newOutflows = parseExpensesText(text);
-    if (newOutflows.length > 0) {
-      const { data: draft } = await supabase.from("store_cash_drafts")
-        .select("outflow_items")
-        .eq("telegram_user_id", staff.telegram_user_id)
-        .eq("store_id", tag.targetId)
-        .maybeSingle();
-      const currentOutflows = (draft?.outflow_items as OutflowItem[]) || [];
-      const updated = [...currentOutflows, ...newOutflows];
-      await supabase.from("store_cash_drafts")
-        .update({ outflow_items: updated, updated_at: new Date().toISOString() })
-        .eq("telegram_user_id", staff.telegram_user_id)
-        .eq("store_id", tag.targetId);
-    }
-    return screenCashReportExpenses(staff, tag.targetId);
-  }
+  // Traite les actions spécifiques à la caisse (OPEN, OPS, IN, OUT_PRESET, OUT, OBS)
+  const cashScreen = await handleCashReportActionReply(staff, tag, text, cashDeps());
+  if (cashScreen) return cashScreen;
 
   if (tag.action === "ADDDEBT") {
     const debtItems = parseDebtsText(text);
@@ -3699,15 +3174,42 @@ async function handleCashReportReply(staff: StaffMember, tag: CrTag, text: strin
     return screenCashReportHub(staff);
   }
 
-  if (tag.action === "OBS") {
-    await supabase.from("store_cash_drafts")
-      .update({ observations: text.trim(), updated_at: new Date().toISOString() })
-      .eq("telegram_user_id", staff.telegram_user_id)
-      .eq("store_id", tag.targetId);
-    return screenCashReportHub(staff, tag.targetId);
-  }
-
   return screenMain(staff);
+}
+
+/** Midnight in Douala (UTC+1, no DST). */
+function todayStartDouala(): string {
+  return new Date(Date.now() + 3600_000).toISOString().slice(0, 10) + "T00:00:00+01:00";
+}
+
+async function screenSalesToday(staff: StaffMember, storeCode?: string): Promise<Screen> {
+  if (staff.rank < RANK_RESPONSABLE) return deniedScreen();
+  const store = await scopedStore(staff, storeCode);
+  if (staff.rank < RANK_DIRECTION && !store) return deniedScreen();
+  const supabase = db();
+  // Columns of orders are total and date; cancelled and returned orders are not sales.
+  let query = supabase?.from("orders").select("id, total").gte("date", todayStartDouala())
+    .not("status", "in", "(cancelled,returned)");
+  if (store) query = query?.eq("store_id", store.id);
+  const { data } = await query ?? { data: [] };
+
+  const orders = (data ?? []) as { id: string; total: number | null }[];
+  const total = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+  return {
+    text:
+      `📊 <b>Bilan des Ventes du Jour</b>\n` +
+      `Point de vente : <b>${escapeHtml(scopeLabel(store))}</b>\n\n` +
+      `• Commandes enregistrées : <b>${orders.length}</b>\n` +
+      `• Total estimé : <b>${money(total)}</b>\n\n` +
+      `<i>Pour les détails complets par vendeur et les clôtures de caisse, ouvrez la console Xeption App.</i>`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📲 Ouvrir Xeption App", web_app: { url: miniApp } }],
+        homeRow
+      ]
+    }
+  };
 }
 
 

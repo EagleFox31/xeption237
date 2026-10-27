@@ -4,6 +4,8 @@ const Deno = globalThis.Deno;
 import { SCREEN_CONDITIONS, BODY_CONDITIONS, CAMERA_CONDITIONS, REPAIR_OPTIONS } from '../_shared/conditions.ts';
 import { resolveTier, type TrocTier } from '../_shared/trocTiers.ts';
 import { matchTradeInModel } from '../_shared/tradeInModelMatch.ts';
+import { offerPatchIfChanged, RECALC_LOCKED_STATUSES, tradeInRowToPricingInput } from '../_shared/tradeInRecalc.ts';
+import { assertAuthenticatedStaff, staffAuthJsonResponse } from '../_shared/staffAuth.ts';
 
 export {};
 
@@ -274,6 +276,178 @@ const validateBody = (body: any): string | null => {
   return null;
 };
 
+// ─── Prix de base : id catalogue (exact) → matching nom (fragile) → repli tolérant → market-intel ──
+// Partagé par la création et l'action staff `recalculate` : une seule source de calcul.
+
+type BasePriceInput = {
+  deviceBrand: string;
+  deviceModel: string;
+  deviceStorage?: string | null;
+  deviceRam?: string | null;
+  tradeInModelId: string | null;
+};
+
+const resolveBasePrice = async (
+  supabaseUrl: string,
+  serviceKey: string,
+  { deviceBrand, deviceModel, deviceStorage, deviceRam, tradeInModelId: initialModelId }: BasePriceInput,
+): Promise<{ basePrice: number; tradeInModelId: string | null }> => {
+  const authHeaders = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
+  let basePrice = 0;
+  let tradeInModelId = initialModelId;
+
+  // 1) Id catalogue fourni par le front → lookup EXACT par id (fiable, toujours côté serveur).
+  if (tradeInModelId) {
+    try {
+      const byId = await fetchWithTimeout(
+        `${supabaseUrl}/rest/v1/trade_in_models?id=eq.${encodeURIComponent(tradeInModelId)}&select=base_price&limit=1`,
+        { headers: authHeaders },
+      );
+      if (byId.ok) {
+        const rows = await byId.json();
+        if (Array.isArray(rows) && rows[0]?.base_price) basePrice = Number(rows[0].base_price) || 0;
+      }
+    } catch { /* fallback ci-dessous */ }
+  }
+
+  // 2) Sinon matching par nom (peut échouer sur un espace : "14 T" vs "14T").
+  if (basePrice <= 0) {
+    try {
+      const argusRes = await fetchWithTimeout(
+        `${supabaseUrl}/rest/v1/trade_in_models?brand=ilike.*${encodeURIComponent(deviceBrand.trim())}*&model_name=ilike.*${encodeURIComponent(deviceModel.trim())}*&select=id,base_price&limit=1`,
+        { headers: authHeaders },
+      );
+      if (argusRes.ok) {
+        const rows = await argusRes.json();
+        if (Array.isArray(rows) && rows[0]) {
+          if (rows[0].base_price) basePrice = Number(rows[0].base_price) || 0;
+          if (rows[0].id && !tradeInModelId) tradeInModelId = rows[0].id;
+        }
+      }
+    } catch { /* pas de prix argus */ }
+  }
+
+  // 3) Repli tolérant (« Galaxy Z Fold5 » → « Z Fold 5 », fautes de frappe) sur le catalogue entier.
+  if (basePrice <= 0) {
+    try {
+      const catalogRes = await fetchWithTimeout(
+        `${supabaseUrl}/rest/v1/trade_in_models?select=id,brand,model_name,base_price&limit=2000`,
+        { headers: authHeaders },
+      );
+      if (catalogRes.ok) {
+        const match = matchTradeInModel(deviceBrand, deviceModel, await catalogRes.json());
+        if (match?.base_price) {
+          basePrice = Number(match.base_price) || 0;
+          if (!tradeInModelId) tradeInModelId = match.id;
+        }
+      }
+    } catch { /* pas de prix argus */ }
+  }
+
+  if (basePrice <= 0) {
+    try {
+      const intelRes = await fetchWithTimeout(`${supabaseUrl}/functions/v1/market-price-intel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+        body: JSON.stringify({
+          deviceBrand: deviceBrand.trim(), deviceModel: deviceModel.trim(),
+          deviceStorage: deviceStorage || null, deviceRam: deviceRam || null,
+          countryCode: 'CM', forceRefresh: true,
+        }),
+      });
+      if (intelRes.ok) {
+        const intelData = await intelRes.json();
+        const ref = Number(intelData?.referencePrice || 0);
+        if (Number.isFinite(ref) && ref > 0) basePrice = ref;
+      }
+    } catch { /* keep 0 */ }
+  }
+
+  return { basePrice, tradeInModelId };
+};
+
+// ─── Action staff : recalcul de l'offre d'un dossier existant ────────────────
+// Ne touche qu'aux colonnes d'offre (ni statut, ni IMEI, ni client) ; no-op si inchangé.
+
+const jsonResponse = (payload: unknown, status = 200): Response =>
+  new Response(JSON.stringify(payload), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status,
+  });
+
+const handleRecalculate = async (req: Request, body: any): Promise<Response> => {
+  const auth = await assertAuthenticatedStaff(req);
+  if (!auth.ok) return staffAuthJsonResponse(auth, corsHeaders);
+
+  const requestId = str(body.tradeInRequestId).trim();
+  const voucherRef = str(body.voucherReference).trim();
+  if (!requestId && !voucherRef) return jsonResponse({ error: 'tradeInRequestId ou voucherReference requis' }, 400);
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const authHeaders = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
+  const filter = requestId
+    ? `id=eq.${encodeURIComponent(requestId)}`
+    : `voucher_reference=eq.${encodeURIComponent(voucherRef)}`;
+
+  const rowRes = await fetchWithTimeout(
+    `${supabaseUrl}/rest/v1/trade_in_requests?${filter}&select=*&limit=2`,
+    { headers: authHeaders },
+  );
+  if (!rowRes.ok) {
+    console.error('[save-trade-in] recalc_read_error', await rowRes.text());
+    return jsonResponse({ error: 'Lecture du dossier impossible' }, 500);
+  }
+  const rows = await rowRes.json();
+  if (!Array.isArray(rows) || rows.length === 0) return jsonResponse({ error: 'Dossier introuvable' }, 404);
+  if (rows.length > 1) return jsonResponse({ error: 'Référence ambiguë : passer tradeInRequestId' }, 409);
+  const row = rows[0];
+  const rowUrl = `${supabaseUrl}/rest/v1/trade_in_requests?id=eq.${encodeURIComponent(row.id)}`;
+  if (RECALC_LOCKED_STATUSES.has(row.status)) {
+    return jsonResponse({ error: `Dossier ${row.status} : offre verrouillée` }, 409);
+  }
+
+  const input = tradeInRowToPricingInput(row);
+  const { basePrice, tradeInModelId } = await resolveBasePrice(supabaseUrl, serviceKey, {
+    deviceBrand: input.deviceBrand,
+    deviceModel: input.deviceModel,
+    deviceStorage: row.device_storage,
+    deviceRam: row.device_ram,
+    tradeInModelId: row.trade_in_model_id ?? null,
+  });
+  const offer = computeOfferV2(input, basePrice);
+
+  const patch = offerPatchIfChanged(row, {
+    ai_score:            offer.conditionScore,
+    ai_score_color:      scoreToColor(offer.conditionScore),
+    trade_in_value:      offer.tradeInValue,
+    trade_in_value_cash: offer.tradeInValueCash,
+    trade_in_grade:      offer.tradeInGrade,
+    blocker_reason:      offer.blocker ?? null,
+    desirability_tier:   offer.desirabilityTier ?? null,
+    trade_in_model_id:   tradeInModelId,
+  });
+
+  if (!patch) return jsonResponse({ changed: false, basePrice, offer });
+
+  const patchRes = await fetchWithTimeout(rowUrl, {
+    method: 'PATCH',
+    headers: { ...authHeaders, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+  });
+  if (!patchRes.ok) {
+    console.error('[save-trade-in] recalc_patch_error', await patchRes.text());
+    return jsonResponse({ error: 'Erreur lors de la sauvegarde' }, 500);
+  }
+  console.info('[save-trade-in] recalculated', {
+    requestId: row.id, by: auth.email, basePrice,
+    before: { trade_in_value: row.trade_in_value, blocker_reason: row.blocker_reason },
+    after: { trade_in_value: offer.tradeInValue, blocker_reason: offer.blocker ?? null },
+  });
+  const updated = await patchRes.json();
+  return jsonResponse({ changed: true, basePrice, offer, request: Array.isArray(updated) ? updated[0] : updated });
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -281,6 +455,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
+
+    if (body?.action === 'recalculate') return await handleRecalculate(req, body);
 
     const validationError = validateBody(body);
     if (validationError) {
@@ -339,77 +515,10 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // ── Prix de base : id catalogue (exact) → matching nom (fragile) → market-intel ──
-    let basePrice = 0;
-    let tradeInModelId: string | null =
-      typeof body?.tradeInModelId === 'string' && body.tradeInModelId ? body.tradeInModelId : null;
-
-    // 1) Id catalogue fourni par le front → lookup EXACT par id (fiable, toujours côté serveur).
-    if (tradeInModelId) {
-      try {
-        const byId = await fetchWithTimeout(
-          `${supabaseUrl}/rest/v1/trade_in_models?id=eq.${encodeURIComponent(tradeInModelId)}&select=base_price&limit=1`,
-          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
-        );
-        if (byId.ok) {
-          const rows = await byId.json();
-          if (Array.isArray(rows) && rows[0]?.base_price) basePrice = Number(rows[0].base_price) || 0;
-        }
-      } catch { /* fallback ci-dessous */ }
-    }
-
-    // 2) Sinon matching par nom (peut échouer sur un espace : "14 T" vs "14T").
-    if (basePrice <= 0) {
-      try {
-        const argusRes = await fetchWithTimeout(
-          `${supabaseUrl}/rest/v1/trade_in_models?brand=ilike.*${encodeURIComponent(deviceBrand.trim())}*&model_name=ilike.*${encodeURIComponent(deviceModel.trim())}*&select=id,base_price&limit=1`,
-          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
-        );
-        if (argusRes.ok) {
-          const rows = await argusRes.json();
-          if (Array.isArray(rows) && rows[0]) {
-            if (rows[0].base_price) basePrice = Number(rows[0].base_price) || 0;
-            if (rows[0].id && !tradeInModelId) tradeInModelId = rows[0].id;
-          }
-        }
-      } catch { /* pas de prix argus */ }
-    }
-
-    // 3) Repli tolérant (« Galaxy Z Fold5 » → « Z Fold 5 », fautes de frappe) sur le catalogue entier.
-    if (basePrice <= 0) {
-      try {
-        const catalogRes = await fetchWithTimeout(
-          `${supabaseUrl}/rest/v1/trade_in_models?select=id,brand,model_name,base_price&limit=2000`,
-          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
-        );
-        if (catalogRes.ok) {
-          const match = matchTradeInModel(deviceBrand, deviceModel, await catalogRes.json());
-          if (match?.base_price) {
-            basePrice = Number(match.base_price) || 0;
-            if (!tradeInModelId) tradeInModelId = match.id;
-          }
-        }
-      } catch { /* pas de prix argus */ }
-    }
-
-    if (basePrice <= 0) {
-      try {
-        const intelRes = await fetchWithTimeout(`${supabaseUrl}/functions/v1/market-price-intel`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
-          body: JSON.stringify({
-            deviceBrand: deviceBrand.trim(), deviceModel: deviceModel.trim(),
-            deviceStorage: deviceStorage || null, deviceRam: deviceRam || null,
-            countryCode: 'CM', forceRefresh: true,
-          }),
-        });
-        if (intelRes.ok) {
-          const intelData = await intelRes.json();
-          const ref = Number(intelData?.referencePrice || 0);
-          if (Number.isFinite(ref) && ref > 0) basePrice = ref;
-        }
-      } catch { /* keep 0 */ }
-    }
+    const { basePrice, tradeInModelId } = await resolveBasePrice(supabaseUrl, serviceKey, {
+      deviceBrand, deviceModel, deviceStorage, deviceRam,
+      tradeInModelId: typeof body?.tradeInModelId === 'string' && body.tradeInModelId ? body.tradeInModelId : null,
+    });
 
     // ── Vérification IMEI ────────────────────────────────────────────────────
     // Le palier 'safety' déclenche le check premium imeicheck.net (blacklist mondiale).

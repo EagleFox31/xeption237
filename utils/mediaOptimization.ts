@@ -35,6 +35,24 @@ export const snapWidth = (width: number, tier: BandwidthTier = 'fast'): number =
   return Math.min(bucket, max);
 };
 
+/** Variantes stockées par Trigenys Storage à l'upload (largeur en px, `/w320`, `/w800`). */
+export const STORAGE_VARIANT_WIDTHS = [320, 800] as const;
+const TRIGENYS_MEDIA_RE = /\/v1\/media\/[a-z][a-z0-9-]{1,39}\/[0-9a-f-]{36}$/i;
+
+export const isTrigenysMedia = (url: string): boolean => {
+  try {
+    return TRIGENYS_MEDIA_RE.test(new URL(url).pathname);
+  } catch {
+    return false;
+  }
+};
+
+/** Plus petite variante couvrant la largeur demandée, sinon l'original. Le Worker sert l'original si la variante manque. */
+const trigenysVariant = (url: string, width: number): string => {
+  const variant = STORAGE_VARIANT_WIDTHS.find((w) => w >= width);
+  return variant ? `${url}/w${variant}` : url;
+};
+
 const buildCloudinaryTransform = (
   parts: string[],
   transformation: string,
@@ -48,6 +66,7 @@ export const optimizeImage = (
 ): string => {
   if (!url) return IMAGE_FALLBACK;
 
+  if (isTrigenysMedia(url)) return trigenysVariant(url, snapWidth(width, getBandwidthTier()));
   // Si ce n'est pas une image Cloudinary, on retourne l'URL telle quelle
   if (!url.includes('cloudinary.com')) return url;
 
@@ -70,6 +89,8 @@ export const optimizeImage = (
  */
 export const optimizeImagePlaceholder = (url: string | undefined, _width?: number): string => {
   if (!url) return IMAGE_FALLBACK;
+  // Pas de flou côté Trigenys : la plus petite variante (souvent déjà en cache via la grille)
+  if (isTrigenysMedia(url)) return trigenysVariant(url, 0);
   if (!url.includes('cloudinary.com')) return url;
 
   // Largeur fixe : une seule variante floue par image, quel que soit l'appelant
@@ -89,6 +110,9 @@ export const generateCloudinarySrcSet = (
   url: string | undefined,
   widths: number[] = [180, 320, 480, 640, 800],
 ): string | undefined => {
+  if (url && isTrigenysMedia(url)) {
+    return STORAGE_VARIANT_WIDTHS.map((w) => `${url}/w${w} ${w}w`).join(', ');
+  }
   if (!url || !url.includes('cloudinary.com')) return undefined;
 
   const tier = getBandwidthTier();
@@ -101,6 +125,8 @@ export const generateCloudinarySrcSet = (
 /** Vignette produit carrée (hero / grilles) — même cadre pour phones et laptops */
 export const optimizeProductThumb = (url: string | undefined, size: number = 400): string => {
   if (!url) return IMAGE_FALLBACK;
+  // Recadrage carré laissé au CSS (object-cover) : pas de transformation serveur
+  if (isTrigenysMedia(url)) return trigenysVariant(url, snapWidth(size, getBandwidthTier()));
   if (!url.includes('cloudinary.com')) return url;
 
   const tier = getBandwidthTier();

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { STORAGE_VARIANT_WIDTHS } from '../utils/mediaOptimization';
 
 
 // R2 first for authenticated users; only explicit 'false' restores the legacy provider.
@@ -13,20 +14,36 @@ const TROC_MAX_BYTES = 2 * 1024 * 1024;
 
 type StorageFolder = 'products' | 'trocs';
 
-async function convertToWebP(file: File, maxSide: number = MAX_SIDE): Promise<Blob> {
+async function renderWebP(bitmap: ImageBitmap, scale: number): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Conversion image indisponible');
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  const result = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', WEBP_QUALITY));
+  if (!result || result.type !== 'image/webp') throw new Error('Conversion WebP indisponible');
+  return result;
+}
+
+/** Original (côté max borné) + variantes plus étroites que l'original, décodées une seule fois. */
+async function convertToWebP(file: File, maxSide: number = MAX_SIDE, withVariants = true): Promise<{ original: Blob; variants: { width: number; blob: Blob }[] }> {
   if (!file.type.startsWith('image/')) throw new Error('Format image non pris en charge');
   const bitmap = await createImageBitmap(file);
   try {
     const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Conversion image indisponible');
-    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const result = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', WEBP_QUALITY));
-    if (!result || result.type !== 'image/webp') throw new Error('Conversion WebP indisponible');
-    return result;
+    const original = await renderWebP(bitmap, scale);
+    const originalWidth = bitmap.width * scale;
+    const variants: { width: number; blob: Blob }[] = [];
+    for (const width of withVariants ? STORAGE_VARIANT_WIDTHS : []) {
+      if (width >= originalWidth) continue;
+      try {
+        variants.push({ width, blob: await renderWebP(bitmap, width / bitmap.width) });
+      } catch {
+        // Variante facultative : le Worker sert l'original à sa place.
+      }
+    }
+    return { original, variants };
   } finally {
     bitmap.close();
   }
@@ -38,8 +55,10 @@ export async function uploadImageToTrigenysStorage(
   folder: StorageFolder = 'products',
   sessionKey?: string,
 ): Promise<string> {
-  const webp = await convertToWebP(file, folder === 'trocs' ? TROC_MAX_SIDE : MAX_SIDE);
-  if (folder === 'trocs' && webp.size > TROC_MAX_BYTES) throw new Error('Photo trop lourde');
+  // Photos de troc vues par le staff seulement : pas de variantes (écritures R2 économisées).
+  const isTroc = folder === 'trocs';
+  const { original: webp, variants } = await convertToWebP(file, isTroc ? TROC_MAX_SIDE : MAX_SIDE, !isTroc);
+  if (isTroc && webp.size > TROC_MAX_BYTES) throw new Error('Photo trop lourde');
   const { data, error } = await supabase.functions.invoke('storage-upload-intent', {
     body: { folder, contentType: 'image/webp', maxBytes: webp.size, sessionKey }
   });
@@ -59,6 +78,12 @@ export async function uploadImageToTrigenysStorage(
     body: webp,
   });
   if (!response.ok) throw new Error('Envoi vers Trigenys Storage échoué');
+  // Même jeton, après l'original ; un échec ici ne bloque pas (repli sur l'original côté Worker).
+  await Promise.all(variants.map(({ width, blob }) => fetch(upload.toString() + '/w' + width, {
+    method: 'PUT',
+    headers: { Authorization: 'Bearer ' + String(data.token), 'Content-Type': 'image/webp' },
+    body: blob,
+  }).catch(() => undefined)));
   return publicUrl.toString();
 }
 

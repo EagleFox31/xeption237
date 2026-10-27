@@ -6,6 +6,7 @@ import {
   generateCloudinarySrcSet,
   snapWidth,
   IMAGE_WIDTH_BUCKETS,
+  isTrigenysMedia,
 } from '../../utils/mediaOptimization';
 import { setBandwidthTier } from '../../utils/bandwidthDetector';
 
@@ -68,5 +69,31 @@ describe('mediaOptimization', () => {
 
   it('vignette carrée sur palier', () => {
     expect(optimizeProductThumb(sampleCloudinaryUrl, 400)).toContain('w_480,h_480,c_fill');
+  });
+
+  describe('Trigenys Storage', () => {
+    const r2 = 'https://trigenys-storage-api.example.workers.dev/v1/media/xeption/efb8c1d6-2825-4c2a-b5f6-5f2b070fc5d1';
+
+    it('reconnaît uniquement les URLs média sans suffixe', () => {
+      expect(isTrigenysMedia(r2)).toBe(true);
+      expect(isTrigenysMedia(r2 + '/w320')).toBe(false);
+      expect(isTrigenysMedia(sampleCloudinaryUrl)).toBe(false);
+      expect(isTrigenysMedia('/v1/media/xeption/abc')).toBe(false);
+    });
+
+    it('choisit la plus petite variante couvrant la largeur, sinon l’original', () => {
+      setBandwidthTier('fast');
+      expect(optimizeImage(r2, 96)).toBe(r2 + '/w320');
+      expect(optimizeImage(r2, 400)).toBe(r2 + '/w800');
+      expect(optimizeImage(r2, 1200)).toBe(r2);
+      expect(optimizeProductThumb(r2, 400)).toBe(r2 + '/w800');
+      setBandwidthTier('slow');
+      expect(optimizeImage(r2, 1200)).toBe(r2 + '/w800');
+      expect(optimizeImagePlaceholder(r2, 28)).toBe(r2 + '/w320');
+    });
+
+    it('produit un srcset de variantes', () => {
+      expect(generateCloudinarySrcSet(r2)).toBe(`${r2}/w320 320w, ${r2}/w800 800w`);
+    });
   });
 });

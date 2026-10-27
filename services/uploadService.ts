@@ -7,11 +7,17 @@ const USE_TRIGENYS_STORAGE = import.meta.env.VITE_TRIGENYS_STORAGE_ENABLED !== '
 const WEBP_QUALITY = 0.85;
 const MAX_SIDE = 2048;
 
-async function convertToWebP(file: File): Promise<Blob> {
+// Photos de troc : 1600 px suffisent à l'expertise et tiennent sous le plafond de 2 Mo.
+const TROC_MAX_SIDE = 1600;
+const TROC_MAX_BYTES = 2 * 1024 * 1024;
+
+type StorageFolder = 'products' | 'trocs';
+
+async function convertToWebP(file: File, maxSide: number = MAX_SIDE): Promise<Blob> {
   if (!file.type.startsWith('image/')) throw new Error('Format image non pris en charge');
   const bitmap = await createImageBitmap(file);
   try {
-    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
@@ -27,10 +33,15 @@ async function convertToWebP(file: File): Promise<Blob> {
 }
 
 /** Upload using an intent issued by Xeption's authenticated Supabase Edge Function. */
-export async function uploadImageToTrigenysStorage(file: File): Promise<string> {
-  const webp = await convertToWebP(file);
+export async function uploadImageToTrigenysStorage(
+  file: File,
+  folder: StorageFolder = 'products',
+  sessionKey?: string,
+): Promise<string> {
+  const webp = await convertToWebP(file, folder === 'trocs' ? TROC_MAX_SIDE : MAX_SIDE);
+  if (folder === 'trocs' && webp.size > TROC_MAX_BYTES) throw new Error('Photo trop lourde');
   const { data, error } = await supabase.functions.invoke('storage-upload-intent', {
-    body: { folder: 'products', contentType: 'image/webp', maxBytes: webp.size }
+    body: { folder, contentType: 'image/webp', maxBytes: webp.size, sessionKey }
   });
   if (error || !data?.token || !data?.uploadUrl || !data?.mediaUrl || !data?.origin) {
     throw new Error('Autorisation de stockage indisponible');
@@ -137,4 +148,18 @@ export const uploadVideoToCloudinary = async (file: File): Promise<string> => {
  */
 export const uploadFiles = async (files: File[]): Promise<string[]> => {
   return Promise.all(files.map(uploadImageToCloudinary));
+};
+
+/** Photos de troc (clients anonymes) : Trigenys Storage d'abord, Cloudinary en secours. */
+export const uploadTrocPhotos = async (files: File[], sessionKey?: string): Promise<string[]> => {
+  return Promise.all(files.map(async (file) => {
+    if (USE_TRIGENYS_STORAGE) {
+      try {
+        return await uploadImageToTrigenysStorage(file, 'trocs', sessionKey);
+      } catch (error) {
+        console.warn('Trigenys Storage indisponible pour le troc : fournisseur historique utilisé', error);
+      }
+    }
+    return uploadImageToCloudinary(file);
+  }));
 };

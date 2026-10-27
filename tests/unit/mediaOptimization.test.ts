@@ -50,7 +50,9 @@ describe('mediaOptimization', () => {
     const urls = new Set<string>(widths.map((w) => optimizeImage(sampleCloudinaryUrl, w)));
     widths.forEach((w) => urls.add(optimizeImage(sampleCloudinaryUrl, w, { dpr: true })));
     [24, 28, 40].forEach((w) => urls.add(optimizeImagePlaceholder(sampleCloudinaryUrl, w)));
+    // paliers + placeholder + q_auto:good sur les 2 paliers >= 800
     expect(urls.size).toBe(IMAGE_WIDTH_BUCKETS.length + 1);
+    urls.forEach((u) => expect(u.includes('w_800') || u.includes('w_1280') ? u.includes('q_auto:good') : !u.includes('q_auto:good')).toBe(true));
     urls.forEach((u) => expect(u).not.toContain('dpr_auto'));
     setBandwidthTier('slow');
   });
@@ -58,6 +60,10 @@ describe('mediaOptimization', () => {
   it('dédoublonne le srcset après arrondi des largeurs', () => {
     const srcSet = generateCloudinarySrcSet(sampleCloudinaryUrl, [180, 320, 540, 720]);
     expect(srcSet?.split(', ').map((e) => e.split(' ')[1])).toEqual(['320w', '800w']);
+  });
+
+  it('garde q_auto:eco en réseau lent même en grand format', () => {
+    expect(optimizeImage(sampleCloudinaryUrl, 1200)).toContain('q_auto:eco,w_800');
   });
 
   it('vignette carrée sur palier', () => {

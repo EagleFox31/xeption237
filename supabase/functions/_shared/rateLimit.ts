@@ -9,7 +9,8 @@ export type AiRateLimitScope =
   | 'evaluate-device'
   | 'check-imei'
   | 'market-price-intel'
-  | 'troc-voucher-lookup';
+  | 'troc-voucher-lookup'
+  | 'troc-photo-upload';
 
 export interface AiRateLimitPolicy {
   /** Durée d'une fenêtre (ms). */
@@ -28,6 +29,8 @@ const DEFAULT_POLICIES: Record<AiRateLimitScope, AiRateLimitPolicy> = {
   'check-imei': { windowMs: HOUR_MS, maxSession: 20, maxIp: 60 },
   'market-price-intel': { windowMs: HOUR_MS, maxSession: 25, maxIp: 75 },
   'troc-voucher-lookup': { windowMs: HOUR_MS, maxSession: 30, maxIp: 60 },
+  // Une demande de troc = 3 à 4 photos ; marge pour quelques reprises.
+  'troc-photo-upload': { windowMs: HOUR_MS, maxSession: 16, maxIp: 40 },
 };
 
 const parsePolicyOverride = (

@@ -15,6 +15,12 @@ const IMAGE_FALLBACK = '/icons/icon-192x192.png';
  */
 export const IMAGE_WIDTH_BUCKETS = [160, 320, 480, 800, 1280] as const;
 const IMAGE_QUALITY = 'q_auto:eco';
+/** Grandes images (fiche produit) sur bonne connexion : qualité supérieure, 2 variantes en plus au plus. */
+const HD_QUALITY = 'q_auto:good';
+const HD_MIN_WIDTH = 800;
+
+const qualityFor = (width: number, tier: BandwidthTier): string =>
+  tier === 'fast' && width >= HD_MIN_WIDTH ? HD_QUALITY : IMAGE_QUALITY;
 const PLACEHOLDER_WIDTH = 32;
 
 const tierMaxWidth = (tier: BandwidthTier): number => {
@@ -46,7 +52,9 @@ export const optimizeImage = (
   if (!url.includes('cloudinary.com')) return url;
 
   // f_auto : format optimal (AVIF / WebP)
-  const transformation = `f_auto,${IMAGE_QUALITY},w_${snapWidth(width, getBandwidthTier())},c_limit`;
+  const tier = getBandwidthTier();
+  const w = snapWidth(width, tier);
+  const transformation = `f_auto,${qualityFor(w, tier)},w_${w},c_limit`;
 
   const parts = url.split('/upload/');
   if (parts.length === 2) {
@@ -95,8 +103,9 @@ export const optimizeProductThumb = (url: string | undefined, size: number = 400
   if (!url) return IMAGE_FALLBACK;
   if (!url.includes('cloudinary.com')) return url;
 
-  const s = snapWidth(size, getBandwidthTier());
-  const transformation = `f_auto,${IMAGE_QUALITY},w_${s},h_${s},c_fill,g_center`;
+  const tier = getBandwidthTier();
+  const s = snapWidth(size, tier);
+  const transformation = `f_auto,${qualityFor(s, tier)},w_${s},h_${s},c_fill,g_center`;
 
   const parts = url.split('/upload/');
   if (parts.length === 2) {

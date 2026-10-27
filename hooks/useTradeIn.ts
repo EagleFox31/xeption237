@@ -14,7 +14,7 @@ import {
   DeviceMismatchError,
   type ImeiDeviceInfo,
 } from '../services/trocEvaluationService';
-import { uploadFiles } from '../services/uploadService';
+import { uploadTrocPhotos } from '../services/uploadService';
 import { preflightDevicePhotos } from '../services/trocPhotoPreflight';
 import { validateTrocForm } from '../utils/trocFormValidation';
 import type { Product, TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
@@ -374,9 +374,9 @@ export const useTradeIn = () => {
     try {
       let urls: string[];
       if (photos.length >= 3) {
-        urls = await uploadFiles(photos);
+        urls = await uploadTrocPhotos(photos, sessionKey);
       } else if (photos.length > 0) {
-        const newlyUploaded = await uploadFiles(photos);
+        const newlyUploaded = await uploadTrocPhotos(photos, sessionKey);
         urls = [...newlyUploaded, ...photoUrls].slice(0, 4);
       } else {
         urls = photoUrls;

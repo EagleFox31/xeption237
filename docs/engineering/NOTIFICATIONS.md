@@ -97,6 +97,9 @@ Garanties :
 | `product_missing_image` | Trigger DB sur `products` (INSERT ou `image` vidée/invalide), 1 fois par jour et par produit | tous staff | in-app + Telegram | ✅ |
 | `stock_correction` | RPC `telegram_staff_stock_correct` (bot : « ✏️ Corriger le stock », chiffre compté + motif), 1 par correction | tous staff | in-app + Telegram | ✅ |
 | `store_cash_report` | Clôture journalière de caisse (`actionCashReportSubmit`) | tous staff | in-app + groupe Telegram + WhatsApp (Trigenys Notify) | ✅ |
+| `troc_stale` | pg_cron horaire `notify_time_based_reminders()` (dossier troc sans contact depuis > 48 h, créé il y a < 14 j) | responsable | in-app + Telegram | ✅ Livré |
+| `voucher_expiring` | pg_cron horaire `notify_time_based_reminders()` (bon troc expirant dans < 48 h, statut actif) | responsable | in-app + Telegram + WhatsApp | ✅ Livré |
+| `debt_overdue` | pg_cron horaire `notify_time_based_reminders()` (résumé hebdo par boutique des dettes > 7 j) | responsable | in-app + Telegram | ✅ Livré |
 | `stock_alert` | (remplacé par `stock_low` / `stock_out`) | — | — | — |
 | `security_alert` | `useAdminData` sur `security_events` (déjà intégré via shim) | `direction`+ | in-app | ✅ MVP (via shim legacy) |
 
@@ -106,7 +109,7 @@ Garanties :
   - Reçoit **tous** les événements du système (`TELEGRAM_EVENT_TYPES` complet).
   - Porte les flux interactifs avec boutons en ligne : création de produit (`prodReviewCb`), validation (`prodPublishCb`), masquage (`prodUnpublishCb`), suppression (`prodRejectConfirmCb`), tickets de caisse comptoir, clôtures de caisse.
 - **Groupe WhatsApp (Urgences commerciales, Stocks critiques & Clôtures)** :
-  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'troc_submitted', 'stock_out', 'stock_low', 'store_cash_report']`).
+  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report']`).
   - Protégé contre la fuite de données personnelles (enveloppe canonique Trigenys Notify sans noms ni numéros clients).
   - Clôtures de caisse : mappées sur l'événement canonique `cash_report.closed` avec les faits métier (`closingCashXaf`, `totalInflowXaf`, `totalOutflowXaf`, `actor`), bridgées vers le bon groupe WhatsApp par Trigenys Notify.
 
@@ -117,7 +120,7 @@ Garanties :
 - Les voir dans un push alourdirait l'inbox sans valeur ajoutée.
 - Elles sont **traçables** dans la timeline du modal `TrocDetailsModal` (livré par #11) et dans le dashboard conversion (livré par #12).
 
-Si le besoin d'une notif intermédiaire émerge (ex: "le dossier n'a pas été contacté depuis 48h"), c'est un cas de notification *dérivée du temps* — pas de l'événement — et doit passer par un cron DB plutôt que ce trigger. Hors MVP #17.
+La relance pour un troc sans contact depuis 48 h (créé il y a moins de 14 jours) est assurée par le job pg_cron `time-based-reminders-hourly` appelant `public.notify_time_based_reminders()` (Lot 1, événement `troc_stale`).
 
 ## Relais externes multi-canal (Telegram, puis WhatsApp…)
 

@@ -126,6 +126,27 @@ describe('Xeption producer -> Trigenys Notify',()=>{
       actor: 'Stevy Akaa'
     });
   });
+  it('extracts voucher_expiring business fields and maps to barter.voucher_expiring without customer PII', () => {
+    const voucher = toNotifyEvent({
+      ...sample,
+      event_type: 'voucher_expiring',
+      message: 'Bon TRC-94021 (iPhone 13 128 Go) expire le 29/10 à 18h00',
+      link_to_tab: 'troc',
+      link_to_id: 'req-98765'
+    }, ctx);
+    expect(voucher.type).toBe('barter.voucher_expiring');
+    expect(voucher.priority).toBe('high');
+    expect(voucher.resource.kind).toBe('barter');
+    expect(voucher.resource.id).toBe('req-98765');
+    expect(voucher.actionUrl).toBe('https://www.xeptionetwork.shop/admin/troc/req-98765');
+    expect(voucher.facts).toEqual({
+      subject: 'Bon TRC-94021 (iPhone 13 128 Go) expire le 29/10 à 18h00',
+      voucherReference: 'TRC-94021',
+      deviceModel: 'iPhone 13 128 Go',
+      expiresAtText: '29/10 à 18h00'
+    });
+    expect(JSON.stringify(voucher)).not.toMatch(/John Doe|\+237|client/i);
+  });
   it('preserves retry failures but does not leak upstream bodies',async()=>{
     const remote=createWahaChannel(reader(env),vi.fn(async()=>new Response('secret +237',{status:503})) as typeof fetch);
     expect(await remote?.send(sample,ctx)).toBe('notify_http_503');

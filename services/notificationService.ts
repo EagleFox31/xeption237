@@ -38,6 +38,10 @@ export type NotificationEventType =
   | 'product_missing_image'
   | 'stock_correction'
   | 'security_alert'
+  | 'store_cash_report'
+  | 'troc_stale'
+  | 'voucher_expiring'
+  | 'debt_overdue'
   | 'manual';
 
 export interface CreateNotificationInput {

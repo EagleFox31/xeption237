@@ -17,15 +17,17 @@ import {
 import {extractNotificationFacts} from '../staffNotifyFacts.ts';
 
 export const WAHA_DEFAULT_EVENT_TYPES = [
-  'stock_low', 'stock_out', 'product_missing_image'
+  'order_created', 'troc_submitted', 'stock_out', 'stock_low', 'store_cash_report'
 ];
 
 export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
+  order_created:'order.created',
   stock_low:'inventory.stock_low',
   stock_out:'inventory.stock_out',
   product_missing_image:'catalog.product_missing_image',
   troc_submitted:'barter.requested',
-  marketplace_listed:'marketplace.listing_created'
+  marketplace_listed:'marketplace.listing_created',
+  store_cash_report:'cash_report.closed'
 };
 
 const DISPATCH_URL =
@@ -52,7 +54,9 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
   if(!type) throw new Error('UNSUPPORTED_NOTIFY_EVENT');
   const kind=type.startsWith('inventory.')?'inventory':
     type.startsWith('catalog.')?'catalog':
-    type.startsWith('barter.')?'barter':'marketplace';
+    type.startsWith('barter.')?'barter':
+    type.startsWith('order.')?'order':
+    type.startsWith('cash_report.')?'cash_report':'marketplace';
   if(!n.created_at||!Number.isFinite(Date.parse(n.created_at)))
     throw new Error('NOTIFICATION_TIMESTAMP_REQUIRED');
   const facts=extractNotificationFacts(n);
@@ -61,8 +65,8 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
   return {
     version:1,project:'xeption',id:n.notification_id,type,
     occurredAt:new Date(n.created_at).toISOString(),
-    priority:n.event_type==='stock_out'?'critical':
-      n.event_type==='stock_low'?'high':'normal',
+    priority:n.event_type==='stock_out'||n.event_type==='order_created'?'critical':
+      n.event_type==='stock_low'||n.event_type==='troc_submitted'||n.event_type==='store_cash_report'?'high':'normal',
     resource:{kind,id:resourceId},
     audience:'staff',
     ...(facts?{facts}:{}),
@@ -79,7 +83,7 @@ export const createWahaChannel = (
   const ingestKey=env('XEPTION_NOTIFY_INGEST_KEY')??'';
   if(ingestKey.length<32)return null;
   const types=(env('WAHA_EVENT_TYPES')??WAHA_DEFAULT_EVENT_TYPES.join(','))
-    .split(',').map(s=>s.trim()).filter(s=>Object.hasOwn(NOTIFY_EVENT_ALIASES,s));
+    .split(',').map(s=>s.trim()).filter(s=>s in NOTIFY_EVENT_ALIASES);
   if(!types.length)return null;
   return {
     id:'whatsapp_waha',

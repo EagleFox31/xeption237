@@ -84,20 +84,31 @@ Garanties :
 
 | Événement | Déclencheur | Recipient (`target_role`) | Channel | Statut |
 |---|---|---|---|---|
-| `troc_submitted` | Trigger DB sur `trade_in_requests` (`pending`) | tous staff | in-app | ✅ MVP |
-| `troc_completed` | Trigger DB sur `trade_in_requests` (`completed`) | tous staff | in-app | ✅ MVP |
-| `troc_refused` | Trigger DB sur `trade_in_requests` (`refused`) | tous staff | in-app | ✅ MVP |
-| `order_created` | Client code `useOrderProcess` success | tous staff | in-app | 🟡 Roadmap |
+| `order_created` | Trigger DB `trg_notify_order_created` sur `orders` | tous staff | in-app + Telegram + WhatsApp | ✅ Livré |
+| `troc_submitted` | Trigger DB sur `trade_in_requests` (`pending`) | tous staff | in-app + Telegram + WhatsApp | ✅ Livré |
+| `troc_completed` | Trigger DB sur `trade_in_requests` (`completed`) | tous staff | in-app + Telegram | ✅ MVP |
+| `troc_refused` | Trigger DB sur `trade_in_requests` (`refused`) | tous staff | in-app + Telegram | ✅ MVP |
 | `pos_sale` | RPC `telegram_staff_complete_sale` (vente comptoir du bot Telegram) | tous staff | in-app + groupe Telegram | ✅ |
 | `order_paid` | Client code (webhook paiement) | tous staff | in-app + email | 🟡 Roadmap |
 | `order_shipped` | Admin action manuelle | **client (email)** | email | 🟡 Roadmap |
 | `sync_success` / `sync_failure` | Hook `useOfflinePos` (déjà intégré via shim) | vendeur concerné | in-app (silencieux pour `success`) | ✅ MVP (via shim legacy) |
-| `stock_low` / `stock_out` | Trigger DB sur `products.stock` (franchissement du seuil 2, puis 0) | tous staff | in-app + Telegram | ✅ |
+| `stock_low` / `stock_out` | Trigger DB sur `products.stock` (franchissement du seuil 2, puis 0) | tous staff | in-app + Telegram + WhatsApp | ✅ |
 | `marketplace_listed` | Trigger DB sur `marketplace_listings` (INSERT) | tous staff | in-app + Telegram | ✅ |
 | `product_missing_image` | Trigger DB sur `products` (INSERT ou `image` vidée/invalide), 1 fois par jour et par produit | tous staff | in-app + Telegram | ✅ |
 | `stock_correction` | RPC `telegram_staff_stock_correct` (bot : « ✏️ Corriger le stock », chiffre compté + motif), 1 par correction | tous staff | in-app + Telegram | ✅ |
+| `store_cash_report` | Clôture journalière de caisse (`actionCashReportSubmit`) | tous staff | in-app + groupe Telegram + WhatsApp (Trigenys Notify) | ✅ |
 | `stock_alert` | (remplacé par `stock_low` / `stock_out`) | — | — | — |
 | `security_alert` | `useAdminData` sur `security_events` (déjà intégré via shim) | `direction`+ | in-app | ✅ MVP (via shim legacy) |
+
+### Répartition des canaux : Telegram vs WhatsApp
+
+- **Groupe Telegram (Opérations & Actions interactives)** :
+  - Reçoit **tous** les événements du système (`TELEGRAM_EVENT_TYPES` complet).
+  - Porte les flux interactifs avec boutons en ligne : création de produit (`prodReviewCb`), validation (`prodPublishCb`), masquage (`prodUnpublishCb`), suppression (`prodRejectConfirmCb`), tickets de caisse comptoir, clôtures de caisse.
+- **Groupe WhatsApp (Urgences commerciales, Stocks critiques & Clôtures)** :
+  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'troc_submitted', 'stock_out', 'stock_low', 'store_cash_report']`).
+  - Protégé contre la fuite de données personnelles (enveloppe canonique Trigenys Notify sans noms ni numéros clients).
+  - Clôtures de caisse : mappées sur l'événement canonique `cash_report.closed` avec les faits métier (`closingCashXaf`, `totalInflowXaf`, `totalOutflowXaf`, `actor`), bridgées vers le bon groupe WhatsApp par Trigenys Notify.
 
 ### Événements SMART TROC intermédiaires (`accepted → contacted → appointment`)
 

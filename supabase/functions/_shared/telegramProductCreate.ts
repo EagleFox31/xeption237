@@ -29,6 +29,7 @@ export interface ProductDraft {
   price?: number;
   stock?: number;
   images?: string[];
+  photo_message_id?: number;
   step: ProductDraftStep;
   fuzzy_match_id?: string;
 }
@@ -51,9 +52,10 @@ export const CONDITION_OPTIONS = [
 // ── Callbacks (tous <= 64 octets) ─────────────────────────────────────────────
 export const prodCreateStartCb = (storeCode = "") => `nav:pcs:${storeCode}`;
 export const prodCreateStoreCb = (storeCode: string) => `nav:pcst:${storeCode}`;
-export const prodCreateDupCb = (choice: "yes" | "no") => `nav:pcdu:${choice}`;
+export const prodCreateDupCb = (choice: string) => `nav:pcdu:${choice}`;
 export const prodCreateCatCb = (cat: string) => `nav:pcc:${cat}`;
 export const prodCreateBrandCb = (brandId: string) => `nav:pcb:${brandId}`;
+export const prodCreateBrandAllCb = () => "nav:pcb_all";
 export const prodCreateStorageCb = (storage: string) => `nav:pcso:${storage}`;
 export const prodCreateRamCb = (ram: string) => `nav:pcrm:${ram}`;
 export const prodCreateCondCb = (cond: "refurbished" | "new") => `nav:pccn:${cond}`;
@@ -67,6 +69,7 @@ export const prodReviewCb = (productId: string) => `nav:pcr_v:${productId}`;
 export const prodAiEnrichCb = (productId: string) => `nav:pcr_ai:${productId}`;
 export const prodChangePriceCb = (productId: string) => `nav:pcr_pr:${productId}`;
 export const prodPublishCb = (productId: string) => `nav:pcr_pub:${productId}`;
+export const prodUnpublishCb = (productId: string) => `nav:pcr_unpub:${productId}`;
 export const prodRejectCb = (productId: string) => `nav:pcr_del:${productId}`;
 export const prodRejectConfirmCb = (productId: string) => `nav:pcr_del_cf:${productId}`;
 
@@ -135,3 +138,67 @@ export function dedupeBrandOptions<T extends BrandOption>(brands: readonly T[]):
   if (!samsung) return [...brands];
   return brands.filter((b) => b === samsung || !b.name.toLowerCase().includes("samsung"));
 }
+
+/** Slugs de marques autorisées par catégorie (évite de proposer HP/Dell pour les smartphones). */
+export const CATEGORY_ALLOWED_BRAND_SLUGS: Record<string, string[]> = {
+  phones: [
+    "apple",
+    "samsung",
+    "samsung-galaxy",
+    "xiaomi",
+    "tecno",
+    "infinix",
+    "google-pixel",
+    "huawei",
+    "oppo",
+    "blackview",
+    "cmf"
+  ],
+  computer: [
+    "hp",
+    "dell",
+    "lenovo",
+    "apple",
+    "asus",
+    "microsoft"
+  ],
+  tablettes: [
+    "apple",
+    "samsung",
+    "samsung-galaxy",
+    "blackview",
+    "tecno",
+    "lenovo",
+    "xiaomi",
+    "microsoft"
+  ],
+  accessories: [
+    "oraimo",
+    "jbl",
+    "apple",
+    "samsung",
+    "samsung-galaxy",
+    "cmf",
+    "xiaomi",
+    "asus",
+    "dell",
+    "hp",
+    "lenovo"
+  ]
+};
+
+/** Filtre les marques en fonction du type d'appareil sélectionné. */
+export function filterBrandsForCategory<T extends BrandOption>(brands: readonly T[], category?: string): T[] {
+  const deduped = dedupeBrandOptions(brands);
+  if (!category) return deduped;
+  const allowed = CATEGORY_ALLOWED_BRAND_SLUGS[category];
+  if (!allowed || allowed.length === 0) return deduped;
+
+  const filtered = deduped.filter(b => {
+    const slug = (b.slug ?? b.name).toLowerCase().trim();
+    return allowed.some(a => slug === a || slug.includes(a));
+  });
+
+  return filtered.length > 0 ? filtered : deduped;
+}
+

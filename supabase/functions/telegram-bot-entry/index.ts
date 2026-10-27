@@ -29,15 +29,38 @@ import {
   CONDITION_OPTIONS, PC_TAG_NAME, PC_TAG_PRICE, PC_TAG_PUB_PRICE_PREFIX, PC_TAG_STOCK,
   PRODUCT_CATEGORIES, RAM_OPTIONS, STORAGE_OPTIONS, parsePcPubPriceTag, parsePcTag,
   parseProductPrice, parseProductStock, prodAiEnrichCb, prodChangePriceCb,
-  prodCreateBrandCb, prodCreateCancelCb, prodCreateCatCb, prodCreateCondCb,
+  prodCreateBrandAllCb, prodCreateBrandCb, prodCreateCancelCb, prodCreateCatCb, prodCreateCondCb,
   prodCreateConfirmCb, prodCreateDupCb, prodCreateRamCb, prodCreateSkipPhotosCb,
   prodCreateStartCb, prodCreateStorageCb, prodCreateStoreCb, prodPendingListCb,
-  prodPublishCb, prodRejectCb, prodRejectConfirmCb, prodReviewCb, type ProductDraft,
-  dedupeBrandOptions, normalizeProductName
+  prodPublishCb, prodRejectCb, prodRejectConfirmCb, prodReviewCb, prodUnpublishCb, type ProductDraft,
+  dedupeBrandOptions, filterBrandsForCategory, normalizeProductName
 } from "../_shared/telegramProductCreate.ts";
 import { deepseekChatJson } from "../_shared/deepseekTextJson.ts";
 import { buildProductEnricherPrompt, parseProductEnricherOutput } from "../_shared/personas/productEnricher.ts";
 import { parseStartPayload } from "../_shared/telegramStartPayload.ts";
+import {
+  type CashReportData,
+  type InflowItem,
+  type OutflowItem,
+  type DebtItem,
+  type StaffProgressItem,
+  formatDateFr,
+  formatMoney,
+  parseAmount,
+  parseExpenseLine,
+  parseExpensesText,
+  parseDebtsText,
+  parseCustomerNameAndPhone,
+  isLikelyAmount,
+  isValidCustomerName,
+  formatCustomerName,
+  formatDailyCashReport,
+  formatDailyCashReportForWhatsApp,
+  parseCrTag,
+  crPrompt,
+  type CrTag
+} from "../_shared/telegramCashReport.ts";
+import { createWahaChannel } from "../_shared/staffNotifyChannels/waha.ts";
 
 
 declare const Deno: {
@@ -82,7 +105,9 @@ interface InlineButton {
 interface Screen {
   text: string;
   reply_markup: {
-    inline_keyboard: InlineButton[][];
+    inline_keyboard?: InlineButton[][];
+    force_reply?: boolean;
+    input_field_placeholder?: string;
   };
 }
 
@@ -209,10 +234,23 @@ async function getStaff(telegramUserId: string): Promise<StaffMember | null> {
   const authUserId = links?.[0]?.auth_user_id;
   if (typeof authUserId !== "string") return null;
   const staff = await staffByAuthUser(authUserId);
-  const scope = links?.[0]?.scope_store_code;
-  return staff
-    ? { telegram_user_id: telegramUserId, ...staff, scope_store_code: typeof scope === "string" ? scope : null }
-    : null;
+  if (!staff) return null;
+  const scope = typeof links?.[0]?.scope_store_code === "string" ? links[0].scope_store_code : null;
+
+  // Pour la Direction (Super Admin multi-boutiques sans boutique fixe), attribuer dynamiquement le scope ou le siège
+  let resolvedStore = staff.store;
+  if (!resolvedStore && staff.rank >= RANK_DIRECTION) {
+    const stores = await listStores();
+    const targetCode = scope || "siege";
+    resolvedStore = stores.find(s => s.code === targetCode) ?? stores[0] ?? null;
+  }
+
+  return {
+    telegram_user_id: telegramUserId,
+    ...staff,
+    store: resolvedStore,
+    scope_store_code: scope
+  };
 }
 
 /** Remembers the store direction is browsing (null = network view). Writes only on change. */
@@ -766,9 +804,12 @@ async function screenMain(staff: StaffMember): Promise<Screen> {
           ],
           [
             { text: "📊 Ventes du Jour", callback_data: "nav:sales" },
-            { text: "⚠️ Stocks Faibles", callback_data: "nav:stock_low" }
+            { text: "📊 Clôture de Caisse", callback_data: "nav:cr_choose" }
           ],
-          [{ text: "👥 Gestion RH", callback_data: "nav:rh" }],
+          [
+            { text: "⚠️ Stocks Faibles", callback_data: "nav:stock_low" },
+            { text: "👥 Gestion RH", callback_data: "nav:rh" }
+          ],
           [{ text: "📲 Ouvrir Xeption App", web_app: { url: miniApp } }]
         ]
       }
@@ -780,7 +821,12 @@ async function screenMain(staff: StaffMember): Promise<Screen> {
     { text: "⚠️ Stocks Faibles", callback_data: "nav:stock_low" }
   ]];
   // A sale starts from a product sheet: the entry point is the store catalogue.
-  if (staff.store) rows.push([{ text: "🛒 Enregistrer une vente", callback_data: "nav:stocks" }]);
+  if (staff.store) {
+    rows.push([
+      { text: "🛒 Enregistrer une vente", callback_data: "nav:stocks" },
+      { text: "📊 Rapport de caisse (Clôture)", callback_data: "nav:cr_start" }
+    ]);
+  }
   if (staff.rank >= RANK_RESPONSABLE) {
     rows.push([
       { text: "🔄 Smart Troc", callback_data: "nav:troc" },
@@ -808,6 +854,9 @@ async function screenStore(staff: StaffMember, storeCode: string): Promise<Scree
         [
           { text: "📦 Stocks", callback_data: "nav:stocks:" + store.code },
           { text: "📊 Ventes", callback_data: "nav:sales:" + store.code }
+        ],
+        [
+          { text: "📊 Rapport de Caisse & Clôture", callback_data: "nav:cr_start:" + store.code }
         ],
         [{ text: "⬅️ Retour Vue Direction", callback_data: "nav:main" }]
       ]
@@ -951,7 +1000,7 @@ async function stockRows(store: Store | null, opts: { names?: string[]; max?: nu
     if (opts.max !== undefined) query = query.lte("quantity", opts.max);
     // Tie-break on the product id so pages never overlap or skip a product.
     const { data } = await query.order("quantity", { ascending: opts.ascending }).order("product_id").range(from, to);
-    return ((data ?? []) as { quantity: number; products: { id: string; name: string; price: number | string | null } }[])
+    return ((data ?? []) as unknown as { quantity: number; products: { id: string; name: string; price: number | string | null } }[])
       .map(r => ({ id: r.products.id, name: r.products.name, price: r.products.price, stock: r.quantity }));
   }
   let query = supabase.from("products").select("id, name, price, stock");
@@ -1046,6 +1095,9 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
   }
   if (staff.rank >= RANK_DIRECTION && product.stock > 0 && cbFits(stockSplitScreenCb(product.id, backCat))) {
     rows.push([{ text: "🔀 Répartir ce modèle", callback_data: stockSplitScreenCb(product.id, backCat) }]);
+  }
+  if (staff.rank >= RANK_DIRECTION && cbFits(prodReviewCb(product.id))) {
+    rows.push([{ text: "👁️ Examiner / Gérer publication", callback_data: prodReviewCb(product.id) }]);
   }
   rows.push([
     { text: backCat === "search" ? "⬅️ Précédent (Catégories)" : "⬅️ Précédent", callback_data: back },
@@ -1509,7 +1561,8 @@ async function uploadProductPhoto(telegramUserId: string, fileData: Uint8Array, 
   const supabase = db();
   if (!supabase) return null;
   const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
-  const path = `products/tg_${telegramUserId}_${Date.now()}.${ext}`;
+  const uniqueId = crypto.randomUUID().slice(0, 8);
+  const path = `products/tg_${telegramUserId}_${Date.now()}_${uniqueId}.${ext}`;
   const { error } = await supabase.storage.from("xeption237").upload(path, fileData, {
     contentType: mime,
     upsert: true
@@ -1546,6 +1599,7 @@ async function handleProdCreateStart(staff: StaffMember, storeCode?: string): Pr
 
 async function handleProdCreateStore(staff: StaffMember, storeCode: string): Promise<Screen> {
   if (staff.rank < RANK_RESPONSABLE) return deniedScreen();
+  await rememberScope(staff, storeCode);
   return await promptProductName(staff, storeCode);
 }
 
@@ -1559,6 +1613,7 @@ async function promptProductName(staff: StaffMember, storeCode: string): Promise
   });
   await telegram("sendMessage", {
     chat_id: staff.telegram_user_id,
+    parse_mode: "HTML",
     text:
       "📱 <b>Nouveau produit en boutique</b>\n\n" +
       "Entrez le nom complet de l'appareil (ex: <i>iPhone 15 Pro 128Go</i> ou <i>HP EliteBook 840 G8</i>) :\n\n" +
@@ -1582,35 +1637,37 @@ async function handleProdCreateNameReply(staff: StaffMember, rawName: string): P
   const supabase = db();
   if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
 
-  // Détection de doublon tolérante aux fautes
+  // Détection de doublon tolérante aux fautes (cherche jusqu'à 4 modèles similaires)
   const { data: fuzzyMatches } = await supabase.rpc("telegram_search_products_fuzzy", {
     p_query: name.slice(0, 80),
     p_store_code: null,
     p_telegram_user_id: staff.telegram_user_id,
-    p_limit: 1
+    p_limit: 4
   });
 
-  const bestMatch = (fuzzyMatches ?? [])[0] as { id: string; name: string; stock: number } | undefined;
+  const matches = (fuzzyMatches ?? []) as { id: string; name: string; stock: number; price: number }[];
 
-  if (bestMatch && bestMatch.name.toLowerCase() !== name.toLowerCase()) {
+  // Si des modèles proches existent en base
+  if (matches.length > 0) {
     await supabase.rpc("telegram_staff_product_draft_upsert", {
       p_telegram_user_id: staff.telegram_user_id,
       p_store_code: null,
-      p_patch: { name, step: "duplicate_check", fuzzy_match_id: bestMatch.id }
+      p_patch: { name, step: "duplicate_check", fuzzy_match_id: matches[0].id }
     });
+
+    const lines = matches.map(m => `👉 <b>${escapeHtml(m.name)}</b> (Stock : ${m.stock} | ${money(m.price)})`);
+    const rows: InlineButton[][] = matches.map(m => [
+      { text: `📱 ${m.name.slice(0, 32)}`, callback_data: prodCreateDupCb("p:" + m.id) }
+    ]);
+    rows.push([{ text: "➕ Non, c'est un nouveau modèle différent", callback_data: prodCreateDupCb("no") }]);
+    rows.push([{ text: "🚫 Annuler la création", callback_data: prodCreateCancelCb() }]);
+
     return {
       text:
-        `⚠️ <b>Ce modèle existe peut-être déjà dans le catalogue :</b>\n\n` +
-        `👉 <b>${escapeHtml(bestMatch.name)}</b>\n` +
-        `Stock total réseau : <b>${bestMatch.stock} unité(s)</b>\n\n` +
-        `S'agit-il de ce modèle existant (pour faire un arrivage) ou d'un nouveau modèle différent ?`,
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "✅ Oui, c'est ce modèle (Ouvrir)", callback_data: prodCreateDupCb("yes") }],
-          [{ text: "❌ Non, créer ce nouveau produit", callback_data: prodCreateDupCb("no") }],
-          [{ text: "🚫 Annuler", callback_data: prodCreateCancelCb() }]
-        ]
-      }
+        `⚠️ <b>Des modèles similaires existent déjà dans le catalogue :</b>\n\n` +
+        lines.join("\n") +
+        `\n\nS'agit-il d'un de ces modèles (pour arrivage / vente) ou d'un nouveau modèle différent ?`,
+      reply_markup: { inline_keyboard: rows }
     };
   }
 
@@ -1622,9 +1679,17 @@ async function handleProdCreateNameReply(staff: StaffMember, rawName: string): P
   return screenProdCreateCategory(name);
 }
 
-async function handleProdCreateDupAnswer(staff: StaffMember, choice: "yes" | "no"): Promise<Screen> {
+async function handleProdCreateDupAnswer(staff: StaffMember, choice: string): Promise<Screen> {
   const draft = await getProductDraft(staff.telegram_user_id);
   if (!draft) return { text: "Brouillon introuvable.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  // L'utilisateur a sélectionné l'un des modèles existants proposés
+  if (choice.startsWith("p:")) {
+    const existingProductId = choice.slice(2);
+    const supabase = db();
+    if (supabase) await supabase.rpc("telegram_staff_product_draft_cancel", { p_telegram_user_id: staff.telegram_user_id });
+    return await screenProductDetail(staff, existingProductId, "stocks");
+  }
 
   if (choice === "yes" && draft.fuzzy_match_id) {
     const supabase = db();
@@ -1632,6 +1697,7 @@ async function handleProdCreateDupAnswer(staff: StaffMember, choice: "yes" | "no
     return await screenProductDetail(staff, draft.fuzzy_match_id, "stocks");
   }
 
+  // L'utilisateur a confirmé que c'est un nouveau modèle
   const supabase = db();
   if (supabase) {
     await supabase.rpc("telegram_staff_product_draft_upsert", {
@@ -1657,7 +1723,7 @@ function screenProdCreateCategory(name: string): Screen {
   };
 }
 
-async function handleProdCreateCat(staff: StaffMember, category: string): Promise<Screen> {
+async function handleProdCreateCat(staff: StaffMember, category: string, showAll = false): Promise<Screen> {
   const supabase = db();
   if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
   await supabase.rpc("telegram_staff_product_draft_upsert", {
@@ -1667,7 +1733,10 @@ async function handleProdCreateCat(staff: StaffMember, category: string): Promis
   });
 
   const { data: brands } = await supabase.from("brands").select("id, name, slug").order("name");
-  const brandList = dedupeBrandOptions((brands ?? []) as { id: string; name: string; slug: string | null }[]);
+  const rawList = (brands ?? []) as { id: string; name: string; slug: string | null }[];
+  const brandList = showAll
+    ? dedupeBrandOptions(rawList)
+    : filterBrandsForCategory(rawList, category);
 
   const rows: InlineButton[][] = [];
   let curRow: InlineButton[] = [];
@@ -1679,10 +1748,16 @@ async function handleProdCreateCat(staff: StaffMember, category: string): Promis
     }
   }
   if (curRow.length > 0) rows.push(curRow);
+  if (!showAll && brandList.length < rawList.length) {
+    rows.push([{ text: "🌐 Voir toutes les marques", callback_data: prodCreateBrandAllCb() }]);
+  }
   rows.push([{ text: "❌ Annuler", callback_data: prodCreateCancelCb() }]);
 
+  const catObj = PRODUCT_CATEGORIES.find(c => c.slug === category);
+  const catLabel = catObj ? `${catObj.icon} ${catObj.label}` : category;
+
   return {
-    text: `🏷️ <b>Marque du produit</b>\n\nChoisissez la marque :`,
+    text: `🏷️ <b>Marque du produit</b> (${catLabel})\n\nChoisissez la marque :`,
     reply_markup: { inline_keyboard: rows }
   };
 }
@@ -1760,6 +1835,7 @@ async function handleProdCreateCond(staff: StaffMember, condition: "refurbished"
 
   await telegram("sendMessage", {
     chat_id: staff.telegram_user_id,
+    parse_mode: "HTML",
     text:
       "💰 <b>Prix de vente en boutique (FCFA)</b>\n\n" +
       "Entrez le montant en FCFA (ex: <i>450 000</i> ou <i>450k</i>) :\n\n" +
@@ -1791,6 +1867,7 @@ async function handleProdCreatePriceReply(staff: StaffMember, rawPrice: string):
 
   await telegram("sendMessage", {
     chat_id: staff.telegram_user_id,
+    parse_mode: "HTML",
     text:
       "📦 <b>Quantité initiale reçue en boutique</b>\n\n" +
       "Combien d'unités avez-vous en magasin ? (ex: <i>1</i> ou <i>2</i>) :\n\n" +
@@ -1842,8 +1919,17 @@ function screenProdCreatePhotos(draft: ProductDraft): Screen {
 }
 
 async function handleProdCreatePhotoMessage(staff: StaffMember, message: Obj, chatId: number | string): Promise<void> {
+  if (staff.rank < RANK_RESPONSABLE) return;
   const draft = await getProductDraft(staff.telegram_user_id);
   if (!draft || draft.step !== "photos") return;
+
+  if ((draft.images?.length ?? 0) >= 10) {
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text: "⚠️ Limite atteinte : vous pouvez enregistrer au maximum 10 photos par produit."
+    });
+    return;
+  }
 
   const photos = message.photo as Obj[] | undefined;
   if (!photos || photos.length === 0) return;
@@ -1865,23 +1951,67 @@ async function handleProdCreatePhotoMessage(staff: StaffMember, message: Obj, ch
     return;
   }
 
-  const nextImages = [...(draft.images ?? []), url];
   const supabase = db();
+  let currentDraft: ProductDraft = draft;
   if (supabase) {
-    await supabase.rpc("telegram_staff_product_draft_upsert", {
+    const { data } = await supabase.rpc("telegram_staff_product_draft_upsert", {
       p_telegram_user_id: staff.telegram_user_id,
       p_store_code: null,
-      p_patch: { images: nextImages }
+      p_patch: { append_image: url }
     });
+    if (data) {
+      currentDraft = data as ProductDraft;
+    } else {
+      currentDraft = { ...draft, images: [...(draft.images ?? []), url] };
+    }
   }
 
-  const screen = screenProdCreatePhotos({ ...draft, images: nextImages });
-  await telegram("sendMessage", {
-    chat_id: chatId,
-    parse_mode: "HTML",
-    text: `📸 Photo reçue et enregistrée ! (Total : ${nextImages.length})\n\n` + screen.text,
-    reply_markup: screen.reply_markup
-  });
+  const screen = screenProdCreatePhotos(currentDraft);
+  const total = currentDraft.images?.length ?? 1;
+  const statusHeader = total > 1
+    ? `📸 <b>${total} photos enregistrées !</b>\n\n`
+    : `📸 <b>Photo reçue et enregistrée ! (Total : 1)</b>\n\n`;
+  const text = statusHeader + screen.text;
+
+  const targetMsgId = currentDraft.photo_message_id;
+  let edited = false;
+
+  if (targetMsgId) {
+    try {
+      const res = await telegram("editMessageText", {
+        chat_id: chatId,
+        message_id: targetMsgId,
+        parse_mode: "HTML",
+        text,
+        reply_markup: screen.reply_markup
+      });
+      if (res?.ok) {
+        edited = true;
+      }
+    } catch (e) {
+      const errStr = String(e);
+      if (errStr.includes("not modified")) {
+        edited = true;
+      }
+    }
+  }
+
+  if (!edited) {
+    const sent = await telegram("sendMessage", {
+      chat_id: chatId,
+      parse_mode: "HTML",
+      text,
+      reply_markup: screen.reply_markup
+    });
+    const newMsgId = (sent?.result as Obj | undefined)?.message_id;
+    if (typeof newMsgId === "number" && supabase) {
+      await supabase.rpc("telegram_staff_product_draft_upsert", {
+        p_telegram_user_id: staff.telegram_user_id,
+        p_store_code: null,
+        p_patch: { photo_message_id: newMsgId }
+      });
+    }
+  }
 }
 
 async function handleProdCreateCommit(staff: StaffMember, chatId: number | string): Promise<Screen> {
@@ -1906,6 +2036,7 @@ async function handleProdCreateCommit(staff: StaffMember, chatId: number | strin
     product_id: string;
     name: string;
     store_name: string;
+    store_code?: string;
     stock: number;
     price: number;
     reason?: string;
@@ -1942,6 +2073,10 @@ async function handleProdCreateCommit(staff: StaffMember, chatId: number | strin
     } catch (e) {
       console.warn("Failed to notify staff chat on product commit:", e);
     }
+  }
+
+  if (res.store_code) {
+    await rememberScope(staff, res.store_code);
   }
 
   return {
@@ -2023,11 +2158,11 @@ async function screenReviewPendingProduct(staff: StaffMember, productId: string,
 
   const { data: prod } = await supabase
     .from("products")
-    .select("id, name, price, stock, category, condition, specs, description, images, is_published, brands(name)")
+    .select("id, name, price, stock, category, condition, specs, description, images, is_published, rejected_at, brands(name)")
     .eq("id", productId)
     .maybeSingle();
 
-  if (!prod) {
+  if (!prod || prod.rejected_at) {
     return {
       text: "❌ Produit introuvable ou déjà supprimé.",
       reply_markup: { inline_keyboard: [[{ text: "📝 Liste en attente", callback_data: prodPendingListCb() }]] }
@@ -2081,6 +2216,7 @@ async function screenReviewPendingProduct(staff: StaffMember, productId: string,
     rows.push([{ text: "🌐 Valider & Publier sur le site", callback_data: prodPublishCb(productId) }]);
     rows.push([{ text: "🗑️ Rejeter / Supprimer ce produit", callback_data: prodRejectCb(productId) }]);
   } else {
+    rows.push([{ text: "🔒 Masquer du site web (Désactiver)", callback_data: prodUnpublishCb(productId) }]);
     rows.push([{ text: "✏️ Modifier le prix", callback_data: prodChangePriceCb(productId) }]);
   }
   rows.push([
@@ -2125,7 +2261,7 @@ async function handleDirectionAiEnrich(staff: StaffMember, productId: string): P
     for (const s of existingSpecs) {
       if (s?.label && s?.value) finalSpecs.push({ label: s.label, value: s.value });
     }
-    for (const s of enriched.specs) {
+    for (const s of enriched.specs ?? []) {
       if (s?.label && s?.value && !existingSpecs.some(e => e.label.toLowerCase() === s.label.toLowerCase())) {
         finalSpecs.push({ label: s.label, value: s.value });
       }
@@ -2134,7 +2270,7 @@ async function handleDirectionAiEnrich(staff: StaffMember, productId: string): P
     await supabase
       .from("products")
       .update({
-        description: enriched.description,
+        description: enriched.description ?? prod.description,
         specs: finalSpecs,
         updated_at: new Date().toISOString()
       })
@@ -2160,6 +2296,7 @@ async function handleDirectionChangePricePrompt(staff: StaffMember, productId: s
   if (staff.rank < RANK_DIRECTION) return deniedScreen();
   await telegram("sendMessage", {
     chat_id: chatId,
+    parse_mode: "HTML",
     text:
       "💰 <b>Modifier le prix public</b>\n\n" +
       "Entrez le nouveau prix en FCFA (ex: <i>350 000</i> ou <i>350k</i>) :\n\n" +
@@ -2218,6 +2355,25 @@ async function handleDirectionPublish(staff: StaffMember, productId: string): Pr
     };
   }
 
+  // Alerte vers le groupe Telegram staff / direction
+  const staffChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+  if (staffChatId) {
+    try {
+      await telegram("sendMessage", {
+        chat_id: staffChatId,
+        parse_mode: "HTML",
+        text:
+          `🎉 <b>Produit validé et publié sur le site web !</b>\n\n` +
+          `📱 <b>${escapeHtml(res.name)}</b>\n` +
+          `💰 Prix public final : <b>${money(res.price)}</b>\n` +
+          `👤 Validé par : <b>${escapeHtml(staff.name)}</b>\n\n` +
+          `🌐 <i>Ce produit est désormais en ligne et achetable sur <b>xeptionetwork.shop</b>.</i>`
+      });
+    } catch (e) {
+      console.warn("Failed to notify staff chat on product publish:", e);
+    }
+  }
+
   return {
     text:
       `🎉 <b>Produit validé et publié sur le site web !</b>\n\n` +
@@ -2232,6 +2388,51 @@ async function handleDirectionPublish(staff: StaffMember, productId: string): Pr
       ]
     }
   };
+}
+
+async function handleDirectionUnpublish(staff: StaffMember, productId: string): Promise<Screen> {
+  if (staff.rank < RANK_DIRECTION) return deniedScreen();
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
+
+  const { data, error } = await supabase.rpc("telegram_staff_product_unpublish", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_product_id: productId
+  });
+
+  if (error || !data) {
+    console.error("handleDirectionUnpublish error:", error);
+    return await screenReviewPendingProduct(staff, productId, "❌ Erreur lors de la désactivation du produit.");
+  }
+
+  const res = data as { success: boolean; name: string; reason?: string };
+  if (!res.success) {
+    return await screenReviewPendingProduct(staff, productId, "❌ Impossible de désactiver : " + (res.reason ?? "erreur"));
+  }
+
+  // Alerte vers le groupe Telegram staff / direction
+  const staffChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+  if (staffChatId) {
+    try {
+      await telegram("sendMessage", {
+        chat_id: staffChatId,
+        parse_mode: "HTML",
+        text:
+          `🔒 <b>Produit désactivé du site web</b>\n\n` +
+          `📱 <b>${escapeHtml(res.name)}</b>\n` +
+          `👤 Désactivé par : <b>${escapeHtml(staff.name)}</b>\n\n` +
+          `<i>Ce produit est désormais masqué de la boutique en ligne. Il reste vendable au comptoir magasin.</i>`
+      });
+    } catch (e) {
+      console.warn("Failed to notify staff chat on product unpublish:", e);
+    }
+  }
+
+  return await screenReviewPendingProduct(
+    staff,
+    productId,
+    `🔒 <b>Produit désactivé et masqué du site web !</b>\n<i>Le produit n'est plus visible sur la boutique en ligne. Il reste au stock comptoir et peut être republié ou supprimé à tout moment.</i>`
+  );
 }
 
 async function handleDirectionRejectPrompt(staff: StaffMember, productId: string): Promise<Screen> {
@@ -2260,7 +2461,7 @@ async function handleDirectionRejectConfirm(staff: StaffMember, productId: strin
     p_product_id: productId
   });
 
-  const result = data as { success?: boolean; reason?: string } | null;
+  const result = data as { success?: boolean; reason?: string; name?: string } | null;
   if (error || !result?.success) {
     if (error) console.error("handleDirectionRejectConfirm error:", error);
     const refusals: Record<string, string> = {
@@ -2273,6 +2474,24 @@ async function handleDirectionRejectConfirm(staff: StaffMember, productId: strin
       text: "❌ " + (refusals[result?.reason ?? ""] ?? "Erreur lors du refus du produit."),
       reply_markup: { inline_keyboard: [[{ text: "📝 Liste en attente", callback_data: prodPendingListCb() }]] }
     };
+  }
+
+  // Alerte vers le groupe Telegram staff / direction
+  const staffChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+  if (staffChatId) {
+    try {
+      await telegram("sendMessage", {
+        chat_id: staffChatId,
+        parse_mode: "HTML",
+        text:
+          `🗑️ <b>Produit supprimé / refusé</b>\n\n` +
+          `📱 <b>${escapeHtml(result.name ?? "Produit")}</b>\n` +
+          `👤 Supprimé par : <b>${escapeHtml(staff.name)}</b>\n\n` +
+          `<i>Le stock a été retiré et le produit a été définitivement supprimé du catalogue.</i>`
+      });
+    } catch (e) {
+      console.warn("Failed to notify staff chat on product reject:", e);
+    }
   }
 
   return {
@@ -2630,6 +2849,868 @@ async function screenSalesToday(staff: StaffMember, storeCode?: string): Promise
   };
 }
 
+// ── Rapport de Caisse & Clôture Journalière Staff ────────────────────────────
+
+async function screenCashReportChooseStore(staff: StaffMember): Promise<Screen> {
+  const stores = await listStores();
+  const rows: InlineButton[][] = [];
+  for (const s of stores) {
+    rows.push([{ text: `🏪 ${s.name}`, callback_data: `nav:cr_start:${s.code}` }]);
+  }
+  rows.push(homeRow);
+  return {
+    text:
+      `📊 <b>Clôture de Caisse — Sélection Boutique</b>\n\n` +
+      `Pour quelle boutique souhaitez-vous préparer ou consulter la clôture de caisse ?`,
+    reply_markup: { inline_keyboard: rows }
+  };
+}
+
+async function screenCashReportHub(staff: StaffMember, storeCodeOrId?: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) {
+    return {
+      text: "❌ Service de caisse temporairement indisponible.",
+      reply_markup: { inline_keyboard: [homeRow] }
+    };
+  }
+
+  let targetCode = storeCodeOrId;
+  if (!targetCode && staff.rank >= RANK_DIRECTION && !staff.scope_store_code) {
+    return screenCashReportChooseStore(staff);
+  }
+  if (!targetCode && staff.store) {
+    targetCode = staff.store.code;
+  }
+
+  const { data: initRes, error: initErr } = await supabase.rpc("telegram_staff_cash_report_init", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: targetCode ?? null
+  });
+
+  if (initErr || !initRes || initRes.success !== true) {
+    console.error("cash report init failed", initErr, initRes);
+    return {
+      text: `❌ Impossible d'initialiser le rapport de caisse (${initRes?.reason ?? initErr?.message ?? "erreur"}).`,
+      reply_markup: { inline_keyboard: [homeRow] }
+    };
+  }
+
+  const storeId = initRes.store_id as string;
+  const storeName = initRes.store_name as string;
+  const reportDate = initRes.report_date as string;
+
+  let draft = initRes.draft;
+  if (!draft) {
+    const initialInflows: InflowItem[] = (initRes.today_pos_sales || []).map((s: any) => ({
+      label: s.label,
+      amount: Number(s.amount) || 0,
+      salesperson_name: s.salesperson_name
+    }));
+
+    const storeOperatorNames: string[] = Array.isArray(initRes.operators)
+      ? initRes.operators.map((o: any) => typeof o === "string" ? o : o?.name).filter(Boolean)
+      : [];
+    const sellersToday: string[] = Array.isArray(initRes.today_pos_sales)
+      ? initRes.today_pos_sales.map((s: any) => s.salesperson_name).filter(Boolean)
+      : [];
+    const defaultOperators = Array.from(new Set([staff.name, ...storeOperatorNames, ...sellersToday]));
+
+    const { data: newDraft, error: draftErr } = await supabase
+      .from("store_cash_drafts")
+      .upsert(
+        {
+          telegram_user_id: staff.telegram_user_id,
+          store_id: storeId,
+          report_date: reportDate,
+          opening_cash: Number(initRes.suggested_opening_cash) || 0,
+          inflow_items: initialInflows,
+          outflow_items: [],
+          operators: defaultOperators,
+          observations: null,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: "telegram_user_id,store_id" }
+      )
+      .select("id, opening_cash, inflow_items, outflow_items, operators, observations")
+      .single();
+
+    if (!draftErr && newDraft) {
+      draft = newDraft;
+    }
+  }
+
+  const openingCash = Number(draft?.opening_cash) || 0;
+  const inflowItems = (draft?.inflow_items as InflowItem[]) || [];
+  const outflowItems = (draft?.outflow_items as OutflowItem[]) || [];
+  const rawOps = (draft?.operators as any[]) || [];
+  const operators = rawOps.map((o: any) => typeof o === "string" ? o : o?.name).filter(Boolean);
+  const observations = draft?.observations as string | null;
+
+  const totalInflow = inflowItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+  const totalOutflow = outflowItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+  const closingCash = openingCash + totalInflow - totalOutflow;
+
+  const activeDebts = (initRes.active_debts || []) as DebtItem[];
+  const totalDebts = activeDebts.reduce((acc, d) => acc + (Number(d.remaining ?? d.amount_due) || 0), 0);
+
+  const rows: InlineButton[][] = [
+    [
+      { text: `💰 Solde Matin (${formatMoney(openingCash)})`, callback_data: `nav:cr_open:${storeId}` },
+      { text: `👥 Opérateurs (${operators.length})`, callback_data: `nav:cr_ops:${storeId}` }
+    ],
+    [
+      { text: `📥 Entrées (${inflowItems.length}) : +${formatMoney(totalInflow)}`, callback_data: `nav:cr_in:${storeId}` },
+      { text: `📤 Dépenses (${outflowItems.length}) : -${formatMoney(totalOutflow)}`, callback_data: `nav:cr_out:${storeId}` }
+    ],
+    [
+      { text: `📋 Dettes (${activeDebts.length}) : ${formatMoney(totalDebts)}`, callback_data: `nav:cr_debts:${storeId}` },
+      { text: `📝 Observations`, callback_data: `nav:cr_obs:${storeId}` }
+    ],
+    [
+      { text: "👁️ Aperçu du Rapport", callback_data: `nav:cr_prev:${storeId}` },
+      { text: "🔒 Clôturer son rapport", callback_data: `nav:cr_send:${storeId}` }
+    ],
+    homeRow
+  ];
+
+  const operatorsStr = operators.length ? escapeHtml(operators.join(" / ")) : "<i>Non renseigné</i>";
+
+  const text =
+    `📊 <b>Rapport de Caisse & Clôture</b> — <b>${escapeHtml(storeName)}</b>\n` +
+    `📅 Date : <b>${formatDateFr(reportDate)}</b>\n\n` +
+    `💰 <b>Solde trouvé ce matin :</b> ${formatMoney(openingCash)}\n` +
+    `📥 <b>Total entrées (${inflowItems.length}) :</b> <b>${formatMoney(totalInflow)}</b>\n` +
+    `📤 <b>Total dépenses (${outflowItems.length}) :</b> <b>${formatMoney(totalOutflow)}</b>\n` +
+    `💵 <b>Reste en caisse ce soir :</b> <b>${formatMoney(closingCash)}</b>\n\n` +
+    `📋 <b>Dettes actives :</b> ${activeDebts.length} client(s) (${formatMoney(totalDebts)})\n` +
+    `👥 <b>Opérateurs :</b> ${operatorsStr}\n` +
+    (observations ? `📝 <b>Observations :</b> <i>${escapeHtml(observations)}</i>\n` : "") +
+    `\n<i>💡 Touchez les boutons ci-dessous pour ajuster les montants ou les dépenses avant l'envoi au groupe.</i>`;
+
+  return { text, reply_markup: { inline_keyboard: rows } };
+}
+
+// ── Écran de Gestion des Dépenses & Actions Récurrentes ────────────────────────
+
+const EXPENSE_PRESETS: Record<string, { label: string; icon: string }> = {
+  transp: { label: "Transport", icon: "🚕" },
+  dpboss: { label: "Dépôt Boss", icon: "👑" },
+  prepay: { label: "Prépayer", icon: "⚡" },
+  s_boss: { label: "Sorties Boss", icon: "💼" },
+  ration: { label: "Ration", icon: "🍱" },
+  credit: { label: "Crédit tél", icon: "📶" }
+};
+
+async function screenCashReportExpenses(staff: StaffMember, storeId: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [homeRow] } };
+
+  const { data: draft } = await supabase
+    .from("store_cash_drafts")
+    .select("outflow_items, store_id, stores(name)")
+    .eq("telegram_user_id", staff.telegram_user_id)
+    .eq("store_id", storeId)
+    .maybeSingle();
+
+  const outflows = (draft?.outflow_items as OutflowItem[]) || [];
+  const totalOutflow = outflows.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+  const storeName = (draft?.stores as any)?.name ?? "Boutique";
+
+  let listText = "";
+  if (outflows.length === 0) {
+    listText = "<i>Aucune dépense enregistrée pour le moment.</i>\n";
+  } else {
+    listText = outflows.map((it, idx) => {
+      return `${idx + 1}. • <b>${escapeHtml(it.label)}</b> : <b>${formatMoney(it.amount)}</b>`;
+    }).join("\n") + `\n\n<b>Total dépenses : ${formatMoney(totalOutflow)}</b>\n`;
+  }
+
+  const buttons: InlineButton[][] = [
+    [
+      { text: "🚕 Transport", callback_data: `nav:cr_oq:transp:${storeId}` },
+      { text: "👑 Dépôt Boss", callback_data: `nav:cr_oq:dpboss:${storeId}` }
+    ],
+    [
+      { text: "⚡ Prépayer", callback_data: `nav:cr_oq:prepay:${storeId}` },
+      { text: "💼 Sorties Boss", callback_data: `nav:cr_oq:s_boss:${storeId}` }
+    ],
+    [
+      { text: "🍱 Ration", callback_data: `nav:cr_oq:ration:${storeId}` },
+      { text: "📶 Crédit tél", callback_data: `nav:cr_oq:credit:${storeId}` }
+    ],
+    [
+      { text: "➕ Autre dépense (ou coller texte)", callback_data: `nav:cr_ofree:${storeId}` }
+    ]
+  ];
+
+  if (outflows.length > 0) {
+    buttons.push([
+      { text: "🗑️ Réinitialiser dépenses", callback_data: `nav:cr_oclr:${storeId}` }
+    ]);
+  }
+
+  buttons.push([
+    { text: "⬅️ Retour au Rapport", callback_data: `nav:cr_hub:${storeId}` },
+    { text: "🏠 Accueil", callback_data: "nav:main" }
+  ]);
+
+  return {
+    text:
+      `📤 <b>Gestion des Dépenses du Jour</b> — <b>${escapeHtml(storeName)}</b>\n\n` +
+      listText + `\n` +
+      `<i>💡 Touchez une action récurrente ci-dessous pour entrer son montant, ou « ➕ Autre dépense » pour un libellé personnalisé :</i>`,
+    reply_markup: { inline_keyboard: buttons }
+  };
+}
+
+async function screenCashReportDebts(staff: StaffMember, storeId: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [homeRow] } };
+
+  const { data: debts } = await supabase
+    .from("store_debts")
+    .select("id, customer_name, device_model, amount_due, amount_paid, phone, status")
+    .eq("store_id", storeId)
+    .neq("status", "settled")
+    .order("created_at", { ascending: false });
+
+  const debtRows = (debts || []) as {
+    id: string;
+    customer_name: string;
+    device_model: string | null;
+    amount_due: number;
+    amount_paid: number;
+    phone: string | null;
+    status: string;
+  }[];
+
+  const buttons: InlineButton[][] = [];
+  let listText = "";
+
+  if (debtRows.length === 0) {
+    listText = "<i>Aucune dette active pour cette boutique. Tout est en ordre !</i>\n";
+  } else {
+    listText = debtRows.map((d, idx) => {
+      const rem = d.amount_due - (d.amount_paid || 0);
+      const phoneStr = d.phone ? ` · <code>${escapeHtml(d.phone)}</code>` : "";
+      const devStr = d.device_model ? ` (${escapeHtml(d.device_model)})` : "";
+      return `${idx + 1}. <b>${escapeHtml(d.customer_name)}</b>${devStr} : <b>${formatMoney(rem)}</b>${phoneStr}`;
+    }).join("\n");
+
+    for (const d of debtRows.slice(0, 6)) {
+      const rem = d.amount_due - (d.amount_paid || 0);
+      const shortName = d.customer_name.length > 14 ? d.customer_name.slice(0, 13) + "…" : d.customer_name;
+      buttons.push([{
+        text: `💰 Encaisser : ${shortName} (${formatMoney(rem)})`,
+        callback_data: `nav:cr_pd:${d.id}`
+      }]);
+    }
+  }
+
+  buttons.push([
+    { text: "➕ Nouvelle dette client", callback_data: `nav:cr_dnew:${storeId}` }
+  ]);
+  buttons.push([
+    { text: "📋 Coller une liste brute", callback_data: `nav:cr_adddebt:${storeId}` }
+  ]);
+  buttons.push([
+    { text: "⬅️ Retour au Rapport", callback_data: `nav:cr_hub:${storeId}` },
+    { text: "🏠 Accueil", callback_data: "nav:main" }
+  ]);
+
+  return {
+    text:
+      `📋 <b>Gestion des Dettes & Crédits Clients</b>\n\n` +
+      listText + `\n` +
+      `<i>💡 Touchez « Encaisser » lorsqu'un client règle sa dette : le montant sera déduit et automatiquement ajouté aux entrées de la journée !</i>`,
+    reply_markup: { inline_keyboard: buttons }
+  };
+}
+
+async function screenCashReportPreview(staff: StaffMember, storeId: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [homeRow] } };
+
+  const { data: initRes } = await supabase.rpc("telegram_staff_cash_report_init", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null
+  });
+
+  const { data: draft } = await supabase
+    .from("store_cash_drafts")
+    .select("opening_cash, inflow_items, outflow_items, operators, observations")
+    .eq("telegram_user_id", staff.telegram_user_id)
+    .eq("store_id", storeId)
+    .maybeSingle();
+
+  const activeDebts = ((initRes?.active_debts || []) as any[]).map((d: any) => ({
+    customer_name: d.customer_name,
+    device_model: d.device_model || undefined,
+    amount_due: Number(d.amount_due) || 0,
+    remaining: Number(d.remaining ?? d.amount_due) || 0,
+    phone: d.phone || undefined
+  }));
+
+  const reportData: CashReportData = {
+    store_name: initRes?.store_name ?? "Boutique Xeption",
+    report_date: initRes?.report_date ?? new Date().toISOString(),
+    operators: (draft?.operators as string[]) || initRes?.operators || [],
+    opening_cash: Number(draft?.opening_cash) || 0,
+    inflow_items: (draft?.inflow_items as InflowItem[]) || [],
+    outflow_items: (draft?.outflow_items as OutflowItem[]) || [],
+    debts: activeDebts,
+    observations: draft?.observations || undefined,
+    staff_progress: (initRes?.staff_progress || []) as StaffProgressItem[]
+  };
+
+  const previewText = formatDailyCashReport(reportData);
+  const waReport = formatDailyCashReportForWhatsApp(reportData);
+  const waShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(waReport)}`;
+
+  return {
+    text:
+      `👁️ <b>Aperçu du Rapport de Caisse</b>\n\n` +
+      `<i>À la clôture, le rapport est automatiquement envoyé dans le groupe Telegram Staff et diffusé au groupe WhatsApp via Trigenys Notify :</i>\n\n` +
+      previewText,
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "🔒 Clôturer son rapport", callback_data: `nav:cr_send:${storeId}` }
+        ],
+        [
+          { text: "⬅️ Modifier", callback_data: `nav:cr_hub:${storeId}` },
+          { text: "🏠 Accueil", callback_data: "nav:main" }
+        ]
+      ]
+    }
+  };
+}
+
+async function actionCashReportSubmit(staff: StaffMember, storeId: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [homeRow] } };
+
+  const { data: initRes } = await supabase.rpc("telegram_staff_cash_report_init", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_store_code: null
+  });
+
+  const { data: draft } = await supabase
+    .from("store_cash_drafts")
+    .select("opening_cash, inflow_items, outflow_items, operators, observations")
+    .eq("telegram_user_id", staff.telegram_user_id)
+    .eq("store_id", storeId)
+    .maybeSingle();
+
+  const openingCash = Number(draft?.opening_cash) || 0;
+  const inflowItems = (draft?.inflow_items as InflowItem[]) || [];
+  const outflowItems = (draft?.outflow_items as OutflowItem[]) || [];
+  const operators = (draft?.operators as string[]) || initRes?.operators || [];
+  const observations = draft?.observations || null;
+
+  const totalInflow = inflowItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+  const totalOutflow = outflowItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+  const closingCash = openingCash + totalInflow - totalOutflow;
+
+  const activeDebts = ((initRes?.active_debts || []) as any[]).map((d: any) => ({
+    customer_name: d.customer_name,
+    device_model: d.device_model || undefined,
+    amount_due: Number(d.amount_due) || 0,
+    remaining: Number(d.remaining ?? d.amount_due) || 0,
+    phone: d.phone || undefined
+  }));
+
+  const payload = {
+    store_id: storeId,
+    report_date: initRes?.report_date,
+    opening_cash: openingCash,
+    total_inflow: totalInflow,
+    total_outflow: totalOutflow,
+    inflow_items: inflowItems,
+    outflow_items: outflowItems,
+    debts_snapshot: activeDebts,
+    operators: operators,
+    observations: observations,
+    staff_progress: initRes?.staff_progress || []
+  };
+
+  const { data: submitRes, error: submitErr } = await supabase.rpc("telegram_staff_cash_report_submit", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_payload: payload
+  });
+
+  if (submitErr || !submitRes || submitRes.success !== true) {
+    console.error("submit cash report failed", submitErr, submitRes);
+    return {
+      text: `❌ Échec de l'enregistrement de la clôture (${submitRes?.reason ?? submitErr?.message ?? "erreur"}).`,
+      reply_markup: { inline_keyboard: [[{ text: "⬅️ Retour", callback_data: `nav:cr_hub:${storeId}` }]] }
+    };
+  }
+
+  const reportData: CashReportData = {
+    store_name: initRes?.store_name ?? "Boutique Xeption",
+    report_date: initRes?.report_date ?? new Date().toISOString(),
+    operators,
+    opening_cash: openingCash,
+    inflow_items: inflowItems,
+    outflow_items: outflowItems,
+    debts: activeDebts,
+    observations: observations || undefined,
+    staff_progress: (initRes?.staff_progress || []) as StaffProgressItem[]
+  };
+
+  const formattedReport = formatDailyCashReport(reportData);
+
+  const staffChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+  let sentToTelegram = false;
+  if (staffChatId) {
+    try {
+      await telegram("sendMessage", {
+        chat_id: staffChatId,
+        parse_mode: "HTML",
+        text: formattedReport
+      });
+      sentToTelegram = true;
+    } catch (e) {
+      console.error("Failed to send cash report to staff Telegram group", e);
+    }
+  }
+
+  const dedupKey = `cash_report.${initRes?.store_code ?? storeId}.${initRes?.report_date ?? new Date().toISOString().slice(0, 10)}`;
+  const notifPayload = {
+    dedup_key: dedupKey,
+    event_type: "store_cash_report",
+    title: `📊 Clôture de caisse — ${initRes?.store_name ?? "Boutique"}`,
+    message: `Solde soir : ${formatMoney(closingCash)} — Entrées : ${formatMoney(totalInflow)} — Dépenses : ${formatMoney(totalOutflow)} — Par : ${staff.name}`,
+    link_to_tab: "analytics",
+    link_to_id: submitRes.report_id,
+    created_by: staff.name
+  };
+
+  let notifRow: { id: string; created_at: string } | null = null;
+  try {
+    const { data: inserted, error: insertErr } = await supabase
+      .from("admin_notifications")
+      .insert(notifPayload)
+      .select("id, created_at")
+      .maybeSingle();
+    if (!insertErr && inserted) {
+      notifRow = inserted;
+    } else {
+      const { data: existing } = await supabase
+        .from("admin_notifications")
+        .select("id, created_at")
+        .eq("dedup_key", dedupKey)
+        .maybeSingle();
+      notifRow = existing;
+    }
+  } catch (notifErr) {
+    console.warn("admin_notifications insert failed for cash report", notifErr);
+  }
+
+  // Émission d'événement automatique vers Trigenys Notify pour relais vers le groupe WhatsApp
+  let sentToTrigenysNotify = false;
+  const wahaChannel = createWahaChannel(Deno.env.get);
+  if (wahaChannel && notifRow?.id && notifRow?.created_at) {
+    try {
+      const siteUrl = (Deno.env.get("SITE_URL") || "https://www.xeptionetwork.shop").replace(/\/+$/, "");
+      const sendErr = await wahaChannel.send({
+        notification_id: notifRow.id,
+        event_type: "store_cash_report",
+        title: notifPayload.title,
+        message: notifPayload.message,
+        link_to_tab: notifPayload.link_to_tab,
+        link_to_id: notifPayload.link_to_id,
+        created_at: notifRow.created_at
+      }, { siteUrl });
+
+      if (!sendErr) {
+        sentToTrigenysNotify = true;
+        await supabase.from("notification_deliveries").upsert({
+          notification_id: notifRow.id,
+          channel: "whatsapp_waha",
+          sent_at: new Date().toISOString(),
+          last_error: null
+        });
+      } else {
+        console.warn("Trigenys notify waha direct dispatch returned:", sendErr);
+      }
+    } catch (wahaErr) {
+      console.warn("Direct dispatch to Trigenys Notify failed", wahaErr);
+    }
+  }
+
+  return {
+    text:
+      `🎉 <b>Clôture de caisse validée et diffusée !</b>\n\n` +
+      `🏪 Boutique : <b>${escapeHtml(initRes?.store_name ?? "")}</b>\n` +
+      `💵 Reste en caisse ce soir : <b>${formatMoney(closingCash)}</b>\n\n` +
+      `📡 <b>Diffusion automatique des événements :</b>\n` +
+      `• Telegram : ${sentToTelegram ? "✅ <i>Publié dans le groupe Staff</i>" : "⚠️ <i>Erreur d'envoi Telegram</i>"}\n` +
+      `• WhatsApp : ${sentToTrigenysNotify ? "✅ <i>Transmis à Trigenys Notify pour le groupe WhatsApp</i>" : "⏳ <i>En file d'attente (relais Trigenys Notify)</i>"}\n\n` +
+      `<i>Le rapport complet est archivé en base de données et consultable sur le tableau de bord ERP.</i>`,
+    reply_markup: {
+      inline_keyboard: [
+        homeRow
+      ]
+    }
+  };
+}
+
+async function handleCashReportReply(staff: StaffMember, tag: CrTag, text: string): Promise<Screen> {
+  const supabase = db();
+  if (!supabase) return { text: "Service indisponible.", reply_markup: { inline_keyboard: [homeRow] } };
+
+  // Clear active pending prompt on the draft except during multi-step debt wizard
+  if (tag.action !== "DEBT_STEP1" && tag.action !== "DEBT_STEP2") {
+    await supabase.from("store_cash_drafts")
+      .update({ pending_action: null, pending_target_id: null, updated_at: new Date().toISOString() })
+      .eq("telegram_user_id", staff.telegram_user_id);
+  }
+
+  if (tag.action === "OPEN") {
+    const amount = parseAmount(text);
+    await supabase.from("store_cash_drafts")
+      .update({ opening_cash: amount, updated_at: new Date().toISOString() })
+      .eq("telegram_user_id", staff.telegram_user_id)
+      .eq("store_id", tag.targetId);
+    return screenCashReportHub(staff, tag.targetId);
+  }
+
+  if (tag.action === "OPS") {
+    const rawOps = text.split(/[/,;\n]+/).map(s => s.trim()).filter(Boolean);
+    await supabase.from("store_cash_drafts")
+      .update({ operators: rawOps, updated_at: new Date().toISOString() })
+      .eq("telegram_user_id", staff.telegram_user_id)
+      .eq("store_id", tag.targetId);
+    return screenCashReportHub(staff, tag.targetId);
+  }
+
+  if (tag.action === "IN") {
+    const newItems = parseExpensesText(text).map(it => ({
+      label: it.label,
+      amount: it.amount,
+      salesperson_name: staff.name
+    }));
+    if (newItems.length > 0) {
+      const { data: draft } = await supabase.from("store_cash_drafts")
+        .select("inflow_items")
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", tag.targetId)
+        .maybeSingle();
+      const currentInflows = (draft?.inflow_items as InflowItem[]) || [];
+      const updated = [...currentInflows, ...newItems];
+      await supabase.from("store_cash_drafts")
+        .update({ inflow_items: updated, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", tag.targetId);
+    }
+    return screenCashReportHub(staff, tag.targetId);
+  }
+
+  if (tag.action === "OUT_PRESET") {
+    const colonIdx = tag.targetId.indexOf(":");
+    const presetLabel = colonIdx >= 0 ? tag.targetId.slice(0, colonIdx) : tag.targetId;
+    const storeId = colonIdx >= 0 ? tag.targetId.slice(colonIdx + 1) : "";
+    const amount = parseAmount(text);
+    if (amount > 0 && storeId) {
+      const { data: draft } = await supabase.from("store_cash_drafts")
+        .select("outflow_items")
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId)
+        .maybeSingle();
+      const currentOutflows = (draft?.outflow_items as OutflowItem[]) || [];
+      const updated = [...currentOutflows, { label: presetLabel, amount }];
+      await supabase.from("store_cash_drafts")
+        .update({ outflow_items: updated, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+      return screenCashReportExpenses(staff, storeId);
+    }
+    return screenCashReportExpenses(staff, storeId || tag.targetId);
+  }
+
+  if (tag.action === "OUT") {
+    const newOutflows = parseExpensesText(text);
+    if (newOutflows.length > 0) {
+      const { data: draft } = await supabase.from("store_cash_drafts")
+        .select("outflow_items")
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", tag.targetId)
+        .maybeSingle();
+      const currentOutflows = (draft?.outflow_items as OutflowItem[]) || [];
+      const updated = [...currentOutflows, ...newOutflows];
+      await supabase.from("store_cash_drafts")
+        .update({ outflow_items: updated, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", tag.targetId);
+    }
+    return screenCashReportExpenses(staff, tag.targetId);
+  }
+
+  if (tag.action === "ADDDEBT") {
+    const debtItems = parseDebtsText(text);
+    for (const item of debtItems) {
+      await supabase.rpc("telegram_staff_debt_add", {
+        p_telegram_user_id: staff.telegram_user_id,
+        p_store_id: tag.targetId,
+        p_customer_name: item.customer_name,
+        p_device_model: item.device_model || "",
+        p_amount: item.amount_due,
+        p_phone: item.phone || ""
+      });
+    }
+    return screenCashReportDebts(staff, tag.targetId);
+  }
+
+  if (tag.action === "DEBT_STEP1") {
+    let storeId = tag.targetId;
+    try {
+      const parsed = JSON.parse(tag.targetId);
+      if (parsed?.storeId) storeId = parsed.storeId;
+    } catch {
+      // plain storeId
+    }
+
+    const { customerName, phone, isValid } = parseCustomerNameAndPhone(text);
+    if (!isValid || !customerName) {
+      await supabase.from("store_cash_drafts")
+        .update({
+          pending_action: "DEBT_STEP1",
+          pending_target_id: JSON.stringify({ storeId }),
+          updated_at: new Date().toISOString()
+        })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+
+      const errorHint = isLikelyAmount(text)
+        ? `⚠️ Vous avez saisi un montant (<b>${escapeHtml(text.trim())}</b>) au lieu du nom du client !\n\n`
+        : `⚠️ Nom du client invalide (au moins 2 lettres requises).\n\n`;
+
+      return {
+        text:
+          errorHint +
+          `👤 <b>Nouvelle dette client (Étape 1/3)</b>\n\n` +
+          `Entrez le <b>nom du client</b> et son <b>numéro de téléphone</b> :\n\n` +
+          `<i>Exemples :</i>\n` +
+          `• <code>Alain Kamga 699123456</code>\n` +
+          `• <code>Mme Brigitte 677889900</code>\n` +
+          `• <code>Raoul Kamba</code>`,
+        reply_markup: { force_reply: true, input_field_placeholder: "Nom et téléphone (ex: Alain Kamga 699123456)" }
+      };
+    }
+
+    const payload = JSON.stringify({ storeId, customerName, phone });
+
+    await supabase.from("store_cash_drafts")
+      .update({
+        pending_action: "DEBT_STEP2",
+        pending_target_id: payload,
+        updated_at: new Date().toISOString()
+      })
+      .eq("telegram_user_id", staff.telegram_user_id)
+      .eq("store_id", storeId);
+
+    const phoneSuffix = phone ? ` (${phone})` : "";
+    return {
+      text:
+        `📱 <b>Nouvelle dette : ${escapeHtml(customerName)}${escapeHtml(phoneSuffix)} (Étape 2/3)</b>\n\n` +
+        `Quel est le <b>produit ou modèle</b> de l'appareil ?\n\n` +
+        `<i>Exemples :</i>\n` +
+        `• <code>Dell Latitude 5510</code>\n` +
+        `• <code>iPhone 13 128Go</code>\n` +
+        `• <code>Samsung S24 Ultra</code>\n` +
+        `• <code>Accessoires / Divers</code>`,
+      reply_markup: { force_reply: true, input_field_placeholder: "Modèle (ex: iPhone 11)" }
+    };
+  }
+
+  if (tag.action === "DEBT_STEP2") {
+    let storeId = "";
+    let customerName = "Client";
+    let phone = "";
+    try {
+      const parsed = JSON.parse(tag.targetId);
+      storeId = parsed?.storeId ?? "";
+      customerName = parsed?.customerName ?? "Client";
+      phone = parsed?.phone ?? "";
+    } catch {
+      // fallback
+    }
+
+    const cleanInput = text.replace(/^[*\s,;:-]+|[*\s,;:-]+$/g, "").trim();
+
+    // 1. Validation : Check if the user entered an amount instead of a product
+    if (!cleanInput || isLikelyAmount(cleanInput) || cleanInput.length < 2) {
+      await supabase.from("store_cash_drafts")
+        .update({
+          pending_action: "DEBT_STEP2",
+          pending_target_id: tag.targetId,
+          updated_at: new Date().toISOString()
+        })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+
+      const phoneSuffix = phone ? ` (${phone})` : "";
+      return {
+        text:
+          `⚠️ <b>Saisie incorrecte : produit attendu</b>\n\n` +
+          (isLikelyAmount(cleanInput)
+            ? `Vous avez entré un montant (<b>${escapeHtml(cleanInput)}</b>) au lieu du modèle de l'appareil !\n\n`
+            : `Veuillez spécifier un modèle ou produit valide (au moins 2 lettres).\n\n`) +
+          `📱 Quel est l'appareil pour <b>${escapeHtml(customerName)}${escapeHtml(phoneSuffix)}</b> ?\n\n` +
+          `<i>Exemples :</i>\n` +
+          `• <code>iPhone 11</code>\n` +
+          `• <code>Dell Latitude 5510</code>\n` +
+          `• <code>Samsung S24 Ultra</code>\n` +
+          `• <code>Chargeur 65W</code>`,
+        reply_markup: { force_reply: true, input_field_placeholder: "Modèle (ex: iPhone 11)" }
+      };
+    }
+
+    // 2. Catalogue check via fuzzy search
+    let finalDeviceModel = cleanInput;
+    let catalogStatusMsg = "";
+
+    const { data: searchResults } = await supabase.rpc("telegram_search_products_fuzzy", {
+      p_query: cleanInput.slice(0, 80),
+      p_store_code: null,
+      p_telegram_user_id: staff.telegram_user_id,
+      p_limit: 3
+    });
+
+    const matches = (searchResults || []) as { id: string; name: string; price: number }[];
+    if (matches.length > 0) {
+      const topMatch = matches[0];
+      finalDeviceModel = topMatch.name;
+      catalogStatusMsg = `\n✅ <i>Produit reconnu au catalogue : <b>${escapeHtml(finalDeviceModel)}</b></i>\n`;
+    } else {
+      finalDeviceModel = `${cleanInput} (Hors catalogue)`;
+      catalogStatusMsg = `\n⚠️ <i>Produit non trouvé au catalogue : enregistré comme <b>Hors catalogue</b>.</i>\n`;
+    }
+
+    const payload = JSON.stringify({ storeId, customerName, phone, deviceModel: finalDeviceModel });
+
+    await supabase.from("store_cash_drafts")
+      .update({
+        pending_action: "DEBT_STEP3",
+        pending_target_id: payload,
+        updated_at: new Date().toISOString()
+      })
+      .eq("telegram_user_id", staff.telegram_user_id)
+      .eq("store_id", storeId);
+
+    return {
+      text:
+        `💵 <b>Nouvelle dette : ${escapeHtml(customerName)} — ${escapeHtml(finalDeviceModel)} (Étape 3/3)</b>\n` +
+        catalogStatusMsg + `\n` +
+        `Entrez le <b>montant restant dû</b> par le client en FCFA :\n\n` +
+        `<i>Exemples : <code>250k</code>, <code>250000</code>, <code>1M</code>, <code>25.000f</code></i>`,
+      reply_markup: { force_reply: true, input_field_placeholder: "Montant dû en FCFA (ex: 250k)" }
+    };
+  }
+
+  if (tag.action === "DEBT_STEP3") {
+    let storeId = "";
+    let customerName = "Client";
+    let phone = "";
+    let deviceModel = "";
+    try {
+      const parsed = JSON.parse(tag.targetId);
+      storeId = parsed?.storeId ?? "";
+      customerName = parsed?.customerName ?? "Client";
+      phone = parsed?.phone ?? "";
+      deviceModel = parsed?.deviceModel ?? "";
+    } catch {
+      // fallback
+    }
+
+    const amountDue = parseAmount(text);
+    if (amountDue <= 0 || !/\d/.test(text)) {
+      await supabase.from("store_cash_drafts")
+        .update({
+          pending_action: "DEBT_STEP3",
+          pending_target_id: tag.targetId,
+          updated_at: new Date().toISOString()
+        })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+
+      return {
+        text:
+          `⚠️ <b>Montant non reconnu</b>\n\n` +
+          `Veuillez entrer un montant numérique valide en FCFA pour <b>${escapeHtml(customerName)}</b> :\n\n` +
+          `<i>Exemples : <code>250k</code>, <code>250000</code>, <code>1M</code>, <code>25.000f</code></i>`,
+        reply_markup: { force_reply: true, input_field_placeholder: "Ex: 250k ou 250000" }
+      };
+    }
+
+    if (storeId) {
+      await supabase.rpc("telegram_staff_debt_add", {
+        p_telegram_user_id: staff.telegram_user_id,
+        p_store_id: storeId,
+        p_customer_name: customerName,
+        p_device_model: deviceModel,
+        p_amount: amountDue,
+        p_phone: phone
+      });
+    }
+
+    return screenCashReportDebts(staff, storeId);
+  }
+
+  if (tag.action === "PAYDEBT") {
+    const amountPaid = parseAmount(text);
+    if (amountPaid > 0) {
+      const { data: settleRes, error } = await supabase.rpc("telegram_staff_debt_settle", {
+        p_telegram_user_id: staff.telegram_user_id,
+        p_debt_id: tag.targetId,
+        p_amount_paid: amountPaid
+      });
+
+      if (!error && settleRes?.success) {
+        const { data: debt } = await supabase.from("store_debts").select("store_id").eq("id", tag.targetId).maybeSingle();
+        const storeId = debt?.store_id;
+        if (storeId) {
+          const { data: draft } = await supabase.from("store_cash_drafts")
+            .select("inflow_items")
+            .eq("telegram_user_id", staff.telegram_user_id)
+            .eq("store_id", storeId)
+            .maybeSingle();
+          const currentInflows = (draft?.inflow_items as InflowItem[]) || [];
+          const updated = [
+            ...currentInflows,
+            {
+              label: `Règlement dette ${settleRes.customer_name}`,
+              amount: amountPaid,
+              salesperson_name: staff.name
+            }
+          ];
+          await supabase.from("store_cash_drafts")
+            .update({ inflow_items: updated, updated_at: new Date().toISOString() })
+            .eq("telegram_user_id", staff.telegram_user_id)
+            .eq("store_id", storeId);
+
+          return screenCashReportHub(staff, storeId);
+        }
+      }
+    }
+    return screenCashReportHub(staff);
+  }
+
+  if (tag.action === "OBS") {
+    await supabase.from("store_cash_drafts")
+      .update({ observations: text.trim(), updated_at: new Date().toISOString() })
+      .eq("telegram_user_id", staff.telegram_user_id)
+      .eq("store_id", tag.targetId);
+    return screenCashReportHub(staff, tag.targetId);
+  }
+
+  return screenMain(staff);
+}
+
+
 const TRANSFER_COOLDOWN_MS = 10 * 60 * 1000;
 
 /** Alerts linked responsables / direction; one request per product and sender every 10 min. */
@@ -2719,14 +3800,60 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
   const msg = cb.message as Obj | undefined;
   const chat = msg?.chat as Obj | undefined;
   const rawChatId = chat?.id;
-  if (chat?.type !== "private" || (typeof rawChatId !== "number" && typeof rawChatId !== "string")) return;
+  const isGroup = chat?.type === "group" || chat?.type === "supergroup";
+  if (!isGroup && chat?.type !== "private") return;
+  if (typeof rawChatId !== "number" && typeof rawChatId !== "string") return;
+
+  const staff = await getStaff(fromId);
+
+  // Bouton cliqué depuis le groupe Telegram Staff : router vers la discussion privée de l'utilisateur
+  if (isGroup) {
+    if (!staff || staff.rank < RANK_DIRECTION) {
+      await telegram("answerCallbackQuery", {
+        callback_query_id: cbId,
+        text: "🔒 Seule la Direction (Jennifer / Jordan) peut examiner et valider ce produit.",
+        show_alert: true
+      }).catch(() => {});
+      return;
+    }
+
+    const parts = data.split(":");
+    const action = parts[1];
+
+    if (action === "pcr_v") {
+      await telegram("answerCallbackQuery", {
+        callback_query_id: cbId,
+        text: "👁️ Fiche produit ouverte dans votre discussion privée avec le bot !",
+        show_alert: true
+      }).catch(() => {});
+      const reviewScreen = await screenReviewPendingProduct(staff, parts[2] ?? "");
+      await renderScreen(fromId, undefined, reviewScreen);
+      return;
+    } else if (action === "pcr_list") {
+      await telegram("answerCallbackQuery", {
+        callback_query_id: cbId,
+        text: "📝 Liste ouverte dans votre discussion privée avec le bot !",
+        show_alert: true
+      }).catch(() => {});
+      const listScreen = await screenPendingProductsList(staff);
+      await renderScreen(fromId, undefined, listScreen);
+      return;
+    }
+
+    await telegram("answerCallbackQuery", {
+      callback_query_id: cbId,
+      text: "ℹ️ Action à effectuer dans votre discussion privée avec le bot.",
+      show_alert: true
+    }).catch(() => {});
+    return;
+  }
+
   const chatId: string | number = rawChatId;
   const messageId = typeof msg?.message_id === "number" ? msg.message_id : undefined;
 
   // Accuser réception immédiatement pour stopper le spinner Telegram
   await telegram("answerCallbackQuery", { callback_query_id: cbId }).catch(() => {});
 
-  const staff = await getStaff(fromId);
   if (!staff) {
     await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
     return;
@@ -2788,11 +3915,14 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
   } else if (action === "pcst") {
     screen = await handleProdCreateStore(staff, parts[2] ?? "");
   } else if (action === "pcdu") {
-    screen = await handleProdCreateDupAnswer(staff, parts[2] as "yes" | "no");
+    screen = await handleProdCreateDupAnswer(staff, parts.slice(2).join(":"));
   } else if (action === "pcc") {
     screen = await handleProdCreateCat(staff, parts[2] ?? "");
   } else if (action === "pcb") {
     screen = await handleProdCreateBrand(staff, parts[2] ?? "");
+  } else if (action === "pcb_all") {
+    const draft = await getProductDraft(staff.telegram_user_id);
+    screen = await handleProdCreateCat(staff, draft?.category ?? "phones", true);
   } else if (action === "pcso") {
     screen = await handleProdCreateStorage(staff, parts[2] ?? "");
   } else if (action === "pcrm") {
@@ -2813,6 +3943,8 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     screen = await handleDirectionChangePricePrompt(staff, parts[2] ?? "", chatId);
   } else if (action === "pcr_pub") {
     screen = await handleDirectionPublish(staff, parts[2] ?? "");
+  } else if (action === "pcr_unpub") {
+    screen = await handleDirectionUnpublish(staff, parts[2] ?? "");
   } else if (action === "pcr_del") {
     screen = await handleDirectionRejectPrompt(staff, parts[2] ?? "");
   } else if (action === "pcr_del_cf") {
@@ -2862,6 +3994,197 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
       });
       return;
     }
+  } else if (action === "cr_choose") {
+    screen = await screenCashReportChooseStore(staff);
+  } else if (action === "cr_start" || action === "cr_hub") {
+    screen = await screenCashReportHub(staff, parts[2]);
+  } else if (action === "cr_open") {
+    const storeId = parts[2] ?? "";
+    const supabase = db();
+    if (supabase) {
+      await supabase.from("store_cash_drafts")
+        .update({ pending_action: "OPEN", pending_target_id: storeId, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+    }
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text: "💰 <b>Solde trouvé ce matin</b>\n\nEntrez le montant en caisse ce matin (en FCFA, ex: 147000) :",
+      parse_mode: "HTML",
+      reply_markup: { force_reply: true, input_field_placeholder: "147000" }
+    });
+    return;
+  } else if (action === "cr_ops") {
+    const storeId = parts[2] ?? "";
+    const supabase = db();
+    if (supabase) {
+      await supabase.from("store_cash_drafts")
+        .update({ pending_action: "OPS", pending_target_id: storeId, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+    }
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text: `👥 <b>Opérateurs ayant tenu la boutique aujourd'hui</b>\n\nVous êtes automatiquement inclus(e) (${escapeHtml(staff.name)}).\nIndiquez les collègues qui ont travaillé dans cette boutique aujourd'hui (renforts d'autres boutiques, collègue dont le téléphone est HS...), séparés par / ou virgule :\nExemple : Jordan LADZOU / Yannick LADZOU / Sefora SOH`,
+      parse_mode: "HTML",
+      reply_markup: { force_reply: true, input_field_placeholder: "Nom 1 / Nom 2" }
+    });
+    return;
+  } else if (action === "cr_in") {
+    const storeId = parts[2] ?? "";
+    const supabase = db();
+    if (supabase) {
+      await supabase.from("store_cash_drafts")
+        .update({ pending_action: "IN", pending_target_id: storeId, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+    }
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text: "📥 <b>Ajouter une entrée de caisse</b>\n\nEntrez le libellé et le montant (ex: Sony 30.000f ou Vente 15000) :\n<i>Astuce : vous pouvez aussi coller plusieurs entrées d'un coup (une par ligne).</i>",
+      parse_mode: "HTML",
+      reply_markup: { force_reply: true, input_field_placeholder: "Sony 30000" }
+    });
+    return;
+  } else if (action === "cr_out") {
+    screen = await screenCashReportExpenses(staff, parts[2] ?? "");
+  } else if (action === "cr_oq") {
+    const presetCode = parts[2] ?? "";
+    const storeId = parts[3] ?? "";
+    const preset = EXPENSE_PRESETS[presetCode] ?? { label: "Dépense", icon: "💸" };
+    const supabase = db();
+    if (supabase && storeId) {
+      await supabase.from("store_cash_drafts")
+        .update({
+          pending_action: "OUT_PRESET",
+          pending_target_id: `${preset.label}:${storeId}`,
+          updated_at: new Date().toISOString()
+        })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+    }
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text: `${preset.icon} <b>Dépense : ${escapeHtml(preset.label)}</b>\n\nEntrez le montant en FCFA (ex: 2000) :`,
+      parse_mode: "HTML",
+      reply_markup: { force_reply: true, input_field_placeholder: "2000" }
+    });
+    return;
+  } else if (action === "cr_ofree") {
+    const storeId = parts[2] ?? "";
+    const supabase = db();
+    if (supabase) {
+      await supabase.from("store_cash_drafts")
+        .update({ pending_action: "OUT", pending_target_id: storeId, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+    }
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text: "📤 <b>Autre dépense ou liste complète</b>\n\nEntrez le libellé et le montant (ex: ampoule 1500).\n<i>Vous pouvez aussi coller plusieurs lignes d'un coup.</i>",
+      parse_mode: "HTML",
+      reply_markup: { force_reply: true, input_field_placeholder: "ampoule 1500" }
+    });
+    return;
+  } else if (action === "cr_oclr") {
+    const storeId = parts[2] ?? "";
+    const supabase = db();
+    if (supabase) {
+      await supabase.from("store_cash_drafts")
+        .update({ outflow_items: [], updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+    }
+    screen = await screenCashReportExpenses(staff, storeId);
+  } else if (action === "cr_debts") {
+    screen = await screenCashReportDebts(staff, parts[2] ?? "");
+  } else if (action === "cr_dnew") {
+    const storeId = parts[2] ?? "";
+    const supabase = db();
+    if (supabase && storeId) {
+      await supabase.from("store_cash_drafts")
+        .update({
+          pending_action: "DEBT_STEP1",
+          pending_target_id: JSON.stringify({ storeId }),
+          updated_at: new Date().toISOString()
+        })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+    }
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text:
+        "👤 <b>Nouvelle dette client (Étape 1/3)</b>\n\n" +
+        "Entrez le <b>nom du client</b> et son <b>numéro de téléphone</b> :\n\n" +
+        "<i>Exemples :</i>\n" +
+        "• <code>Alain Kamga 699123456</code>\n" +
+        "• <code>Mme Brigitte 677889900</code>\n" +
+        "• <code>Ibrahim (690139586)</code>\n" +
+        "<i>(Si vous n'avez pas de numéro, entrez simplement le nom)</i>",
+      parse_mode: "HTML",
+      reply_markup: { force_reply: true, input_field_placeholder: "Nom et téléphone (ex: Alain 699123456)" }
+    });
+    return;
+  } else if (action === "cr_adddebt") {
+    const storeId = parts[2] ?? "";
+    const supabase = db();
+    if (supabase && storeId) {
+      await supabase.from("store_cash_drafts")
+        .update({ pending_action: "ADDDEBT", pending_target_id: storeId, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+    }
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text:
+        "📋 <b>Coller une liste brute de dettes</b>\n\n" +
+        "Collez une ou plusieurs dettes clients (une par ligne) :\n\n" +
+        "<i>Exemples :</i>\n" +
+        "• <code>Mr yves Dell 5510 10.000f (691553252)</code>\n" +
+        "• <code>Mr Ibrahim s26ultra 60.000f + 150.000f (690139586)</code>\n" +
+        "• <code>*Franc allu ,iPhone 8 = 15 000 F</code>",
+      parse_mode: "HTML",
+      reply_markup: { force_reply: true, input_field_placeholder: "Collez vos dettes ici..." }
+    });
+    return;
+  } else if (action === "cr_pd") {
+    const debtId = parts[2] ?? "";
+    const supabase = db();
+    const { data: debt } = await supabase?.from("store_debts").select("store_id, customer_name, device_model, amount_due, amount_paid").eq("id", debtId).maybeSingle() ?? {};
+    const rem = (debt?.amount_due || 0) - (debt?.amount_paid || 0);
+    if (supabase && debt?.store_id) {
+      await supabase.from("store_cash_drafts")
+        .update({ pending_action: "PAYDEBT", pending_target_id: debtId, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", debt.store_id);
+    }
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text: `💰 <b>Règlement dette pour ${escapeHtml(debt?.customer_name ?? "client")}</b>\nReste dû : <b>${formatMoney(rem)}</b>\n\nEntrez le montant versé ce jour en FCFA :`,
+      parse_mode: "HTML",
+      reply_markup: { force_reply: true, input_field_placeholder: String(rem > 0 ? rem : 10000) }
+    });
+    return;
+  } else if (action === "cr_obs") {
+    const storeId = parts[2] ?? "";
+    const supabase = db();
+    if (supabase) {
+      await supabase.from("store_cash_drafts")
+        .update({ pending_action: "OBS", pending_target_id: storeId, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", staff.telegram_user_id)
+        .eq("store_id", storeId);
+    }
+    await telegram("sendMessage", {
+      chat_id: chatId,
+      text: "📝 <b>Observations de fin de journée</b>\n\nEntrez vos remarques, événements ou constats de la journée :",
+      parse_mode: "HTML",
+      reply_markup: { force_reply: true, input_field_placeholder: "Observations..." }
+    });
+    return;
+  } else if (action === "cr_prev") {
+    screen = await screenCashReportPreview(staff, parts[2] ?? "");
+  } else if (action === "cr_send") {
+    screen = await actionCashReportSubmit(staff, parts[2] ?? "");
   } else {
     screen = await screenMain(staff);
   }
@@ -2885,6 +4208,43 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
 
   // Reply to an "Autre montant" prompt. The tag is context only: the RPC re-checks the rank.
   const reply = message.reply_to_message as Obj | undefined;
+
+  // Reply to a cash report prompt (#CR_... tag or DB pending_action)
+  let crTag = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parseCrTag(String(reply?.text ?? ""))
+    : null;
+
+  if (!crTag && !cmd.startsWith("/")) {
+    const supabase = db();
+    if (supabase) {
+      const { data: pendingDraft } = await supabase
+        .from("store_cash_drafts")
+        .select("store_id, pending_action, pending_target_id")
+        .eq("telegram_user_id", fromId)
+        .not("pending_action", "is", null)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingDraft?.pending_action) {
+        crTag = {
+          action: pendingDraft.pending_action as any,
+          targetId: pendingDraft.pending_target_id || pendingDraft.store_id
+        };
+      }
+    }
+  }
+
+  if (crTag) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    const screen = await handleCashReportReply(staff, crTag, rawText);
+    await renderScreen(chatId, undefined, screen);
+    return;
+  }
   const objective = (reply?.from as Obj | undefined)?.is_bot === true
     ? parseObjectiveTag(String(reply?.text ?? ""))
     : null;
@@ -2960,7 +4320,24 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
     } else if (pcTag === "PRICE") {
       await renderScreen(chatId, undefined, await handleProdCreatePriceReply(staff, rawText));
     } else if (pcTag === "STOCK") {
-      await renderScreen(chatId, undefined, await handleProdCreateStockReply(staff, rawText));
+      const stockScreen = await handleProdCreateStockReply(staff, rawText);
+      const sent = await telegram("sendMessage", {
+        chat_id: chatId,
+        text: stockScreen.text,
+        parse_mode: "HTML",
+        reply_markup: stockScreen.reply_markup
+      });
+      const sentMsgId = (sent?.result as Obj | undefined)?.message_id;
+      if (typeof sentMsgId === "number") {
+        const supabase = db();
+        if (supabase) {
+          await supabase.rpc("telegram_staff_product_draft_upsert", {
+            p_telegram_user_id: staff.telegram_user_id,
+            p_store_code: null,
+            p_patch: { photo_message_id: sentMsgId }
+          });
+        }
+      }
     }
     return;
   }
@@ -3036,6 +4413,14 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
     }
     if (target?.kind === "troc") {
       await renderScreen(chatId, undefined, await screenTrocDetail(staff, target.id));
+      return;
+    }
+    if (target?.kind === "pending_review") {
+      if (staff.rank >= RANK_DIRECTION) {
+        await renderScreen(chatId, undefined, await screenReviewPendingProduct(staff, target.id));
+      } else {
+        await renderScreen(chatId, undefined, deniedScreen());
+      }
       return;
     }
     await rememberScope(staff, null);

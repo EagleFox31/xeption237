@@ -160,7 +160,9 @@ const App: React.FC = () => {
 
         let formattedProducts: Product[] = [];
         if (productData) {
-          formattedProducts = productData.map((p: any) => ({
+          formattedProducts = productData
+            .filter((p: any) => !p.rejected_at)
+            .map((p: any) => ({
             ...p,
             oldPrice: p.old_price || p.oldPrice || null,
             isPromo: p.is_promo || p.isPromo || false,

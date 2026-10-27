@@ -89,6 +89,43 @@ describe('Xeption producer -> Trigenys Notify',()=>{
     const dirty=toNotifyEvent({...sample,message:'Contact +237699999999 — https://evil.test — Par : john@example.com'},ctx);
     expect(dirty.facts).toBeUndefined();
   });
+  it('extracts order_created business fields without customer PII',()=>{
+    const order=toNotifyEvent({
+      ...sample,
+      event_type:'order_created',
+      message:'150 000 FCFA — Douala — Livraison à domicile'
+    },ctx);
+    expect(order.type).toBe('order.created');
+    expect(order.priority).toBe('critical');
+    expect(order.resource.kind).toBe('order');
+    expect(order.facts).toEqual({
+      subject:'150 000 FCFA',
+      orderTotalXaf:150000,
+      city:'Douala',
+      deliveryMode:'Livraison à domicile'
+    });
+  });
+  it('extracts store_cash_report business fields and maps to cash_report.closed', () => {
+    const report = toNotifyEvent({
+      ...sample,
+      event_type: 'store_cash_report',
+      message: 'Solde soir : 150 000 FCFA — Entrées : 300 000 FCFA — Dépenses : 150 000 FCFA — Par : Stevy Akaa',
+      link_to_tab: 'analytics',
+      link_to_id: 'rep-12345'
+    }, ctx);
+    expect(report.type).toBe('cash_report.closed');
+    expect(report.priority).toBe('high');
+    expect(report.resource.kind).toBe('cash_report');
+    expect(report.resource.id).toBe('rep-12345');
+    expect(report.actionUrl).toBe('https://www.xeptionetwork.shop/admin/analytics');
+    expect(report.facts).toEqual({
+      subject: 'Solde soir : 150 000 FCFA',
+      closingCashXaf: 150000,
+      totalInflowXaf: 300000,
+      totalOutflowXaf: 150000,
+      actor: 'Stevy Akaa'
+    });
+  });
   it('preserves retry failures but does not leak upstream bodies',async()=>{
     const remote=createWahaChannel(reader(env),vi.fn(async()=>new Response('secret +237',{status:503})) as typeof fetch);
     expect(await remote?.send(sample,ctx)).toBe('notify_http_503');

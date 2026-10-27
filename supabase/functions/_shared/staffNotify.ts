@@ -46,6 +46,7 @@ export const DEFAULT_STAFF_EVENT_TYPES = [
   'pos_sale',
   'product_missing_image',
   'stock_correction',
+  'store_cash_report',
 ] as const;
 
 const EVENT_ICONS: Record<string, string> = {
@@ -59,6 +60,7 @@ const EVENT_ICONS: Record<string, string> = {
   pos_sale: '💰',
   product_missing_image: '🖼️',
   stock_correction: '✏️',
+  store_cash_report: '📊',
 };
 const DEFAULT_ICON = '🔔';
 
@@ -87,6 +89,7 @@ const LINK_TARGETS: Record<string, NotificationLink> = {
   troc: { label: 'Voir les trocs', url: '/admin/troc' },
   orders: { label: 'Voir les commandes', url: '/admin/orders' },
   marketplace: { label: 'Voir la marketplace', url: '/marketplace' },
+  analytics: { label: 'Voir les finances', url: '/admin/analytics' },
 };
 
 /**

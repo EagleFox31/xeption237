@@ -5,8 +5,10 @@ import {
   parsePcTag,
   parseProductPrice,
   parseProductStock,
+  filterBrandsForCategory,
   prodAiEnrichCb,
   prodChangePriceCb,
+  prodCreateBrandAllCb,
   prodCreateBrandCb,
   prodCreateCancelCb,
   prodCreateCatCb,
@@ -20,6 +22,7 @@ import {
   prodCreateStoreCb,
   prodPendingListCb,
   prodPublishCb,
+  prodUnpublishCb,
   prodRejectCb,
   prodRejectConfirmCb,
   prodReviewCb,
@@ -76,14 +79,46 @@ describe('Product Creation Telegram : Helpers', () => {
     expect(new TextEncoder().encode(prodAiEnrichCb(uuid)).length).toBeLessThanOrEqual(64);
     expect(new TextEncoder().encode(prodChangePriceCb(uuid)).length).toBeLessThanOrEqual(64);
     expect(new TextEncoder().encode(prodPublishCb(uuid)).length).toBeLessThanOrEqual(64);
+    expect(new TextEncoder().encode(prodUnpublishCb(uuid)).length).toBeLessThanOrEqual(64);
     expect(new TextEncoder().encode(prodRejectCb(uuid)).length).toBeLessThanOrEqual(64);
     expect(new TextEncoder().encode(prodRejectConfirmCb(uuid)).length).toBeLessThanOrEqual(64);
+    // Callback sélection modèle doublon direct & toutes les marques
+    expect(new TextEncoder().encode(prodCreateDupCb(`p:${uuid}`)).length).toBeLessThanOrEqual(64);
+    expect(new TextEncoder().encode(prodCreateBrandAllCb()).length).toBeLessThanOrEqual(64);
   });
 
   it('extrait le productId depuis le tag ForceReply de prix public', () => {
     const uuid = '2dd28c3e-7799-4bbd-93ee-f2de886db036';
     expect(parsePcPubPriceTag(`Entrez le nouveau prix\n#PC:PUB_PRICE:${uuid}`)).toBe(uuid);
     expect(parsePcPubPriceTag('Pas de tag')).toBeNull();
+  });
+
+  it('filtre les marques par catégorie (pas de HP/Dell en smartphones)', () => {
+    const brands = [
+      { id: '1', name: 'Apple', slug: 'apple' },
+      { id: '2', name: 'HP', slug: 'hp' },
+      { id: '3', name: 'Dell', slug: 'dell' },
+      { id: '4', name: 'Samsung', slug: 'samsung' },
+      { id: '5', name: 'Xiaomi', slug: 'xiaomi' },
+      { id: '6', name: 'Lenovo', slug: 'lenovo' },
+      { id: '7', name: 'Oraimo', slug: 'oraimo' }
+    ];
+
+    const phoneBrands = filterBrandsForCategory(brands, 'phones').map(b => b.name);
+    expect(phoneBrands).toContain('Apple');
+    expect(phoneBrands).toContain('Samsung');
+    expect(phoneBrands).toContain('Xiaomi');
+    expect(phoneBrands).not.toContain('HP');
+    expect(phoneBrands).not.toContain('Dell');
+    expect(phoneBrands).not.toContain('Lenovo');
+    expect(phoneBrands).not.toContain('Oraimo');
+
+    const pcBrands = filterBrandsForCategory(brands, 'computer').map(b => b.name);
+    expect(pcBrands).toContain('HP');
+    expect(pcBrands).toContain('Dell');
+    expect(pcBrands).toContain('Lenovo');
+    expect(pcBrands).not.toContain('Xiaomi');
+    expect(pcBrands).not.toContain('Oraimo');
   });
 });
 
@@ -157,6 +192,7 @@ describe('Product Creation Telegram : Bot Integration', () => {
     expect(bot).toContain('action === "pcr_ai"');
     expect(bot).toContain('action === "pcr_pr"');
     expect(bot).toContain('action === "pcr_pub"');
+    expect(bot).toContain('action === "pcr_unpub"');
     expect(bot).toContain('action === "pcr_del"');
     expect(bot).toContain('action === "pcr_del_cf"');
   });
@@ -181,7 +217,18 @@ describe('Product Creation Telegram : Bot Integration', () => {
     expect(bot).toContain('supabase.rpc("telegram_staff_product_commit"');
     expect(bot).toContain('supabase.rpc("telegram_staff_product_draft_cancel"');
     expect(bot).toContain('supabase.rpc("telegram_staff_product_publish"');
+    expect(bot).toContain('supabase.rpc("telegram_staff_product_unpublish"');
     expect(bot).toContain('supabase.rpc("telegram_staff_product_reject"');
+  });
+
+  it('gère l\'enregistrement en place des photos (évite le spam d\'albums)', () => {
+    expect(bot).toContain('p_patch: { append_image: url }');
+    expect(bot).toContain('photo_message_id');
+    expect(bot).toContain('editMessageText');
+    const sqlAlbum = read('supabase/migrations/20261023_001_telegram_draft_photo_message_id.sql');
+    expect(sqlAlbum).toContain('photo_message_id bigint');
+    expect(sqlAlbum).toContain('append_image');
+    expect(sqlAlbum).toContain('GRANT EXECUTE ON FUNCTION public.telegram_staff_product_draft_upsert(text, text, jsonb) TO service_role');
   });
 });
 

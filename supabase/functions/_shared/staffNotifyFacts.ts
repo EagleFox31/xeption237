@@ -34,6 +34,16 @@ export const extractNotificationFacts=(n:StaffNotification)=>{
       const value=money(match[1]);
       if(value!==undefined)facts[match[2]==='cash'?'cashOfferXaf':'voucherOfferXaf']=value;
     }
+  }else if(n.event_type==='order_created'){
+    const totalMatch=parts[0]?.match(/^([\d\s.]+)\s*FCFA$/i);
+    if(totalMatch){
+      const t=money(totalMatch[1]);
+      if(t!==undefined)facts.orderTotalXaf=t;
+    }
+    const city=label(parts[1],80);
+    if(city&&/^[\p{L}][\p{L} '\-]*$/u.test(city))facts.city=city;
+    const delivery=label(parts[2],80);
+    if(delivery)facts.deliveryMode=delivery;
   }else if(n.event_type==='marketplace_listed'){
     const specification=parts.find(s=>/^\d{1,4} Go(?: \/ \d{1,4} Go)?$/.test(s));
     if(specification)facts.specification=specification;
@@ -47,6 +57,23 @@ export const extractNotificationFacts=(n:StaffNotification)=>{
       const city=label(parts[priceIndex+1],80);
       if(city&&/^[\p{L}][\p{L} '\-]*$/u.test(city))facts.city=city;
     }
+  }else if(n.event_type==='store_cash_report'){
+    const closingMatch=parts.find(s=>s.startsWith('Solde soir : '))?.match(/Solde soir\s*:\s*([\d\s.]+)\s*FCFA/i);
+    if(closingMatch){
+      const c=money(closingMatch[1]);
+      if(c!==undefined)facts.closingCashXaf=c;
+    }
+    const inflowMatch=parts.find(s=>s.startsWith('Entrées : '))?.match(/Entrées\s*:\s*([\d\s.]+)\s*FCFA/i);
+    if(inflowMatch){
+      const inf=money(inflowMatch[1]);
+      if(inf!==undefined)facts.totalInflowXaf=inf;
+    }
+    const outflowMatch=parts.find(s=>s.startsWith('Dépenses : '))?.match(/Dépenses\s*:\s*([\d\s.]+)\s*FCFA/i);
+    if(outflowMatch){
+      const out=money(outflowMatch[1]);
+      if(out!==undefined)facts.totalOutflowXaf=out;
+    }
   }
   return Object.keys(facts).length?facts:undefined;
 };
+

@@ -8,11 +8,11 @@
 const START_PAYLOAD_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const BOT_USERNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]{3,31}$/;
 
-export type StartTarget = { kind: 'product' | 'troc'; id: string };
+export type StartTarget = { kind: 'product' | 'troc' | 'pending_review'; id: string };
 
 /** Onglet de notification (link_to_tab) → préfixe du payload. */
-const TAB_PREFIX: Record<string, string> = { inventory: 'p', troc: 't' };
-const PREFIX_KIND: Record<string, StartTarget['kind']> = { p: 'product', t: 'troc' };
+const TAB_PREFIX: Record<string, string> = { inventory: 'p', troc: 't', pending_review: 'pcr' };
+const PREFIX_KIND: Record<string, StartTarget['kind']> = { p: 'product', t: 'troc', pcr: 'pending_review' };
 
 /** Payload pour un élément, ou null si l'onglet n'a pas d'écran bot ou si l'id ne tient pas. */
 export const buildStartPayload = (tab: string | null | undefined, id: string | null | undefined): string | null => {

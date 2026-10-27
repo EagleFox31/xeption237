@@ -110,9 +110,9 @@ BEGIN
       count(d.id),
       trim(to_char(sum(d.amount_due - d.amount_paid), 'FM999 999 999'))
     ),
-    'dettes',
-    d.store_id::text,
-    'responsable',
+    NULL, -- link_to_tab (gestion des dettes dans le bot)
+    NULL, -- link_to_id
+    NULL, -- target_role (visible par tout le staff, direction comprise)
     'cron'
   FROM public.store_debts d
   JOIN public.stores s ON s.id = d.store_id

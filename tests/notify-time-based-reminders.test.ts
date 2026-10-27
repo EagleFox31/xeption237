@@ -44,16 +44,19 @@ describe('Lot 1 — Rappels staff liés au temps (Migration 20261027_002)', () =
       expect(sql).toMatch(/format\('voucher_expiring\.%s', r\.id\)/);
     });
 
-    it('agrège les dettes par boutique et semaine ISO Africa/Douala sans données client', () => {
+    it('agrège les dettes par boutique et semaine ISO Africa/Douala sans données client, sans onglet admin et visible par tout le staff', () => {
       expect(sql).toMatch(/to_char\(now\(\) AT TIME ZONE 'Africa\/Douala', 'IYYY-"W"IW'\)/);
       expect(sql).toMatch(/format\('debt_overdue\.%s\.%s', d\.store_id, v_current_iso_week\)/);
       expect(sql).toMatch(/d\.status IN \('active', 'partial'\)/);
       expect(sql).toMatch(/d\.created_at <= now\(\) - v_debt_overdue_threshold/);
       expect(sql).toMatch(/GROUP BY d\.store_id, s\.name/);
-      expect(sql).toMatch(/'dettes'/);
       // Aucune référence aux colonnes clients (customer_name, customer_phone, etc.)
       const debtBlock = sql.slice(sql.indexOf('format(\'debt_overdue'), sql.indexOf('ON CONFLICT (dedup_key) DO NOTHING;', sql.indexOf('format(\'debt_overdue')));
       expect(debtBlock).not.toMatch(/customer_name|customer_phone|client/i);
+      // link_to_tab = NULL, link_to_id = NULL, target_role = NULL (pas d'onglet admin, tout staff/direction)
+      expect(debtBlock).toMatch(/NULL,\s*--\s*link_to_tab/i);
+      expect(debtBlock).toMatch(/NULL,\s*--\s*link_to_id/i);
+      expect(debtBlock).toMatch(/NULL,\s*--\s*target_role/i);
     });
 
     it('ferme strictement les privilèges à PUBLIC/anon/authenticated et accorde à service_role', () => {

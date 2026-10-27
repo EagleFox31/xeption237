@@ -99,7 +99,7 @@ Garanties :
 | `store_cash_report` | Clôture journalière de caisse (`actionCashReportSubmit`) | tous staff | in-app + groupe Telegram + WhatsApp (Trigenys Notify) | ✅ |
 | `troc_stale` | pg_cron horaire `notify_time_based_reminders()` (dossier troc sans contact depuis > 48 h, créé il y a < 14 j) | responsable | in-app + Telegram | ✅ Livré |
 | `voucher_expiring` | pg_cron horaire `notify_time_based_reminders()` (bon troc expirant dans < 48 h, statut actif) | responsable | in-app + Telegram + WhatsApp | ✅ Livré |
-| `debt_overdue` | pg_cron horaire `notify_time_based_reminders()` (résumé hebdo par boutique des dettes > 7 j) | responsable | in-app + Telegram | ✅ Livré |
+| `debt_overdue` | pg_cron horaire `notify_time_based_reminders()` (résumé hebdo par boutique des dettes > 7 j) | tous staff | in-app + Telegram | ✅ Livré |
 | `stock_alert` | (remplacé par `stock_low` / `stock_out`) | — | — | — |
 | `security_alert` | `useAdminData` sur `security_events` (déjà intégré via shim) | `direction`+ | in-app | ✅ MVP (via shim legacy) |
 

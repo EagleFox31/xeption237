@@ -147,6 +147,24 @@ describe('Lot 2 — Reçu client WhatsApp après vente comptoir (saleReceipt.ts)
       expect(text).toContain('Total payé : 300 000 FCFA');
       expect(text).toContain('Appareils garantis');
     });
+
+    it('respecte strictement le plafond MAX_RECEIPT_TEXT_LENGTH avec un panier chargé de 40 articles', () => {
+      const fortyLines = Array.from({ length: 40 }, (_, i) => ({
+        name: `Article divers ${i + 1} référence standard boutique`,
+        quantity: 1,
+        unit_price: 4500
+      }));
+
+      const sale: SaleReceiptData = {
+        ...sampleSale,
+        lines: fortyLines,
+        total: 180000
+      };
+
+      const text = formatSaleReceiptText(sale);
+      expect(text.length).toBeLessThanOrEqual(MAX_RECEIPT_TEXT_LENGTH);
+      expect(text).toContain('• ... [autres articles tronqués]');
+    });
   });
 
   describe('buildSaleReceiptButton', () => {

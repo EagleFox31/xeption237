@@ -113,12 +113,14 @@ export function formatSaleReceiptText(sale: SaleReceiptData): string {
   }
 
   // Assemblage avec contrôle de longueur maximale
+  const TRUNCATION_NOTICE = "• ... [autres articles tronqués]";
   let body = "";
   let truncated = false;
 
   for (let i = 0; i < lineStrings.length; i++) {
     const candidate = body ? `${body}\n${lineStrings[i]}` : lineStrings[i];
-    const testTotal = `${header}${candidate}\n${footer}`;
+    const testCandidate = i < lineStrings.length - 1 ? `${candidate}\n${TRUNCATION_NOTICE}` : candidate;
+    const testTotal = `${header}${testCandidate}${footer}`;
     if (testTotal.length > MAX_RECEIPT_TEXT_LENGTH) {
       truncated = true;
       break;
@@ -127,7 +129,7 @@ export function formatSaleReceiptText(sale: SaleReceiptData): string {
   }
 
   if (truncated) {
-    body += (body ? "\n" : "") + "• ... [autres articles tronqués]";
+    body += (body ? "\n" : "") + TRUNCATION_NOTICE;
   } else if (!body && lineStrings.length === 0) {
     body = "• Vente comptoir";
   }

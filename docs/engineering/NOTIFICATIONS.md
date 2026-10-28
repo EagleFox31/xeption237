@@ -108,6 +108,9 @@ Garanties :
 - **Groupe Telegram (Opérations & Actions interactives)** :
   - Reçoit **tous** les événements du système (`TELEGRAM_EVENT_TYPES` complet).
   - Porte les flux interactifs avec boutons en ligne : création de produit (`prodReviewCb`), validation (`prodPublishCb`), masquage (`prodUnpublishCb`), suppression (`prodRejectConfirmCb`), tickets de caisse comptoir, clôtures de caisse.
+- **Bouton d'envoi de reçu client WhatsApp (Bot Telegram - Vente comptoir)** :
+  - Sur chaque vente comptoir enregistrée (`actionSaleComplete`), comme le téléphone client y est obligatoire, le bot Telegram propose systématiquement au vendeur un bouton interactif `📲 Envoyer le reçu au client`.
+  - Ce bouton ouvre l'application WhatsApp du vendeur avec un message pré-rempli (`wa.me`) contenant le reçu détaillé (tronqué à 1 600 caractères max), sans envoi automatique backend (zéro risque de signalement spam ou de ban de numéro boutique).
 - **Groupe WhatsApp (Urgences commerciales, Stocks critiques & Clôtures)** :
   - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report']`).
   - Protégé contre la fuite de données personnelles (enveloppe canonique Trigenys Notify sans noms ni numéros clients).

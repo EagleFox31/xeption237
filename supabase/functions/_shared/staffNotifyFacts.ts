@@ -73,6 +73,16 @@ export const extractNotificationFacts=(n:StaffNotification)=>{
       const out=money(outflowMatch[1]);
       if(out!==undefined)facts.totalOutflowXaf=out;
     }
+  }else if(n.event_type==='voucher_expiring'){
+    const match=n.message.match(/^Bon\s+([A-Za-z0-9_-]+)\s*\(([^)]+)\)\s*expire\s+le\s+(.+)$/i);
+    if(match){
+      const voucherRef=label(match[1],40);
+      const dev=label(match[2],80);
+      const exp=label(match[3],40);
+      if(voucherRef)facts.voucherReference=voucherRef;
+      if(dev)facts.deviceModel=dev;
+      if(exp)facts.expiresAtText=exp;
+    }
   }
   return Object.keys(facts).length?facts:undefined;
 };

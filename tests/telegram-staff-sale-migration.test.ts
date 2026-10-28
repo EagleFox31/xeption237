@@ -82,6 +82,12 @@ describe('Telegram bot sale wiring', () => {
     expect(bot).toContain('parseSaleTag(');
   });
 
+  it('wires the WhatsApp customer receipt button on completed sale', () => {
+    expect(bot).toContain('buildSaleReceiptButton(');
+    expect(bot).toContain('draftRow?.customer_phone');
+    expect(bot).toMatch(/keyboard\.push\(\[receiptBtn\]\)/);
+  });
+
   it('only offers the sale from the seller own store', () => {
     expect(bot).toMatch(/staff\.store && store\?\.id === staff\.store\.id && product\.stock > 0 && cbFits\(/);
   });

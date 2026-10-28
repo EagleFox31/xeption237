@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-10-28 — Reçu client WhatsApp : dépassement de la limite de taille par ajout post-contrôle de la mention de tronquage
+
+- **Symptôme :** Sur un panier chargé (40 articles), le texte du reçu généré pour WhatsApp atteignait 1 628 caractères, dépassant le plafond contractuel de `MAX_RECEIPT_TEXT_LENGTH = 1600`.
+- **Cause racine :** La boucle d'accumulation vérifiait la taille de `${header}${candidate}\n${footer}` par rapport à 1 600 caractères, puis ajoutait `\n• ... [autres articles tronqués]` (32 caractères) à `body` hors contrôle une fois la troncature déclenchée.
+- **Résolution :** Anticipation de la mention de troncature dans le candidat testé (`testCandidate = hasMore ? `${candidate}\n${TRUNCATION_NOTICE}` : candidate`). Si l'ajout de la mention dépasse 1 600, la boucle s'interrompt et la mention s'insère dans le budget garanti.
+- **Comment ne plus la refaire :** Lorsqu'une chaîne accumulée prévoit un suffixe d'avertissement conditionnel (notice de troncature, « ... et X autres »), toujours inclure ce suffixe dans le calcul de la taille maximale testée avant d'accepter le candidat. Tester systématiquement avec des collections massives (40+ items) aux frontières de la limite.
+
+---
 ## 2026-10-27 — Sécurité : tables caisse/dettes ouvertes à tout utilisateur connecté (clients compris)
 
 - **Symptôme :** revue du module caisse du bot : `store_debts`, `store_cash_reports`, `store_cash_drafts` avaient des policies `FOR ALL TO authenticated USING (true) WITH CHECK (true)`. Un client connecté (lien magique du formulaire troc, `hooks/useTradeIn.ts`) pouvait lire et modifier dettes (noms, téléphones) et rapports de caisse.

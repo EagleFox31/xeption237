@@ -19,6 +19,7 @@ import {
   PAY_CODES, SALE_REASON_TEXT, isPayCode, parseCustomerReply, parseSaleTag, payLabel,
   saleCancelCb, saleConfirmCb, salePayCb, salePrompt, saleRecap, saleStartCb, type SaleLine
 } from "../_shared/telegramSale.ts";
+import { buildSaleReceiptButton } from "../_shared/saleReceipt.ts";
 import {
   STOCK_REASON_TEXT, calculateProductPreset, parseCorrectionReply, parseManualSplitReply,
   parseReceiveReply, parseSplitTag, parseStockTag, presetRatios, splitTag, stockBulkBrandListCb,
@@ -2616,6 +2617,25 @@ async function actionSaleCustomer(staff: StaffMember, draftId: string, rawText: 
 async function actionSaleComplete(staff: StaffMember, draftId: string): Promise<Screen> {
   const supabase = db();
   if (!supabase || !UUID_RE.test(draftId)) return saleMessage("Action invalide.");
+
+  let draftRow: { lines: SaleLine[]; discount_amount: number; customer_phone: string | null } | null = null;
+  try {
+    const { data: dRow } = await supabase
+      .from("telegram_sale_drafts")
+      .select("lines, discount_amount, customer_phone")
+      .eq("id", draftId)
+      .maybeSingle();
+    if (dRow) {
+      draftRow = {
+        lines: (dRow.lines as SaleLine[]) ?? [],
+        discount_amount: Number(dRow.discount_amount ?? 0),
+        customer_phone: dRow.customer_phone ?? null
+      };
+    }
+  } catch (err) {
+    console.warn("telegram-bot-entry: failed to load draft details for receipt", err);
+  }
+
   const { data, error } = await supabase.rpc("telegram_staff_complete_sale", {
     p_telegram_user_id: staff.telegram_user_id, p_draft_id: draftId
   });
@@ -2625,13 +2645,36 @@ async function actionSaleComplete(staff: StaffMember, draftId: string): Promise<
   }
   const result = data as { changed: boolean; reason?: string; error?: string; order_id?: string; total?: number; customer_name?: string; payment_method?: string };
   if (!result.changed) return saleRefusal(result);
-  return saleMessage(
-    `✅ <b>Vente enregistrée</b>\n\n` +
-    `Commande : <b>${escapeHtml(result.order_id ?? "")}</b>\n` +
-    `Total : <b>${money(result.total)}</b> — ${escapeHtml(payLabel(result.payment_method ?? ""))}\n` +
-    `Client : ${escapeHtml(result.customer_name ?? "")}\n\n` +
-    `Stock de la boutique mis à jour, équipe prévenue.`
-  );
+
+  const receiptBtn = draftRow?.customer_phone
+    ? buildSaleReceiptButton(draftRow.customer_phone, {
+        order_id: result.order_id ?? "",
+        lines: draftRow.lines ?? [],
+        total: Number(result.total ?? 0),
+        discount_amount: draftRow.discount_amount,
+        payment_method: result.payment_method ?? "",
+        store_name: staff.store?.name ?? "Xeption",
+        customer_name: result.customer_name ?? undefined,
+        customer_phone: draftRow.customer_phone,
+        created_at: new Date()
+      })
+    : null;
+
+  const keyboard: InlineButton[][] = [];
+  if (receiptBtn) {
+    keyboard.push([receiptBtn]);
+  }
+  keyboard.push(saleHome);
+
+  return {
+    text:
+      `✅ <b>Vente enregistrée</b>\n\n` +
+      `Commande : <b>${escapeHtml(result.order_id ?? "")}</b>\n` +
+      `Total : <b>${money(result.total)}</b> — ${escapeHtml(payLabel(result.payment_method ?? ""))}\n` +
+      `Client : ${escapeHtml(result.customer_name ?? "")}\n\n` +
+      `Stock de la boutique mis à jour, équipe prévenue.`,
+    reply_markup: { inline_keyboard: keyboard }
+  };
 }
 
 async function actionSaleCancel(staff: StaffMember, draftId: string): Promise<Screen> {

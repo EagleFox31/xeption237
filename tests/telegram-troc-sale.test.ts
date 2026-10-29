@@ -12,7 +12,8 @@ import {
   saleTrocMixedCashPrompt,
   parseTrocMixedCashTag,
   saleRecap,
-  payLabel
+  payLabel,
+  SALE_REASON_TEXT
 } from "../supabase/functions/_shared/telegramSale.ts";
 import { normalizeVoucherLookupRef } from "../supabase/functions/_shared/trocVoucher.ts";
 import { formatSaleReceiptText, type SaleReceiptData } from "../supabase/functions/_shared/saleReceipt.ts";
@@ -205,6 +206,18 @@ describe("Lot 4 — Vente comptoir avec bon troc", () => {
     it("n'écrit dans order_payments que si v_total > 0", () => {
       expect(sql).toContain("IF v_total > 0 THEN");
       expect(sql).toContain("INSERT INTO public.order_payments");
+    });
+
+    it("sécurise complete_sale avec le contrôle voucher_changed", () => {
+      expect(sql).toContain("IF v_draft.payment_method = 'TROC' AND v_total > 0 THEN");
+      expect(sql).toContain("RETURN jsonb_build_object('changed', false, 'reason', 'voucher_changed');");
+      expect(sql).toContain("IF v_draft.trade_in_request_id IS NOT NULL AND v_troc_discount <> coalesce(v_draft.discount_amount, 0) THEN");
+      expect(SALE_REASON_TEXT.voucher_changed).toContain("La valeur du bon de reprise a changé");
+    });
+
+    it("assainit le téléphone client dans draft_open sans l'enregistrer brut dans le brouillon", () => {
+      expect(sql).toContain("v_cust_phone !~ '^6[0-9]{8}$'");
+      expect(sql).toContain("p_trade_in_request_id,\n    NULL,\n    NULL,");
     });
 
     it("révoque PUBLIC et anon sur toutes les fonctions", () => {

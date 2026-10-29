@@ -220,5 +220,6 @@ export const SALE_REASON_TEXT: Record<string, string> = {
   invalid_payment_split: "Paiement mixte invalide (vérifiez les montants et canaux).",
   voucher_invalid: "Bon de reprise introuvable, déjà utilisé ou non validé.",
   voucher_expired: "Ce bon de reprise a expiré.",
+  voucher_changed: "La valeur du bon de reprise a changé ou ne couvre plus le montant. Recommencez la vente.",
   already_used: "Ce bon de reprise a déjà été utilisé."
 };

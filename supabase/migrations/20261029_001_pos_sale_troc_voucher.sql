@@ -198,7 +198,15 @@ BEGIN
     v_discount := LEAST(v_subtotal, v_troc_credit);
     v_remaining := v_subtotal - v_discount;
     v_cust_name := nullif(trim(v_troc.customer_name), '');
-    v_cust_phone := nullif(trim(v_troc.customer_phone), '');
+    v_cust_phone := regexp_replace(coalesce(v_troc.customer_phone, ''), '\D', '', 'g');
+    IF v_cust_phone LIKE '00237%' THEN
+      v_cust_phone := substr(v_cust_phone, 6);
+    ELSIF v_cust_phone LIKE '237%' AND length(v_cust_phone) = 12 THEN
+      v_cust_phone := substr(v_cust_phone, 4);
+    END IF;
+    IF v_cust_phone !~ '^6[0-9]{8}$' THEN
+      v_cust_phone := NULL;
+    END IF;
 
     IF v_remaining = 0 THEN
       p_payment_method := 'TROC';
@@ -274,8 +282,8 @@ BEGIN
     p_payment_method,
     p_payment_split,
     p_trade_in_request_id,
-    v_cust_name,
-    v_cust_phone,
+    NULL,
+    NULL,
     'POS-TG-' || upper(substr(replace(v_draft.id::text, '-', ''), 1, 10))
   );
 
@@ -436,6 +444,18 @@ BEGIN
 
   v_total_discount := v_manual_discount + v_troc_discount;
   v_total := GREATEST(0, v_subtotal - v_total_discount);
+
+  -- Contrôle anti-crash : si le mode est TROC mais qu'il reste un solde à payer
+  -- (ex. baisse de valeur du bon entre l'ouverture et la finalisation), refuser pour
+  -- éviter de violer order_payments_channel_check et demander au vendeur de recommencer.
+  IF v_draft.payment_method = 'TROC' AND v_total > 0 THEN
+    RETURN jsonb_build_object('changed', false, 'reason', 'voucher_changed');
+  END IF;
+
+  -- Si le montant de crédit déduit a varié par rapport au brouillon
+  IF v_draft.trade_in_request_id IS NOT NULL AND v_troc_discount <> coalesce(v_draft.discount_amount, 0) THEN
+    RETURN jsonb_build_object('changed', false, 'reason', 'voucher_changed');
+  END IF;
 
   -- Si total = 0 avec bon troc, la méthode est TROC
   IF v_total = 0 AND v_draft.trade_in_request_id IS NOT NULL THEN

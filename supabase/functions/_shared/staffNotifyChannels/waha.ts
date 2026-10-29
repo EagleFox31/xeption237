@@ -17,11 +17,12 @@ import {
 import {extractNotificationFacts} from '../staffNotifyFacts.ts';
 
 export const WAHA_DEFAULT_EVENT_TYPES = [
-  'order_created', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report'
+  'order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report'
 ];
 
 export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
   order_created:'order.created',
+  order_paid:'order.paid',
   stock_low:'inventory.stock_low',
   stock_out:'inventory.stock_out',
   product_missing_image:'catalog.product_missing_image',
@@ -67,7 +68,7 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
     version:1,project:'xeption',id:n.notification_id,type,
     occurredAt:new Date(n.created_at).toISOString(),
     priority:n.event_type==='stock_out'||n.event_type==='order_created'?'critical':
-      n.event_type==='stock_low'||n.event_type==='troc_submitted'||n.event_type==='store_cash_report'||n.event_type==='voucher_expiring'?'high':'normal',
+      n.event_type==='stock_low'||n.event_type==='troc_submitted'||n.event_type==='store_cash_report'||n.event_type==='voucher_expiring'||n.event_type==='order_paid'?'high':'normal',
     resource:{kind,id:resourceId},
     audience:'staff',
     ...(facts?{facts}:{}),
@@ -130,4 +131,3 @@ export const createWahaChannel = (
     }
   };
 };
-

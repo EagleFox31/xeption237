@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-10-29 — Rapport de caisse bot : ventilation physique erronée et clés SQL désynchronisées
+
+- **Symptôme :**
+  1. Lors de l'initialisation du rapport de caisse du soir dans le bot Telegram, le montant théorique d'espèces calculait aveuglément la somme de `orders.total` pour toutes les ventes POS, mélangeant les encaissements physiques et les flux Orange Money / MTN MoMo.
+  2. Les lignes de détail des entrées pré-remplies affichaient des libellés d'articles et des vendeurs vides dans le formulaire du bot Telegram.
+- **Cause racine :**
+  1. `telegram_staff_cash_report_init` agrégeait la totalité des ventes POS sans ventiler par canal (`order_payments.channel = 'cash'`). Les ventes Mobile Money gonflaient ainsi artificiellement le solde attendu dans le tiroir physique.
+  2. Incohérence contractuelle de nommage : la RPC SQL renvoyait `product_name` et `seller_name`, tandis que l'interface du bot (`telegramCashScreens.ts`) consommait `label` et `salesperson_name`.
+- **Résolution :**
+  1. Refonte de `telegram_staff_cash_report_init` via un CTE `sales_base` calculant `cash_amount` (uniquement `channel = 'cash'` dans `order_payments` ou fallback `payment_method = 'CASH'`) et `mobile_amount`. Seul `cash_amount` entre dans le tiroir d'espèces physique.
+  2. Aliasing double côté SQL (`product_name AS label`, etc.) et lecture tolérante côté bot (`product_name ?? label`, `seller_name ?? salesperson_name`) pour garantir la robustesse face aux deux conventions.
+- **Comment ne plus la refaire :** Isoler systématiquement les flux de trésorerie physique (espèces) des flux scripturaux/mobiles (OM, MoMo, virements) dans les fonctions de calcul de caisse. Valider par des tests unitaires le contrat d'interface (noms de colonnes SQL vs propriétés TypeScript) sur les RPC de rapport.
+
+---
+
 ## 2026-10-28 — Reçu client WhatsApp : dépassement de la limite de taille par ajout post-contrôle de la mention de tronquage
 
 - **Symptôme :** Sur un panier chargé (40 articles), le texte du reçu généré pour WhatsApp atteignait 1 628 caractères, dépassant le plafond contractuel de `MAX_RECEIPT_TEXT_LENGTH = 1600`.

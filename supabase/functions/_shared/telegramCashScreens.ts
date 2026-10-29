@@ -129,17 +129,30 @@ export async function screenCashReportHub(
 
   let draft = initRes.draft;
   if (!draft) {
-    const initialInflows: InflowItem[] = (initRes.today_pos_sales || []).map((s: any) => ({
-      label: s.label,
-      amount: Number(s.amount) || 0,
-      salesperson_name: s.salesperson_name
-    }));
+    const initialInflows: InflowItem[] = (initRes.today_pos_sales || [])
+      .map((s: any) => {
+        const cashAmount = Number(
+          s.cash_amount !== undefined
+            ? s.cash_amount
+            : (s.payment_method === "CASH" || !s.payment_method ? s.amount : 0)
+        ) || 0;
+        const productName = s.product_name || s.label || "Vente comptoir";
+        const isMixed = s.payment_method === "MIXED" || (Number(s.mobile_amount || 0) > 0 && cashAmount > 0);
+        const label = isMixed ? `${productName} (espèces)` : productName;
+        const sellerName = s.seller_name || s.salesperson_name;
+        return {
+          label,
+          amount: cashAmount,
+          seller_name: sellerName
+        };
+      })
+      .filter((item: InflowItem) => item.amount > 0);
 
     const storeOperatorNames: string[] = Array.isArray(initRes.operators)
       ? initRes.operators.map((o: any) => typeof o === "string" ? o : o?.name).filter(Boolean)
       : [];
     const sellersToday: string[] = Array.isArray(initRes.today_pos_sales)
-      ? initRes.today_pos_sales.map((s: any) => s.salesperson_name).filter(Boolean)
+      ? initRes.today_pos_sales.map((s: any) => s.seller_name || s.salesperson_name).filter(Boolean)
       : [];
     const defaultOperators = Array.from(new Set([staff.name, ...storeOperatorNames, ...sellersToday]));
 

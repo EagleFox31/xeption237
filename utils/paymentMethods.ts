@@ -1,7 +1,7 @@
 /** Moyens de paiement boutique / commande */
-export type PaymentMethod = 'CASH' | 'OM' | 'MOMO' | 'CARD' | 'TROC';
+export type PaymentMethod = 'CASH' | 'OM' | 'MOMO' | 'CARD' | 'TROC' | 'MIXED';
 
-export type PosPaymentMethod = PaymentMethod;
+export type PosPaymentMethod = 'CASH' | 'OM' | 'MOMO' | 'CARD' | 'TROC';
 
 export const POS_PAYMENT_OPTIONS: {
   id: PosPaymentMethod;
@@ -19,6 +19,7 @@ export const POS_PAYMENT_OPTIONS: {
 export const TROC_REST_PAYMENT_OPTIONS = POS_PAYMENT_OPTIONS.filter((o) => o.id !== 'TROC');
 
 export const getPaymentMethodLabel = (method: string | undefined | null): string => {
+  if (method === 'MIXED') return 'Paiement mixte';
   const found = POS_PAYMENT_OPTIONS.find((o) => o.id === method);
   if (found) return found.label;
   if (method === 'CARD') return 'Carte bancaire';

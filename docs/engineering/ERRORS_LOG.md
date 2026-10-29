@@ -479,3 +479,19 @@ Le script masquait l'erreur réelle (message générique).
 
 **Comment ne plus la refaire** : erreur réseau Node (`fetch failed`/`ECONNRESET`) → tester d'abord TLS avant de
 soupçonner les clés ; les scripts ne remplacent jamais une erreur par un message générique.
+
+## 2026-10-29 — Migration R2 : 2 images vivantes classées « mortes » (fiche HP Laptop 14s)
+
+**Symptôme** : `migrate-cloudinary-to-r2.mjs` laisse 2 URL Cloudinary (`…-05.png`, `…-06.png`) en « dead » ;
+la boutique les affiche cassées. On les croyait supprimées chez Cloudinary.
+
+**Cause racine** : l'extension `.png` force Cloudinary à convertir l'original (JPEG) ; le PNG produit dépasse
+10 Mo → 400 (`X-Cld-Error: File size too large`). L'URL sans extension (format stocké) répond 200.
+Le script ne testait qu'une seule forme d'URL et ne lisait pas `X-Cld-Error`.
+
+**Résolution** : `sourceCandidates()` essaie l'URL telle quelle puis sans extension (sondage et téléchargement).
+Les 2 images migrées. Un sondage HEAD a aussi échoué une fois de façon transitoire : une relance suffit, les URL
+« mortes » restent en base et sont retentées.
+
+**Comment ne plus la refaire** : avant de déclarer une image Cloudinary morte, lire `X-Cld-Error` (`curl -I`) ;
+400 ≠ 404 : 400 = transformation refusée, l'original existe.

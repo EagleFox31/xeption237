@@ -72,6 +72,16 @@ const stripTransform = (url) => {
   return `${head}/upload/${segments.slice(i).join('/')}`;
 };
 
+/**
+ * Sources à essayer, dans l'ordre. L'extension force une conversion (JPEG stocké → .png) que
+ * Cloudinary refuse en 400 au-delà de 10 Mo produits ; sans extension il sert le format stocké.
+ */
+const sourceCandidates = (url) => {
+  const source = stripTransform(url);
+  const bare = source.replace(/\.[a-z0-9]{3,4}$/i, '');
+  return bare === source ? [source] : [source, bare];
+};
+
 async function fetchRows(client, cfg) {
   const rows = [];
   for (let from = 0; ; from += PAGE) {
@@ -85,12 +95,26 @@ async function fetchRows(client, cfg) {
 }
 
 async function probe(url) {
-  try {
-    const res = await fetch(url, { method: 'HEAD' });
-    return { status: res.status, bytes: Number(res.headers.get('content-length')) || null };
-  } catch (e) {
-    return { status: 0, bytes: null, error: String(e?.message || e) };
+  let last;
+  for (const source of sourceCandidates(url)) {
+    try {
+      const res = await fetch(source, { method: 'HEAD' });
+      last = { status: res.status, bytes: Number(res.headers.get('content-length')) || null };
+    } catch (e) {
+      last = { status: 0, bytes: null, error: String(e?.message || e) };
+    }
+    if (last.status === 200) break;
   }
+  return last;
+}
+
+/** Première source qui répond ; null si toutes échouent. */
+async function fetchSource(url) {
+  for (const source of sourceCandidates(url)) {
+    const res = await fetch(source);
+    if (res.ok) return res;
+  }
+  return null;
 }
 
 async function mapLimit(items, limit, fn) {
@@ -155,10 +179,9 @@ async function uploadToWorker(secret, folder, { original, variants }) {
 async function migrateRow(client, secret, cfg, row, map, dead, stats) {
   for (const raw of cfg.urls(row)) {
     if (!isCloudinaryImage(raw) || map[raw] || dead.has(raw)) continue;
-    const source = stripTransform(raw);
     try {
-      const res = await fetch(source);
-      if (!res.ok) { dead.add(raw); stats.dead++; continue; }
+      const res = await fetchSource(raw);
+      if (!res) { dead.add(raw); stats.dead++; continue; }
       const webp = await toWebP(Buffer.from(await res.arrayBuffer()), cfg.maxSide, cfg.variants);
       const { url, missing } = await uploadToWorker(secret, cfg.folder, webp);
       map[raw] = url;
@@ -216,7 +239,7 @@ async function main() {
     if (LIMIT) rows = rows.slice(0, LIMIT);
 
     const urls = [...new Set(rows.flatMap((r) => cfg.urls(r)).filter((u) => isCloudinaryImage(u) && !map[u]))];
-    const probes = await mapLimit(urls, CONCURRENCY, (u) => probe(stripTransform(u)));
+    const probes = await mapLimit(urls, CONCURRENCY, (u) => probe(u));
     const dead = new Set(urls.filter((_, i) => probes[i].status !== 200));
     const summary = {
       rows: rows.length,

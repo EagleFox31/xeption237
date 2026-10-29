@@ -1,12 +1,5 @@
-/**
- * Pure helpers for the Telegram bot counter sale ("🛒 Vendre ce produit").
- * No Deno / npm imports: shared by telegram-bot-entry and the vitest suite.
- * Prices, store and seller never come from here — the SQL RPCs resolve them server side.
- */
-
 import { escapeHtml } from "./telegramHr.ts";
 
-/** One-letter codes keep callback_data short; values match utils/paymentMethods.ts. */
 export const PAY_CODES = { C: "CASH", O: "OM", M: "MOMO" } as const;
 export type PayCode = keyof typeof PAY_CODES;
 export type PayMethod = (typeof PAY_CODES)[PayCode];
@@ -23,7 +16,8 @@ export const PAY_LABEL: Record<string, string> = {
   CASH: "💵 Espèces",
   OM: "🟠 Orange Money",
   MOMO: "🟡 MTN MoMo",
-  MIXED: "🔀 Mixte (Espèces + Mobile)"
+  MIXED: "🔀 Mixte (Espèces + Mobile)",
+  TROC: "🔁 Bon troc (100%)"
 };
 
 export const isPayCode = (value: string): value is PayCode =>
@@ -53,6 +47,13 @@ export const salePayCb = (code: PayCode, productId: string) => `nav:sp:${code}:$
 export const saleMixedPromptCb = (productId: string) => `nav:smx:${productId}`;
 export const saleMixedChoiceCb = (mobileCode: "O" | "M", productId: string, cashAmount: number) =>
   `nav:spx:${mobileCode}:${productId}:${cashAmount}`;
+export const saleTrocPromptCb = (productId: string) => `nav:str:${productId}`;
+export const saleTrocChoiceCb = (payCode: string, productId: string, tradeInId: string) =>
+  `nav:stc:${payCode}:${productId}:${tradeInId}`;
+export const saleTrocConfirmExcessCb = (payCode: string, productId: string, tradeInId: string) =>
+  `nav:stcx:${payCode}:${productId}:${tradeInId}`;
+export const saleTrocMixedChoiceCb = (mobileCode: "O" | "M", productId: string, tradeInId: string, cashAmount: number) =>
+  `nav:stpx:${mobileCode}:${productId}:${tradeInId}:${cashAmount}`;
 export const saleConfirmCb = (draftId: string) => `nav:sc:${draftId}`;
 export const saleCancelCb = (draftId: string) => `nav:sx:${draftId}`;
 
@@ -67,10 +68,36 @@ export const parseSaleMixedChoiceCb = (cb: string): { mobileCode: "O" | "M"; pro
   return null;
 };
 
+export const parseSaleTrocChoiceCb = (cb: string): { payCode: string; productId: string; tradeInId: string; confirmExcess?: boolean } | null => {
+  const parts = cb.split(":");
+  if (parts[0] === "nav" && (parts[1] === "stc" || parts[1] === "stcx") && parts.length === 5) {
+    return {
+      payCode: parts[2],
+      productId: parts[3],
+      tradeInId: parts[4],
+      confirmExcess: parts[1] === "stcx"
+    };
+  }
+  return null;
+};
+
+export const parseSaleTrocMixedChoiceCb = (cb: string): { mobileCode: "O" | "M"; productId: string; tradeInId: string; cashAmount: number } | null => {
+  const parts = cb.split(":");
+  if (parts.length === 6 && parts[0] === "nav" && parts[1] === "stpx" && (parts[2] === "O" || parts[2] === "M")) {
+    const cash = parseInt(parts[5], 10);
+    if (!isNaN(cash) && cash > 0) {
+      return { mobileCode: parts[2] as "O" | "M", productId: parts[3], tradeInId: parts[4], cashAmount: cash };
+    }
+  }
+  return null;
+};
+
 export const CUSTOMER_NAME_MAX = 60;
 
 const SALE_TAG_RE = /#VTE:([0-9a-f-]{36})\s*$/;
 const MIXED_CASH_TAG_RE = /#SMX:([0-9a-f-]{36})\s*$/;
+const TROC_REF_TAG_RE = /#STR:([0-9a-f-]{36})\s*$/;
+const TROC_MIXED_CASH_TAG_RE = /#STMX:([0-9a-f-]{36}):([^:\s]+)\s*$/;
 
 export function saleMixedCashPrompt(productId: string, productName: string, price: number): string {
   return (
@@ -86,18 +113,57 @@ export function parseMixedCashTag(text: string): { productId: string } | null {
   return match ? { productId: match[1] } : null;
 }
 
+export function saleTrocRefPrompt(productId: string, productName: string, price: number): string {
+  return (
+    `🔁 <b>Vente avec reprise — ${escapeHtml(productName)} (${formatMoneySimple(price)})</b>\n\n` +
+    `Répondez à ce message avec la référence du bon de reprise (ex. <code>TRC-1792843872</code>).\n` +
+    `Le crédit sera déduit du montant à encaisser.\n` +
+    `#STR:${productId}`
+  );
+}
+
+export function parseTrocTag(text: string): { productId: string } | null {
+  const match = TROC_REF_TAG_RE.exec(text);
+  return match ? { productId: match[1] } : null;
+}
+
+export function saleTrocMixedCashPrompt(productId: string, tradeInId: string, productName: string, remainingPrice: number): string {
+  return (
+    `🔀 <b>Paiement mixte du reliquat — ${escapeHtml(productName)} (Reste : ${formatMoneySimple(remainingPrice)})</b>\n\n` +
+    `Répondez à ce message avec le montant payé en <b>espèces</b> (ex. 25000 ou 25k).\n` +
+    `Le reste sera réglé par Orange Money ou MTN MoMo.\n` +
+    `#STMX:${productId}:${tradeInId}`
+  );
+}
+
+export function parseTrocMixedCashTag(text: string): { productId: string; tradeInId: string } | null {
+  const match = TROC_MIXED_CASH_TAG_RE.exec(text);
+  return match ? { productId: match[1], tradeInId: match[2] } : null;
+}
+
 /** ForceReply prompt; the trailing tag carries the draft id so the bot stays stateless. */
 export function salePrompt(
   draftId: string,
   productName: string,
   price: number,
   method: string,
-  split?: PaymentSplitItem[] | null
+  split?: PaymentSplitItem[] | null,
+  trocDiscount?: number,
+  prefilledCustomer?: { name?: string; phone?: string } | null
 ): string {
-  return "🛒 Vente : " + productName + " — " + formatMoneySimple(price) + " (" +
-    payLabel(method, split) + ")\n" +
-    "Répondez à ce message avec le prénom et le numéro WhatsApp du client (ex. Paul 699123456).\n" +
-    "#VTE:" + draftId;
+  const totalNet = Math.max(0, price - (trocDiscount ?? 0));
+  let msg = "🛒 Vente : " + productName + " — " + formatMoneySimple(totalNet) + " (" +
+    payLabel(method, split) + ")\n";
+  if (trocDiscount && trocDiscount > 0) {
+    msg += `(Crédit reprise déduit : −${formatMoneySimple(trocDiscount)})\n`;
+  }
+  if (prefilledCustomer?.name && prefilledCustomer?.phone) {
+    msg += `Client détecté : <b>${escapeHtml(prefilledCustomer.name)}</b> (${escapeHtml(prefilledCustomer.phone)})\n` +
+      `Répondez pour confirmer ce client, ou saisissez un autre contact (ex. Paul 699123456) :\n`;
+  } else {
+    msg += "Répondez à ce message avec le prénom et le numéro WhatsApp du client (ex. Paul 699123456).\n";
+  }
+  return msg + "#VTE:" + draftId;
 }
 
 export function parseSaleTag(text: string): { draftId: string } | null {
@@ -127,14 +193,15 @@ export interface SaleLine { name: string; quantity: number; unit_price: number }
 export function saleRecap(d: {
   lines: SaleLine[]; payment_method: string; payment_split?: PaymentSplitItem[] | null;
   discount_amount?: number; customer_name: string; customer_phone: string;
+  trade_in_ref?: string; trade_in_device?: string;
 }): string {
   const subtotal = d.lines.reduce((s, l) => s + l.unit_price * l.quantity, 0);
   const discount = d.discount_amount ?? 0;
   return "🧾 <b>Récapitulatif de la vente</b>\n\n" +
     d.lines.map(l => "• " + escapeHtml(l.name) + (l.quantity > 1 ? " ×" + l.quantity : "") + " — " +
       formatMoneySimple(l.unit_price * l.quantity)).join("\n") + "\n" +
-    (discount > 0 ? "• Remise : −" + formatMoneySimple(discount) + "\n" : "") +
-    "\n💰 Total à encaisser : <b>" + formatMoneySimple(subtotal - discount) + "</b>\n" +
+    (discount > 0 ? (d.trade_in_ref ? `• Reprise (${escapeHtml(d.trade_in_ref)}) : −${formatMoneySimple(discount)}\n` : "• Remise : −" + formatMoneySimple(discount) + "\n") : "") +
+    "\n💰 Total à encaisser : <b>" + formatMoneySimple(Math.max(0, subtotal - discount)) + "</b>\n" +
     "Paiement : " + payLabel(d.payment_method, d.payment_split) + "\n" +
     "Client : <b>" + escapeHtml(d.customer_name) + "</b> · " + escapeHtml(d.customer_phone) + "\n\n" +
     "Confirmez une fois l'argent reçu.";
@@ -150,5 +217,9 @@ export const SALE_REASON_TEXT: Record<string, string> = {
   no_customer: "Renseignez d'abord le client (répondez au message de vente).",
   price_changed: "Le prix a changé depuis le début de la vente. Recommencez depuis la fiche produit.",
   sale_failed: "Vente refusée",
-  invalid_payment_split: "Paiement mixte invalide (vérifiez les montants et canaux)."
+  invalid_payment_split: "Paiement mixte invalide (vérifiez les montants et canaux).",
+  voucher_invalid: "Bon de reprise introuvable, déjà utilisé ou non validé.",
+  voucher_expired: "Ce bon de reprise a expiré.",
+  voucher_changed: "La valeur du bon de reprise a changé ou ne couvre plus le montant. Recommencez la vente.",
+  already_used: "Ce bon de reprise a déjà été utilisé."
 };

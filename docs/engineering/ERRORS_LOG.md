@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-10-29 — Sécurité : RPC du bot (lot 4) exécutables par tout utilisateur connecté
+
+- **Symptôme :** après application de `20261029_001_pos_sale_troc_voucher.sql`, `normalize_voucher_lookup_ref`, `telegram_staff_troc_voucher_check` et `telegram_staff_sale_draft_open` restaient exécutables par `authenticated` (clients du formulaire troc). `telegram_staff_troc_voucher_check` renvoie nom et téléphone du client d'un bon ; la seule barrière était un `telegram_user_id` staff à deviner. `db:inventory` n'a rien signalé.
+- **Cause racine :** sur Supabase, la default ACL du schéma `public` accorde `EXECUTE` **directement** à `anon`, `authenticated` et `service_role` à chaque fonction créée. `REVOKE ALL … FROM PUBLIC, anon` (motif d'`AGENTS.md`) ne retire pas le grant direct d'`authenticated`. Les fonctions recréées par `CREATE OR REPLACE` gardent leur ACL ; celles créées ou passées par `DROP` + `CREATE` repartent de la default ACL. `db:inventory` ne contrôlait que `anon`. Récidive de la famille « authenticated = staff » (entrée du 2026-10-27).
+- **Résolution :** `20261029_002_revoke_bot_rpc_authenticated.sql` (`REVOKE … FROM PUBLIC, anon, authenticated` + `GRANT … TO service_role`).
+- **Comment ne plus la refaire :** toute RPC réservée au bot se termine par `REVOKE ALL … FROM PUBLIC, anon, authenticated` (règle `AGENTS.md` mise à jour). Contrôle vérifiable : `npm run db:inventory`, section « RPC service_role exécutables par anon/authenticated » (préfixes `telegram_`, `_telegram_`, `_pos_`, `normalize_voucher_`), qui doit afficher `(aucune — OK)` après chaque migration du bot.
+
+---
+
 ## 2026-10-29 — Rapport de caisse bot : ventilation physique erronée et clés SQL désynchronisées
 
 - **Symptôme :**

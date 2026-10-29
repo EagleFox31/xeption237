@@ -19,8 +19,13 @@ import {
   PAY_CODES, SALE_REASON_TEXT, isPayCode, parseCustomerReply, parseSaleTag, payLabel,
   saleCancelCb, saleConfirmCb, salePayCb, salePrompt, saleRecap, saleStartCb, type SaleLine,
   type PaymentSplitItem, saleMixedPromptCb, saleMixedChoiceCb, parseSaleMixedChoiceCb,
-  saleMixedCashPrompt, parseMixedCashTag
+  saleMixedCashPrompt, parseMixedCashTag, saleTrocPromptCb, parseSaleTrocChoiceCb,
+  parseSaleTrocMixedChoiceCb, parseTrocTag, parseTrocMixedCashTag
 } from "../_shared/telegramSale.ts";
+import {
+  actionSaleTrocPrompt, actionSaleTrocRefReply, actionSaleTrocOpen,
+  actionSaleTrocMixedCashReply, actionSaleTrocMixedOpen, type TelegramSaleTrocDeps
+} from "../_shared/telegramSaleTrocScreens.ts";
 import { buildSaleReceiptButton } from "../_shared/saleReceipt.ts";
 import {
   STOCK_REASON_TEXT, calculateProductPreset, parseCorrectionReply, parseManualSplitReply,
@@ -2552,6 +2557,7 @@ async function screenSalePayment(staff: StaffMember, productId: string, backCat:
       inline_keyboard: [
         ...codes.map(c => [{ text: payLabel(PAY_CODES[c]), callback_data: salePayCb(c, product.id) }]),
         [{ text: "🔀 Mixte (Espèces + Mobile)", callback_data: saleMixedPromptCb(product.id) }],
+        [{ text: "🔁 Bon troc", callback_data: saleTrocPromptCb(product.id) }],
         [{ text: "⬅️ Précédent", callback_data: `nav:p:${product.id}:${backCat}${scopeSuffix(staff.store)}` }, ...saleHome]
       ]
     }
@@ -2648,6 +2654,18 @@ async function actionSaleMixedOpen(
   return null;
 }
 
+function getTrocDeps(): TelegramSaleTrocDeps {
+  return {
+    db,
+    telegram,
+    stockRows,
+    money,
+    scopeSuffix,
+    saleRefusal,
+    saleMessage
+  };
+}
+
 /** Opens the draft and asks for the customer; returns a Screen only on refusal. */
 async function actionSaleOpen(staff: StaffMember, code: string, productId: string, chatId: string | number): Promise<Screen | null> {
   const supabase = db();
@@ -2690,6 +2708,7 @@ async function actionSaleCustomer(staff: StaffMember, draftId: string, rawText: 
   const result = data as {
     changed: boolean; reason?: string; order_id?: string; lines?: SaleLine[]; payment_method?: string;
     discount_amount?: number; customer_name?: string; customer_phone?: string; payment_split?: PaymentSplitItem[];
+    trade_in_request_id?: string;
   };
   if (!result.changed) return saleRefusal(result);
   return {
@@ -2697,7 +2716,7 @@ async function actionSaleCustomer(staff: StaffMember, draftId: string, rawText: 
       lines: (result.lines ?? []).map(l => ({ ...l, unit_price: Number(l.unit_price), quantity: Number(l.quantity) })),
       payment_method: result.payment_method ?? "", discount_amount: Number(result.discount_amount ?? 0),
       customer_name: result.customer_name ?? customer.name, customer_phone: result.customer_phone ?? customer.phone,
-      payment_split: result.payment_split
+      payment_split: result.payment_split, trade_in_ref: result.trade_in_request_id
     }),
     reply_markup: {
       inline_keyboard: [
@@ -2712,11 +2731,11 @@ async function actionSaleComplete(staff: StaffMember, draftId: string): Promise<
   const supabase = db();
   if (!supabase || !UUID_RE.test(draftId)) return saleMessage("Action invalide.");
 
-  let draftRow: { lines: SaleLine[]; discount_amount: number; customer_phone: string | null; payment_split?: PaymentSplitItem[] | null } | null = null;
+  let draftRow: { lines: SaleLine[]; discount_amount: number; customer_phone: string | null; payment_split?: PaymentSplitItem[] | null; trade_in_request_id?: string | null } | null = null;
   try {
     const { data: dRow } = await supabase
       .from("telegram_sale_drafts")
-      .select("lines, discount_amount, customer_phone, payment_split")
+      .select("lines, discount_amount, customer_phone, payment_split, trade_in_request_id")
       .eq("id", draftId)
       .maybeSingle();
     if (dRow) {
@@ -2724,7 +2743,8 @@ async function actionSaleComplete(staff: StaffMember, draftId: string): Promise<
         lines: (dRow.lines as SaleLine[]) ?? [],
         discount_amount: Number(dRow.discount_amount ?? 0),
         customer_phone: dRow.customer_phone ?? null,
-        payment_split: (dRow.payment_split as PaymentSplitItem[]) ?? null
+        payment_split: (dRow.payment_split as PaymentSplitItem[]) ?? null,
+        trade_in_request_id: dRow.trade_in_request_id ?? null
       };
     }
   } catch (err) {
@@ -2749,6 +2769,7 @@ async function actionSaleComplete(staff: StaffMember, draftId: string): Promise<
         discount_amount: draftRow.discount_amount,
         payment_method: result.payment_method ?? "",
         payment_split: draftRow.payment_split,
+        trade_in_ref: draftRow.trade_in_request_id ?? undefined,
         store_name: staff.store?.name ?? "Xeption",
         customer_name: result.customer_name ?? undefined,
         customer_phone: draftRow.customer_phone,
@@ -3237,6 +3258,22 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     const refusal = await actionSaleMixedOpen(staff, choice.mobileCode, choice.productId, choice.cashAmount, chatId);
     if (!refusal) return;
     screen = refusal;
+  } else if (action === "str") {
+    const refusal = await actionSaleTrocPrompt(staff, parts[2] ?? "", chatId, getTrocDeps());
+    if (!refusal) return;
+    screen = refusal;
+  } else if (action === "stc" || action === "stcx") {
+    const choice = parseSaleTrocChoiceCb(query.data ?? "");
+    if (!choice) return;
+    const refusal = await actionSaleTrocOpen(staff, choice.payCode, choice.productId, choice.tradeInId, chatId, getTrocDeps());
+    if (!refusal) return;
+    screen = refusal;
+  } else if (action === "stpx") {
+    const choice = parseSaleTrocMixedChoiceCb(query.data ?? "");
+    if (!choice) return;
+    const refusal = await actionSaleTrocMixedOpen(staff, choice.mobileCode, choice.productId, choice.tradeInId, choice.cashAmount, chatId, getTrocDeps());
+    if (!refusal) return;
+    screen = refusal;
   } else if (action === "sp") {
     const refusal = await actionSaleOpen(staff, parts[2] ?? "", parts[3] ?? "", chatId);
     if (!refusal) return;
@@ -3629,6 +3666,34 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
       return;
     }
     await renderScreen(chatId, undefined, await actionSaleCustomer(staff, sale.draftId, rawText));
+    return;
+  }
+
+  // Reply to a trade-in voucher prompt (#STR:).
+  const trocSale = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parseTrocTag(String(reply?.text ?? ""))
+    : null;
+  if (trocSale) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    await renderScreen(chatId, undefined, await actionSaleTrocRefReply(staff, trocSale.productId, rawText, getTrocDeps()));
+    return;
+  }
+
+  // Reply to a trade-in mixed cash prompt (#STMX:).
+  const trocMixedSale = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parseTrocMixedCashTag(String(reply?.text ?? ""))
+    : null;
+  if (trocMixedSale) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    await renderScreen(chatId, undefined, await actionSaleTrocMixedCashReply(staff, trocMixedSale.productId, trocMixedSale.tradeInId, rawText, getTrocDeps()));
     return;
   }
 

@@ -14,6 +14,7 @@ export interface SaleReceiptData {
   discount_amount?: number;
   payment_method: string;
   payment_split?: PaymentSplitItem[] | null;
+  trade_in_ref?: string;
   store_name?: string;
   customer_name?: string;
   customer_phone?: string;
@@ -100,11 +101,17 @@ export function formatSaleReceiptText(sale: SaleReceiptData): string {
       return `${ch} ${formatReceiptMoney(p.amount)}`;
     });
     paymentClean = `Mixte (${parts.join(" + ")})`;
+  } else if (sale.payment_method === "TROC") {
+    paymentClean = "Bon de reprise Smart Troc (100%)";
   }
 
   let footer = `\n`;
   if (discount > 0) {
-    footer += `• Remise : −${formatReceiptMoney(discount)}\n`;
+    if (sale.trade_in_ref) {
+      footer += `• Reprise (${sale.trade_in_ref}) : −${formatReceiptMoney(discount)}\n`;
+    } else {
+      footer += `• Remise : −${formatReceiptMoney(discount)}\n`;
+    }
   }
   footer += `\n*Total payé : ${formatReceiptMoney(sale.total)}*\n`;
   footer += `Moyen de paiement : ${paymentClean}\n\n`;

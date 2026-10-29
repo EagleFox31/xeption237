@@ -567,7 +567,7 @@ export async function handleCashReportActionReply(
     const newItems = parseExpensesText(text).map(it => ({
       label: it.label,
       amount: it.amount,
-      salesperson_name: staff.name
+      seller_name: staff.name
     }));
     if (newItems.length > 0) {
       const { data: draft } = await supabase.from("store_cash_drafts")

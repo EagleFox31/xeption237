@@ -177,4 +177,74 @@ describe("telegramCashScreens", () => {
 
     expect(result).toBeNull();
   });
+
+  it("handleCashReportActionReply traite IN et enregistre les entrées avec seller_name", async () => {
+    const mockSelect = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: {
+              inflow_items: [{ label: "Vente existante", amount: 20000, seller_name: "Autre" }]
+            }
+          })
+        })
+      })
+    });
+
+    let savedInflowItems: any[] = [];
+    const mockUpdate = vi.fn().mockImplementation((payload) => {
+      savedInflowItems = payload.inflow_items;
+      return {
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null })
+        })
+      };
+    });
+
+    const mockRpc = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        store_id: "s1",
+        store_name: "Mfoundi",
+        report_date: "2026-10-27",
+        draft: { opening_cash: 50000, inflow_items: [], outflow_items: [], operators: [] }
+      }
+    });
+
+    const mockSupabase = {
+      from: vi.fn().mockImplementation((table) => {
+        if (table === "store_cash_drafts") {
+          return {
+            select: mockSelect,
+            update: mockUpdate
+          };
+        }
+        return {};
+      }),
+      rpc: mockRpc
+    };
+
+    const deps: TelegramCashDeps = {
+      supabase: mockSupabase,
+      listStores: async () => [],
+      homeRow: dummyHomeRow
+    };
+
+    const screen = await handleCashReportActionReply(
+      dummyStaff,
+      { action: "IN", targetId: "s1" },
+      "Vente verre trempé 5000",
+      deps
+    );
+
+    expect(screen).not.toBeNull();
+    expect(mockUpdate).toHaveBeenCalled();
+    expect(savedInflowItems).toHaveLength(2);
+    expect(savedInflowItems[1]).toEqual({
+      label: "Vente verre trempé",
+      amount: 5000,
+      seller_name: "Amina"
+    });
+    expect((savedInflowItems[1] as any).salesperson_name).toBeUndefined();
+  });
 });

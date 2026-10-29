@@ -262,11 +262,11 @@ BEGIN
         order_id, reference, provider, amount, currency, channel, status, paid_at, staff_id
       ) VALUES (
         v_draft.order_id,
-        'POS-' || v_draft.order_id || '-' || (v_split_elem->>'channel'),
+        'POS-' || v_draft.order_id || '-' || lower(trim(v_split_elem->>'channel')),
         'pos',
         (v_split_elem->>'amount')::numeric,
         'XAF',
-        v_split_elem->>'channel',
+        lower(trim(v_split_elem->>'channel')),
         'paid',
         now(),
         v_actor.o_staff_id
@@ -301,7 +301,7 @@ BEGIN
   IF v_draft.payment_method = 'MIXED' THEN
     v_pay_detail := 'Mixte (' || (
       SELECT string_agg(
-        CASE (e->>'channel') WHEN 'cash' THEN 'Espèces ' WHEN 'om' THEN 'OM ' WHEN 'momo' THEN 'MoMo ' ELSE (e->>'channel') || ' ' END ||
+        CASE lower(trim(e->>'channel')) WHEN 'cash' THEN 'Espèces ' WHEN 'om' THEN 'OM ' WHEN 'momo' THEN 'MoMo ' ELSE lower(trim(e->>'channel')) || ' ' END ||
         to_char((e->>'amount')::numeric, 'FM999G999G999'),
         ' + '
       )

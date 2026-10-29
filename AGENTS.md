@@ -83,7 +83,7 @@ FK `products.category` et `product_ranges.category` → `categories.slug`.
 ## Base de données
 
 - Migrations : `supabase/migrations/` — appliquer avec `npm run db:apply -- supabase/migrations/xxx.sql`
-- **Toute nouvelle RPC `SECURITY DEFINER`** : Postgres accorde `EXECUTE` à `PUBLIC` par défaut (`anon` en hérite). En fin de migration : `REVOKE ALL ON FUNCTION … FROM PUBLIC, anon` puis `GRANT` explicite. Vérifier avec `npm run db:inventory` (section « RPC exécutable par anon sans garde staff »).
+- **Toute nouvelle RPC `SECURITY DEFINER`** : Postgres accorde `EXECUTE` à `PUBLIC` par défaut (`anon` en hérite), et la default ACL Supabase l'accorde **en plus directement** à `anon` et `authenticated`. En fin de migration : `REVOKE ALL ON FUNCTION … FROM PUBLIC, anon` puis `GRANT` explicite ; **RPC réservée au bot (service_role) : `FROM PUBLIC, anon, authenticated`** (les clients sont `authenticated`). Vérifier avec `npm run db:inventory` (sections « RPC exécutable par anon sans garde staff » et « RPC service_role exécutables par anon/authenticated »).
 - Ne pas committer `.env` ni secrets.
 - **Clé `service_role` des scripts d'écriture** : jamais dans `.env`. Utiliser `resolveServiceRoleKey()` (`scripts/lib/serviceRoleKey.mjs`) : variable d'env, sinon récupérée à la volée via la CLI Supabase connectée. Ne jamais l'afficher ni la logger.
 - **Outils d'inspection (READ-ONLY)** — connexion partagée `scripts/lib/supabaseDbUrl.mjs` :
@@ -154,7 +154,7 @@ npx supabase functions deploy <nom> --project-ref tawnusmfyvugqczaydat --no-veri
 
 Issues de la revue du 27/10/2026 (module caisse/dettes du bot). Non négociables.
 
-1. **RLS : jamais `USING (true)` pour `authenticated`.** Les clients sont `authenticated` (lien magique du formulaire troc). Table interne : aucun `GRANT` à `anon`/`authenticated` si seul le bot (service_role) y accède ; sinon policy `public.is_staff_member()` / `public.is_direction_staff()`. Toujours `REVOKE ALL … FROM PUBLIC, anon`. Contrôle : `npm run db:inventory`.
+1. **RLS : jamais `USING (true)` pour `authenticated`.** Les clients sont `authenticated` (lien magique du formulaire troc). Table interne : aucun `GRANT` à `anon`/`authenticated` si seul le bot (service_role) y accède ; sinon policy `public.is_staff_member()` / `public.is_direction_staff()`. Toujours `REVOKE ALL … FROM PUBLIC, anon` (et `authenticated` pour les RPC du bot : la default ACL Supabase le leur accorde directement). Contrôle : `npm run db:inventory`.
 2. **Migrations** : appliquer **uniquement** via `npm run db:apply -- <fichier>` (jamais le SQL editor). Une migration appliquée est **figée** : pour corriger, écrire une **nouvelle** migration (`db:status` signale « MODIFIÉ »). Préfixe `AAAAMMJJ_NNN` **unique** : lister `supabase/migrations/<date>_*` avant de choisir `NNN`. Migration avant le code qui l'utilise ; idempotente (`IF [NOT] EXISTS`, `DROP POLICY IF EXISTS` avant `CREATE POLICY`).
 3. **Rien en prod qui ne soit dans git.** Avant tout déploiement (fonction ou migration), proposer le commit au user ; à défaut, lister précisément dans `PASSATION.md` ce qui est déployé et non commité. `tests/` est gitignoré : nouveau fichier de test → `git add -f`.
 4. **Modules, pas monolithes.** `telegram-bot-entry/index.ts` ne fait que router : toute fonctionnalité va dans `supabase/functions/_shared/<feature>.ts` avec tests. Diff > ~300 lignes dans un seul fichier → découper.

@@ -36,6 +36,12 @@ const PUBLIC_RPC_ALLOWLIST = new Set([
   'get_troc_monthly_count',
 ]);
 
+/**
+ * RPC réservées au bot (service_role). Supabase accorde EXECUTE à `authenticated` par défaut
+ * (default ACL) : `REVOKE … FROM PUBLIC, anon` ne suffit pas, un client connecté peut les appeler.
+ */
+const SERVICE_ROLE_ONLY_PREFIXES = ['telegram_', '_telegram_', '_pos_', 'normalize_voucher_'];
+
 /** Heuristique : garde appartenance staff explicite (pas seulement _staff_from_jwt). */
 const hasStaffGuard = (def) =>
   /not\s+exists\s*\(\s*select\s+1\s+from\s+public\.staff\b/i.test(def) ||
@@ -101,6 +107,19 @@ const Q = {
       and p.prokind = 'f'
       and p.prosecdef = true
       and has_function_privilege('anon', p.oid, 'EXECUTE')
+    order by p.proname, args`,
+  /** Toute fonction exécutable par anon ou authenticated (filtrée ensuite par préfixe). */
+  rpcClientOpen: `
+    select p.proname as name,
+           pg_get_function_identity_arguments(p.oid) as args,
+           has_function_privilege('anon', p.oid, 'EXECUTE') as anon,
+           has_function_privilege('authenticated', p.oid, 'EXECUTE') as authenticated
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prokind = 'f'
+      and (has_function_privilege('anon', p.oid, 'EXECUTE')
+           or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
     order by p.proname, args`,
 };
 
@@ -187,6 +206,22 @@ async function main() {
     if (anonOpenPublicOk.length) {
       console.log(`\n── ✓ RPC publiques volontaires (anon OK, ${anonOpenPublicOk.length}) ──`);
       anonOpenPublicOk.forEach((f) => console.log(`   • ${f.name}(${f.args})`));
+    }
+
+    // ── Point d'attention 4 : RPC du bot ouvertes aux clients ────────────────
+    const botRpcLeaks = (data.rpcClientOpen ?? []).filter((f) =>
+      SERVICE_ROLE_ONLY_PREFIXES.some((prefix) => f.name.startsWith(prefix)),
+    );
+    console.log(`\n── ⚠ RPC service_role exécutables par anon/authenticated (${botRpcLeaks.length}) ──`);
+    console.log('   Préfixes réservés au bot : ' + SERVICE_ROLE_ONLY_PREFIXES.join(', '));
+    console.log('   Correctif : REVOKE ALL … FROM PUBLIC, anon, authenticated.');
+    if (botRpcLeaks.length === 0) {
+      console.log('   (aucune — OK)');
+    } else {
+      botRpcLeaks.forEach((f) => {
+        const roles = [f.anon && 'anon', f.authenticated && 'authenticated'].filter(Boolean).join(', ');
+        console.log(`   • ${f.name}(${f.args}) — ${roles}`);
+      });
     }
 
     // ── Détail ───────────────────────────────────────────────────────────────

@@ -17,7 +17,9 @@ import {
 } from "../_shared/telegramHr.ts";
 import {
   PAY_CODES, SALE_REASON_TEXT, isPayCode, parseCustomerReply, parseSaleTag, payLabel,
-  saleCancelCb, saleConfirmCb, salePayCb, salePrompt, saleRecap, saleStartCb, type SaleLine
+  saleCancelCb, saleConfirmCb, salePayCb, salePrompt, saleRecap, saleStartCb, type SaleLine,
+  type PaymentSplitItem, saleMixedPromptCb, saleMixedChoiceCb, parseSaleMixedChoiceCb,
+  saleMixedCashPrompt, parseMixedCashTag
 } from "../_shared/telegramSale.ts";
 import { buildSaleReceiptButton } from "../_shared/saleReceipt.ts";
 import {
@@ -2549,10 +2551,101 @@ async function screenSalePayment(staff: StaffMember, productId: string, backCat:
     reply_markup: {
       inline_keyboard: [
         ...codes.map(c => [{ text: payLabel(PAY_CODES[c]), callback_data: salePayCb(c, product.id) }]),
+        [{ text: "🔀 Mixte (Espèces + Mobile)", callback_data: saleMixedPromptCb(product.id) }],
         [{ text: "⬅️ Précédent", callback_data: `nav:p:${product.id}:${backCat}${scopeSuffix(staff.store)}` }, ...saleHome]
       ]
     }
   };
+}
+
+async function actionSaleMixedPrompt(staff: StaffMember, productId: string, chatId: string | number): Promise<Screen | null> {
+  if (!staff.store) return saleRefusal({ reason: "no_store" });
+  const [product] = await stockRows(staff.store, { productId, limit: 1, ascending: false });
+  if (!product || product.stock < 1) return saleRefusal({ reason: product ? "out_of_stock" : "not_found" });
+  await telegram("sendMessage", {
+    chat_id: chatId,
+    text: saleMixedCashPrompt(product.id, product.name, product.price),
+    parse_mode: "HTML",
+    reply_markup: { force_reply: true, input_field_placeholder: "ex. 25000 ou 25k" }
+  });
+  return null;
+}
+
+async function actionSaleMixedCashReply(staff: StaffMember, productId: string, rawText: string): Promise<Screen> {
+  if (!staff.store) return saleRefusal({ reason: "no_store" });
+  const [product] = await stockRows(staff.store, { productId, limit: 1, ascending: false });
+  if (!product || product.stock < 1) return saleRefusal({ reason: product ? "out_of_stock" : "not_found" });
+
+  const cash = parseAmount(rawText);
+  if (cash <= 0 || cash >= product.price) {
+    return {
+      text:
+        `❌ <b>Montant espèces invalide</b>\n\n` +
+        `Le montant en espèces doit être supérieur à 0 et inférieur au prix total (${money(product.price)}).\n` +
+        `Vous avez saisi : <code>${escapeHtml(rawText)}</code>\n\n` +
+        `Réessayez :`,
+      reply_markup: {
+        force_reply: true,
+        input_field_placeholder: "ex. 25000 ou 25k"
+      }
+    };
+  }
+
+  const remaining = product.price - cash;
+  return {
+    text:
+      `🔀 <b>Paiement mixte — ${escapeHtml(product.name)}</b>\n\n` +
+      `💵 Espèces reçues : <b>${money(cash)}</b>\n` +
+      `💰 Reste à régler : <b>${money(remaining)}</b>\n\n` +
+      `Comment le client règle-t-il le reste ?`,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: `🟠 Orange Money (${money(remaining)})`, callback_data: saleMixedChoiceCb("O", product.id, cash) }],
+        [{ text: `🟡 MTN MoMo (${money(remaining)})`, callback_data: saleMixedChoiceCb("M", product.id, cash) }],
+        [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:all${scopeSuffix(staff.store)}` }]
+      ]
+    }
+  };
+}
+
+async function actionSaleMixedOpen(
+  staff: StaffMember, mobileCode: "O" | "M", productId: string, cashAmount: number, chatId: string | number
+): Promise<Screen | null> {
+  const supabase = db();
+  if (!supabase || (mobileCode !== "O" && mobileCode !== "M") || !productId || cashAmount <= 0) {
+    return saleMessage("Action invalide.");
+  }
+  if (!staff.store) return saleRefusal({ reason: "no_store" });
+  const [product] = await stockRows(staff.store, { productId, limit: 1, ascending: false });
+  if (!product || product.stock < 1) return saleRefusal({ reason: product ? "out_of_stock" : "not_found" });
+
+  const remaining = product.price - cashAmount;
+  if (remaining <= 0) return saleMessage("Montant restant invalide.");
+  const mobileChannel = mobileCode === "O" ? "om" : "momo";
+  const split: PaymentSplitItem[] = [
+    { channel: "cash", amount: cashAmount },
+    { channel: mobileChannel, amount: remaining }
+  ];
+
+  const { data, error } = await supabase.rpc("telegram_staff_sale_draft_open", {
+    p_telegram_user_id: staff.telegram_user_id,
+    p_product_id: productId,
+    p_payment_method: "MIXED",
+    p_payment_split: split
+  });
+  if (error || !data) {
+    console.error("telegram-bot-entry: mixed sale draft open failed", { code: error?.code });
+    return saleMessage("Vente non démarrée, réessayez.");
+  }
+  const result = data as { changed: boolean; reason?: string; draft_id?: string; product_name?: string; price?: number };
+  if (!result.changed || !result.draft_id) return saleRefusal(result);
+
+  await telegram("sendMessage", {
+    chat_id: chatId,
+    text: salePrompt(result.draft_id, result.product_name ?? product.name, Number(result.price ?? product.price), "MIXED", split),
+    reply_markup: { force_reply: true, input_field_placeholder: "Paul 699123456" }
+  });
+  return null;
 }
 
 /** Opens the draft and asks for the customer; returns a Screen only on refusal. */
@@ -2596,14 +2689,15 @@ async function actionSaleCustomer(staff: StaffMember, draftId: string, rawText: 
   }
   const result = data as {
     changed: boolean; reason?: string; order_id?: string; lines?: SaleLine[]; payment_method?: string;
-    discount_amount?: number; customer_name?: string; customer_phone?: string;
+    discount_amount?: number; customer_name?: string; customer_phone?: string; payment_split?: PaymentSplitItem[];
   };
   if (!result.changed) return saleRefusal(result);
   return {
     text: saleRecap({
       lines: (result.lines ?? []).map(l => ({ ...l, unit_price: Number(l.unit_price), quantity: Number(l.quantity) })),
       payment_method: result.payment_method ?? "", discount_amount: Number(result.discount_amount ?? 0),
-      customer_name: result.customer_name ?? customer.name, customer_phone: result.customer_phone ?? customer.phone
+      customer_name: result.customer_name ?? customer.name, customer_phone: result.customer_phone ?? customer.phone,
+      payment_split: result.payment_split
     }),
     reply_markup: {
       inline_keyboard: [
@@ -2618,18 +2712,19 @@ async function actionSaleComplete(staff: StaffMember, draftId: string): Promise<
   const supabase = db();
   if (!supabase || !UUID_RE.test(draftId)) return saleMessage("Action invalide.");
 
-  let draftRow: { lines: SaleLine[]; discount_amount: number; customer_phone: string | null } | null = null;
+  let draftRow: { lines: SaleLine[]; discount_amount: number; customer_phone: string | null; payment_split?: PaymentSplitItem[] | null } | null = null;
   try {
     const { data: dRow } = await supabase
       .from("telegram_sale_drafts")
-      .select("lines, discount_amount, customer_phone")
+      .select("lines, discount_amount, customer_phone, payment_split")
       .eq("id", draftId)
       .maybeSingle();
     if (dRow) {
       draftRow = {
         lines: (dRow.lines as SaleLine[]) ?? [],
         discount_amount: Number(dRow.discount_amount ?? 0),
-        customer_phone: dRow.customer_phone ?? null
+        customer_phone: dRow.customer_phone ?? null,
+        payment_split: (dRow.payment_split as PaymentSplitItem[]) ?? null
       };
     }
   } catch (err) {
@@ -2653,6 +2748,7 @@ async function actionSaleComplete(staff: StaffMember, draftId: string): Promise<
         total: Number(result.total ?? 0),
         discount_amount: draftRow.discount_amount,
         payment_method: result.payment_method ?? "",
+        payment_split: draftRow.payment_split,
         store_name: staff.store?.name ?? "Xeption",
         customer_name: result.customer_name ?? undefined,
         customer_phone: draftRow.customer_phone,
@@ -2670,7 +2766,7 @@ async function actionSaleComplete(staff: StaffMember, draftId: string): Promise<
     text:
       `✅ <b>Vente enregistrée</b>\n\n` +
       `Commande : <b>${escapeHtml(result.order_id ?? "")}</b>\n` +
-      `Total : <b>${money(result.total)}</b> — ${escapeHtml(payLabel(result.payment_method ?? ""))}\n` +
+      `Total : <b>${money(result.total)}</b> — ${escapeHtml(payLabel(result.payment_method ?? "", draftRow?.payment_split))}\n` +
       `Client : ${escapeHtml(result.customer_name ?? "")}\n\n` +
       `Stock de la boutique mis à jour, équipe prévenue.`,
     reply_markup: { inline_keyboard: keyboard }
@@ -3131,6 +3227,16 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     screen = await screenTransferConfirm(staff, parts[2] ?? "", parts[3] || "apple", parts[4]);
   } else if (action === "sv") {
     screen = await screenSalePayment(staff, parts[2] ?? "", parts[3] || "apple");
+  } else if (action === "smx") {
+    const refusal = await actionSaleMixedPrompt(staff, parts[2] ?? "", chatId);
+    if (!refusal) return;
+    screen = refusal;
+  } else if (action === "spx") {
+    const choice = parseSaleMixedChoiceCb(query.data ?? "");
+    if (!choice) return;
+    const refusal = await actionSaleMixedOpen(staff, choice.mobileCode, choice.productId, choice.cashAmount, chatId);
+    if (!refusal) return;
+    screen = refusal;
   } else if (action === "sp") {
     const refusal = await actionSaleOpen(staff, parts[2] ?? "", parts[3] ?? "", chatId);
     if (!refusal) return;
@@ -3523,6 +3629,20 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
       return;
     }
     await renderScreen(chatId, undefined, await actionSaleCustomer(staff, sale.draftId, rawText));
+    return;
+  }
+
+  // Reply to a mixed payment prompt (#SMX:).
+  const mixedSale = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parseMixedCashTag(String(reply?.text ?? ""))
+    : null;
+  if (mixedSale) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    await renderScreen(chatId, undefined, await actionSaleMixedCashReply(staff, mixedSale.productId, rawText));
     return;
   }
 

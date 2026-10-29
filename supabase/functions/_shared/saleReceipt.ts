@@ -3,7 +3,7 @@
  * No Deno or npm dependencies: runnable in Vitest and Edge Functions.
  */
 
-import { payLabel, type SaleLine } from "./telegramSale.ts";
+import { payLabel, type SaleLine, type PaymentSplitItem } from "./telegramSale.ts";
 
 export const MAX_RECEIPT_TEXT_LENGTH = 1600;
 
@@ -13,6 +13,7 @@ export interface SaleReceiptData {
   total: number;
   discount_amount?: number;
   payment_method: string;
+  payment_split?: PaymentSplitItem[] | null;
   store_name?: string;
   customer_name?: string;
   customer_phone?: string;
@@ -92,7 +93,14 @@ export function formatSaleReceiptText(sale: SaleReceiptData): string {
   header += `\n*Articles :*\n`;
 
   const discount = Number(sale.discount_amount ?? 0);
-  const paymentClean = payLabel(sale.payment_method).replace(/^[^\w\s\u00C0-\u00FF]+\s*/, "");
+  let paymentClean = payLabel(sale.payment_method).replace(/^[^\w\s\u00C0-\u00FF]+\s*/, "");
+  if (sale.payment_method === "MIXED" && Array.isArray(sale.payment_split) && sale.payment_split.length > 0) {
+    const parts = sale.payment_split.map(p => {
+      const ch = p.channel === "cash" ? "Espèces" : p.channel === "om" ? "OM" : p.channel === "momo" ? "MoMo" : p.channel;
+      return `${ch} ${formatReceiptMoney(p.amount)}`;
+    });
+    paymentClean = `Mixte (${parts.join(" + ")})`;
+  }
 
   let footer = `\n`;
   if (discount > 0) {

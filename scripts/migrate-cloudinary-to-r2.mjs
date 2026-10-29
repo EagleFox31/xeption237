@@ -11,7 +11,8 @@
  * Usage :
  *   node scripts/migrate-cloudinary-to-r2.mjs [--scope=products,trocs] [--only=<id>] [--limit=N]
  *     [--out=plan.json] [--map=map.json] [--concurrency=8] [--apply]
- * --apply exige SUPABASE_SERVICE_ROLE_KEY dans l'environnement (jamais affichée ni écrite).
+ * --apply : clé service via SUPABASE_SERVICE_ROLE_KEY, sinon récupérée par la CLI Supabase connectée
+ *   (scripts/lib/serviceRoleKey.mjs) ; jamais affichée ni écrite.
  */
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
@@ -19,6 +20,7 @@ import { tmpdir } from 'os';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { resolveServiceRoleKey } from './lib/serviceRoleKey.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const root = join(__dir, '..');
@@ -215,10 +217,10 @@ async function migrateRow(client, secret, cfg, row, map, dead, stats) {
 
 async function main() {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // --apply : clé service résolue à la volée (env, sinon CLI Supabase) ; jamais affichée.
+  const serviceKey = APPLY ? resolveServiceRoleKey() : process.env.SUPABASE_SERVICE_ROLE_KEY;
   const key = serviceKey || process.env.VITE_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !key) throw new Error('VITE_SUPABASE_URL et une clé Supabase sont requis');
-  if (APPLY && !serviceKey) throw new Error('--apply exige SUPABASE_SERVICE_ROLE_KEY dans l’environnement');
   if (!serviceKey && SCOPES.includes('trocs')) console.warn('Sans clé service, les trocs ne sont pas lisibles (RLS).');
   const client = createClient(supabaseUrl, key, { auth: { persistSession: false } });
 

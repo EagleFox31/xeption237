@@ -85,6 +85,7 @@ FK `products.category` et `product_ranges.category` → `categories.slug`.
 - Migrations : `supabase/migrations/` — appliquer avec `npm run db:apply -- supabase/migrations/xxx.sql`
 - **Toute nouvelle RPC `SECURITY DEFINER`** : Postgres accorde `EXECUTE` à `PUBLIC` par défaut (`anon` en hérite). En fin de migration : `REVOKE ALL ON FUNCTION … FROM PUBLIC, anon` puis `GRANT` explicite. Vérifier avec `npm run db:inventory` (section « RPC exécutable par anon sans garde staff »).
 - Ne pas committer `.env` ni secrets.
+- **Clé `service_role` des scripts d'écriture** : jamais dans `.env`. Utiliser `resolveServiceRoleKey()` (`scripts/lib/serviceRoleKey.mjs`) : variable d'env, sinon récupérée à la volée via la CLI Supabase connectée. Ne jamais l'afficher ni la logger.
 - **Outils d'inspection (READ-ONLY)** — connexion partagée `scripts/lib/supabaseDbUrl.mjs` :
   - `npm run db:introspect -- <table> [col1,col2]` → colonnes+types, index, contraintes/FK (à lancer AVANT une migration).
   - `npm run db:troc:latest -- [N]` → derniers dossiers `trade_in_requests` avec la liaison Smart Troc (client + départ + voucher + cible + échéance).

@@ -547,3 +547,16 @@ quelques fiches produit, de façon répétable en local.
 
 **Comment ne plus la refaire** : une page de contenu ne conditionne jamais son SEO au chargement d'une donnée
 annexe ; le prerender attend explicitement le contenu qu'il vérifie ensuite (`inspectLinkingAndContent`).
+
+## 2026-10-30 — Corrections de specs : passe non idempotente (near miss)
+
+**Symptôme** : après `--apply`, une 2e passe dry-run de `redmi-a5.json` voulait encore modifier une fiche.
+
+**Cause racine** : `remove: ["Appareil Photo"]` et `set` `Appareil photo` ont la même clé normalisée ; le label était
+retiré puis rajouté en fin de liste à chaque passe (données justes, ordre instable). Second écart : `products.id`
+est `text`, le cast `uuid[]` faisait échouer le match par ids.
+
+**Résolution** : `applySpecPatch` ne retire jamais un label réécrit par `set` ; match par `id::text = any($1::text[])`.
+
+**Comment ne plus la refaire** : toute correction appliquée est suivie d'une 2e passe dry-run qui doit afficher
+`0 produit(s) à corriger` (critère « second apply = zéro écriture »).

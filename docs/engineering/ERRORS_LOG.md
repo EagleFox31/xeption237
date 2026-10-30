@@ -560,3 +560,17 @@ est `text`, le cast `uuid[]` faisait échouer le match par ids.
 
 **Comment ne plus la refaire** : toute correction appliquée est suivie d'une 2e passe dry-run qui doit afficher
 `0 produit(s) à corriger` (critère « second apply = zéro écriture »).
+
+## 2026-10-30 — Prerender : accueil capturé sans SEO, échec non bloquant (near miss)
+
+**Symptôme** : lors d'une passe locale `PRERENDER_REQUIRED=1`, `dist/index.html` sans meta description ;
+la vérification signale l'erreur mais le script termine en code 0.
+
+**Cause racine** : (1) `isPrerenderRequired` n'acceptait que `PRERENDER_REQUIRED=true` : la forme `=1`
+(documentée dans la passation) rendait l'échec non bloquant. (2) L'accueil n'attendait que `prerender-ready`,
+pas l'application du SEO par Helmet ; sous contention (première page, 3 onglets), la capture partait trop tôt.
+
+**Résolution** : `PRERENDER_REQUIRED` accepte `1` et `true` ; `/` passe par `waitForContentSeo` (canonical attendu).
+
+**Comment ne plus la refaire** : toute page dont le HTML est vérifié après coup doit être attendue sur ce même
+critère avant capture ; les drapeaux booléens d'environnement passent par `isTruthy` (`1` ou `true`).

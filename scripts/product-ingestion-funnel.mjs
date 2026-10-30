@@ -77,7 +77,7 @@ function buildProductName(row) {
 }
 
 function buildSpecs(row) {
-  const [, , , storage, ram, packaging, sim, origin, , , accessories, source, notes] = row;
+  const [, , , storage, ram, packaging, sim, origin, , , accessories, , notes] = row;
   const specs = [];
   if (storage) specs.push({ label: 'Stockage', value: `${storage} Go` });
   if (ram) specs.push({ label: 'RAM', value: `${ram} GB` });
@@ -85,7 +85,6 @@ function buildSpecs(row) {
   if (pkg) specs.push({ label: 'Conditionnement', value: pkg });
   if (sim) specs.push({ label: 'SIM', value: sim });
   if (origin) specs.push({ label: 'Origine', value: origin });
-  if (source) specs.push({ label: 'Source', value: source });
   if (notes) specs.push({ label: 'Notes', value: notes });
   if (accessories) specs.push({ label: 'Accessoires', value: 'Oui' });
   return specs;

@@ -33,7 +33,8 @@ Chaque événement susceptible de créer une notification définit une `dedup_ke
 | Soumission troc client | `troc.submitted.<request_id>` |
 | Troc clôturé | `troc.completed.<request_id>` |
 | Troc refusé | `troc.refused.<request_id>` |
-| Commande créée *(futur)* | `order.created.<order_id>` |
+| Commande créée | `order.created.<order_id>` |
+| Commande payée en ligne | `order_paid.<order_id>` |
 
 L'INSERT utilise `ON CONFLICT (dedup_key) DO NOTHING`. Résultat :
 - Rejeu du trigger sur la même transition → aucune duplication
@@ -89,7 +90,7 @@ Garanties :
 | `troc_completed` | Trigger DB sur `trade_in_requests` (`completed`) | tous staff | in-app + Telegram | ✅ MVP |
 | `troc_refused` | Trigger DB sur `trade_in_requests` (`refused`) | tous staff | in-app + Telegram | ✅ MVP |
 | `pos_sale` | RPC `telegram_staff_complete_sale` (vente comptoir du bot Telegram) | tous staff | in-app + groupe Telegram | ✅ |
-| `order_paid` | Client code (webhook paiement) | tous staff | in-app + email | 🟡 Roadmap |
+| `order_paid` | Confirmation paiement en ligne CamPay (`patchOrderPaymentPaid`) | tous staff | in-app + Telegram + WhatsApp | ✅ Livré |
 | `order_shipped` | Admin action manuelle | **client (email)** | email | 🟡 Roadmap |
 | `sync_success` / `sync_failure` | Hook `useOfflinePos` (déjà intégré via shim) | vendeur concerné | in-app (silencieux pour `success`) | ✅ MVP (via shim legacy) |
 | `stock_low` / `stock_out` | Trigger DB sur `products.stock` (franchissement du seuil 2, puis 0) | tous staff | in-app + Telegram + WhatsApp | ✅ |
@@ -112,7 +113,7 @@ Garanties :
   - Sur chaque vente comptoir enregistrée (`actionSaleComplete`), comme le téléphone client y est obligatoire, le bot Telegram propose systématiquement au vendeur un bouton interactif `📲 Envoyer le reçu au client`.
   - Ce bouton ouvre l'application WhatsApp du vendeur avec un message pré-rempli (`wa.me`) contenant le reçu détaillé (tronqué à 1 600 caractères max), sans envoi automatique backend (zéro risque de signalement spam ou de ban de numéro boutique).
 - **Groupe WhatsApp (Urgences commerciales, Stocks critiques & Clôtures)** :
-  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report']`).
+  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report']`).
   - Protégé contre la fuite de données personnelles (enveloppe canonique Trigenys Notify sans noms ni numéros clients).
   - Clôtures de caisse : mappées sur l'événement canonique `cash_report.closed` avec les faits métier (`closingCashXaf`, `totalInflowXaf`, `totalOutflowXaf`, `actor`), bridgées vers le bon groupe WhatsApp par Trigenys Notify.
 

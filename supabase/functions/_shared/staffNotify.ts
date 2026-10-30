@@ -43,6 +43,7 @@ export const DEFAULT_STAFF_EVENT_TYPES = [
   'stock_out',
   'marketplace_listed',
   'order_created',
+  'order_paid',
   'pos_sale',
   'product_missing_image',
   'stock_correction',
@@ -57,6 +58,7 @@ const EVENT_ICONS: Record<string, string> = {
   stock_out: '🚨',
   marketplace_listed: '🛒',
   order_created: '🧾',
+  order_paid: '💳',
   pos_sale: '💰',
   product_missing_image: '🖼️',
   stock_correction: '✏️',
@@ -142,4 +144,3 @@ export const formatPlainNotification = (n: StaffNotification, ctx?: StaffNotifyC
     .filter(Boolean)
     .join('\n');
 };
-

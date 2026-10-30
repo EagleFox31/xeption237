@@ -44,6 +44,16 @@ export const extractNotificationFacts=(n:StaffNotification)=>{
     if(city&&/^[\p{L}][\p{L} '\-]*$/u.test(city))facts.city=city;
     const delivery=label(parts[2],80);
     if(delivery)facts.deliveryMode=delivery;
+  }else if(n.event_type==='order_paid'){
+    const totalMatch=parts[0]?.match(/^([\d\s.]+)\s*FCFA$/i);
+    if(totalMatch){
+      const t=money(totalMatch[1]);
+      if(t!==undefined)facts.amountPaidXaf=t;
+    }
+    const ch=label(parts[1],80);
+    if(ch)facts.paymentChannel=ch;
+    const st=label(parts[2],80);
+    if(st)facts.paymentStatus=st;
   }else if(n.event_type==='marketplace_listed'){
     const specification=parts.find(s=>/^\d{1,4} Go(?: \/ \d{1,4} Go)?$/.test(s));
     if(specification)facts.specification=specification;
@@ -86,4 +96,3 @@ export const extractNotificationFacts=(n:StaffNotification)=>{
   }
   return Object.keys(facts).length?facts:undefined;
 };
-

@@ -48,6 +48,9 @@ export const DEFAULT_STAFF_EVENT_TYPES = [
   'product_missing_image',
   'stock_correction',
   'store_cash_report',
+  'troc_stale',
+  'voucher_expiring',
+  'debt_overdue',
 ] as const;
 
 const EVENT_ICONS: Record<string, string> = {
@@ -63,6 +66,9 @@ const EVENT_ICONS: Record<string, string> = {
   product_missing_image: '🖼️',
   stock_correction: '✏️',
   store_cash_report: '📊',
+  troc_stale: '⏱️',
+  voucher_expiring: '⏳',
+  debt_overdue: '📋',
 };
 const DEFAULT_ICON = '🔔';
 
@@ -129,12 +135,17 @@ export interface StaffNotificationView {
   details: string[];
 }
 
+const cleanHeading = (title: string): string => {
+  const stripped = title.replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\s]+/u, '').trim();
+  return stripped || title.trim();
+};
+
 export const toNotificationView = (n: StaffNotification): StaffNotificationView => {
   const [subject = '', ...details] = n.message
     .split(MESSAGE_FIELD_SEPARATOR)
     .map((f) => formatAmounts(f.trim()))
     .filter(Boolean);
-  return { icon: eventIcon(n.event_type), heading: n.title.trim(), subject, details };
+  return { icon: eventIcon(n.event_type), heading: cleanHeading(n.title), subject, details };
 };
 
 /** Texte brut commun (canaux sans mise en forme : SMS, WhatsApp texte…). */

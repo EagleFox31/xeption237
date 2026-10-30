@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { WAHA_DEFAULT_EVENT_TYPES, NOTIFY_EVENT_ALIASES } from '../supabase/functions/_shared/staffNotifyChannels/waha';
+import { DEFAULT_STAFF_EVENT_TYPES, eventIcon } from '../supabase/functions/_shared/staffNotify';
 import type { NotificationEventType } from '../services/notificationService';
 
 const MIGRATION_PATH = resolve(__dirname, '../supabase/migrations/20261027_002_notify_time_based_reminders.sql');
@@ -72,7 +73,15 @@ describe('Lot 1 — Rappels staff liés au temps (Migration 20261027_002)', () =
     });
   });
 
-  describe('Alignement TypeScript et adaptateur WAHA', () => {
+  describe('Alignement canaux Telegram et WAHA', () => {
+    it('DEFAULT_STAFF_EVENT_TYPES relaie les rappels temporels sur Telegram', () => {
+      expect(DEFAULT_STAFF_EVENT_TYPES).toContain('troc_stale');
+      expect(DEFAULT_STAFF_EVENT_TYPES).toContain('voucher_expiring');
+      expect(DEFAULT_STAFF_EVENT_TYPES).toContain('debt_overdue');
+      expect(eventIcon('troc_stale')).toBe('⏱️');
+      expect(eventIcon('voucher_expiring')).toBe('⏳');
+      expect(eventIcon('debt_overdue')).toBe('📋');
+    });
     it('NotificationEventType accepte troc_stale, voucher_expiring, debt_overdue', () => {
       const types: NotificationEventType[] = ['troc_stale', 'voucher_expiring', 'debt_overdue'];
       expect(types).toHaveLength(3);

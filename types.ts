@@ -37,6 +37,7 @@ export interface Product {
   oldPrice?: number;
   category: string; // Slug de la catégorie
   brand?: string; // ID ou Slug de la marque
+  brandName?: string; // Nom lisible résolu depuis `brands` (affichage / SEO)
   productRange?: string; // ID ou Slug de la gamme
   condition?: 'new' | 'refurbished'; // Nouvel état
   image: string;

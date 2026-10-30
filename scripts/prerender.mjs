@@ -29,6 +29,23 @@ const STATIC_ROUTES = [
   '/politique-cookies',
 ];
 
+/** Routes de contenu SEO (landings, guides, aide) émises par le plugin Vite seo-routes-manifest. */
+const getContentRoutes = () => {
+  const manifestPath = path.join(distDir, 'seo-routes.json');
+  if (!fs.existsSync(manifestPath)) {
+    console.warn('[prerender] dist/seo-routes.json absent — routes de contenu ignorées');
+    return [];
+  }
+  return JSON.parse(fs.readFileSync(manifestPath, 'utf8')).map((entry) => entry.path);
+};
+
+const CONTENT_ROUTE_RE = /^\/(categorie|guides|aide)(\/|$)/;
+const isContentRoute = (route) => CONTENT_ROUTE_RE.test(route);
+
+/** Routes de contenu dont la page doit publier un FAQPage (FAQ visible). */
+
+const routeRequiresFaq = (route) => route.startsWith('/categorie/');
+
 /** Routes SPA sans prerender (auth admin, tokens dynamiques) — copie index.html pour refresh direct */
 const SPA_CLIENT_ONLY_ROUTES = ['/admin'];
 
@@ -271,6 +288,68 @@ const waitForProductSeo = async (page, route) => {
   }
 };
 
+/** Attend que Helmet ait appliqué le canonical de la route (et, pour une landing, FAQPage + liens produit). */
+const waitForContentSeo = async (page, route) => {
+  const expectedCanonical = expectedCanonicalForRoute(route);
+  const requireFaq = routeRequiresFaq(route);
+  const result = await page.evaluate(
+    async ({ expectedCanonical, requireFaq, timeoutMs, pollMs }) => {
+      const read = () => ({
+        canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href')?.trim() || '',
+        hasFaq: Array.from(document.querySelectorAll('script[type="application/ld+json"]')).some((el) =>
+          (el.textContent || '').includes('"FAQPage"'),
+        ),
+        // Sélection vide légitime (catalogue sans modèle correspondant) : marquée par data-empty-selection.
+        hasProductLinks: Boolean(document.querySelector('a[href^="/product/"], [data-empty-selection]')),
+      });
+      const startedAt = Date.now();
+      let state = read();
+      while (Date.now() - startedAt < timeoutMs) {
+        if (state.canonical === expectedCanonical && (!requireFaq || (state.hasFaq && state.hasProductLinks))) {
+          return { ok: true, state };
+        }
+        await new Promise((resolve) => setTimeout(resolve, pollMs));
+        state = read();
+      }
+      return { ok: false, state };
+    },
+    { expectedCanonical, requireFaq, timeoutMs: PRODUCT_SEO_TIMEOUT_MS, pollMs: PRODUCT_SEO_POLL_MS },
+  );
+  if (!result.ok) {
+    throw new Error(
+      `SEO contenu non prêt après ${PRODUCT_SEO_TIMEOUT_MS}ms | canonical="${result.state.canonical}" | expected="${expectedCanonical}" | faq=${result.state.hasFaq} | productLinks=${result.state.hasProductLinks}`,
+    );
+  }
+};
+
+/** Contrôles de maillage interne et des pages de contenu dans le HTML servi. */
+const inspectLinkingAndContent = (contentRoutes) => {
+  const errors = [];
+  const read = (route) => {
+    const file = route === '/' ? path.join(distDir, 'index.html') : path.join(distDir, route, 'index.html');
+    return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
+  };
+  const home = read('/');
+  if (home && !home.includes('href="/product/')) errors.push('home: aucun lien <a href="/product/…">');
+  if (home && !home.includes('href="/categorie/')) errors.push('home: aucun lien <a href="/categorie/…">');
+  const shop = read('/shop');
+  if (shop && !shop.includes('href="/product/')) errors.push('shop: aucun lien <a href="/product/…">');
+  for (const route of contentRoutes) {
+    const html = read(route);
+    if (!html) {
+      errors.push(`${route}: HTML manquant`);
+      continue;
+    }
+    if (extractCanonical(html) !== expectedCanonicalForRoute(route)) errors.push(`${route}: canonical incorrect`);
+    if (routeRequiresFaq(route) && !html.includes('"FAQPage"')) errors.push(`${route}: FAQPage absent`);
+    if (route.startsWith('/categorie/') && !html.includes('href="/product/')) {
+      if (html.includes('data-empty-selection')) console.warn(`[prerender] ${route} : sélection vide (aucun produit ne correspond)`);
+      else errors.push(`${route}: aucun lien produit`);
+    }
+  }
+  return errors;
+};
+
 const findChromeExecutable = () => {
   const envPath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH;
   if (envPath && fs.existsSync(envPath)) return envPath;
@@ -382,6 +461,7 @@ const inspectProductHtml = (route, html) => {
 
 const verifyPrerenderOutput = (routes) => {
   const errors = [];
+  errors.push(...inspectLinkingAndContent(routes.filter(isContentRoute)));
 
   const sitemapPath = path.join(distDir, 'sitemap.xml');
   if (!fs.existsSync(sitemapPath)) {
@@ -439,12 +519,12 @@ const verifyPrerenderOutput = (routes) => {
     return false;
   }
 
-  console.log(`[prerender] verification passed (${productRoutes.length} product pages checked)`);
+  console.log(`[prerender] verification passed (${productRoutes.length} product pages, internal links and content routes checked)`);
   return true;
 };
 
 const main = async () => {
-  const routes = [...STATIC_ROUTES, ...(await getProductRoutes())];
+  const routes = [...STATIC_ROUTES, ...getContentRoutes(), ...(await getProductRoutes())];
 
   if (!fs.existsSync(distDir)) {
     console.error('dist/ not found. Run vite build first.');
@@ -517,6 +597,8 @@ const main = async () => {
 
       if (route.startsWith('/product/')) {
         await waitForProductSeo(page, route);
+      } else if (isContentRoute(route)) {
+        await waitForContentSeo(page, route);
       }
 
       await writeRouteHtml(route, await page.content());

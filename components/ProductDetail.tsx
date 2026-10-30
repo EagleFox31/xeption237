@@ -10,6 +10,8 @@ import { getProductDisplayName, normalizeSamsungGalaxySpelling } from '../utils/
 import { ProductBadgeChips } from './product/ProductBadgeChips';
 import ProductHighlightCards from './product/ProductHighlightCards';
 import { getPublicSpecs } from '../utils/publicSpecs';
+import ProductLink from './common/ProductLink';
+import ProductContentLinks from './content/ProductContentLinks';
 
 interface ProductDetailProps {
     product: Product;
@@ -519,8 +521,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                 {display.map((p) => (
                                     <div
                                         key={p.id}
-                                        className="group bg-white/70 border border-white/60 hover:border-xeption-gold/40 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all cursor-pointer snap-start min-w-[160px] max-w-[200px] flex-shrink-0"
-                                        onClick={() => onProductSelect && onProductSelect(p)}
+                                        className="group relative bg-white/70 border border-white/60 hover:border-xeption-gold/40 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all cursor-pointer snap-start min-w-[160px] max-w-[200px] flex-shrink-0"
                                     >
                                         <div className="aspect-square bg-white/80 p-3 flex items-center justify-center">
                                             <img
@@ -532,7 +533,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                         </div>
                                         <div className="p-2">
                                             <h4 className="text-[10px] md:text-xs font-bold uppercase text-gray-900 truncate">
-                                                {p.name}
+                                                <ProductLink product={p} onOpen={onProductSelect} stretched>
+                                                    {p.name}
+                                                </ProductLink>
                                             </h4>
                                             <div className="flex items-baseline gap-1 mt-1">
                                                 <span className="text-sm font-bold text-black font-tech">
@@ -542,7 +545,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                             </div>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); onAddToCart(p); }}
-                                                className="mt-2 w-full bg-black text-white text-[9px] uppercase font-bold tracking-widest py-1.5 hover:bg-xeption-gold hover:text-black transition-colors"
+                                                className="relative z-20 mt-2 w-full bg-black text-white text-[9px] uppercase font-bold tracking-widest py-1.5 hover:bg-xeption-gold hover:text-black transition-colors"
                                             >
                                                 Ajouter
                                             </button>
@@ -553,6 +556,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                         </div>
                     );
                 })()}
+
+                <ProductContentLinks product={product} />
 
                 {/* 5. LOCAL PRODUCT PROOF - Only show if there are reviews */}
                 {displayReviews.length > 0 && (

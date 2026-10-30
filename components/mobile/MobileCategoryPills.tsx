@@ -1,5 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { isModifiedClick } from '../common/ProductLink';
 
 export interface CategoryPillItem {
   id: string;
@@ -27,14 +28,11 @@ export const MobileCategoryPills: React.FC<MobileCategoryPillsProps> = ({
   className = '',
   onPillClick,
 }) => {
-  const navigate = useNavigate();
-
-  const handlePillClick = (pill: CategoryPillItem) => {
-    if (onPillClick) {
-      onPillClick(pill);
-    } else {
-      navigate(pill.route);
-    }
+  /** Lien crawlable ; si un handler est fourni, il remplace la navigation (clic simple uniquement). */
+  const handlePillClick = (e: React.MouseEvent, pill: CategoryPillItem) => {
+    if (!onPillClick || isModifiedClick(e)) return;
+    e.preventDefault();
+    onPillClick(pill);
   };
 
   return (
@@ -48,22 +46,22 @@ export const MobileCategoryPills: React.FC<MobileCategoryPillsProps> = ({
           if (pill.isSpecial) {
             // Pilule TROC dorée et lumineuse (conforme à la maquette)
             return (
-              <button
+              <Link
                 key={pill.id}
-                type="button"
-                onClick={() => handlePillClick(pill)}
+                to={pill.route}
+                onClick={(e) => handlePillClick(e, pill)}
                 className="shrink-0 px-4 py-2 rounded-full border border-amber-400/80 bg-black/50 text-amber-400 font-tech text-xs font-black uppercase tracking-wider shadow-[0_0_12px_rgba(251,191,36,0.35)] active:scale-95 transition-all hover:bg-amber-400/10 hover:shadow-[0_0_16px_rgba(251,191,36,0.5)]"
               >
                 {pill.label}
-              </button>
+              </Link>
             );
           }
 
           return (
-            <button
+            <Link
               key={pill.id}
-              type="button"
-              onClick={() => handlePillClick(pill)}
+              to={pill.route}
+              onClick={(e) => handlePillClick(e, pill)}
               className={`shrink-0 px-4 py-2 rounded-full border text-xs font-tech font-bold uppercase tracking-wider transition-all active:scale-95 ${
                 isActive
                   ? 'border-white bg-white text-black font-black'
@@ -71,7 +69,7 @@ export const MobileCategoryPills: React.FC<MobileCategoryPillsProps> = ({
               }`}
             >
               {pill.label}
-            </button>
+            </Link>
           );
         })}
       </div>

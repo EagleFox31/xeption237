@@ -4,6 +4,7 @@ import { Product } from '../../types';
 import { optimizeImage } from '../../utils/mediaOptimization';
 import { getProductDisplayName } from '../../utils/productDisplay';
 import ProductCardImage from '../common/ProductCardImage';
+import ProductLink from '../common/ProductLink';
 import HeroWelcomeSlide from './HeroWelcomeSlide';
 
 interface HeroMobileCarouselProps {
@@ -134,13 +135,7 @@ const HeroMobileCarousel: React.FC<HeroMobileCarouselProps> = ({
                   <HeroWelcomeSlide compact />
                 </div>
               ) : (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onProductClick?.(slide.product)}
-                  onKeyDown={(e) => e.key === 'Enter' && onProductClick?.(slide.product)}
-                  className="w-full min-w-0 group cursor-pointer px-0.5"
-                >
+                <div className="relative w-full min-w-0 group cursor-pointer px-0.5">
                   <div className="flex items-center justify-center gap-2 mb-3">
                     <span className="w-6 h-0.5 bg-xeption-gold shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
                     <p className="text-center text-xeption-gold font-tech font-bold text-xs uppercase tracking-[0.2em]">
@@ -185,7 +180,7 @@ const HeroMobileCarousel: React.FC<HeroMobileCarouselProps> = ({
                           e.stopPropagation();
                           onAddToCart(slide.product);
                         }}
-                        className="absolute bottom-2 right-2 bg-xeption-gold text-black p-2 rounded-full shadow-[0_4px_16px_rgba(255,215,0,0.45)] z-10 hover:scale-105 transition-transform"
+                        className="absolute bottom-2 right-2 bg-xeption-gold text-black p-2 rounded-full shadow-[0_4px_16px_rgba(255,215,0,0.45)] z-20 hover:scale-105 transition-transform"
                         aria-label="Ajouter au panier"
                       >
                         <ShoppingCart className="h-4 w-4" />
@@ -194,7 +189,9 @@ const HeroMobileCarousel: React.FC<HeroMobileCarouselProps> = ({
                   </div>
 
                   <h3 className="text-sm font-bold text-white font-tech uppercase tracking-wide text-center line-clamp-2 px-1 group-hover:text-xeption-gold transition-colors">
-                    {getProductDisplayName(slide.product)}
+                    <ProductLink product={slide.product} onOpen={onProductClick} stretched>
+                      {getProductDisplayName(slide.product)}
+                    </ProductLink>
                   </h3>
                   <div className="flex flex-wrap items-baseline justify-center gap-x-1.5 gap-y-0.5 mt-2 px-1">
                     {slide.product.oldPrice && (

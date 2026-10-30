@@ -168,3 +168,19 @@ export function getBrandDisplayName(brandKey: string, brands: BrandRef[]): strin
   }
   return canonical;
 }
+
+/**
+ * Nom de marque lisible (« Apple », « HP »…) pour l'affichage et le SEO.
+ * `product.brand` contient un uuid/slug technique : ne jamais l'exposer tel quel.
+ */
+export function resolveProductBrandName(product: Product, brands: BrandRef[]): string | undefined {
+  const brandId = resolveProductBrandId(product, brands);
+  if (!brandId || brandId === UNASSIGNED_BRAND_KEY) return undefined;
+  const name = getBrandDisplayName(brandId, brands);
+  return name && !isUuid(name) ? name : undefined;
+}
+
+/** Retourne de nouveaux produits enrichis de `brandName` (n'altère pas l'entrée). */
+export function attachBrandNames(products: Product[], brands: BrandRef[]): Product[] {
+  return products.map((p) => ({ ...p, brandName: resolveProductBrandName(p, brands) }));
+}

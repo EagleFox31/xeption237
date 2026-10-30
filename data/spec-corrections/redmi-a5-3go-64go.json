@@ -1,0 +1,10 @@
+{
+  "source": "https://www.mi.com/global/product/redmi-a5/specs/ — variantes officielles 3/64 et 4/128 ; fiche à 55 000 FCFA (< 128 Go à 63 000) = 3/64 (consulté le 2026-10-30)",
+  "match": { "ids": ["43f615fb-4e78-4a55-a6b1-9c02f84c7e59"] },
+  "set": [
+    { "label": "RAM", "value": "3 Go" },
+    { "label": "Stockage", "value": "64 Go, extensible par microSD (jusqu'à 2 To)" }
+  ],
+  "remove": [],
+  "description": "Le Xiaomi Redmi A5 (3 Go de RAM, 64 Go de stockage) est un smartphone neuf pensé pour le quotidien à petit prix. Son grand écran 6,88 pouces HD+ à 120 Hz rend la navigation et les vidéos fluides, et son processeur octa-core UNISOC T7250 suffit pour WhatsApp, les réseaux sociaux, les appels et le web. La batterie de 5200 mAh tient facilement la journée, avec une charge 15 W. Côté photo : 32 MP à l'arrière, 8 MP en façade. Double SIM 4G, Android 15 (Go Edition), et le stockage s'étend par carte microSD jusqu'à 2 To."
+}

@@ -1,0 +1,6 @@
+{
+  "source": "Décision produit 2026-10-30 : la ligne interne « Source » (fournisseur / lot d'arrivage) est retirée de toutes les fiches.",
+  "match": { "nameIlike": "%" },
+  "set": [],
+  "remove": ["Source"]
+}

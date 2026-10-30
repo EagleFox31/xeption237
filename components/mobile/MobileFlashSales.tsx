@@ -1,11 +1,11 @@
 import React, { useRef } from 'react';
 import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Product } from '../../types';
-import { getProductSlug } from '../../utils/slug';
 import { getProductDisplayName } from '../../utils/productDisplay';
 import { optimizeImage } from '../../utils/mediaOptimization';
 import ProductCardImage from '../common/ProductCardImage';
+import ProductLink from '../common/ProductLink';
 
 export interface MobileFlashSalesProps {
   products: Product[];
@@ -26,7 +26,6 @@ export const MobileFlashSales: React.FC<MobileFlashSalesProps> = ({
   mode = 'promo',
   className = '',
 }) => {
-  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // En mode promo : prioriser les réductions réelles et vedettes
@@ -77,14 +76,13 @@ export const MobileFlashSales: React.FC<MobileFlashSalesProps> = ({
 
         <div className="flex items-center space-x-2">
           {viewAllRoute && (
-            <button
-              type="button"
-              onClick={() => navigate(viewAllRoute)}
+            <Link
+              to={viewAllRoute}
               className="text-[11px] font-tech font-bold text-amber-400 hover:text-amber-300 flex items-center gap-0.5 uppercase tracking-wider transition-colors active:scale-95"
             >
               <span>{viewAllLabel || 'Voir tout'}</span>
               <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+            </Link>
           )}
           <div className="flex items-center space-x-1">
             <button
@@ -115,13 +113,11 @@ export const MobileFlashSales: React.FC<MobileFlashSalesProps> = ({
         {displayList.map((product) => {
           const badge = getDiscountBadge(product);
           const displayName = getProductDisplayName(product);
-          const slug = getProductSlug(product);
 
           return (
             <div
               key={product.id}
-              onClick={() => navigate(`/product/${slug}`)}
-              className="w-[150px] sm:w-[160px] shrink-0 bg-[#121214] border border-zinc-800/80 rounded-2xl p-2 flex flex-col justify-between shadow-lg cursor-pointer hover:border-zinc-700 active:scale-[0.98] transition-all snap-start"
+              className="relative w-[150px] sm:w-[160px] shrink-0 bg-[#121214] border border-zinc-800/80 rounded-2xl p-2 flex flex-col justify-between shadow-lg cursor-pointer hover:border-zinc-700 active:scale-[0.98] transition-all snap-start"
             >
               {/* Vignette carrée blanche mettant en valeur le produit (conforme maquette) */}
               <div className="w-full aspect-square bg-white rounded-xl relative p-2 flex items-center justify-center overflow-hidden">
@@ -154,7 +150,7 @@ export const MobileFlashSales: React.FC<MobileFlashSalesProps> = ({
                     e.stopPropagation();
                     onAddToCart(product);
                   }}
-                  className="w-6 h-6 rounded-full bg-black/90 hover:bg-black text-white flex items-center justify-center absolute bottom-1.5 right-1.5 shadow-md active:scale-90 transition-transform"
+                  className="w-6 h-6 rounded-full bg-black/90 hover:bg-black text-white flex items-center justify-center absolute bottom-1.5 right-1.5 z-20 shadow-md active:scale-90 transition-transform"
                   aria-label={`Ajouter ${displayName} au panier`}
                 >
                   <ShoppingCart className="w-3.5 h-3.5" />
@@ -163,7 +159,9 @@ export const MobileFlashSales: React.FC<MobileFlashSalesProps> = ({
 
               {/* Nom du produit — or, 2 lignes max, hauteur fixe pour aligner les prix entre cards */}
               <p className="mt-2 text-xeption-gold text-sm font-bold font-tech leading-tight line-clamp-2 h-[34px]">
-                {displayName}
+                <ProductLink product={product} stretched>
+                  {displayName}
+                </ProductLink>
               </p>
 
               {/* Ligne inférieure : Prix (hiérarchie primaire e-commerce) + CTA panier */}
@@ -179,7 +177,7 @@ export const MobileFlashSales: React.FC<MobileFlashSalesProps> = ({
                     e.stopPropagation();
                     onAddToCart(product);
                   }}
-                  className="w-7 h-7 shrink-0 rounded-lg bg-amber-400 hover:bg-amber-300 text-black flex items-center justify-center shadow-[0_0_8px_rgba(251,191,36,0.4)] active:scale-90 transition-transform"
+                  className="relative z-20 w-7 h-7 shrink-0 rounded-lg bg-amber-400 hover:bg-amber-300 text-black flex items-center justify-center shadow-[0_0_8px_rgba(251,191,36,0.4)] active:scale-90 transition-transform"
                   aria-label={`Acheter ${displayName}`}
                 >
                   <ShoppingCart className="w-3.5 h-3.5 stroke-[2.5]" />

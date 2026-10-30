@@ -5,6 +5,7 @@ import { optimizeImage } from '../../utils/mediaOptimization';
 import { getProductDisplayName, normalizeSamsungGalaxySpelling } from '../../utils/productDisplay';
 import { ProductBadgeChips } from './ProductBadgeChips';
 import ProductCardImage from '../common/ProductCardImage';
+import ProductLink from '../common/ProductLink';
 import { productSpecSummary } from '../../utils/productSpecSummary';
 
 interface ProductCardProps {
@@ -21,10 +22,9 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onProductClick }) => (
   <div
     className="group relative h-full bg-[#0f0f0f]/80 backdrop-blur-2xl border border-white/10 hover:border-xeption-gold/50 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-[0_0_30px_rgba(255,215,0,0.15)] hover:-translate-y-1 cursor-pointer rounded-lg"
-    onClick={() => onProductClick && onProductClick(product)}
   >
     {product.isPromo && (
-      <div className="absolute top-2 right-2 z-20 animate-pulse-slow">
+      <div className="absolute top-2 right-2 z-20 animate-pulse-slow pointer-events-none">
         <div className="bg-red-600 text-white text-[8px] md:text-[9px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase tracking-widest shadow-[0_0_15px_rgba(255,0,0,0.6)] rounded-sm border border-red-400">
           Promo
         </div>
@@ -43,10 +43,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onProdu
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03),transparent_70%)] opacity-50 pointer-events-none" />
     </div>
 
-    <div className="p-2 md:p-3 flex-1 flex flex-col relative">
+    <div className="p-2 md:p-3 flex-1 flex flex-col">
       <div className="mb-1">
         <h3 className="text-sm md:text-base font-bold text-white font-tech uppercase tracking-wide group-hover:text-xeption-gold transition-colors truncate drop-shadow-md">
-          {getProductDisplayName(product)}
+          <ProductLink product={product} onOpen={onProductClick} stretched>
+            {getProductDisplayName(product)}
+          </ProductLink>
         </h3>
         <ProductBadgeChips product={product} size="sm" theme="dark" className="mt-1.5" />
       </div>
@@ -89,7 +91,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onProdu
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-          className="mt-2 w-full inline-flex items-center justify-center gap-2 bg-xeption-gold text-black font-tech font-bold uppercase text-[11px] md:text-xs tracking-wider py-2 md:py-2.5 rounded-md hover:bg-white transition-colors"
+          className="relative z-20 mt-2 w-full inline-flex items-center justify-center gap-2 bg-xeption-gold text-black font-tech font-bold uppercase text-[11px] md:text-xs tracking-wider py-2 md:py-2.5 rounded-md hover:bg-white transition-colors"
           aria-label={`Acheter ${getProductDisplayName(product)}`}
         >
           <ShoppingCart className="w-4 h-4" /> Acheter

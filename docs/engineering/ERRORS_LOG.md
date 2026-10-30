@@ -504,3 +504,59 @@ Les 2 images migrées. Un sondage HEAD a aussi échoué une fois de façon trans
 
 **Comment ne plus la refaire** : avant de déclarer une image Cloudinary morte, lire `X-Cld-Error` (`curl -I`) ;
 400 ≠ 404 : 400 = transformation refusée, l'original existe.
+
+## 2026-10-30 — Liens Smart Troc → boutique sans filtre (`?category=ordinateurs`)
+
+**Symptôme** : depuis `/troc`, les raccourcis « Smartphones / PC / Tablettes / Accessoires » ouvrent la boutique
+sans filtre de catégorie.
+
+**Cause racine** : `TrocPage` construisait `/shop?category=…` alors que la boutique lit `cat`, et utilisait le slug
+`ordinateurs` (la base et `CATEGORY_SLUGS.ORDINATEURS` utilisent `computer`). `AGENTS.md` documentait aussi
+`ordinateurs`, ce qui a propagé l'erreur.
+
+**Résolution** : liens passés à `/shop?cat=<slug>` avec `computer` ; `AGENTS.md` corrigé.
+
+**Comment ne plus la refaire** : ne jamais écrire un slug de catégorie en dur — utiliser `CATEGORY_SLUGS`.
+Les landings SEO (`content/seo/landingPages.ts`) le font, et `tests/unit/seoContentConfig.test.ts` vérifie
+que leurs catégories existent.
+
+## 2026-10-30 — JSON-LD produit : `brand` = UUID au lieu du nom de marque
+
+**Symptôme** : audit SEO : le `brand` du schéma Product affiche un identifiant technique au lieu d'Apple/HP/Xiaomi.
+
+**Cause racine** : `products.brand` contient l'UUID de `brands` ; la boutique ne chargeait pas la table `brands`
+et `ProductPage` passait la valeur brute à `productJsonLd`.
+
+**Résolution** : `App.fetchData` charge `brands` en parallèle (avant le signal prerender) et enrichit chaque
+produit d'un `brandName` résolu (`attachBrandNames`) ; un UUID orphelin donne `undefined`, jamais l'UUID.
+
+**Comment ne plus la refaire** : toute donnée publiée (JSON-LD, analytics) passe par un nom résolu ;
+`tests/unit/productBrandName.test.ts` couvre UUID → nom, inférence par nom et UUID orphelin.
+
+## 2026-10-30 — Prerender : landings figées en squelette (canonical vide)
+
+**Symptôme** : `PRERENDER_REQUIRED=1` échoue sur `/categorie/*` (canonical="" puis FAQ sans liens produit) et sur
+quelques fiches produit, de façon répétable en local.
+
+**Cause racine** : le fetch complet du catalogue dépasse `PRERENDER_READY_TIMEOUT_MS` (20 s) depuis un réseau lent ;
+`LandingPage` ne rendait rien d'autre qu'un squelette tant que `products` était vide.
+
+**Résolution** : `LandingPage` rend texte, FAQ et SEO sans attendre le catalogue (seule la grille attend) ;
+`waitForContentSeo` exige en plus des liens `/product/` sur les landings avant capture. Réseau lent :
+`PRERENDER_READY_TIMEOUT_MS=60000 PRODUCT_SEO_TIMEOUT_MS=60000`.
+
+**Comment ne plus la refaire** : une page de contenu ne conditionne jamais son SEO au chargement d'une donnée
+annexe ; le prerender attend explicitement le contenu qu'il vérifie ensuite (`inspectLinkingAndContent`).
+
+## 2026-10-30 — Corrections de specs : passe non idempotente (near miss)
+
+**Symptôme** : après `--apply`, une 2e passe dry-run de `redmi-a5.json` voulait encore modifier une fiche.
+
+**Cause racine** : `remove: ["Appareil Photo"]` et `set` `Appareil photo` ont la même clé normalisée ; le label était
+retiré puis rajouté en fin de liste à chaque passe (données justes, ordre instable). Second écart : `products.id`
+est `text`, le cast `uuid[]` faisait échouer le match par ids.
+
+**Résolution** : `applySpecPatch` ne retire jamais un label réécrit par `set` ; match par `id::text = any($1::text[])`.
+
+**Comment ne plus la refaire** : toute correction appliquée est suivie d'une 2e passe dry-run qui doit afficher
+`0 produit(s) à corriger` (critère « second apply = zéro écriture »).

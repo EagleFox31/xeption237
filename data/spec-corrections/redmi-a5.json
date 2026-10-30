@@ -1,0 +1,12 @@
+{
+  "source": "https://www.mi.com/global/product/redmi-a5/specs/ (consulté le 2026-10-30)",
+  "match": { "nameIlike": "%redmi a5%" },
+  "set": [
+    { "label": "Écran", "value": "6,88 pouces HD+ (1640 × 720), 120 Hz" },
+    { "label": "Processeur", "value": "UNISOC T7250 octa-core (12 nm)" },
+    { "label": "Batterie", "value": "5200 mAh, charge 15 W" },
+    { "label": "Appareil photo", "value": "32 MP (arrière), 8 MP (avant)" },
+    { "label": "OS", "value": "Android 15 (Go Edition)" }
+  ],
+  "remove": ["Appareil Photo"]
+}

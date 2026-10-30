@@ -65,7 +65,7 @@ function buildProductName(row: unknown[]): string {
 }
 
 function buildSpecs(row: unknown[]): { label: string; value: string }[] {
-  const [, , , storage, ram, packaging, sim, origin, , , accessories, source, notes] = row as [
+  const [, , , storage, ram, packaging, sim, origin, , , accessories, , notes] = row as [
     string,
     string,
     string,
@@ -87,7 +87,6 @@ function buildSpecs(row: unknown[]): { label: string; value: string }[] {
   if (pkg) specs.push({ label: 'Conditionnement', value: pkg });
   if (sim) specs.push({ label: 'SIM', value: sim });
   if (origin) specs.push({ label: 'Origine', value: origin });
-  if (source) specs.push({ label: 'Source', value: source });
   if (notes) specs.push({ label: 'Notes', value: notes });
   if (accessories) specs.push({ label: 'Accessoires', value: 'Oui' });
   return specs;

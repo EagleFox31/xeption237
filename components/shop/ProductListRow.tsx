@@ -5,6 +5,7 @@ import { optimizeImage } from '../../utils/mediaOptimization';
 import { getProductDisplayName, normalizeSamsungGalaxySpelling } from '../../utils/productDisplay';
 import { ProductBadgeChips } from '../product/ProductBadgeChips';
 import ProductCardImage from '../common/ProductCardImage';
+import ProductLink from '../common/ProductLink';
 
 interface ProductListRowProps {
   product: Product;
@@ -14,8 +15,7 @@ interface ProductListRowProps {
 
 const ProductListRow: React.FC<ProductListRowProps> = ({ product, onAddToCart, onProductClick }) => (
   <div
-    className="group flex gap-3 sm:gap-4 p-3 sm:p-4 bg-[#0f0f0f]/80 backdrop-blur-2xl border border-white/10 hover:border-xeption-gold/50 rounded-lg cursor-pointer transition-all hover:shadow-[0_0_20px_rgba(255,215,0,0.12)]"
-    onClick={() => onProductClick?.(product)}
+    className="group relative flex gap-3 sm:gap-4 p-3 sm:p-4 bg-[#0f0f0f]/80 backdrop-blur-2xl border border-white/10 hover:border-xeption-gold/50 rounded-lg cursor-pointer transition-all hover:shadow-[0_0_20px_rgba(255,215,0,0.12)]"
   >
     <div className="relative w-20 h-20 sm:w-28 sm:h-28 shrink-0 bg-black/50 rounded-md border border-white/10 p-2 flex items-center justify-center overflow-hidden">
       {product.isPromo && (
@@ -35,7 +35,9 @@ const ProductListRow: React.FC<ProductListRowProps> = ({ product, onAddToCart, o
     <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
       <div className="flex-1 min-w-0">
         <h3 className="text-sm sm:text-base font-bold text-white font-tech uppercase tracking-wide group-hover:text-xeption-gold transition-colors line-clamp-2">
-          {getProductDisplayName(product)}
+          <ProductLink product={product} onOpen={onProductClick} stretched>
+            {getProductDisplayName(product)}
+          </ProductLink>
         </h3>
         <ProductBadgeChips product={product} size="sm" theme="dark" className="mt-1.5" />
         <p className="text-[11px] text-gray-400 mt-1 line-clamp-2 hidden sm:block">
@@ -87,7 +89,7 @@ const ProductListRow: React.FC<ProductListRowProps> = ({ product, onAddToCart, o
             onAddToCart(product);
           }}
           aria-label="Ajouter au panier"
-          className="flex items-center justify-center gap-1.5 p-2.5 sm:px-3 sm:py-2 bg-xeption-gold text-black text-[10px] font-tech font-bold uppercase hover:bg-white transition-colors rounded-sm shrink-0"
+          className="relative z-20 flex items-center justify-center gap-1.5 p-2.5 sm:px-3 sm:py-2 bg-xeption-gold text-black text-[10px] font-tech font-bold uppercase hover:bg-white transition-colors rounded-sm shrink-0"
         >
           <ShoppingCart className="w-4 h-4" />
           <span className="hidden sm:inline">Ajouter</span>

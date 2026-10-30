@@ -1,0 +1,10 @@
+{
+  "source": "https://www.mi.com/global/product/redmi-a5/specs/ (consulté le 2026-10-30) — l'ancienne description reprenait les specs du Redmi A3 (6,71\", Helio G36, 5000 mAh)",
+  "match": { "ids": ["67ebdb03-4bb3-49ab-9ab2-f432f6ff27ec"] },
+  "set": [
+    { "label": "RAM", "value": "4 Go" },
+    { "label": "Stockage", "value": "128 Go, extensible par microSD (jusqu'à 2 To)" }
+  ],
+  "remove": ["Source"],
+  "description": "Le Xiaomi Redmi A5 128 Go (4 Go de RAM) est un smartphone neuf qui offre beaucoup d'espace pour un petit budget. Son grand écran 6,88 pouces HD+ à 120 Hz rend la navigation et les vidéos fluides, et son processeur octa-core UNISOC T7250 gère sans peine WhatsApp, les réseaux sociaux, les appels et le web. Les 128 Go laissent de la place pour vos photos, vidéos et applications, extensibles par carte microSD jusqu'à 2 To. La batterie de 5200 mAh tient facilement la journée, avec une charge 15 W. Côté photo : 32 MP à l'arrière, 8 MP en façade. Double SIM 4G, sous Android 15 (Go Edition)."
+}

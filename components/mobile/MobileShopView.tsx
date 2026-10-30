@@ -16,8 +16,10 @@ import { Product } from '../../types';
 import { getProductSlug } from '../../utils/slug';
 import { getProductDisplayName } from '../../utils/productDisplay';
 import { optimizeImage } from '../../utils/mediaOptimization';
+import { parsePriceParam, productMatchesPrice } from '../../utils/shopPriceFilter';
 import { ProductCardSkeleton } from '../common/SkeletonLoader';
 import ProductCardImage from '../common/ProductCardImage';
+import ProductLink from '../common/ProductLink';
 
 export interface MobileShopViewProps {
   products: Product[];
@@ -239,6 +241,9 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
   };
 
   // Filtrage des produits
+  const priceMin = parsePriceParam(searchParams.get('price_min'));
+  const priceMax = parsePriceParam(searchParams.get('price_max'));
+
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
@@ -273,6 +278,11 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
       list = list.filter((p) => p.isPromo || (p.oldPrice && p.oldPrice > p.price));
     }
 
+    // Filtre Prix (liens permanents ?price_min / ?price_max)
+    if (priceMin !== null || priceMax !== null) {
+      list = list.filter((p) => productMatchesPrice(p, priceMin, priceMax));
+    }
+
     // Filtre État
     if (conditionFilter !== 'all') {
       list = list.filter((p) => p.condition === conditionFilter);
@@ -296,6 +306,8 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
     stockOnly,
     promoOnly,
     conditionFilter,
+    priceMin,
+    priceMax,
     sortOption,
   ]);
 
@@ -487,7 +499,6 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
             return (
               <div
                 key={product.id}
-                onClick={() => handleCardClick(product)}
                 className="bg-[#121215] border border-zinc-800/80 hover:border-zinc-700 rounded-2xl p-2.5 flex flex-col justify-between shadow-lg relative cursor-pointer active:scale-[0.98] transition-all group"
               >
                 {/* En-tête de carte : Badges d'état (Neuf / Occasion certifiée / Réduction) */}
@@ -532,7 +543,9 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
 
                 {/* Nom du produit — or, 2 lignes max, hauteur fixe pour aligner les prix entre cards */}
                 <h4 className="mt-1 text-xeption-gold font-tech font-bold text-sm leading-tight line-clamp-2 h-[34px]">
-                  {displayName}
+                  <ProductLink product={product} onOpen={handleCardClick} stretched>
+                    {displayName}
+                  </ProductLink>
                 </h4>
 
                 {/* Ligne inférieure : Prix (hiérarchie primaire e-commerce) + CTA panier */}
@@ -548,7 +561,7 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
                       e.stopPropagation();
                       onAddToCart(product);
                     }}
-                    className="w-8 h-8 shrink-0 rounded-xl bg-amber-400 hover:bg-amber-300 text-black flex items-center justify-center shadow-[0_0_10px_rgba(251,191,36,0.35)] active:scale-90 transition-transform"
+                    className="relative z-20 w-8 h-8 shrink-0 rounded-xl bg-amber-400 hover:bg-amber-300 text-black flex items-center justify-center shadow-[0_0_10px_rgba(251,191,36,0.35)] active:scale-90 transition-transform"
                     aria-label={`Ajouter ${displayName} au panier`}
                   >
                     <ShoppingCart className="w-4 h-4 stroke-[2.4]" />

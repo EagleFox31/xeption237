@@ -137,4 +137,4 @@ Aujourd'hui `payment_method` est unique (`PAY_CODES` : CASH / OM / MOMO).
 | 2 Reçu WhatsApp | feat/auto-lot2 | #34 | — | — | ✅ | ✅ fusionné, `telegram-bot-entry` déployé 2026-10-28 (test panier lourd à faire) |
 | 3 Paiement mixte | feat/auto-lot3 | #35 | ✅ | ✅ | ✅ | ✅ appliqué 2026-10-29, fusionné et déployé |
 | 4 Bon troc en vente | feat/auto-lot4 | #36 | ✅ | ✅ | ✅ | ✅ appliqué 2026-10-29, fusionné et déployé |
-| 5 order_paid | | | ☐ | ☐ | ☐ | à faire |
+| 5 order_paid | feat/auto-lot5 | #37 | — (sans migration) | — | ✅ | ✅ fusionné, `payment-webhook`, `get-payment-status`, `notify-staff` déployés 2026-10-30 (limite acceptée : notification perdue sans nouvel essai si son insertion échoue) |

@@ -63,6 +63,23 @@ async function generateSitemap() {
             .up();
     });
 
+    // Routes de contenu SEO (landings, guides, aide) émises par le plugin Vite seo-routes-manifest.
+    const manifestPath = path.resolve(__dirname, '../dist/seo-routes.json');
+    if (fs.existsSync(manifestPath)) {
+        const contentRoutes = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        contentRoutes.forEach(route => {
+            const urlEl = root.ele('url')
+                .ele('loc').txt(SITE_URL + route.path).up()
+                .ele('changefreq').txt(route.changefreq).up()
+                .ele('priority').txt(String(route.priority)).up();
+            if (route.lastmod) urlEl.ele('lastmod').txt(route.lastmod).up();
+            urlEl.up();
+        });
+        console.log('Added ' + contentRoutes.length + ' SEO content routes.');
+    } else {
+        console.warn('dist/seo-routes.json absent — routes de contenu non ajoutées (lancer vite build avant).');
+    }
+
     // Fetch Products — tente avec timestamps si disponibles, sinon dégrade gracefully.
     const fetchProducts = async () => {
         // 1. Tentative avec updated_at + created_at (cas idéal)

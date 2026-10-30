@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ShoppingCart, Menu, X, Search, Lock, ArrowRight, Tag, ChevronDown, Zap, Smartphone, Laptop, Tablet, Headphones, RotateCcw, RefreshCw } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 import { Product, Category } from '../types';
 import { optimizeImage } from '../utils/mediaOptimization';
@@ -284,17 +284,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
     setIsShopDropdownOpen(false);
   };
 
-  const navigateToShop = (cat?: string) => {
-    if (cat && cat !== 'all') navigate(`/shop?cat=${encodeURIComponent(cat)}`);
-    else navigate('/shop');
-    setIsMenuOpen(false);
-    setIsShopDropdownOpen(false);
-    setIsMobileShopOpen(false);
-  };
-
-  /** Navigue vers la boutique avec une query brute (promo, brand, condition…). */
-  const goShop = (qs?: string) => {
-    navigate(qs ? `/shop?${qs}` : '/shop');
+  const closeMenus = () => {
     setIsMenuOpen(false);
     setIsShopDropdownOpen(false);
     setIsMobileShopOpen(false);
@@ -366,12 +356,14 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
         <div className="flex justify-between items-center h-20 gap-4">
 
           {/* Logo */}
-          <div
+          <Link
+            to="/"
+            aria-label="Accueil Xeption"
             className={`flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${isSearchOpen ? 'hidden md:block' : 'block'}`}
-            onClick={() => handleNav('home')}
+            onClick={closeMenus}
           >
             <Logo />
-          </div>
+          </Link>
 
           {/* SEARCH BAR (CENTER) */}
           <div ref={searchRef} className={`flex-1 max-w-xl relative ${isSearchOpen ? 'block' : 'hidden md:block'}`}>
@@ -513,36 +505,37 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                   </button>
                   {isShopDropdownOpen && (
                     <div className="absolute top-full left-0 mt-1.5 min-w-[240px] bg-[#0a0a0a] border border-white/25 rounded-lg shadow-[0_16px_48px_rgba(0,0,0,0.95)] overflow-hidden z-[110] animate-in fade-in slide-in-from-top-2">
-                      <button
-                        type="button"
-                        onClick={() => navigateToShop()}
+                      <Link
+                        to="/shop"
+                        onClick={closeMenus}
                         className="w-full text-left px-4 py-3 text-sm font-tech font-bold uppercase text-white bg-[#0a0a0a] hover:bg-[#1a1a1a] hover:text-xeption-gold transition-colors border-b border-white/15"
                       >
                         Tout le catalogue
                         <span className="block text-sm text-xeption-gold font-mono font-bold normal-case tracking-normal mt-0.5">
                           {products.length} produits
                         </span>
-                      </button>
+                      </Link>
                       {categories.map((cat) => (
-                        <button
+                        <Link
                           key={cat.slug}
-                          type="button"
-                          onClick={() => navigateToShop(cat.slug)}
+                          to={`/shop?cat=${encodeURIComponent(cat.slug)}`}
+                          onClick={closeMenus}
                           className="w-full text-left px-4 py-2.5 text-sm font-tech font-bold uppercase text-white bg-[#0a0a0a] hover:bg-[#1a1a1a] hover:text-xeption-gold transition-colors border-b border-white/10 last:border-b-0"
                         >
                           {cat.name}
                           <span className="ml-2 text-sm text-xeption-gold font-mono font-bold">
                             ({categoryCounts.get(cat.slug) || 0})
                           </span>
-                        </button>
+                        </Link>
                       ))}
                     </div>
                   )}
                 </div>
               ) : (
-                <button
+                <Link
                   key={item.id}
-                  onClick={() => handleNav(item.id)}
+                  to={item.id === 'home' ? '/' : `/${item.id}`}
+                  onClick={closeMenus}
                   className={`relative px-4 py-2 rounded text-sm font-bold tracking-wide transition-all duration-300 font-tech uppercase ${
                     currentPath === item.id
                       ? 'text-xeption-gold bg-white/5 border-b-2 border-xeption-gold'
@@ -550,7 +543,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                   }`}
                 >
                   {item.label}
-                </button>
+                </Link>
               )
             )}
           </nav>
@@ -609,30 +602,30 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
           >
             {/* Mobile : Smart Troc en tête de barre (masqué si déjà sur /troc pour éviter la redondance) */}
             {!location.pathname.startsWith('/troc') && (
-              <button
+              <Link
                 key="mobile-nav-troc-btn"
                 ref={(node) => {
                   if (node && catBarRef.current && catBarRef.current.scrollLeft > 0) {
                     catBarRef.current.scrollLeft = 0;
                   }
                 }}
-                type="button"
-                onClick={() => navigate('/troc')}
+                to="/troc"
+                onClick={closeMenus}
                 className="md:hidden group shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400/20 border border-amber-400/60 text-xs font-tech font-black uppercase tracking-wider text-amber-400 hover:bg-amber-400/30 active:scale-95 transition-all whitespace-nowrap shadow-[0_0_12px_rgba(251,191,36,0.35)]"
               >
                 <RefreshCw className="w-4 h-4 shrink-0 stroke-[2.5]" />
                 <span className="text-sm font-black tracking-wider">TROC</span>
-              </button>
+              </Link>
             )}
 
             {/* Desktop : Promos */}
-            <button
-              type="button"
-              onClick={() => goShop('promo=1')}
+            <Link
+              to="/shop?promo=1"
+              onClick={closeMenus}
               className="hidden md:inline-flex group shrink-0 snap-start items-center gap-1.5 px-3 py-2 rounded-md text-sm font-tech font-bold uppercase tracking-wide text-xeption-gold hover:bg-white/5 transition-colors whitespace-nowrap"
             >
               <Zap className="w-4 h-4 fill-current" /> Promos
-            </button>
+            </Link>
 
             <span className="shrink-0 w-px h-4 bg-white/10 mx-0.5 md:mx-1.5" />
 
@@ -641,16 +634,17 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
               const Icon = CATEGORY_ICONS[cat.slug] || Tag;
               const mobileLabel = CATEGORY_MOBILE_LABEL[cat.slug] ?? cat.name;
               return (
-                <button
+                <Link
                   key={cat.slug}
-                  onClick={() => navigateToShop(cat.slug)}
+                  to={`/shop?cat=${encodeURIComponent(cat.slug)}`}
+                  onClick={closeMenus}
                   aria-label={cat.name}
                   className="group shrink-0 snap-start inline-flex items-center gap-1 md:gap-1.5 px-2.5 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-tech font-bold uppercase tracking-wider text-white hover:text-amber-400 bg-white/5 md:bg-transparent hover:bg-white/10 active:scale-95 transition-all whitespace-nowrap"
                 >
                   <Icon className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0 text-zinc-300 group-hover:text-amber-400" />
                   <span className="md:hidden">{mobileLabel}</span>
                   <span className="hidden md:inline">{cat.name}</span>
-                </button>
+                </Link>
               );
             })}
 
@@ -663,14 +657,15 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
             {BRAND_QUICKBAR.map((b) => {
               const ref = brands.find((x) => x.slug === b.slug);
               return (
-                <button
+                <Link
                   key={b.slug}
-                  onClick={() => goShop(ref ? `brand=${b.slug}` : `q=${b.label}`)}
+                  to={`/shop?${ref ? `brand=${b.slug}` : `q=${b.label}`}`}
+                  onClick={closeMenus}
                   aria-label={b.label}
                   className={`group shrink-0 ${b.wideDesktopOnly ? 'hidden min-[1920px]:inline-flex' : 'hidden md:inline-flex'} items-center px-2 py-2 rounded-md hover:bg-white/5 transition-colors whitespace-nowrap ${b.hideClass ?? ''}`}
                 >
                   <BrandChipLogo logo={b.logo} label={b.label} h={b.h} maxW={b.maxW} />
-                </button>
+                </Link>
               );
             })}
 
@@ -679,15 +674,16 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
             <span className="hidden md:block shrink-0 w-px h-5 bg-white/10 mx-1.5 ml-auto" />
 
             {/* Reconditionnés */}
-            <button
-              onClick={() => goShop('condition=refurbished')}
+            <Link
+              to="/shop?condition=refurbished"
+              onClick={closeMenus}
               aria-label="Reconditionnés"
               className="group shrink-0 snap-start inline-flex items-center gap-0.5 md:gap-1.5 px-1.5 md:px-3 py-2 md:mr-32 rounded-md text-[10px] md:text-sm font-tech font-bold uppercase tracking-normal md:tracking-wide text-emerald-300/80 hover:text-emerald-200 hover:bg-white/5 transition-colors whitespace-nowrap"
             >
               <RotateCcw className="w-3 h-3 md:w-4 md:h-4 shrink-0" />
               <span className="md:hidden">Reco</span>
               <span className="hidden md:inline">Reconditionnés</span>
-            </button>
+            </Link>
           </nav>
           {catBarCanScrollMore && (
             <div
@@ -721,33 +717,34 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                   </button>
                   {isMobileShopOpen && (
                     <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-3">
-                      <button
-                        type="button"
-                        onClick={() => navigateToShop()}
+                      <Link
+                        to="/shop"
+                        onClick={closeMenus}
                         className="block w-full text-left px-3 py-2 rounded text-sm font-tech uppercase text-white/90 hover:text-xeption-gold"
                       >
                         Tout <span className="text-sm text-xeption-gold font-mono font-bold">({products.length})</span>
-                      </button>
+                      </Link>
                       {categories.map((cat) => (
-                        <button
+                        <Link
                           key={cat.slug}
-                          type="button"
-                          onClick={() => navigateToShop(cat.slug)}
+                          to={`/shop?cat=${encodeURIComponent(cat.slug)}`}
+                          onClick={closeMenus}
                           className="block w-full text-left px-3 py-2 rounded text-sm font-tech uppercase text-white/80 hover:text-xeption-gold"
                         >
                           {cat.name}{' '}
                           <span className="text-sm text-xeption-gold font-mono font-bold">
                             ({categoryCounts.get(cat.slug) || 0})
                           </span>
-                        </button>
+                        </Link>
                       ))}
                     </div>
                   )}
                 </div>
               ) : (
-                <button
+                <Link
                   key={item.id}
-                  onClick={() => handleNav(item.id)}
+                  to={item.id === 'home' ? '/' : `/${item.id}`}
+                  onClick={closeMenus}
                   className={`block w-full text-left px-4 py-3 rounded-lg text-lg font-tech uppercase font-bold tracking-wider ${
                     currentPath === item.id
                       ? 'text-xeption-gold bg-white/5 border-l-4 border-xeption-gold'
@@ -755,7 +752,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                   }`}
                 >
                   {item.label}
-                </button>
+                </Link>
               )
             )}
 

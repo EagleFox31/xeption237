@@ -69,7 +69,7 @@ Utiliser `constants/dbSchema.ts` → `CATEGORY_SLUGS` :
 
 - Smartphones : `phones` (pas `smartphones`)
 - Tablettes : `tablettes`
-- Ordinateurs : `ordinateurs`
+- Ordinateurs : `computer` (constante `CATEGORY_SLUGS.ORDINATEURS`)
 - Accessoires : `accessories`
 
 FK `products.category` et `product_ranges.category` → `categories.slug`.

@@ -8,7 +8,8 @@ import PackList from '../components/PackList';
 import TrocSection from '../components/TrocSection';
 import MobileHomeView from '../components/mobile/MobileHomeView';
 import { Product, Pack } from '../types';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import SeoLinksBlock from '../components/content/SeoLinksBlock';
 import { getProductSlug } from '../utils/slug';
 import { getProductDisplayName } from '../utils/productDisplay';
 import { weekSeed, seededShuffle } from '../utils/seededRandom';
@@ -121,28 +122,28 @@ const HomePage: React.FC<HomePageProps> = ({
             eyebrow="Deals" title="Bonnes Affaires"
             icon={<Zap className="w-6 h-6 md:w-7 md:h-7 text-red-400 fill-current" />}
             products={rows.bonnesAffaires}
-            onViewAll={() => navigate('/shop?promo=1')}
+            viewAllTo={'/shop?promo=1'}
             onAddToCart={onAddToCart} onProductClick={goProduct}
           />
           <HomeProductRow
             eyebrow="Catégorie" title="Smartphones"
             icon={<Smartphone className="w-6 h-6 md:w-7 md:h-7 text-blue-400" />}
             products={rows.smartphones}
-            onViewAll={() => navigate('/shop?cat=phones')}
+            viewAllTo={'/shop?cat=phones'}
             onAddToCart={onAddToCart} onProductClick={goProduct}
           />
           <HomeProductRow
             eyebrow="L'occasion maligne" title="Reconditionnés"
             icon={<RotateCcw className="w-6 h-6 md:w-7 md:h-7 text-emerald-400" />}
             products={rows.reconditionnes}
-            onViewAll={() => navigate('/shop?condition=refurbished')}
+            viewAllTo={'/shop?condition=refurbished'}
             onAddToCart={onAddToCart} onProductClick={goProduct}
           />
           <HomeProductRow
             eyebrow="Catégorie" title="Accessoires"
             icon={<Headphones className="w-6 h-6 md:w-7 md:h-7 text-xeption-gold" />}
             products={rows.accessoires}
-            onViewAll={() => navigate('/shop?cat=accessories')}
+            viewAllTo={'/shop?cat=accessories'}
             onAddToCart={onAddToCart} onProductClick={goProduct}
           />
           <HomeProductRow
@@ -151,26 +152,25 @@ const HomePage: React.FC<HomePageProps> = ({
             mobileTitle="PC & Gaming"
             icon={<Laptop className="w-6 h-6 md:w-7 md:h-7 text-purple-400" />}
             products={rows.ordinateurs}
-            onViewAll={() => navigate('/shop?cat=computer')}
+            viewAllTo={'/shop?cat=computer'}
             onAddToCart={onAddToCart} onProductClick={goProduct}
           />
           <HomeProductRow
             eyebrow="Frais du jour" title="Nouveautés"
             icon={<Sparkles className="w-6 h-6 md:w-7 md:h-7 text-xeption-gold" />}
             products={rows.nouveautes}
-            onViewAll={() => navigate('/shop')}
+            viewAllTo={'/shop'}
             onAddToCart={onAddToCart} onProductClick={goProduct}
           />
 
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-10 flex justify-center">
-            <button
-              type="button"
-              onClick={() => navigate('/shop')}
+            <Link
+              to="/shop"
               className="group inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-xeption-gold text-black font-tech font-bold text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] transition-all"
             >
               Voir tout le catalogue
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -178,6 +178,9 @@ const HomePage: React.FC<HomePageProps> = ({
 
         <TrocSection onNavigate={(page) => navigate(`/${page}`)} />
       </div>
+
+      {/* Maillage SEO commun mobile + desktop (liens crawlables vers rayons et guides) */}
+      <SeoLinksBlock />
     </>
   );
 };

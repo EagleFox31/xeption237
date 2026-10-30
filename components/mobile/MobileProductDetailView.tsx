@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { productPath } from '../../utils/routes';
+import ProductContentLinks from '../content/ProductContentLinks';
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,7 +22,6 @@ import {
 } from 'lucide-react';
 import { Product } from '../../types';
 import { optimizeImage } from '../../utils/mediaOptimization';
-import { getProductSlug } from '../../utils/slug';
 import { getProductDisplayName, normalizeSamsungGalaxySpelling } from '../../utils/productDisplay';
 import { buildProductFaq } from '../../utils/productFaq';
 import { isUuid } from '../../utils/productBrand';
@@ -277,31 +278,22 @@ export const MobileProductDetailView: React.FC<MobileProductDetailViewProps> = (
       {/* 2. FIL D'ARIANE (Propre, SANS code UUID) */}
       <nav aria-label="Fil d'ariane" className="px-4 pt-3 pb-2">
         <div className="flex items-center gap-1.5 text-xs text-zinc-400 flex-wrap">
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="hover:text-white transition-colors"
-          >
+          <Link to="/" className="hover:text-white transition-colors">
             Home
-          </button>
+          </Link>
           <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
-          <button
-            type="button"
-            onClick={() => navigate(`/shop?cat=${product.category}`)}
-            className="hover:text-white transition-colors"
-          >
+          <Link to={`/shop?cat=${product.category}`} className="hover:text-white transition-colors">
             {categoryLabel}
-          </button>
+          </Link>
           {brandLabel && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
-              <button
-                type="button"
-                onClick={() => navigate(`/shop?q=${encodeURIComponent(brandLabel)}`)}
+              <Link
+                to={`/shop?q=${encodeURIComponent(brandLabel)}`}
                 className="hover:text-white transition-colors capitalize font-medium text-zinc-300"
               >
                 {brandLabel}
-              </button>
+              </Link>
             </>
           )}
           <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
@@ -668,11 +660,10 @@ export const MobileProductDetailView: React.FC<MobileProductDetailViewProps> = (
           </h3>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
             {relatedProducts.slice(0, 4).map((rel) => (
-              <button
+              <Link
                 key={rel.id}
-                type="button"
-                onClick={() => navigate(`/product/${getProductSlug(rel)}`)}
-                className="w-36 shrink-0 p-2.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-left active:scale-95 transition-all"
+                to={productPath(rel)}
+                className="block w-36 shrink-0 p-2.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-left active:scale-95 transition-all"
               >
                 <div className="w-full aspect-square rounded-xl bg-black/50 p-2 mb-2 flex items-center justify-center">
                   <img
@@ -685,11 +676,15 @@ export const MobileProductDetailView: React.FC<MobileProductDetailViewProps> = (
                 <p className="text-xs font-tech font-black text-amber-400 mt-0.5">
                   {rel.price.toLocaleString('fr-FR')} F
                 </p>
-              </button>
+              </Link>
             ))}
           </div>
         </div>
       )}
+
+      <div className="mt-8">
+        <ProductContentLinks product={product} theme="dark" />
+      </div>
 
       {/* 16. BARRE D'ACTIONS FIXE (Conforme maquette : [⇄ Échanger mon ancien phone] + [Acheter comptant]) */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0c]/95 backdrop-blur-xl border-t border-white/10 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-10px_30px_rgba(0,0,0,0.95)]">

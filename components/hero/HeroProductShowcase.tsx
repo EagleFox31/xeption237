@@ -4,6 +4,7 @@ import { Product } from '../../types';
 import { optimizeImage, optimizeProductThumb } from '../../utils/mediaOptimization';
 import { getProductDisplayName } from '../../utils/productDisplay';
 import ProductCardImage from '../common/ProductCardImage';
+import ProductLink from '../common/ProductLink';
 
 interface HeroProductShowcaseProps {
   products: Product[];
@@ -24,23 +25,19 @@ const HeroProductCard: React.FC<{
   const displayName = getProductDisplayName(product);
   return (
   <div
-    role="button"
-    tabIndex={0}
-    onClick={() => onProductClick?.(product)}
-    onKeyDown={(e) => e.key === 'Enter' && onProductClick?.(product)}
     className={`group relative bg-[#0f0f0f]/90 backdrop-blur-xl border border-white/10 hover:border-xeption-gold/40 transition-all duration-300 flex flex-col overflow-hidden rounded-lg cursor-pointer min-w-0 ${
       compact ? 'min-w-[42vw] max-w-[42vw] snap-center' : 'w-full'
     }`}
   >
     {product.isPromo && (
-      <div className="absolute top-1.5 right-1.5 z-20">
+      <div className="absolute top-1.5 right-1.5 z-20 pointer-events-none">
         <span className="bg-red-600 text-white text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase rounded-sm border border-red-400 shadow-md shadow-red-900/50">
           Promo
         </span>
       </div>
     )}
     {product.condition === 'new' && (
-      <div className="absolute top-1.5 left-1.5 z-20">
+      <div className="absolute top-1.5 left-1.5 z-20 pointer-events-none">
         <span className="bg-emerald-500/90 text-white text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 font-tech uppercase rounded-sm flex items-center gap-0.5 border border-emerald-400 shadow-md shadow-emerald-900/50">
           <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3" /> Neuf
         </span>
@@ -71,7 +68,7 @@ const HeroProductCard: React.FC<{
           e.stopPropagation();
           onAddToCart(product);
         }}
-        className={`absolute bottom-2 right-2 bg-xeption-gold text-black rounded-full shadow-lg opacity-90 hover:opacity-100 z-10 ${
+        className={`absolute bottom-2 right-2 bg-xeption-gold text-black rounded-full shadow-lg opacity-90 hover:opacity-100 z-20 ${
           dense ? 'p-2' : 'p-2.5 md:p-3'
         }`}
         aria-label="Ajouter au panier"
@@ -85,7 +82,9 @@ const HeroProductCard: React.FC<{
           dense ? 'text-xs md:text-sm' : 'text-sm md:text-base'
         }`}
       >
-        {displayName}
+        <ProductLink product={product} onOpen={onProductClick} stretched>
+          {displayName}
+        </ProductLink>
       </h3>
       <div className="flex items-baseline gap-1 mt-0.5">
         {product.oldPrice && (

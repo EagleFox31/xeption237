@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useState, useEffect, useRef, useMemo } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import { Product, CartItem, Pack } from './types';
 import { supabase } from './services/supabaseClient';
@@ -19,6 +19,8 @@ import { notifyError } from './utils/notify';
 import { trackAddToCart } from './utils/analytics';
 import { getProductSlug } from './utils/slug';
 import { filterStorefrontProducts } from './utils/productVisibility';
+import FooterSeoLinks from './components/content/FooterSeoLinks';
+import { attachBrandNames, BrandRef } from './utils/productBrand';
 import MobileBottomNav from './components/MobileBottomNav';
 // Pages critiques (landing + commerce) : eager pour éviter un fallback au premier paint.
 import HomePage from './pages/HomePage';
@@ -32,6 +34,10 @@ const TrocPage = lazy(() => import('./pages/TrocPage'));
 const TrackingPage = lazy(() => import('./pages/TrackingPage'));
 const TrocVoucherPage = lazy(() => import('./pages/TrocVoucherPage'));
 const SavPage = lazy(() => import('./pages/SavPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const GuidePage = lazy(() => import('./pages/GuidePage'));
+const GuidesIndexPage = lazy(() => import('./pages/GuidesIndexPage'));
+const HelpPage = lazy(() => import('./pages/HelpPage'));
 const MentionsLegalesPage = lazy(() => import('./pages/MentionsLegalesPage'));
 const PolitiqueConfidentialitePage = lazy(() => import('./pages/PolitiqueConfidentialitePage'));
 const PolitiqueCookiesPage = lazy(() => import('./pages/PolitiqueCookiesPage'));
@@ -155,8 +161,12 @@ const App: React.FC = () => {
         }
       };
       try {
-        const { data: productData, error: productError } = await supabase.from('products').select('*');
+        const [{ data: productData, error: productError }, { data: brandData }] = await Promise.all([
+          supabase.from('products').select('*'),
+          supabase.from('brands').select('id,name,slug'),
+        ]);
         if (productError) throw productError;
+        const brandRefs = (brandData || []) as BrandRef[];
 
         let formattedProducts: Product[] = [];
         if (productData) {
@@ -173,7 +183,7 @@ const App: React.FC = () => {
             brand: p.brand || null,
             productRange: p.product_range || p.productRange || null
           }));
-          setProducts(formattedProducts);
+          setProducts(attachBrandNames(formattedProducts, brandRefs));
         }
 
         const { data: packData, error: packError } = await supabase.from('packs').select('*');
@@ -389,6 +399,11 @@ const App: React.FC = () => {
           <Route path="/tracking/*" element={<TrackingPage />} />
           <Route path="/bon" element={<TrocVoucherPage />} />
           <Route path="/sav" element={<SavPage />} />
+          <Route path="/categorie/:slug" element={<LandingPage products={storefrontProducts} onAddToCart={addToCart} />} />
+          <Route path="/guides" element={<GuidesIndexPage />} />
+          <Route path="/guides/:slug" element={<GuidePage products={storefrontProducts} onAddToCart={addToCart} />} />
+          <Route path="/aide" element={<HelpPage />} />
+          <Route path="/aide/:slug" element={<HelpPage />} />
           <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
           <Route path="/politique-confidentialite" element={<PolitiqueConfidentialitePage />} />
           <Route path="/politique-cookies" element={<PolitiqueCookiesPage />} />
@@ -440,6 +455,8 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            <FooterSeoLinks />
+
             {/* ZONES DESSERVIES (SEO Local) */}
             <div className="text-xs text-gray-500 max-w-sm text-center md:text-left">
               <p className="font-bold uppercase text-gray-400 mb-1 flex items-center justify-center md:justify-start gap-1"><MapPin className="w-3 h-3" /> Zones desservies</p>
@@ -456,17 +473,17 @@ const App: React.FC = () => {
                 <a href="https://wa.me/237641891031" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
               </div>
               <div className="flex gap-4 text-[11px] text-gray-600">
-                <button onClick={() => navigate('/about')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">À propos</button>
+                <Link to="/about" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">À propos</Link>
                 <span className="text-gray-700">·</span>
-                <button onClick={() => navigate('/contact')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Contact</button>
+                <Link to="/contact" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Contact</Link>
                 <span className="text-gray-700">·</span>
-                <button onClick={() => navigate('/mentions-legales')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Mentions légales</button>
+                <Link to="/mentions-legales" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Mentions légales</Link>
                 <span className="text-gray-700">·</span>
-                <button onClick={() => navigate('/cgv')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">CGV</button>
+                <Link to="/cgv" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">CGV</Link>
                 <span className="text-gray-700">·</span>
-                <button onClick={() => navigate('/politique-confidentialite')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Confidentialité</button>
+                <Link to="/politique-confidentialite" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Confidentialité</Link>
                 <span className="text-gray-700">·</span>
-                <button onClick={() => navigate('/politique-cookies')} className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Cookies</button>
+                <Link to="/politique-cookies" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Cookies</Link>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   Camera,
@@ -206,6 +206,21 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   Informations &amp; Garanties
                 </span>
                 <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { to: '/aide', label: 'Aide & SAV' },
+                    { to: '/guides', label: "Guides d'achat" },
+                  ].map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setIsAccountMenuOpen(false)}
+                      className="p-2.5 rounded-xl bg-zinc-900/70 border border-zinc-800/80 text-left text-xs text-zinc-300 hover:text-white hover:border-zinc-700 flex items-center justify-between"
+                    >
+                      <span>{item.label}</span>
+                      <ChevronRight className="w-3 h-3 text-zinc-600" />
+                    </Link>
+                  ))}
+
                   <button
                     type="button"
                     onClick={() => {

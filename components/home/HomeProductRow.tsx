@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product } from '../../types';
 import ProductCard from '../product/ProductCard';
@@ -11,7 +12,8 @@ interface HomeProductRowProps {
   mobileTitle?: string;
   icon?: React.ReactNode;
   products: Product[];
-  onViewAll: () => void;
+  /** Cible « Voir tout » (lien crawlable). */
+  viewAllTo: string;
   onAddToCart: (product: Product) => void;
   onProductClick: (product: Product) => void;
   /** Réduit la marge haute (1re rangée, juste sous le Hero raccourci). */
@@ -28,7 +30,7 @@ const HomeProductRow: React.FC<HomeProductRowProps> = ({
   mobileTitle,
   icon,
   products,
-  onViewAll,
+  viewAllTo,
   onAddToCart,
   onProductClick,
   tightTop = false,
@@ -92,14 +94,13 @@ const HomeProductRow: React.FC<HomeProductRowProps> = ({
           >
             <ChevronRight className="w-5 h-5" />
           </button>
-          <button
-            type="button"
-            onClick={onViewAll}
+          <Link
+            to={viewAllTo}
             className="group inline-flex items-center gap-1.5 px-3 py-2 ml-1 rounded-md text-[11px] md:text-xs font-tech font-bold uppercase tracking-wider text-white/80 hover:text-xeption-gold transition-colors whitespace-nowrap"
           >
             Voir tout
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 group-hover:text-xeption-gold transition-all" />
-          </button>
+          </Link>
         </div>
       </div>
 

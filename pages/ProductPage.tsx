@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import ProductDetail from '../components/ProductDetail';
 import MobileProductDetailView from '../components/mobile/MobileProductDetailView';
 import { Product } from '../types';
@@ -51,7 +51,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
         trackViewItem({
             item_id: product.id,
             item_name: product.name,
-            item_brand: (product as any).brand ?? undefined,
+            item_brand: product.brandName ?? undefined,
             item_category: product.category ?? undefined,
             price: product.price,
         });
@@ -73,7 +73,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 />
                 <div className="min-h-screen pt-32 text-center text-white">
                     <h1 className="text-2xl font-bold mb-4">Produit Introuvable</h1>
-                    <button onClick={() => navigate('/shop')} className="text-xeption-gold underline">Retour au shop</button>
+                    <Link to="/shop" className="text-xeption-gold underline">Retour au shop</Link>
                 </div>
             </>
         );
@@ -151,7 +151,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         name: displayName,
                         description: product.description,
                         images: productImages,
-                        brand: product.brand,
+                        brand: product.brandName,
                         price: product.price,
                         currency: 'XAF',
                         availability: inStock ? 'InStock' : 'OutOfStock',

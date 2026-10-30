@@ -1,7 +1,17 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getSeoContentRoutes } from './content/seo';
+
+/** Émet dist/seo-routes.json : routes de contenu SEO consommées par sitemap et prerender. */
+const seoRoutesManifest = (): Plugin => ({
+  name: 'seo-routes-manifest',
+  apply: 'build',
+  generateBundle() {
+    this.emitFile({ type: 'asset', fileName: 'seo-routes.json', source: JSON.stringify(getSeoContentRoutes(), null, 2) });
+  },
+});
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -12,7 +22,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      react()
+      react(),
+      seoRoutesManifest(),
     ],
     resolve: {
       dedupe: ['react', 'react-dom', 'react-router-dom'],

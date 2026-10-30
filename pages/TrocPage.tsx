@@ -698,7 +698,7 @@ const TrocPage: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate('/shop?category=phones')}
+                  onClick={() => navigate('/shop?cat=phones')}
                   className="group bg-[#121214]/80 border border-white/10 hover:border-xeption-gold/60 rounded-xl p-3 flex flex-col items-center justify-between text-center transition-all hover:scale-[1.02] active:scale-95"
                 >
                   <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xeption-gold mb-2 group-hover:scale-110 transition-transform">
@@ -711,7 +711,7 @@ const TrocPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => navigate('/shop?category=ordinateurs')}
+                  onClick={() => navigate('/shop?cat=computer')}
                   className="group bg-[#121214]/80 border border-white/10 hover:border-xeption-gold/60 rounded-xl p-3 flex flex-col items-center justify-between text-center transition-all hover:scale-[1.02] active:scale-95"
                 >
                   <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xeption-gold mb-2 group-hover:scale-110 transition-transform">
@@ -724,7 +724,7 @@ const TrocPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => navigate('/shop?category=tablettes')}
+                  onClick={() => navigate('/shop?cat=tablettes')}
                   className="group bg-[#121214]/80 border border-white/10 hover:border-xeption-gold/60 rounded-xl p-3 flex flex-col items-center justify-between text-center transition-all hover:scale-[1.02] active:scale-95"
                 >
                   <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xeption-gold mb-2 group-hover:scale-110 transition-transform">
@@ -737,7 +737,7 @@ const TrocPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => navigate('/shop?category=accessories')}
+                  onClick={() => navigate('/shop?cat=accessories')}
                   className="group bg-[#121214]/80 border border-white/10 hover:border-xeption-gold/60 rounded-xl p-3 flex flex-col items-center justify-between text-center transition-all hover:scale-[1.02] active:scale-95"
                 >
                   <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xeption-gold mb-2 group-hover:scale-110 transition-transform">

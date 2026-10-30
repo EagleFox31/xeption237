@@ -1,6 +1,9 @@
 import React from 'react';
 import { PageSEO, JsonLd, breadcrumbJsonLd } from '../utils/seo';
 import RepairSection from '../components/RepairSection';
+import RelatedLinks from '../components/content/RelatedLinks';
+import { helpLinks } from '../components/content/contentLinks';
+import { helpPath } from '../utils/routes';
 
 const SavPage: React.FC = () => {
     return (
@@ -15,6 +18,12 @@ const SavPage: React.FC = () => {
                 { name: 'SAV & Garantie' },
             ])} />
             <RepairSection />
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+                <RelatedLinks
+                    title="Aide & SAV"
+                    links={[...helpLinks(['garanties', 'retours', 'livraison']), { to: helpPath(), label: "Toute l'aide" }]}
+                />
+            </div>
         </div>
     );
 };

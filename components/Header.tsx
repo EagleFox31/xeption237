@@ -508,7 +508,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                       <Link
                         to="/shop"
                         onClick={closeMenus}
-                        className="w-full text-left px-4 py-3 text-sm font-tech font-bold uppercase text-white bg-[#0a0a0a] hover:bg-[#1a1a1a] hover:text-xeption-gold transition-colors border-b border-white/15"
+                        className="block w-full text-left px-4 py-3 text-sm font-tech font-bold uppercase text-white bg-[#0a0a0a] hover:bg-[#1a1a1a] hover:text-xeption-gold transition-colors border-b border-white/15"
                       >
                         Tout le catalogue
                         <span className="block text-sm text-xeption-gold font-mono font-bold normal-case tracking-normal mt-0.5">
@@ -520,7 +520,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount, onOpenCart, products = [], o
                           key={cat.slug}
                           to={`/shop?cat=${encodeURIComponent(cat.slug)}`}
                           onClick={closeMenus}
-                          className="w-full text-left px-4 py-2.5 text-sm font-tech font-bold uppercase text-white bg-[#0a0a0a] hover:bg-[#1a1a1a] hover:text-xeption-gold transition-colors border-b border-white/10 last:border-b-0"
+                          className="block w-full text-left px-4 py-2.5 text-sm font-tech font-bold uppercase text-white bg-[#0a0a0a] hover:bg-[#1a1a1a] hover:text-xeption-gold transition-colors border-b border-white/10 last:border-b-0"
                         >
                           {cat.name}
                           <span className="ml-2 text-sm text-xeption-gold font-mono font-bold">

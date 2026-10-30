@@ -15,7 +15,7 @@ interface ProductLinkProps {
   'aria-label'?: string;
 }
 
-const isModifiedClick = (e: React.MouseEvent) => e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0;
+export const isModifiedClick = (e: React.MouseEvent) => e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0;
 
 /**
  * Lien produit crawlable (`<a href="/product/...">`) : les moteurs suivent le href,

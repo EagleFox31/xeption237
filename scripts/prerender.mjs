@@ -299,7 +299,8 @@ const waitForContentSeo = async (page, route) => {
         hasFaq: Array.from(document.querySelectorAll('script[type="application/ld+json"]')).some((el) =>
           (el.textContent || '').includes('"FAQPage"'),
         ),
-        hasProductLinks: Boolean(document.querySelector('a[href^="/product/"]')),
+        // Sélection vide légitime (catalogue sans modèle correspondant) : marquée par data-empty-selection.
+        hasProductLinks: Boolean(document.querySelector('a[href^="/product/"], [data-empty-selection]')),
       });
       const startedAt = Date.now();
       let state = read();
@@ -341,7 +342,10 @@ const inspectLinkingAndContent = (contentRoutes) => {
     }
     if (extractCanonical(html) !== expectedCanonicalForRoute(route)) errors.push(`${route}: canonical incorrect`);
     if (routeRequiresFaq(route) && !html.includes('"FAQPage"')) errors.push(`${route}: FAQPage absent`);
-    if (route.startsWith('/categorie/') && !html.includes('href="/product/')) errors.push(`${route}: aucun lien produit`);
+    if (route.startsWith('/categorie/') && !html.includes('href="/product/')) {
+      if (html.includes('data-empty-selection')) console.warn(`[prerender] ${route} : sélection vide (aucun produit ne correspond)`);
+      else errors.push(`${route}: aucun lien produit`);
+    }
   }
   return errors;
 };

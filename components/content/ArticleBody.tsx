@@ -10,15 +10,15 @@ const ArticleBody: React.FC<{ sections: ArticleSection[] }> = ({ sections }) => 
         <h2 id={`${section.id}-title`} className="text-xl md:text-2xl font-tech font-bold uppercase tracking-wide text-white mb-3">
           {section.heading}
         </h2>
-        {section.paragraphs.map((text) => (
-          <p key={text} className="text-gray-300 leading-relaxed mb-3">
+        {section.paragraphs.map((text, i) => (
+          <p key={i} className="text-gray-300 leading-relaxed mb-3">
             {text}
           </p>
         ))}
         {section.bullets?.length ? (
           <ul className="list-disc pl-5 space-y-1.5 text-gray-300">
-            {section.bullets.map((b) => (
-              <li key={b}>{b}</li>
+            {section.bullets.map((b, i) => (
+              <li key={i}>{b}</li>
             ))}
           </ul>
         ) : null}

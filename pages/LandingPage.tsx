@@ -61,8 +61,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
       <ContentPageShell
         crumbs={[{ name: 'Accueil', path: '/' }, { name: 'Boutique', path: '/shop' }, { name: def.navLabel }]}
         h1={def.h1}
-        lead={def.intro.map((t) => (
-          <p key={t} className="mt-3 max-w-3xl text-gray-300 leading-relaxed">
+        lead={def.intro.map((t, i) => (
+          <p key={i} className="mt-3 max-w-3xl text-gray-300 leading-relaxed">
             {t}
           </p>
         ))}
@@ -81,7 +81,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
           ) : selection.length ? (
             <ProductLinkGrid products={selection} onAddToCart={onAddToCart} />
           ) : (
-            <p className="text-gray-400">
+            <p className="text-gray-400" data-empty-selection>
               Aucun modèle disponible pour le moment.{' '}
               <Link to="/shop" className="text-xeption-gold underline">Voir toute la boutique</Link>
             </p>

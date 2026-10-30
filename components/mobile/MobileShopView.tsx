@@ -16,6 +16,7 @@ import { Product } from '../../types';
 import { getProductSlug } from '../../utils/slug';
 import { getProductDisplayName } from '../../utils/productDisplay';
 import { optimizeImage } from '../../utils/mediaOptimization';
+import { parsePriceParam, productMatchesPrice } from '../../utils/shopPriceFilter';
 import { ProductCardSkeleton } from '../common/SkeletonLoader';
 import ProductCardImage from '../common/ProductCardImage';
 import ProductLink from '../common/ProductLink';
@@ -240,6 +241,9 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
   };
 
   // Filtrage des produits
+  const priceMin = parsePriceParam(searchParams.get('price_min'));
+  const priceMax = parsePriceParam(searchParams.get('price_max'));
+
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
@@ -274,6 +278,11 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
       list = list.filter((p) => p.isPromo || (p.oldPrice && p.oldPrice > p.price));
     }
 
+    // Filtre Prix (liens permanents ?price_min / ?price_max)
+    if (priceMin !== null || priceMax !== null) {
+      list = list.filter((p) => productMatchesPrice(p, priceMin, priceMax));
+    }
+
     // Filtre État
     if (conditionFilter !== 'all') {
       list = list.filter((p) => p.condition === conditionFilter);
@@ -297,6 +306,8 @@ export const MobileShopView: React.FC<MobileShopViewProps> = ({
     stockOnly,
     promoOnly,
     conditionFilter,
+    priceMin,
+    priceMax,
     sortOption,
   ]);
 

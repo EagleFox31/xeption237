@@ -161,11 +161,12 @@ const App: React.FC = () => {
         }
       };
       try {
-        const [{ data: productData, error: productError }, { data: brandData }] = await Promise.all([
+        const [{ data: productData, error: productError }, { data: brandData, error: brandError }] = await Promise.all([
           supabase.from('products').select('*'),
           supabase.from('brands').select('id,name,slug'),
         ]);
         if (productError) throw productError;
+        if (brandError) console.warn('[catalogue] marques indisponibles, noms de marque non résolus', brandError);
         const brandRefs = (brandData || []) as BrandRef[];
 
         let formattedProducts: Product[] = [];

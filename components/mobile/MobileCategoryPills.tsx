@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { isModifiedClick } from '../common/ProductLink';
 
 export interface CategoryPillItem {
   id: string;
@@ -29,7 +30,7 @@ export const MobileCategoryPills: React.FC<MobileCategoryPillsProps> = ({
 }) => {
   /** Lien crawlable ; si un handler est fourni, il remplace la navigation (clic simple uniquement). */
   const handlePillClick = (e: React.MouseEvent, pill: CategoryPillItem) => {
-    if (!onPillClick || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    if (!onPillClick || isModifiedClick(e)) return;
     e.preventDefault();
     onPillClick(pill);
   };

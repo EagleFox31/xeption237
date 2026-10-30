@@ -1,0 +1,18 @@
+{
+  "cacheDir": "node_modules/.cache/prerender",
+  "ttlDays": 7,
+  "ttlJitterDays": 2,
+  "catalog": {
+    "table": "products",
+    "routePrefix": "/product/",
+    "categoryField": "category",
+    "membershipFields": ["id", "brand", "category", "is_published", "rejected_at"],
+    "ignoreFields": []
+  },
+  "globalSources": [
+    { "table": "brands", "select": "id,name,slug" },
+    { "table": "categories", "select": "*" },
+    { "table": "packs", "select": "*" }
+  ],
+  "ignoredRequestPaths": ["/auth/v1/", "/storage/v1/", "/realtime/v1/"]
+}

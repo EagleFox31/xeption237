@@ -6,12 +6,33 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
+import {
+  CACHE_SCHEMA,
+  classifyDataRequests,
+  codeFingerprint,
+  createDataContext,
+  extractAssetRefs,
+  extractLinkedRoutes,
+  hashOf,
+  openPrerenderCache,
+  planRoutes,
+  readModuleManifest,
+  rebaseHtmlAssets,
+  stripAssetTags,
+  summarizeReasons,
+} from './lib/prerenderCache.mjs';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
 const distDir = path.resolve(__dirname, '../dist');
+
+const PRERENDER_CONFIG_PATH = path.join(__dirname, 'prerender.config.json');
+const PRERENDER_CONFIG = JSON.parse(fs.readFileSync(PRERENDER_CONFIG_PATH, 'utf8'));
+const CACHE_DIR = path.resolve(rootDir, process.env.PRERENDER_CACHE_DIR || PRERENDER_CONFIG.cacheDir);
+const isTruthy = (value) => value === '1' || value === 'true';
 
 const SITE_URL = 'https://www.xeptionetwork.shop';
 const STATIC_ROUTES = [
@@ -64,40 +85,63 @@ const slugify = (input = '') =>
     .replace(/--+/g, '-');
 
 const isPrerenderRequired = () =>
-  process.env.PRERENDER_REQUIRED === 'true' ||
+  isTruthy(process.env.PRERENDER_REQUIRED) ||
   process.env.CI === 'true' ||
   process.env.VERCEL === '1' ||
   !!process.env.VERCEL_ENV;
 
-const getProductRoutes = async () => {
+const productRouteOf = (product) => `/product/${slugify(product.name || 'product')}-${product.id}`;
+
+const createSupabase = () => {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) return [];
+  return supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+};
 
+/** Lit toutes les lignes d'une table (paginé). `ok=false` si une page échoue : le cache est alors désactivé. */
+const fetchAllRows = async (supabase, table, select = '*') => {
+  const pageSize = 1000;
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase.from(table).select(select).range(from, from + pageSize - 1);
+    if (error) return { rows, ok: false, error };
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) return { rows, ok: true };
+  }
+};
+
+/** Catalogue complet : routes produit + lignes utilisées pour les empreintes de données. */
+const getCatalog = async (supabase) => {
+  if (!supabase) return { rows: [], ok: false };
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const pageSize = 1000;
-    let from = 0;
-    const all = [];
-
-    while (true) {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id,name')
-        .range(from, from + pageSize - 1);
-
-      if (error || !data?.length) break;
-      all.push(...data);
-      if (data.length < pageSize) break;
-      from += pageSize;
-    }
-
-    console.log(`[prerender] products fetched: ${all.length}`);
-    return all.map((product) => `/product/${slugify(product.name || 'product')}-${product.id}`);
+    const result = await fetchAllRows(supabase, PRERENDER_CONFIG.catalog.table);
+    if (!result.ok) console.error('[prerender] failed to fetch products:', result.error);
+    console.log(`[prerender] products fetched: ${result.rows.length}`);
+    return result;
   } catch (err) {
     console.error('[prerender] failed to fetch products:', err);
-    return [];
+    return { rows: [], ok: false };
   }
+};
+
+/** Sources partagées par toutes les pages (marques, catégories, packs). */
+const getGlobalSources = async (supabase) => {
+  if (!supabase) return { globals: {}, ok: false };
+  const globals = {};
+  for (const { table, select } of PRERENDER_CONFIG.globalSources) {
+    try {
+      const result = await fetchAllRows(supabase, table, select);
+      if (!result.ok) {
+        console.warn(`[prerender] source ${table} indisponible : cache désactivé`, result.error?.message || '');
+        return { globals, ok: false };
+      }
+      globals[table] = result.rows;
+    } catch (err) {
+      console.warn(`[prerender] source ${table} indisponible : cache désactivé`, err?.message || err);
+      return { globals, ok: false };
+    }
+  }
+  return { globals, ok: true };
 };
 
 const ensureDir = (dir) => {
@@ -459,8 +503,22 @@ const inspectProductHtml = (route, html) => {
   return errors;
 };
 
+/** Toute page (rendue ou reprise du cache) ne doit référencer que des assets du build courant. */
+const inspectAssetRefs = (routes) => {
+  const missing = [];
+  for (const route of routes) {
+    const file = route === '/' ? path.join(distDir, 'index.html') : path.join(distDir, route, 'index.html');
+    if (!fs.existsSync(file)) continue;
+    for (const ref of extractAssetRefs(fs.readFileSync(file, 'utf8'))) {
+      if (!fs.existsSync(path.join(distDir, ref))) missing.push(`${route}: asset absent du build ${ref}`);
+    }
+  }
+  return missing.length ? [`${missing.length} référence(s) d'asset invalide(s)\n  ${missing.slice(0, 10).join('\n  ')}`] : [];
+};
+
 const verifyPrerenderOutput = (routes) => {
   const errors = [];
+  errors.push(...inspectAssetRefs(routes));
   errors.push(...inspectLinkingAndContent(routes.filter(isContentRoute)));
 
   const sitemapPath = path.join(distDir, 'sitemap.xml');
@@ -523,8 +581,136 @@ const verifyPrerenderOutput = (routes) => {
   return true;
 };
 
+/**
+ * Prérendu incrémental : décide quelles pages rendre, reprendre du cache ou retirer.
+ * Le cache n'est utilisé que si le manifeste de modules du build et toutes les données sont
+ * disponibles ; sinon rendu complet, comme sans cache.
+ */
+const prepareIncremental = ({ routes, spaShellHtml, catalog, sources }) => {
+  const manifest = readModuleManifest(CACHE_DIR);
+  const disabledReason = !manifest
+    ? 'manifeste de modules absent'
+    : !manifest.entry || !spaShellHtml.includes(`/${manifest.entry}`)
+      ? 'manifeste de modules périmé'
+      : !catalog.ok
+        ? 'catalogue indisponible'
+        : !sources.ok
+          ? 'sources globales indisponibles'
+          : null;
+
+  if (disabledReason) {
+    console.warn(`[prerender] cache désactivé (${disabledReason}) : rendu complet`);
+    return { enabled: false, plan: { render: routes.map((route) => ({ route, reason: 'sans-cache' })), reuse: [], removed: [] } };
+  }
+
+  const cache = openPrerenderCache(CACHE_DIR);
+  const data = createDataContext({
+    productRows: catalog.rows,
+    routeOf: productRouteOf,
+    globals: sources.globals,
+    catalog: PRERENDER_CONFIG.catalog,
+  });
+  const renderVersion = hashOf({
+    schema: CACHE_SCHEMA,
+    script: fs.readFileSync(__filename, 'utf8'),
+    lib: fs.readFileSync(path.join(__dirname, 'lib/prerenderCache.mjs'), 'utf8'),
+    config: PRERENDER_CONFIG,
+    shell: stripAssetTags(spaShellHtml),
+    site: SITE_URL,
+    supabase: process.env.VITE_SUPABASE_URL || '',
+  });
+
+  const meta = cache.readMeta();
+  const fullReason = isTruthy(process.env.PRERENDER_FULL)
+    ? 'PRERENDER_FULL'
+    : !meta
+      ? 'cache absent'
+      : meta.renderVersion !== renderVersion
+        ? 'version de rendu modifiée'
+        : null;
+  if (fullReason) {
+    console.log(`[prerender] rendu complet : ${fullReason}`);
+    cache.reset({ renderVersion });
+  }
+
+  const codeFps = new Map();
+  const codeFp = (setId) => {
+    if (!codeFps.has(setId)) {
+      const moduleIds = setId ? cache.readModuleSet(setId) : null;
+      codeFps.set(setId, moduleIds ? codeFingerprint(moduleIds, manifest.modules) : null);
+    }
+    return codeFps.get(setId);
+  };
+
+  const entries = fullReason ? new Map() : cache.readEntries();
+  const plan = planRoutes({
+    routes,
+    entries,
+    full: Boolean(fullReason),
+    now: Date.now(),
+    ttl: PRERENDER_CONFIG,
+    codeFp,
+    dataFp: data.fingerprint,
+    htmlExists: cache.htmlExists,
+  });
+
+  return { enabled: true, cache, data, manifest, entries, plan };
+};
+
+/** Enregistre une page rendue dans le cache dès sa réussite (reprise après interruption). */
+const recordRender = (incremental, route, html, resourceUrls) => {
+  if (!incremental.enabled) return;
+  const { cache, data, manifest } = incremental;
+
+  const scripts = new Set(extractAssetRefs(html).filter((ref) => /\.m?js$/.test(ref)));
+  for (const raw of resourceUrls) {
+    try {
+      const url = new URL(raw);
+      if (url.hostname === 'localhost' && url.pathname.startsWith('/assets/') && /\.m?js$/.test(url.pathname)) {
+        scripts.add(url.pathname);
+      }
+    } catch {
+      // URL non analysable (data:, blob:) : sans effet sur le code exécuté.
+    }
+  }
+
+  const moduleIds = new Set();
+  const volatileReasons = [];
+  for (const script of scripts) {
+    const ids = manifest.chunks[script.slice(1)];
+    if (ids) ids.forEach((id) => moduleIds.add(id));
+    else volatileReasons.push(`script ${script}`);
+  }
+
+  const { unknown } = classifyDataRequests(resourceUrls, {
+    supabaseUrl: process.env.VITE_SUPABASE_URL,
+    knownTables: [PRERENDER_CONFIG.catalog.table, ...PRERENDER_CONFIG.globalSources.map((source) => source.table)],
+    ignoredPaths: PRERENDER_CONFIG.ignoredRequestPaths,
+  });
+  volatileReasons.push(...unknown.map((source) => `source ${source}`));
+  if (volatileReasons.length) {
+    console.warn(`[prerender] ${route} volatile (toujours re-rendue) : ${volatileReasons.join(', ')}`);
+  }
+
+  const deps = data.isProductRoute(route)
+    ? extractLinkedRoutes(html, PRERENDER_CONFIG.catalog.routePrefix).filter((dep) => dep !== route)
+    : [];
+
+  cache.store(route, html, {
+    setId: cache.writeModuleSet(moduleIds),
+    codeFp: codeFingerprint(moduleIds, manifest.modules),
+    dataFp: data.fingerprint(route, deps),
+    deps,
+    volatile: volatileReasons.length > 0,
+    volatileReasons,
+    renderedAt: new Date().toISOString(),
+  });
+};
+
 const main = async () => {
-  const routes = [...STATIC_ROUTES, ...getContentRoutes(), ...(await getProductRoutes())];
+  const supabase = createSupabase();
+  const [catalog, sources] = await Promise.all([getCatalog(supabase), getGlobalSources(supabase)]);
+  const routes = [...STATIC_ROUTES, ...getContentRoutes(), ...catalog.rows.map(productRouteOf)];
 
   if (!fs.existsSync(distDir)) {
     console.error('dist/ not found. Run vite build first.');
@@ -534,138 +720,165 @@ const main = async () => {
   // Snapshot immuable du shell généré par Vite AVANT que "/" ne réécrive dist/index.html.
   const spaShellHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
 
-  const port = 4173;
-  const server = await startServer(port, spaShellHtml);
-  const localExecutable = findChromeExecutable();
-  let executablePath = localExecutable;
+  const incremental = prepareIncremental({ routes, spaShellHtml, catalog, sources });
+  const { plan } = incremental;
 
-  if (!executablePath) {
+  for (const route of plan.reuse) {
     try {
-      executablePath = await chromium.executablePath();
+      await writeRouteHtml(route, rebaseHtmlAssets(incremental.cache.readHtml(incremental.entries.get(route)), spaShellHtml));
     } catch (err) {
-      console.warn('[prerender] @sparticuz/chromium unavailable:', err);
+      plan.render.push({ route, reason: 'cache-illisible' });
+      console.warn(`[prerender] ${route} : cache illisible, re-rendu (${err?.message || err})`);
     }
   }
-
-  if (!executablePath) {
-    const msg = '[prerender] Chrome/Edge not found. Prerender skipped.';
-    if (isPrerenderRequired()) {
-      console.error(`${msg} Build aborted (CI/Vercel requires prerender).`);
-      server.close();
-      process.exit(1);
-    }
-    console.warn(`${msg} Continuing without prerender (local dev).`);
-    server.close();
-    process.exit(0);
-  }
+  plan.removed.forEach((route) => incremental.cache.remove(route));
+  const reused = plan.reuse.length - plan.render.filter(({ reason }) => reason === 'cache-illisible').length;
 
   console.log(`[prerender] routes: ${routes.length}`);
-  console.log(`[prerender] using browser: ${executablePath}`);
+  console.log(
+    `[prerender] plan : ${plan.render.length} à rendre${plan.render.length ? ` (${summarizeReasons(plan.render)})` : ''}, ` +
+      `${reused} reprise(s) du cache, ${plan.removed.length} retirée(s) du cache`,
+  );
 
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath,
-    headless: chromium.headless,
-  });
+  const queue = plan.render.map(({ route }) => route);
+  const total = queue.length;
+  const failures = [];
+  const port = 4173;
+  let server = null;
+  let browser = null;
 
   try {
-    const concurrence = Math.max(
-      1,
-      Math.min(12, Number(process.env.PRERENDER_CONCURRENCY) || 5),
-    );
-    console.log(`[prerender] concurrence: ${concurrence}`);
+    if (total > 0) {
+      server = await startServer(port, spaShellHtml);
+      let executablePath = findChromeExecutable();
 
-    const queue = [...routes];
-    let processed = 0;
-    const failures = [];
-    const attempts = new Map();
-
-    const newPage = async () => {
-      const page = await browser.newPage();
-      await page.evaluateOnNewDocument(() => {
-        window.__PRERENDER__ = true;
-        window.__PRERENDER_READY__ = false;
-      });
-      return page;
-    };
-
-    const renderRoute = async (page, route) => {
-      const url = `http://localhost:${port}${route}`;
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-      await waitForPrerender(page, route);
-
-      if (route.startsWith('/product/')) {
-        await waitForProductSeo(page, route);
-      } else if (isContentRoute(route)) {
-        await waitForContentSeo(page, route);
+      if (!executablePath) {
+        try {
+          executablePath = await chromium.executablePath();
+        } catch (err) {
+          console.warn('[prerender] @sparticuz/chromium unavailable:', err);
+        }
       }
 
-      await writeRouteHtml(route, await page.content());
-    };
+      if (!executablePath) {
+        const msg = '[prerender] Chrome/Edge not found. Prerender skipped.';
+        if (isPrerenderRequired()) {
+          console.error(`${msg} Build aborted (CI/Vercel requires prerender).`);
+          process.exit(1);
+        }
+        console.warn(`${msg} Continuing without prerender (local dev).`);
+        process.exit(0);
+      }
 
-    const worker = async () => {
-      let page = await newPage();
+      console.log(`[prerender] using browser: ${executablePath}`);
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath,
+        headless: chromium.headless,
+      });
 
-      try {
-        for (;;) {
-          const route = queue.shift();
-          if (route === undefined) break;
+      const concurrence = Math.max(1, Math.min(12, Number(process.env.PRERENDER_CONCURRENCY) || 5));
+      console.log(`[prerender] concurrence: ${concurrence}`);
 
-          try {
-            await renderRoute(page, route);
-            processed += 1;
-            console.log(`[prerender] ${processed}/${routes.length} ${route}`);
-          } catch (err) {
-            const message = err?.message || String(err);
+      let processed = 0;
+      const attempts = new Map();
+      const requestedUrls = new WeakMap();
 
-            // Un onglet ayant perdu sa frame peut rester inutilisable : repartir proprement.
-            await page.close().catch(() => {});
-            page = await newPage();
+      const newPage = async () => {
+        const page = await browser.newPage();
+        requestedUrls.set(page, []);
+        page.on('request', (request) => requestedUrls.get(page)?.push(request.url()));
+        await page.evaluateOnNewDocument(() => {
+          window.__PRERENDER__ = true;
+          window.__PRERENDER_READY__ = false;
+          performance.setResourceTimingBufferSize?.(20_000);
+        });
+        return page;
+      };
 
-            const attempt = (attempts.get(route) || 0) + 1;
-            attempts.set(route, attempt);
+      const renderRoute = async (page, route) => {
+        requestedUrls.set(page, []);
+        const url = `http://localhost:${port}${route}`;
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+        await waitForPrerender(page, route);
 
-            if (attempt < MAX_RENDER_ATTEMPTS) {
-              queue.unshift(route);
-              console.warn(
-                `[prerender] reprise ${route} (essai ${attempt + 1}/${MAX_RENDER_ATTEMPTS}) — ${message}`,
-              );
-            } else {
-              failures.push({ route, message });
+        if (route.startsWith('/product/')) {
+          await waitForProductSeo(page, route);
+        } else if (isContentRoute(route) || route === '/') {
+          // L'accueil est vérifié (meta description, titre) : attendre que Helmet ait appliqué son SEO.
+          await waitForContentSeo(page, route);
+        }
+
+        const timedUrls = await page.evaluate(() => performance.getEntriesByType('resource').map((entry) => entry.name));
+        const html = await page.content();
+        await writeRouteHtml(route, html);
+        recordRender(incremental, route, html, [...new Set([...(requestedUrls.get(page) || []), ...timedUrls])]);
+      };
+
+      const worker = async () => {
+        let page = await newPage();
+
+        try {
+          for (;;) {
+            const route = queue.shift();
+            if (route === undefined) break;
+
+            try {
+              await renderRoute(page, route);
               processed += 1;
-              console.error(`[prerender] echec definitif ${route}: ${message}`);
+              console.log(`[prerender] ${processed}/${total} ${route}`);
+            } catch (err) {
+              const message = err?.message || String(err);
+
+              // Un onglet ayant perdu sa frame peut rester inutilisable : repartir proprement.
+              await page.close().catch(() => {});
+              page = await newPage();
+
+              const attempt = (attempts.get(route) || 0) + 1;
+              attempts.set(route, attempt);
+
+              if (attempt < MAX_RENDER_ATTEMPTS) {
+                queue.unshift(route);
+                console.warn(
+                  `[prerender] reprise ${route} (essai ${attempt + 1}/${MAX_RENDER_ATTEMPTS}) — ${message}`,
+                );
+              } else {
+                failures.push({ route, message });
+                processed += 1;
+                console.error(`[prerender] echec definitif ${route}: ${message}`);
+              }
             }
           }
+        } finally {
+          await page.close().catch(() => {});
         }
-      } finally {
-        await page.close().catch(() => {});
-      }
-    };
+      };
 
-    await Promise.all(Array.from({ length: concurrence }, worker));
+      await Promise.all(Array.from({ length: concurrence }, worker));
 
-    // Dernière passe séquentielle : réduit la contention pour les rares retardataires.
-    if (failures.length) {
-      const retrySequentially = failures.splice(0, failures.length);
-      console.log(`[prerender] passe sequentielle pour ${retrySequentially.length} route(s)`);
-      let page = await newPage();
+      // Dernière passe séquentielle : réduit la contention pour les rares retardataires.
+      if (failures.length) {
+        const retrySequentially = failures.splice(0, failures.length);
+        console.log(`[prerender] passe sequentielle pour ${retrySequentially.length} route(s)`);
+        let page = await newPage();
 
-      try {
-        for (const { route } of retrySequentially) {
-          try {
-            await renderRoute(page, route);
-            console.log(`[prerender] rattrape ${route}`);
-          } catch (err) {
-            failures.push({ route, message: err?.message || String(err) });
-            console.error(`[prerender] echec apres passe sequentielle ${route}`);
+        try {
+          for (const { route } of retrySequentially) {
+            try {
+              await renderRoute(page, route);
+              console.log(`[prerender] rattrape ${route}`);
+            } catch (err) {
+              failures.push({ route, message: err?.message || String(err) });
+              console.error(`[prerender] echec apres passe sequentielle ${route}`);
 
-            await page.close().catch(() => {});
-            page = await newPage();
+              await page.close().catch(() => {});
+              page = await newPage();
+            }
           }
+        } finally {
+          await page.close().catch(() => {});
         }
-      } finally {
-        await page.close().catch(() => {});
       }
     }
 
@@ -688,8 +901,8 @@ const main = async () => {
     verifyPrerenderOutput(routes);
     console.log('[prerender] done');
   } finally {
-    await browser.close();
-    server.close();
+    await browser?.close();
+    server?.close();
   }
 };
 

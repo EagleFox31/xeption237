@@ -1,4 +1,5 @@
 import type { ArticleDef, LandingPageDef } from '../content/seo/types';
+import { GUIDES, LANDING_PAGES, pickBySlugs } from '../content/seo';
 import { Product } from '../types';
 import { selectProducts } from './landingPageFilter';
 
@@ -46,3 +47,22 @@ export const buildGuideCards = (
         ? undefined
         : pickCover(selectProducts(products, guide.products.filter, guide.products.sort), used),
   }));
+
+export type CardSectionDef = { kind: 'landings' | 'guides'; title: string; /** Absent = tout le contenu. */ slugs?: string[] };
+
+export type CardSectionData =
+  | { kind: 'landings'; title: string; cards: LandingCardData[] }
+  | { kind: 'guides'; title: string; cards: GuideCardData[] };
+
+/**
+ * Sections de cartes d'une même page : une photo n'y apparaît qu'une fois.
+ * Les sections sont servies dans l'ordre d'affichage, la première garde donc ses photos préférées.
+ */
+export const buildCardSections = (sections: CardSectionDef[], products: Product[]): CardSectionData[] => {
+  const used = new Set<string>();
+  return sections.map(({ kind, title, slugs }): CardSectionData =>
+    kind === 'landings'
+      ? { kind, title, cards: buildLandingCards(slugs ? pickBySlugs(LANDING_PAGES, slugs) : LANDING_PAGES, products, used) }
+      : { kind, title, cards: buildGuideCards(slugs ? pickBySlugs(GUIDES, slugs) : GUIDES, products, used) },
+  );
+};

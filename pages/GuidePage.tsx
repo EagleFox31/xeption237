@@ -9,7 +9,8 @@ import ContentPageShell from '../components/content/ContentPageShell';
 import ArticleBody from '../components/content/ArticleBody';
 import FaqSection from '../components/content/FaqSection';
 import ProductLinkGrid from '../components/content/ProductLinkGrid';
-import { RelatedGuideCards, RelatedLandingCards } from '../components/content/RelatedCards';
+import { RelatedCardSections } from '../components/content/RelatedCards';
+import type { CardSectionDef } from '../utils/contentCards';
 import { TikTokVideoButton } from '../components/TikTokVideoButton';
 import { INSTITUTIONAL_SECTION_CLASS } from '../constants/institutionalPageStyles';
 
@@ -28,6 +29,13 @@ const GuidePage: React.FC<GuidePageProps> = ({ products, onAddToCart }) => {
   const picks = useMemo(
     () => (guide?.products ? selectProducts(products, guide.products.filter, guide.products.sort, guide.products.limit) : []),
     [products, guide],
+  );
+  const relatedSections = useMemo<CardSectionDef[]>(
+    () => [
+      { kind: 'landings', title: 'Rayons associés', slugs: guide?.relatedLandings },
+      { kind: 'guides', title: 'À lire aussi', slugs: guide?.relatedGuides ?? [] },
+    ],
+    [guide],
   );
 
   if (!guide) {
@@ -95,8 +103,7 @@ const GuidePage: React.FC<GuidePageProps> = ({ products, onAddToCart }) => {
           </section>
         )}
         {guide.faq?.length ? <FaqSection items={guide.faq} /> : null}
-        <RelatedLandingCards title="Rayons associés" slugs={guide.relatedLandings} products={products} />
-        <RelatedGuideCards title="À lire aussi" slugs={guide.relatedGuides ?? []} products={products} />
+        <RelatedCardSections sections={relatedSections} products={products} />
       </ContentPageShell>
     </>
   );

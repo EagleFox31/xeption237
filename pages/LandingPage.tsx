@@ -12,7 +12,8 @@ import { INSTITUTIONAL_SECTION_CLASS } from '../constants/institutionalPageStyle
 import FaqSection from '../components/content/FaqSection';
 import ProductLinkGrid from '../components/content/ProductLinkGrid';
 import RelatedLinks from '../components/content/RelatedLinks';
-import { RelatedGuideCards, RelatedLandingCards } from '../components/content/RelatedCards';
+import { RelatedCardSections } from '../components/content/RelatedCards';
+import type { CardSectionDef } from '../utils/contentCards';
 import { helpLinks } from '../components/content/contentLinks';
 import SkeletonLoader from '../components/common/SkeletonLoader';
 import { TikTokVideoButton } from '../components/TikTokVideoButton';
@@ -27,6 +28,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
   const { slug } = useParams<{ slug: string }>();
   const def = getLandingBySlug(slug);
   const selection = useMemo(() => (def ? selectLandingProducts(products, def) : []), [products, def]);
+  const relatedSections = useMemo<CardSectionDef[]>(
+    () => [
+      { kind: 'guides', title: "Guides d'achat", slugs: def?.relatedGuides },
+      { kind: 'landings', title: 'Autres rayons', slugs: def?.relatedLandings },
+    ],
+    [def],
+  );
 
   if (!def) {
     return (
@@ -119,8 +127,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
         </section>
 
         <FaqSection items={def.faq} />
-        <RelatedGuideCards title="Guides d'achat" slugs={def.relatedGuides} products={products} />
-        <RelatedLandingCards title="Autres rayons" slugs={def.relatedLandings} products={products} />
+        <RelatedCardSections sections={relatedSections} products={products} />
         <RelatedLinks title="Aide & SAV" links={helpLinks(['livraison', 'paiement', 'garanties'])} />
       </ContentPageShell>
     </>

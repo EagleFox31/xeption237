@@ -1,7 +1,12 @@
 import React, { useMemo } from 'react';
 import { GUIDES, LANDING_PAGES, pickBySlugs } from '../../content/seo';
 import { Product } from '../../types';
-import { buildGuideCards, buildLandingCards } from '../../utils/contentCards';
+import {
+  buildCardSections,
+  buildGuideCards,
+  buildLandingCards,
+  type CardSectionDef,
+} from '../../utils/contentCards';
 import { INSTITUTIONAL_SECTION_CLASS } from '../../constants/institutionalPageStyles';
 import GuideCard from './GuideCard';
 import LandingCard from './LandingCard';
@@ -55,5 +60,34 @@ export const RelatedGuideCards: React.FC<RelatedCardsProps> = ({ title, slugs, p
         </li>
       ))}
     </CardGridSection>
+  );
+};
+
+/** Plusieurs sections de cartes sur une même page, sans photo en double d'une section à l'autre. */
+export const RelatedCardSections: React.FC<{ sections: CardSectionDef[]; products?: Product[] }> = ({
+  sections,
+  products = [],
+}) => {
+  const built = useMemo(() => buildCardSections(sections, products), [sections, products]);
+  return (
+    <>
+      {built.map((section) =>
+        section.cards.length ? (
+          <CardGridSection key={section.title} title={section.title}>
+            {section.kind === 'landings'
+              ? section.cards.map(({ landing, cover, productCount }) => (
+                  <li key={landing.slug}>
+                    <LandingCard landing={landing} cover={cover} productCount={productCount} />
+                  </li>
+                ))
+              : section.cards.map(({ guide, fallbackProduct }) => (
+                  <li key={guide.slug}>
+                    <GuideCard guide={guide} fallbackProduct={fallbackProduct} />
+                  </li>
+                ))}
+          </CardGridSection>
+        ) : null,
+      )}
+    </>
   );
 };

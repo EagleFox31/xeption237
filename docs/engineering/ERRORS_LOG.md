@@ -574,3 +574,13 @@ pas l'application du SEO par Helmet ; sous contention (première page, 3 onglets
 
 **Comment ne plus la refaire** : toute page dont le HTML est vérifié après coup doit être attendue sur ce même
 critère avant capture ; les drapeaux booléens d'environnement passent par `isTruthy` (`1` ou `true`).
+
+## 2026-10-31 — Écran « Une erreur est survenue » sous le footer (ErrorBoundary `fallback={null}`)
+
+**Symptôme** : sur desktop, la page continue sous le footer ; DevTools montre un `div.min-h-[50vh]` (écran d'erreur par défaut) après le footer.
+
+**Cause racine** : `MobileBottomNav` est enveloppée dans `<ErrorBoundary fallback={null}>` pour échouer en silence, mais `ErrorBoundary` testait `if (this.props.fallback)` : `null` est falsy → écran d'erreur par défaut rendu hors de `<main>`. Déclencheur observé : plantage de `MobileBottomNav` après un HMR de `App.tsx` en dev.
+
+**Résolution** : test de présence `this.props.fallback !== undefined` ; test `tests/unit/errorBoundary.test.tsx` (`fallback={null}` → rendu vide).
+
+**Comment ne plus la refaire** : une prop optionnelle dont `null` est une valeur légitime (ReactNode) se teste avec `!== undefined`, jamais par vérité.

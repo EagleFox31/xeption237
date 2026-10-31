@@ -28,7 +28,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (!this.state.hasError) return this.props.children;
-    if (this.props.fallback) return this.props.fallback;
+    // `fallback={null}` = échec silencieux voulu (ex. barre mobile) : tester la présence, pas la valeur.
+    if (this.props.fallback !== undefined) return this.props.fallback;
 
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center gap-6 px-4 text-center">

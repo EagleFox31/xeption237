@@ -20,6 +20,10 @@ export const INSTITUTIONAL_TOC_STICKY_CLASS =
 export const INSTITUTIONAL_TOC_LINK_IDLE =
   'text-white/70 hover:bg-white/5 hover:text-white';
 
+/** En-tête des pages de contenu (guides, aide, rayons) : aligné à gauche, même carte que les pages juridiques */
+export const INSTITUTIONAL_CONTENT_HEADER_CLASS =
+  'mb-8 bg-black/55 backdrop-blur-md border border-white/10 rounded-2xl px-4 sm:px-6 py-6 md:py-8 shadow-lg';
+
 export const INSTITUTIONAL_PAGE_HEADER_CLASS =
   'text-center mb-12 bg-black/55 backdrop-blur-md border border-white/10 rounded-2xl px-4 sm:px-6 py-8 shadow-lg';
 

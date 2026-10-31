@@ -81,7 +81,9 @@ describe('liens produit → contenus', () => {
 
   it('landing principale la plus spécifique', () => {
     expect(getPrimaryLandingForProduct(iphone, LANDING_PAGES)?.slug).toBe('iphone-cameroun');
-    const cheap = p({ name: 'Redmi A5', brandName: 'Xiaomi', price: 60000 });
+    const redmi = p({ name: 'Redmi A5', brandName: 'Xiaomi', price: 60000 });
+    expect(getPrimaryLandingForProduct(redmi, LANDING_PAGES)?.slug).toBe('smartphones-xiaomi-redmi-poco-cameroun');
+    const cheap = p({ name: 'Tecno Spark 20', brandName: 'Tecno', price: 60000 });
     expect(getPrimaryLandingForProduct(cheap, LANDING_PAGES)?.slug).toBe('telephones-moins-100000-fcfa');
   });
 });

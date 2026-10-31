@@ -1,11 +1,12 @@
 import React from 'react';
 import type { FaqItem } from '../../content/seo/types';
+import { INSTITUTIONAL_SECTION_CLASS } from '../../constants/institutionalPageStyles';
 
 /** FAQ visible (exigée pour publier un FAQPage JSON-LD). */
 const FaqSection: React.FC<{ items: FaqItem[]; title?: string }> = ({ items, title = 'Questions fréquentes' }) => {
   if (!items.length) return null;
   return (
-    <section className="mt-12" aria-labelledby="faq-title">
+    <section className={`mt-6 ${INSTITUTIONAL_SECTION_CLASS}`} aria-labelledby="faq-title">
       <h2 id="faq-title" className="text-xl md:text-2xl font-tech font-bold uppercase tracking-wide text-white mb-4">
         {title}
       </h2>

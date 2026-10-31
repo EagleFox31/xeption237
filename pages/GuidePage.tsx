@@ -11,6 +11,7 @@ import FaqSection from '../components/content/FaqSection';
 import ProductLinkGrid from '../components/content/ProductLinkGrid';
 import RelatedLinks from '../components/content/RelatedLinks';
 import { guideLinks, landingLinks } from '../components/content/contentLinks';
+import { INSTITUTIONAL_SECTION_CLASS } from '../constants/institutionalPageStyles';
 
 interface GuidePageProps {
   products: Product[];
@@ -73,11 +74,11 @@ const GuidePage: React.FC<GuidePageProps> = ({ products, onAddToCart }) => {
           </>
         }
       >
-        <div className="max-w-3xl">
+        <div>
           <ArticleBody sections={guide.sections} />
         </div>
         {picks.length > 0 && (
-          <section className="mt-12" aria-labelledby="produits-title">
+          <section className={`mt-6 ${INSTITUTIONAL_SECTION_CLASS}`} aria-labelledby="produits-title">
             <h2 id="produits-title" className="text-xl md:text-2xl font-tech font-bold uppercase tracking-wide mb-4">
               Modèles disponibles
             </h2>

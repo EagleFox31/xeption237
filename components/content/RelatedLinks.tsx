@@ -2,12 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import type { ContentLink } from '../../content/seo/types';
+import { INSTITUTIONAL_SECTION_CLASS } from '../../constants/institutionalPageStyles';
 
 /** Liste de liens internes crawlables (maillage catégories / guides / aide). */
 const RelatedLinks: React.FC<{ title: string; links: ContentLink[]; className?: string }> = ({
   title,
   links,
-  className = 'mt-12',
+  className = `mt-6 ${INSTITUTIONAL_SECTION_CLASS}`,
 }) => {
   if (!links.length) return null;
   return (

@@ -71,7 +71,7 @@ const HelpPage: React.FC = () => {
       <PageSEO title={topic.title} description={topic.metaDescription} path={helpPath(topic.slug)} />
       <JsonLd data={[breadcrumbJsonLd(crumbs), ...(topic.faq?.length ? [faqJsonLd(topic.faq)] : [])]} />
       <ContentPageShell crumbs={crumbs} h1={topic.h1} lead={<p className="mt-3 max-w-3xl text-gray-300">{topic.summary}</p>}>
-        <div className="max-w-3xl">
+        <div>
           <ArticleBody sections={topic.sections} />
         </div>
         {topic.faq?.length ? <FaqSection items={topic.faq} /> : null}

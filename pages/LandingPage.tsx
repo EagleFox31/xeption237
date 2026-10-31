@@ -8,6 +8,7 @@ import { landingPath, productPath } from '../utils/routes';
 import { getProductDisplayName } from '../utils/productDisplay';
 import { PageSEO, JsonLd, breadcrumbJsonLd, faqJsonLd, itemListJsonLd, absoluteUrl } from '../utils/seo';
 import ContentPageShell from '../components/content/ContentPageShell';
+import { INSTITUTIONAL_SECTION_CLASS } from '../constants/institutionalPageStyles';
 import FaqSection from '../components/content/FaqSection';
 import ProductLinkGrid from '../components/content/ProductLinkGrid';
 import RelatedLinks from '../components/content/RelatedLinks';
@@ -67,7 +68,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
           </p>
         ))}
       >
-        <section aria-labelledby="selection-title">
+        <section className={INSTITUTIONAL_SECTION_CLASS} aria-labelledby="selection-title">
           <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
             <h2 id="selection-title" className="text-xl md:text-2xl font-tech font-bold uppercase tracking-wide">
               Notre sélection{catalogueLoading ? "" : ` (${selection.length})`}
@@ -88,7 +89,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
           )}
         </section>
 
-        <section className="mt-12" aria-labelledby="conseils-title">
+        <section className={`mt-6 ${INSTITUTIONAL_SECTION_CLASS}`} aria-labelledby="conseils-title">
           <h2 id="conseils-title" className="text-xl md:text-2xl font-tech font-bold uppercase tracking-wide mb-4">
             Conseils d'achat
           </h2>

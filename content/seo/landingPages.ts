@@ -149,8 +149,8 @@ export const LANDING_PAGES: LandingPageDef[] = [
     sort: 'price-asc',
     limit: 24,
     shopHref: '/shop?cat=computer&condition=refurbished',
-    relatedGuides: ['occasion-reconditionne-ou-neuf'],
-    relatedLandings: ['telephones-moins-100000-fcfa'],
+    relatedGuides: ['quel-pc-portable-200000-fcfa', 'occasion-reconditionne-ou-neuf'],
+    relatedLandings: ['pc-portables-hp-cameroun', 'telephones-moins-100000-fcfa'],
     showInFooter: true,
     updatedAt: '2026-10-30',
   },
@@ -198,8 +198,160 @@ export const LANDING_PAGES: LandingPageDef[] = [
     limit: 36,
     shopHref: '/shop?cat=phones&price_max=100000',
     relatedGuides: ['quel-smartphone-100000-fcfa', 'occasion-reconditionne-ou-neuf'],
-    relatedLandings: ['smartphones-samsung-cameroun', 'iphone-cameroun'],
+    relatedLandings: ['smartphones-samsung-cameroun', 'smartphones-xiaomi-redmi-poco-cameroun', 'iphone-cameroun'],
     showInFooter: true,
     updatedAt: '2026-10-30',
+  },
+  {
+    slug: 'smartphones-xiaomi-redmi-poco-cameroun',
+    navLabel: 'Xiaomi, Redmi et Poco',
+    h1: 'Smartphones Xiaomi, Redmi et Poco au Cameroun',
+    title: 'Smartphones Xiaomi, Redmi et Poco au Cameroun | Xeption',
+    metaDescription:
+      "Xiaomi, Redmi et Poco au Cameroun : différences entre gammes, modèles neufs et reconditionnés, paiement Orange Money ou MoMo, livraison et retrait à Yaoundé.",
+    intro: [
+      "Redmi et Poco sont des marques de Xiaomi. Elles couvrent tous les budgets, du premier smartphone au modèle haut de gamme.",
+      "Les modèles disponibles sont classés ci-dessous du moins cher au plus cher. Chaque fiche précise l'état, la mémoire et la garantie applicable.",
+    ],
+    buyingTips: [
+      {
+        title: 'Redmi A et Redmi C : l’essentiel',
+        body: "Les gammes d'entrée de gamme pour les appels, WhatsApp et les réseaux sociaux. Préférez les versions 128 Go : le système occupe une bonne partie du stockage.",
+      },
+      {
+        title: 'Redmi Note : le meilleur équilibre',
+        body: "Écran plus fluide, meilleur appareil photo et charge rapide : la gamme Redmi Note est le bon compromis pour un usage quotidien intensif.",
+      },
+      {
+        title: 'Poco et Xiaomi : la puissance',
+        body: "Poco mise sur la performance pour les jeux à prix contenu. Les Xiaomi numérotés (série T, Pro) visent le haut de gamme, avec les meilleurs appareils photo de la marque.",
+      },
+    ],
+    faq: [
+      {
+        q: 'Quelle différence entre Xiaomi, Redmi et Poco ?',
+        a: "Les trois appartiennent au même groupe. Redmi couvre l'entrée et le milieu de gamme, Poco privilégie la puissance à prix serré, et la gamme Xiaomi regroupe les modèles les plus haut de gamme.",
+      },
+      {
+        q: 'Comment payer un smartphone Xiaomi chez Xeption ?',
+        a: "Par Orange Money, MTN Mobile Money, ou en espèces à la livraison ou au retrait en boutique au Mfoundi Mall.",
+      },
+      {
+        q: 'Livrez-vous hors de Yaoundé ?',
+        a: "Oui : Yaoundé en 24 à 48 h ouvrées, Douala en 48 à 72 h ouvrées et les autres villes du Cameroun en 3 à 7 jours ouvrés selon la destination.",
+      },
+      {
+        q: 'Puis-je échanger mon ancien téléphone ?',
+        a: "Oui, via Smart Troc : estimation en ligne, puis validation définitive de la reprise lors du dépôt de l'appareil en boutique.",
+      },
+    ],
+    filter: { categories: [CATEGORY_SLUGS.PHONES], brands: ['Xiaomi'], nameIncludes: ['xiaomi', 'redmi', 'poco'] },
+    sort: 'price-asc',
+    limit: 24,
+    shopHref: '/shop?cat=phones&brand=xiaomi',
+    relatedGuides: ['quel-smartphone-100000-fcfa', 'occasion-reconditionne-ou-neuf', 'telephone-importe-cameroun'],
+    relatedLandings: ['telephones-moins-100000-fcfa', 'smartphones-samsung-cameroun', 'google-pixel-cameroun'],
+    showInFooter: true,
+    updatedAt: '2026-10-31',
+  },
+  {
+    slug: 'google-pixel-cameroun',
+    navLabel: 'Google Pixel',
+    h1: 'Google Pixel au Cameroun',
+    title: 'Google Pixel au Cameroun : neufs et reconditionnés | Xeption',
+    metaDescription:
+      "Google Pixel au Cameroun : séries a, standard et Pro, versions importées expliquées, paiement Orange Money ou MoMo, livraison et retrait à Yaoundé.",
+    intro: [
+      "Les Pixel sont les smartphones conçus par Google : Android sans surcouche, mises à jour rapides et appareils photo réputés.",
+      "Les modèles disponibles sont présentés du plus récent au plus ancien. L'origine des versions importées est indiquée sur chaque fiche.",
+    ],
+    buyingTips: [
+      {
+        title: 'Série a, standard ou Pro',
+        body: "Les Pixel « a » reprennent l'essentiel à prix réduit. Les modèles standard ajoutent de meilleures finitions, et les Pro un téléobjectif et un écran plus grand.",
+      },
+      {
+        title: 'Vérifier la durée des mises à jour',
+        body: "Google promet 7 ans de mises à jour à partir du Pixel 8. Les Pixel 6 et 7 ont un suivi plus court : vérifiez la date de fin sur la page d'assistance Google avant d'acheter.",
+      },
+      {
+        title: 'Versions importées',
+        body: "Un Pixel destiné au marché japonais émet un son à chaque photo, impossible à désactiver. Consultez l'origine sur la fiche et notre guide sur les téléphones importés.",
+      },
+    ],
+    faq: [
+      {
+        q: 'Un Pixel importé fonctionne-t-il au Cameroun ?',
+        a: "Vérifiez la version (origine indiquée sur la fiche), le blocage opérateur et la compatibilité réseau. Notre guide sur les téléphones importés détaille chaque point, et vous pouvez poser la question avant l'achat.",
+      },
+      {
+        q: 'Quelle garantie pour un Pixel reconditionné ?',
+        a: "L'état et la garantie applicable sont précisés sur la fiche produit et sur la facture.",
+      },
+      {
+        q: 'Comment payer un Google Pixel chez Xeption ?',
+        a: "Par Orange Money, MTN Mobile Money, ou en espèces à la livraison ou au retrait en boutique au Mfoundi Mall.",
+      },
+      {
+        q: 'Puis-je échanger mon ancien téléphone contre un Pixel ?',
+        a: "Oui, via Smart Troc : estimation en ligne, puis validation définitive de la reprise lors du dépôt de l'appareil en boutique.",
+      },
+    ],
+    filter: { categories: [CATEGORY_SLUGS.PHONES], brands: ['Google Pixel'], nameIncludes: ['pixel'] },
+    sort: 'newest',
+    limit: 24,
+    shopHref: '/shop?cat=phones&brand=google-pixel',
+    relatedGuides: ['telephone-importe-cameroun', 'occasion-reconditionne-ou-neuf', 'preparer-telephone-reprise-smart-troc'],
+    relatedLandings: ['iphone-cameroun', 'smartphones-samsung-cameroun', 'smartphones-xiaomi-redmi-poco-cameroun'],
+    showInFooter: true,
+    updatedAt: '2026-10-31',
+  },
+  {
+    slug: 'pc-portables-hp-cameroun',
+    navLabel: 'PC portables HP',
+    h1: 'Ordinateurs portables HP au Cameroun',
+    title: 'PC portables HP au Cameroun : EliteBook, ProBook | Xeption',
+    metaDescription:
+      "PC portables HP reconditionnés au Cameroun : EliteBook, ProBook et 2-en-1 comparés, paiement Orange Money ou MoMo, livraison et retrait à Yaoundé.",
+    intro: [
+      "HP conçoit ses gammes EliteBook et ProBook pour les entreprises : châssis robustes, claviers confortables et pièces faciles à trouver.",
+      "Les modèles disponibles sont classés du moins cher au plus cher. Chaque fiche indique le processeur, la mémoire, le stockage et la garantie.",
+    ],
+    buyingTips: [
+      {
+        title: 'EliteBook ou ProBook',
+        body: "L'EliteBook est le haut de gamme professionnel de HP : finitions métal, meilleur écran, plus léger. Le ProBook vise le même usage à moindre coût. Les modèles x360 et Elite x2 se transforment en tablette.",
+      },
+      {
+        title: 'Lire la génération',
+        body: "Le « G » du nom indique la génération (840 G2, G5, G6…) : plus le chiffre est élevé, plus le modèle est récent. Pour Windows 11, visez un processeur Intel de 8e génération ou un Ryzen 2000 et plus récents.",
+      },
+      {
+        title: 'SSD et mémoire',
+        body: "Un SSD rend l'ordinateur nettement plus rapide qu'un disque dur classique (HDD). 8 Go de RAM suffisent pour la bureautique, 16 Go pour garder de nombreux onglets et logiciels ouverts.",
+      },
+    ],
+    faq: [
+      {
+        q: 'Les PC HP reconditionnés sont-ils garantis ?',
+        a: "Oui. La garantie applicable est précisée sur la fiche produit et sur la facture.",
+      },
+      {
+        q: 'Quel HP choisir pour les études ?',
+        a: "Un EliteBook ou un ProBook avec SSD et 8 Go de RAM couvre la bureautique et les cours en ligne. Notre guide sur les PC à 200 000 FCFA détaille les compromis.",
+      },
+      {
+        q: 'Comment payer un ordinateur chez Xeption ?',
+        a: "Par Orange Money, MTN Mobile Money, ou en espèces à la livraison ou au retrait en boutique au Mfoundi Mall.",
+      },
+    ],
+    filter: { categories: [CATEGORY_SLUGS.ORDINATEURS], brands: ['HP'], nameIncludes: ['elitebook', 'probook'] },
+    sort: 'price-asc',
+    limit: 24,
+    shopHref: '/shop?cat=computer&brand=hp',
+    relatedGuides: ['quel-pc-portable-200000-fcfa', 'occasion-reconditionne-ou-neuf'],
+    relatedLandings: ['pc-portables-reconditionnes-cameroun'],
+    showInFooter: true,
+    updatedAt: '2026-10-31',
   },
 ];

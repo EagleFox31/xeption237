@@ -270,4 +270,158 @@ export const GUIDES: ArticleDef[] = [
     relatedGuides: ['verifier-iphone-occasion'],
     appliesTo: { categories: [CATEGORY_SLUGS.PHONES] },
   },
+  {
+    slug: 'quel-pc-portable-200000-fcfa',
+    navLabel: 'Quel PC portable avec 200 000 FCFA ?',
+    h1: 'Quel PC portable acheter avec 200 000 FCFA au Cameroun ?',
+    title: 'Quel PC portable acheter avec 200 000 FCFA au Cameroun ?',
+    metaDescription:
+      "SSD, mémoire, processeur, Windows 11 : les critères pour choisir un PC portable à 200 000 FCFA au Cameroun pour les études ou le travail, avec notre sélection.",
+    summary: 'Études, bureautique ou travail : les critères qui comptent et les compromis à accepter.',
+    updatedAt: '2026-10-31',
+    sections: [
+      {
+        id: 'usage',
+        heading: 'Partir de votre usage',
+        paragraphs: [
+          "Pour les études et la bureautique (Word, Excel, navigateur, visioconférence), un ordinateur professionnel reconditionné est le meilleur choix dans ce budget. Les logiciels lourds (montage vidéo, jeux récents, 3D) demandent un budget plus élevé.",
+        ],
+      },
+      {
+        id: 'criteres',
+        heading: 'Les critères prioritaires',
+        paragraphs: ['Dans cet ordre :'],
+        bullets: [
+          "SSD obligatoire : c'est lui qui rend l'ordinateur rapide au démarrage et à l'ouverture des logiciels. Évitez les disques durs classiques (HDD).",
+          "Mémoire vive : 8 Go minimum, 16 Go pour travailler avec de nombreux onglets et logiciels ouverts.",
+          "Processeur : un Intel Core i5 ou un AMD Ryzen 5 récent suffit largement. Un Core i5 récent vaut souvent mieux qu'un Core i7 ancien.",
+          "Écran : 14 pouces est le bon compromis entre confort et transport.",
+          "Batterie : sur un reconditionné, demandez son état avant l'achat.",
+        ],
+      },
+      {
+        id: 'windows',
+        heading: 'Vérifier la compatibilité Windows 11',
+        paragraphs: [
+          "Microsoft a arrêté les mises à jour de sécurité de Windows 10 en octobre 2025. Windows 11 exige officiellement un processeur Intel de 8e génération ou un AMD Ryzen 2000 et plus récents : vérifiez ce point sur la fiche avant de choisir un modèle ancien.",
+        ],
+      },
+      {
+        id: 'gammes-pro',
+        heading: 'Pourquoi les gammes professionnelles',
+        paragraphs: [
+          "HP EliteBook et ProBook, Lenovo ThinkPad, Dell Latitude : ces gammes sont conçues pour les entreprises. Châssis robuste, clavier confortable et pièces faciles à trouver : reconditionnées, elles offrent plus de fiabilité qu'un PC grand public neuf au même prix.",
+        ],
+        links: [
+          { to: '/categorie/pc-portables-hp-cameroun', label: 'Les PC portables HP' },
+          { to: '/categorie/pc-portables-reconditionnes-cameroun', label: 'Tous les PC reconditionnés' },
+        ],
+      },
+      {
+        id: 'compromis',
+        heading: 'Les compromis à accepter',
+        paragraphs: [
+          "Dans ce budget, on choisit entre plusieurs avantages. Un modèle 2-en-1 tactile est pratique pour prendre des notes, mais offre souvent moins de puissance au même prix. Un modèle plus récent garantit Windows 11 plus longtemps, parfois avec moins de mémoire : la mémoire peut souvent être augmentée plus tard, pas le processeur.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Un PC reconditionné est-il fiable pour les études ?',
+        a: "Oui, s'il est contrôlé et garanti. Les gammes professionnelles sont conçues pour durer plusieurs années d'usage quotidien. La garantie applicable est précisée sur la fiche produit et sur la facture.",
+      },
+      {
+        q: '8 Go de RAM suffisent-ils ?',
+        a: "Pour la bureautique, la navigation et les cours en ligne, oui. Visez 16 Go si vous gardez beaucoup d'onglets ouverts ou utilisez des logiciels plus exigeants.",
+      },
+      {
+        q: 'Core i5 ou Core i7 ?',
+        a: "La génération compte plus que le nom : un Core i5 de 8e génération ou plus récent est plus rapide et compatible Windows 11, contrairement à certains Core i7 plus anciens.",
+      },
+    ],
+    relatedLandings: ['pc-portables-reconditionnes-cameroun', 'pc-portables-hp-cameroun'],
+    relatedGuides: ['occasion-reconditionne-ou-neuf'],
+    products: {
+      filter: { categories: [CATEGORY_SLUGS.ORDINATEURS], minPrice: 1, maxPrice: 200000, inStockOnly: true },
+      limit: 8,
+      sort: 'price-desc',
+    },
+    appliesTo: { categories: [CATEGORY_SLUGS.ORDINATEURS], minPrice: 1, maxPrice: 250000 },
+  },
+  {
+    slug: 'telephone-importe-cameroun',
+    navLabel: 'Téléphone importé : que vérifier ?',
+    h1: 'Téléphone importé : que vérifier pour l’utiliser au Cameroun ?',
+    title: 'Téléphone importé : que vérifier pour l’utiliser au Cameroun ?',
+    metaDescription:
+      "SIM ou eSIM, blocage opérateur, réseau, version régionale et garantie : ce qu'il faut vérifier avant d'acheter un téléphone américain, coréen ou japonais.",
+    summary: 'SIM, réseau, version régionale et garantie : les points à vérifier avant de payer.',
+    updatedAt: '2026-10-31',
+    sections: [
+      {
+        id: 'origine',
+        heading: "Connaître l'origine de l'appareil",
+        paragraphs: [
+          "Un même modèle existe en plusieurs versions selon le pays de destination (États-Unis, Corée, Japon, Europe…). Chez Xeption, l'origine des appareils importés est indiquée sur la fiche produit, à côté de l'état.",
+        ],
+      },
+      {
+        id: 'sim',
+        heading: 'SIM physique ou eSIM',
+        paragraphs: [
+          "Certains modèles n'ont plus de tiroir SIM. Les iPhone vendus aux États-Unis depuis l'iPhone 14 fonctionnent uniquement en eSIM. Une eSIM demande que votre opérateur propose ce service : renseignez-vous auprès de lui avant l'achat.",
+          "Vérifiez aussi le nombre d'emplacements si vous utilisez deux lignes.",
+        ],
+      },
+      {
+        id: 'blocage',
+        heading: 'Blocage opérateur',
+        paragraphs: [
+          "Un téléphone vendu avec un forfait peut être bloqué sur l'opérateur d'origine, surtout aux États-Unis. Insérez votre SIM avant de payer : l'appareil doit capter le réseau et permettre d'appeler.",
+        ],
+      },
+      {
+        id: 'reseau',
+        heading: 'Compatibilité réseau',
+        paragraphs: [
+          "Les fréquences 4G et 5G varient selon les pays. Un modèle conçu pour un autre marché peut ne capter qu'une partie des fréquences de votre opérateur. Testez la 4G avec votre SIM et comparez les bandes prises en charge, listées sur la fiche technique du fabricant.",
+        ],
+      },
+      {
+        id: 'particularites',
+        heading: 'Particularités régionales',
+        paragraphs: ['Quelques exemples à connaître :'],
+        bullets: [
+          "Japon : le son de l'appareil photo ne peut pas être désactivé, conformément à la réglementation japonaise.",
+          "Certains services (paiement mobile, assistant vocal) peuvent dépendre de la région d'origine.",
+          "Le chargeur fourni peut avoir une prise étrangère : prévoyez un adaptateur.",
+        ],
+      },
+      {
+        id: 'garantie',
+        heading: 'Garantie',
+        paragraphs: [
+          "La garantie du fabricant ne s'applique pas toujours hors du pays d'achat. La garantie applicable chez Xeption est précisée sur la fiche produit et sur la facture : c'est elle qui compte pour le service après-vente.",
+        ],
+        links: [{ to: '/aide/garanties', label: 'Garanties et SAV' }],
+      },
+    ],
+    faq: [
+      {
+        q: 'Un iPhone américain fonctionne-t-il au Cameroun ?',
+        a: "Oui s'il est débloqué et que votre opérateur prend en charge l'eSIM pour les modèles sans tiroir SIM (iPhone 14 et plus récents vendus aux États-Unis). Testez votre SIM avant de payer.",
+      },
+      {
+        q: "Comment connaître l'origine d'un téléphone chez Xeption ?",
+        a: "Elle est indiquée sur la fiche produit pour les appareils importés. En cas de doute, posez la question avant l'achat.",
+      },
+      {
+        q: "Les mises à jour sont-elles différentes selon l'origine ?",
+        a: "En général, non : les mises à jour du système arrivent de la même façon. Certains services liés au pays d'origine peuvent toutefois différer.",
+      },
+    ],
+    relatedLandings: ['iphone-cameroun', 'smartphones-samsung-cameroun', 'google-pixel-cameroun'],
+    relatedGuides: ['verifier-iphone-occasion', 'occasion-reconditionne-ou-neuf'],
+    appliesTo: { categories: [CATEGORY_SLUGS.PHONES], nameIncludes: ['korea', 'japan', 'esim'] },
+  },
 ];

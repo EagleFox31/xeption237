@@ -9,9 +9,8 @@ import ContentPageShell from '../components/content/ContentPageShell';
 import ArticleBody from '../components/content/ArticleBody';
 import FaqSection from '../components/content/FaqSection';
 import ProductLinkGrid from '../components/content/ProductLinkGrid';
-import RelatedLinks from '../components/content/RelatedLinks';
+import { RelatedGuideCards, RelatedLandingCards } from '../components/content/RelatedCards';
 import { TikTokVideoButton } from '../components/TikTokVideoButton';
-import { guideLinks, landingLinks } from '../components/content/contentLinks';
 import { INSTITUTIONAL_SECTION_CLASS } from '../constants/institutionalPageStyles';
 
 interface GuidePageProps {
@@ -96,8 +95,8 @@ const GuidePage: React.FC<GuidePageProps> = ({ products, onAddToCart }) => {
           </section>
         )}
         {guide.faq?.length ? <FaqSection items={guide.faq} /> : null}
-        <RelatedLinks title="Rayons associés" links={landingLinks(guide.relatedLandings)} />
-        <RelatedLinks title="À lire aussi" links={guideLinks(guide.relatedGuides ?? [])} />
+        <RelatedLandingCards title="Rayons associés" slugs={guide.relatedLandings} products={products} />
+        <RelatedGuideCards title="À lire aussi" slugs={guide.relatedGuides ?? []} products={products} />
       </ContentPageShell>
     </>
   );

@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useState, useEffect, useRef, useMemo } from 'react';
-import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import { Product, CartItem, Pack } from './types';
 import { supabase } from './services/supabaseClient';
@@ -11,7 +11,7 @@ import {
   SITE_BACKGROUND_LIGHT_IMAGES,
 } from './constants/backgroundImages';
 import { useBandwidthDetector } from './hooks/useBandwidthDetector';
-import { Lock, MapPin } from 'lucide-react';
+import { useScrollRestoration } from './hooks/useScrollRestoration';
 import { Toaster } from 'sonner';
 import { resolveSuperAdminAccess } from './utils/superAdmin';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -19,14 +19,13 @@ import { notifyError } from './utils/notify';
 import { trackAddToCart } from './utils/analytics';
 import { getProductSlug } from './utils/slug';
 import { filterStorefrontProducts } from './utils/productVisibility';
-import FooterSeoLinks from './components/content/FooterSeoLinks';
+import Footer from './components/Footer';
 import { attachBrandNames, BrandRef } from './utils/productBrand';
 import MobileBottomNav from './components/MobileBottomNav';
 // Pages critiques (landing + commerce) : eager pour éviter un fallback au premier paint.
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import ProductPage from './pages/ProductPage';
-import { SHOP_TIKTOK_URL } from './constants/contact';
 
 // Pages secondaires : lazy pour alléger le main bundle (voir docs/engineering/PERF_AUDIT_TROC.md).
 const AboutPage = lazy(() => import('./pages/AboutPage'));
@@ -241,10 +240,8 @@ const App: React.FC = () => {
     }
   }, [isAdminPage, isStudioPage, isImageOnlyBackgroundPage, isLightBackgroundPage, isSlowConnection]);
 
-  // Scroll to top on route change
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
+  // Haut de page sur nouvelle navigation, position restaurée sur retour arrière
+  useScrollRestoration();
 
   useEffect(() => {
     if (isAdminPage || isStudioPage || isPrerender) {
@@ -402,10 +399,10 @@ const App: React.FC = () => {
           <Route path="/bon" element={<TrocVoucherPage />} />
           <Route path="/sav" element={<SavPage />} />
           <Route path="/categorie/:slug" element={<LandingPage products={storefrontProducts} onAddToCart={addToCart} />} />
-          <Route path="/guides" element={<GuidesIndexPage />} />
+          <Route path="/guides" element={<GuidesIndexPage products={storefrontProducts} />} />
           <Route path="/guides/:slug" element={<GuidePage products={storefrontProducts} onAddToCart={addToCart} />} />
-          <Route path="/aide" element={<HelpPage />} />
-          <Route path="/aide/:slug" element={<HelpPage />} />
+          <Route path="/aide" element={<HelpPage products={storefrontProducts} />} />
+          <Route path="/aide/:slug" element={<HelpPage products={storefrontProducts} />} />
           <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
           <Route path="/politique-confidentialite" element={<PolitiqueConfidentialitePage />} />
           <Route path="/politique-cookies" element={<PolitiqueCookiesPage />} />
@@ -439,58 +436,7 @@ const App: React.FC = () => {
       </main>
       </ErrorBoundary>
 
-      {!isProductPage && !isStaffPortal && !isTrocPage && (
-        <footer className="mt-auto bg-[#0a0a0c] md:bg-black/80 md:backdrop-blur-xl border-t border-white/10 md:border-gray-800 py-12 relative z-10 shrink-0 hidden md:block">
-          <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-8">
-            <div className="mb-6 md:mb-0">
-              <h3 className="text-xl font-bold text-white mb-2 font-tech uppercase">Xeption</h3>
-              <div className="flex flex-col items-center md:items-start">
-                <p className="text-gray-400 text-sm flex items-center justify-center md:justify-start">
-                  Made <span className="font-pinyon text-3xl text-xeption-gold italic mx-2 relative top-1">by</span> Trigenys Group
-                </p>
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="text-[10px] text-gray-700 hover:text-xeption-gold transition-colors uppercase font-bold tracking-widest mt-2 flex items-center gap-1 opacity-50 hover:opacity-100"
-                >
-                  <Lock className="w-3 h-3" /> Accès Staff
-                </button>
-              </div>
-            </div>
-
-            <FooterSeoLinks />
-
-            {/* ZONES DESSERVIES (SEO Local) */}
-            <div className="text-xs text-gray-500 max-w-sm text-center md:text-left">
-              <p className="font-bold uppercase text-gray-400 mb-1 flex items-center justify-center md:justify-start gap-1"><MapPin className="w-3 h-3" /> Zones desservies</p>
-              <p className="leading-relaxed">
-                Yaoundé (Bastos, Omnisports, Biyem-Assi, Mendong, Odza), Douala (Akwa, Bonapriso, Bonanjo, Bali), Bafoussam, Kribi, Garoua, Bamenda et tout le Cameroun.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center md:items-end gap-4">
-              <div className="flex space-x-6 flex-wrap justify-center gap-y-4">
-                <a href="https://web.facebook.com/xeptioon/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Facebook</a>
-                <a href="https://www.instagram.com/xeption_corp/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Instagram</a>
-                <a href={SHOP_TIKTOK_URL} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">TikTok</a>
-                <a href="https://wa.me/237641891031" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
-              </div>
-              <div className="flex gap-4 text-[11px] text-gray-600">
-                <Link to="/about" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">À propos</Link>
-                <span className="text-gray-700">·</span>
-                <Link to="/contact" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Contact</Link>
-                <span className="text-gray-700">·</span>
-                <Link to="/mentions-legales" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Mentions légales</Link>
-                <span className="text-gray-700">·</span>
-                <Link to="/cgv" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">CGV</Link>
-                <span className="text-gray-700">·</span>
-                <Link to="/politique-confidentialite" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Confidentialité</Link>
-                <span className="text-gray-700">·</span>
-                <Link to="/politique-cookies" className="hover:text-xeption-gold transition-colors uppercase tracking-widest font-bold">Cookies</Link>
-              </div>
-            </div>
-          </div>
-        </footer>
-      )}
+      {!isProductPage && !isStaffPortal && !isTrocPage && <Footer />}
 
       {isCartOpen && (
         <Suspense fallback={<OverlayFallback />}>

@@ -180,7 +180,7 @@ const HomePage: React.FC<HomePageProps> = ({
       </div>
 
       {/* Maillage SEO commun mobile + desktop (liens crawlables vers rayons et guides) */}
-      <SeoLinksBlock />
+      <SeoLinksBlock products={products} />
     </>
   );
 };

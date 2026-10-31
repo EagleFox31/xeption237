@@ -6,6 +6,7 @@ import type { ArticleDef } from './types';
 export const GUIDES: ArticleDef[] = [
   {
     slug: 'quel-smartphone-100000-fcfa',
+    tag: 'Budget',
     navLabel: 'Quel smartphone avec 100 000 FCFA ?',
     h1: 'Quel smartphone acheter avec 100 000 FCFA au Cameroun ?',
     title: 'Quel smartphone acheter avec 100 000 FCFA au Cameroun ?',
@@ -71,6 +72,7 @@ export const GUIDES: ArticleDef[] = [
   },
   {
     slug: 'occasion-reconditionne-ou-neuf',
+    tag: 'Conseil',
     navLabel: 'Occasion, reconditionné ou neuf ?',
     h1: 'Occasion, reconditionné et neuf : quelles différences ?',
     title: 'Occasion, reconditionné ou neuf : quelles différences ?',
@@ -133,6 +135,7 @@ export const GUIDES: ArticleDef[] = [
   },
   {
     slug: 'verifier-iphone-occasion',
+    tag: 'Checklist',
     navLabel: "Vérifier un iPhone d'occasion",
     h1: "Que vérifier avant d'acheter un iPhone d'occasion ?",
     title: "Que vérifier avant d'acheter un iPhone d'occasion ?",
@@ -204,6 +207,7 @@ export const GUIDES: ArticleDef[] = [
   },
   {
     slug: 'preparer-telephone-reprise-smart-troc',
+    tag: 'Smart Troc',
     navLabel: 'Préparer une reprise Smart Troc',
     h1: 'Comment préparer son téléphone pour une reprise Smart Troc ?',
     title: 'Préparer son téléphone pour une reprise Smart Troc',
@@ -276,6 +280,7 @@ export const GUIDES: ArticleDef[] = [
   },
   {
     slug: 'quel-pc-portable-200000-fcfa',
+    tag: 'Budget',
     navLabel: 'Quel PC portable avec 200 000 FCFA ?',
     h1: 'Quel PC portable acheter avec 200 000 FCFA au Cameroun ?',
     title: 'Quel PC portable acheter avec 200 000 FCFA au Cameroun ?',
@@ -287,6 +292,16 @@ export const GUIDES: ArticleDef[] = [
         tiktokId: '7684336014868925716',
         label: 'Vidéo : 6 choses à vérifier avant d’acheter un ordinateur',
         title: '6 choses à vérifier avant d’acheter son ordinateur',
+      },
+      {
+        tiktokId: '7652776163118566673',
+        label: 'Vidéo : PC pour étudiants à Yaoundé',
+        title: 'PC portables pour étudiants à Yaoundé',
+      },
+      {
+        tiktokId: '7630813759753325845',
+        label: 'Vidéo : présentation du Dell Latitude 5510',
+        title: 'Présentation du Dell Latitude 5510',
       },
     ],
     updatedAt: '2026-10-31',
@@ -361,6 +376,7 @@ export const GUIDES: ArticleDef[] = [
   },
   {
     slug: 'telephone-importe-cameroun',
+    tag: 'Conseil',
     navLabel: 'Téléphone importé : que vérifier ?',
     h1: 'Téléphone importé : que vérifier pour l’utiliser au Cameroun ?',
     title: 'Téléphone importé : que vérifier pour l’utiliser au Cameroun ?',
@@ -444,6 +460,7 @@ export const GUIDES: ArticleDef[] = [
   },
   {
     slug: 'iphone-12-ou-iphone-13',
+    tag: 'Comparatif',
     navLabel: 'iPhone 12 ou iPhone 13 ?',
     h1: 'iPhone 12 ou iPhone 13 : lequel choisir ?',
     title: 'iPhone 12 ou iPhone 13 : lequel choisir au Cameroun ?',
@@ -527,6 +544,7 @@ export const GUIDES: ArticleDef[] = [
   },
   {
     slug: 'google-pixel-7-ou-samsung-galaxy-a55',
+    tag: 'Comparatif',
     navLabel: 'Pixel 7 ou Galaxy A55 ?',
     h1: 'Google Pixel 7 ou Samsung Galaxy A55 : lequel choisir ?',
     title: 'Google Pixel 7 ou Samsung Galaxy A55 : lequel choisir ?',
@@ -611,6 +629,7 @@ export const GUIDES: ArticleDef[] = [
   },
   {
     slug: 'choisir-chargeur-pc-portable',
+    tag: 'Accessoire',
     navLabel: 'Choisir un chargeur de PC portable',
     h1: 'Comment choisir un chargeur compatible avec son ordinateur portable ?',
     title: 'Choisir un chargeur compatible avec son PC portable',

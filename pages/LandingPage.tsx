@@ -12,7 +12,8 @@ import { INSTITUTIONAL_SECTION_CLASS } from '../constants/institutionalPageStyle
 import FaqSection from '../components/content/FaqSection';
 import ProductLinkGrid from '../components/content/ProductLinkGrid';
 import RelatedLinks from '../components/content/RelatedLinks';
-import { guideLinks, helpLinks, landingLinks } from '../components/content/contentLinks';
+import { RelatedGuideCards, RelatedLandingCards } from '../components/content/RelatedCards';
+import { helpLinks } from '../components/content/contentLinks';
 import SkeletonLoader from '../components/common/SkeletonLoader';
 import { TikTokVideoButton } from '../components/TikTokVideoButton';
 
@@ -118,8 +119,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
         </section>
 
         <FaqSection items={def.faq} />
-        <RelatedLinks title="Guides d'achat" links={guideLinks(def.relatedGuides)} />
-        <RelatedLinks title="Autres rayons" links={landingLinks(def.relatedLandings)} />
+        <RelatedGuideCards title="Guides d'achat" slugs={def.relatedGuides} products={products} />
+        <RelatedLandingCards title="Autres rayons" slugs={def.relatedLandings} products={products} />
         <RelatedLinks title="Aide & SAV" links={helpLinks(['livraison', 'paiement', 'garanties'])} />
       </ContentPageShell>
     </>

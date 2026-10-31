@@ -8,9 +8,14 @@ export interface TikTokVideoButtonProps {
   /** Titre accessible de la fenêtre vidéo. */
   title: string;
   className?: string;
+  /** Contenu visuel du déclencheur (ex. couverture) ; `label` devient alors l'étiquette accessible. */
+  children?: React.ReactNode;
 }
 
 /** Lecteur officiel TikTok (https://developers.tiktok.com/doc/embed-player). */
+/** Couverture hébergée localement (voir scripts/fetch-tiktok-covers.mjs). */
+export const tiktokCoverPath = (videoId: string): string => `/media/tiktok/${videoId}.webp`;
+
 export const buildTikTokPlayerUrl = (videoId: string): string =>
   `https://www.tiktok.com/player/v1/${encodeURIComponent(videoId)}?autoplay=1&rel=0`;
 
@@ -18,7 +23,7 @@ export const buildTikTokPlayerUrl = (videoId: string): string =>
  * Bouton qui ouvre une vidéo TikTok dans une fenêtre modale.
  * L'iframe n'est créée qu'à l'ouverture : aucun script tiers au chargement de la page.
  */
-export const TikTokVideoButton: React.FC<TikTokVideoButtonProps> = ({ videoId, label, title, className = '' }) => {
+export const TikTokVideoButton: React.FC<TikTokVideoButtonProps> = ({ videoId, label, title, className = '', children }) => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -30,14 +35,20 @@ export const TikTokVideoButton: React.FC<TikTokVideoButtonProps> = ({ videoId, l
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`inline-flex items-center justify-center gap-1.5 font-tech font-bold uppercase tracking-wider text-amber-300 hover:text-xeption-gold transition-colors ${className}`}
-      >
-        <PlayCircle className="w-4 h-4" />
-        <span>{label}</span>
-      </button>
+      {children ? (
+        <button type="button" onClick={() => setOpen(true)} aria-label={label} className={className}>
+          {children}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={`inline-flex items-center justify-center gap-1.5 font-tech font-bold uppercase tracking-wider text-amber-300 hover:text-xeption-gold transition-colors ${className}`}
+        >
+          <PlayCircle className="w-4 h-4" />
+          <span>{label}</span>
+        </button>
+      )}
 
       {open && createPortal(
         <div

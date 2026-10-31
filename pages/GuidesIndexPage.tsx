@@ -5,11 +5,11 @@ import { GUIDES } from '../content/seo';
 import { GUIDES_INDEX_PATH, guidePath } from '../utils/routes';
 import { PageSEO, JsonLd, breadcrumbJsonLd, itemListJsonLd, absoluteUrl } from '../utils/seo';
 import ContentPageShell from '../components/content/ContentPageShell';
-import RelatedLinks from '../components/content/RelatedLinks';
-import { landingLinks } from '../components/content/contentLinks';
+import { RelatedLandingCards } from '../components/content/RelatedCards';
+import { Product } from '../types';
 
 /** Index des guides d'achat (/guides). */
-const GuidesIndexPage: React.FC = () => {
+const GuidesIndexPage: React.FC<{ products?: Product[] }> = ({ products = [] }) => {
   const crumbs = [{ name: 'Accueil', path: '/' }, { name: 'Guides' }];
   return (
     <>
@@ -53,7 +53,7 @@ const GuidesIndexPage: React.FC = () => {
             </li>
           ))}
         </ul>
-        <RelatedLinks title="Nos rayons" links={landingLinks()} />
+        <RelatedLandingCards title="Nos rayons" products={products} />
       </ContentPageShell>
     </>
   );

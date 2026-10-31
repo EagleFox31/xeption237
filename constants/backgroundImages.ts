@@ -18,8 +18,8 @@ export const SITE_BACKGROUND_LIGHT_IMAGES = [
   '/background/clairback6.jpg',
 ] as const;
 
-/** Pages sans vidéo — images rotatives uniquement */
-export const IMAGE_ONLY_BACKGROUND_ROUTES = ['/troc', '/bon', '/marketplace'] as const;
+/** Pages sans vidéo — images rotatives uniquement (pages SEO : lecture, poids de page) */
+export const IMAGE_ONLY_BACKGROUND_ROUTES = ['/troc', '/bon', '/marketplace', '/categorie', '/guides', '/aide'] as const;
 
 /** Pages avec fond clair dédié */
 export const LIGHT_BACKGROUND_ROUTES = [

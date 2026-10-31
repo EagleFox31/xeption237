@@ -125,6 +125,7 @@ export const LANDING_PAGES: LandingPageDef[] = [
       { tiktokId: '7654653157460512008', label: 'Vidéo : Lenovo 300e, en gros ou au détail', title: 'Lenovo 300e disponibles chez Xeption' },
       { tiktokId: '7682496925492514068', label: 'Vidéo : les cadeaux offerts avec un ordinateur', title: 'Un ordinateur acheté, des cadeaux offerts chez Xeption' },
       { tiktokId: '7684336014868925716', label: 'Vidéo : 6 choses à vérifier avant d’acheter un ordinateur', title: '6 choses à vérifier avant d’acheter son ordinateur' },
+      { tiktokId: '7630813759753325845', label: 'Vidéo : présentation du Dell Latitude 5510', title: 'Présentation du Dell Latitude 5510' },
     ],
     metaDescription:
       "PC portables reconditionnés HP, Dell, Lenovo et Apple au Cameroun : machines contrôlées, garantie indiquée sur chaque fiche, livraison et retrait à Yaoundé.",
@@ -172,6 +173,7 @@ export const LANDING_PAGES: LandingPageDef[] = [
   {
     slug: 'telephones-moins-100000-fcfa',
     navLabel: 'Téléphones à moins de 100 000 FCFA',
+    navIcon: 'wallet',
     h1: 'Téléphones à moins de 100 000 FCFA',
     title: 'Téléphones à moins de 100 000 FCFA au Cameroun | Xeption',
     metaDescription:
@@ -427,6 +429,7 @@ export const LANDING_PAGES: LandingPageDef[] = [
   {
     slug: 'montres-connectees-samsung-cameroun',
     navLabel: 'Montres connectées Samsung',
+    navIcon: 'watch',
     h1: 'Montres et bracelets connectés Samsung au Cameroun',
     title: 'Montres connectées Samsung Galaxy Watch au Cameroun | Xeption',
     metaDescription:
@@ -483,6 +486,7 @@ export const LANDING_PAGES: LandingPageDef[] = [
   {
     slug: 'ecouteurs-casques-bluetooth-cameroun',
     navLabel: 'Écouteurs et casques Bluetooth',
+    navIcon: 'headphones',
     h1: 'Écouteurs et casques Bluetooth au Cameroun',
     title: 'Écouteurs et casques Bluetooth au Cameroun | Xeption',
     metaDescription:

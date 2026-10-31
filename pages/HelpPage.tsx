@@ -8,7 +8,9 @@ import ContentPageShell from '../components/content/ContentPageShell';
 import ArticleBody from '../components/content/ArticleBody';
 import FaqSection from '../components/content/FaqSection';
 import RelatedLinks from '../components/content/RelatedLinks';
-import { guideLinks, helpLinks } from '../components/content/contentLinks';
+import { RelatedGuideCards } from '../components/content/RelatedCards';
+import { helpLinks } from '../components/content/contentLinks';
+import { Product } from '../types';
 
 const HELP_ACTIONS = [
   { to: '/sav', label: 'Ouvrir un dossier SAV' },
@@ -18,7 +20,7 @@ const HELP_ACTIONS = [
 ];
 
 /** Espace « Aide & SAV » : index (/aide) et fiches (/aide/:slug), piloté par content/seo/helpTopics.ts. */
-const HelpPage: React.FC = () => {
+const HelpPage: React.FC<{ products?: Product[] }> = ({ products = [] }) => {
   const { slug } = useParams<{ slug?: string }>();
 
   if (!slug) {
@@ -75,7 +77,7 @@ const HelpPage: React.FC = () => {
           <ArticleBody sections={topic.sections} />
         </div>
         {topic.faq?.length ? <FaqSection items={topic.faq} /> : null}
-        <RelatedLinks title="Guides utiles" links={guideLinks(topic.relatedGuides ?? [])} />
+        <RelatedGuideCards title="Guides utiles" slugs={topic.relatedGuides ?? []} products={products} />
         <RelatedLinks
           title="Autres rubriques d'aide"
           links={helpLinks(HELP_TOPICS.filter((t) => t.slug !== topic.slug).map((t) => t.slug))}

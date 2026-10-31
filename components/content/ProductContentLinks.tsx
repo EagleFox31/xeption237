@@ -2,14 +2,16 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, LayoutGrid, LifeBuoy } from 'lucide-react';
 import { Product } from '../../types';
-import { GUIDES, LANDING_PAGES } from '../../content/seo';
-import { getGuidesForProduct, getPrimaryLandingForProduct } from '../../utils/landingPageFilter';
+import { GUIDES, LANDING_PAGES, PRODUCT_VIDEOS } from '../../content/seo';
+import { getGuidesForProduct, getPrimaryLandingForProduct, getVideosForProduct } from '../../utils/landingPageFilter';
 import { guidePath, helpPath, landingPath } from '../../utils/routes';
+import { TikTokVideoButton } from '../TikTokVideoButton';
 
-/** Maillage fiche produit → rayon principal, guides applicables, aide. */
+/** Maillage fiche produit → vidéos de présentation, rayon principal, guides applicables, aide. */
 const ProductContentLinks: React.FC<{ product: Product; theme?: 'light' | 'dark' }> = ({ product, theme = 'light' }) => {
   const landing = getPrimaryLandingForProduct(product, LANDING_PAGES);
   const guides = getGuidesForProduct(product, GUIDES);
+  const videos = getVideosForProduct(product, PRODUCT_VIDEOS);
   const dark = theme === 'dark';
   const title = dark ? 'text-white' : 'text-gray-800';
   const link = dark ? 'text-gray-300 hover:text-xeption-gold' : 'text-gray-700 hover:text-black';
@@ -17,6 +19,15 @@ const ProductContentLinks: React.FC<{ product: Product; theme?: 'light' | 'dark'
   return (
     <nav aria-label="Rayons et guides" className="max-w-5xl mx-auto px-4 pb-10 relative z-10">
       <h3 className={`text-lg font-bold uppercase font-tech mb-4 ${title}`}>Bien choisir</h3>
+      {videos.map((video) => (
+        <TikTokVideoButton
+          key={video.tiktokId}
+          videoId={video.tiktokId}
+          label={video.label}
+          title={video.title}
+          className="mb-4 mr-4 text-xs"
+        />
+      ))}
       <ul className="grid gap-2 sm:grid-cols-2 text-sm">
         {landing && (
           <li>

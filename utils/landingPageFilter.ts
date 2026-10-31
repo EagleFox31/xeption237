@@ -1,4 +1,4 @@
-import type { ArticleDef, LandingPageDef, LandingSort, ProductFilter } from '../content/seo/types';
+import type { ArticleDef, ArticleVideo, LandingPageDef, LandingSort, ProductFilter, ProductVideoDef } from '../content/seo/types';
 import { Product } from '../types';
 import { slugify } from './slug';
 
@@ -70,6 +70,10 @@ export const getGuidesForProduct = (product: Product, guides: ArticleDef[], max 
     .filter((g) => g.appliesTo && matchesProductFilter(product, g.appliesTo))
     .sort((a, b) => guideSpecificity(b.appliesTo!) - guideSpecificity(a.appliesTo!))
     .slice(0, max);
+
+/** Vidéos de présentation applicables à une fiche, dans l'ordre du fichier. */
+export const getVideosForProduct = (product: Product, defs: ProductVideoDef[]): ArticleVideo[] =>
+  defs.filter((d) => matchesProductFilter(product, d.appliesTo)).map((d) => d.video);
 
 /** Landing la plus spécifique (marque > prix > catégorie) contenant ce produit. */
 export const getPrimaryLandingForProduct = (

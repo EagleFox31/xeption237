@@ -4,8 +4,9 @@ import {
   selectProducts,
   getGuidesForProduct,
   getPrimaryLandingForProduct,
+  getVideosForProduct,
 } from '../../utils/landingPageFilter';
-import { GUIDES, LANDING_PAGES } from '../../content/seo';
+import { GUIDES, LANDING_PAGES, PRODUCT_VIDEOS } from '../../content/seo';
 import { CATEGORY_SLUGS } from '../../constants/dbSchema';
 import type { Product } from '../../types';
 
@@ -112,5 +113,20 @@ describe('rayons accessoires et comparatifs', () => {
     expect(guidesOf(p({ name: 'iPhone 14 128 Go', brandName: 'Apple' }))).not.toContain('iphone-12-ou-iphone-13');
     expect(guidesOf(p({ name: 'Google Pixel 7a 128 Go' }))).toContain('google-pixel-7-ou-samsung-galaxy-a55');
     expect(guidesOf(p({ name: 'Samsung Galaxy A55 128 Go' }))).toContain('google-pixel-7-ou-samsung-galaxy-a55');
+  });
+});
+
+describe('vidéos de présentation des fiches', () => {
+  const pc = (name: string) => p({ name, category: CATEGORY_SLUGS.ORDINATEURS, condition: 'refurbished' });
+
+  it('rattache la vidéo du modèle à sa fiche uniquement', () => {
+    const ids = (name: string) => getVideosForProduct(pc(name), PRODUCT_VIDEOS).map((v) => v.tiktokId);
+    expect(ids('Dell Latitude 5510 Core i5 — 16 Go / SSD 512 Go')).toEqual(['7630813759753325845']);
+    expect(ids('Dell Latitude 5530 Core i7 12e génération — 16 Go / SSD 512 Go')).toEqual([]);
+    expect(ids('Dell Latitude 5310 2-en-1 Core i5 — 16 Go / SSD 512 Go')).toEqual([]);
+  });
+
+  it('chaque vidéo de fiche a un identifiant TikTok numérique', () => {
+    PRODUCT_VIDEOS.forEach((d) => expect(d.video.tiktokId).toMatch(/^\d{15,22}$/));
   });
 });

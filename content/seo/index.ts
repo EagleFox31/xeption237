@@ -1,9 +1,10 @@
 import { GUIDES } from './guides';
 import { HELP_TOPICS } from './helpTopics';
 import { LANDING_PAGES } from './landingPages';
+import { PRODUCT_VIDEOS } from './productVideos';
 import type { ArticleDef, LandingPageDef, SeoRouteEntry } from './types';
 
-export { GUIDES, HELP_TOPICS, LANDING_PAGES };
+export { GUIDES, HELP_TOPICS, LANDING_PAGES, PRODUCT_VIDEOS };
 export type * from './types';
 
 export const getLandingBySlug = (slug?: string): LandingPageDef | undefined =>

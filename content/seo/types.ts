@@ -31,6 +31,9 @@ export interface ProductFilter {
 
 export type LandingSort = 'default' | 'price-asc' | 'price-desc' | 'newest';
 
+/** Pictogramme des chips de rayon ; par défaut déduit de la catégorie. */
+export type LandingIcon = 'smartphone' | 'laptop' | 'tablet' | 'watch' | 'headphones' | 'wallet';
+
 export interface LandingPageDef {
   slug: string;
   h1: string;
@@ -49,6 +52,7 @@ export interface LandingPageDef {
   relatedGuides: string[];
   relatedLandings: string[];
   showInFooter?: boolean;
+  navIcon?: LandingIcon;
   updatedAt: string;
   /** Vidéos TikTok du compte officiel, ouvertes à la demande sous l'introduction. */
   videos?: ArticleVideo[];
@@ -69,6 +73,8 @@ export interface ArticleDef {
   title: string;
   metaDescription: string;
   navLabel: string;
+  /** Étiquette éditoriale des cartes (Budget, Comparatif…). */
+  tag?: string;
   summary: string;
   updatedAt: string;
   sections: ArticleSection[];
@@ -87,6 +93,12 @@ export interface ArticleVideo {
   tiktokId: string;
   label: string;
   title: string;
+}
+
+/** Vidéo de présentation affichée sur les fiches produit ciblées par `appliesTo`. */
+export interface ProductVideoDef {
+  appliesTo: ProductFilter;
+  video: ArticleVideo;
 }
 
 export interface SeoRouteEntry {

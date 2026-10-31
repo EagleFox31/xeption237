@@ -59,6 +59,8 @@ import {
 } from '../utils/trocPricing';
 import type { TrocCoachView } from '../utils/trocCoach';
 import { trackTrocStart } from '../utils/analytics';
+import { TikTokVideoButton } from '../components/TikTokVideoButton';
+import { TROC_TUTORIAL_TIKTOK_VIDEO_ID } from '../constants/contact';
 
 const TROC_HOW_IT_WORKS = [
   { num: '01', text: 'Décris ton appareil et vérifie ton IMEI' },
@@ -615,6 +617,12 @@ const TrocPage: React.FC = () => {
                   <span>Estimer mon téléphone</span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5] group-hover:translate-x-1.5 transition-transform" />
                 </button>
+                <TikTokVideoButton
+                  videoId={TROC_TUTORIAL_TIKTOK_VIDEO_ID}
+                  label="Voir le tuto vidéo"
+                  title="Tutoriel Smart Troc Xeption"
+                  className="w-full pt-3 text-sm"
+                />
               </div>
 
               {/* ROW 3: MINI-STEPPER 1-2-3 PÉDAGOGIQUE */}

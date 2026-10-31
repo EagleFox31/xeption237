@@ -50,6 +50,8 @@ export interface LandingPageDef {
   relatedLandings: string[];
   showInFooter?: boolean;
   updatedAt: string;
+  /** Vidéos TikTok du compte officiel, ouvertes à la demande sous l'introduction. */
+  videos?: ArticleVideo[];
 }
 
 export interface ArticleSection {
@@ -77,6 +79,14 @@ export interface ArticleDef {
   products?: { filter: ProductFilter; limit: number; sort?: LandingSort };
   /** Fiches produit qui affichent ce guide dans « Guides utiles ». */
   appliesTo?: ProductFilter;
+  /** Vidéos TikTok du compte officiel, ouvertes à la demande sous l'introduction. */
+  videos?: ArticleVideo[];
+}
+
+export interface ArticleVideo {
+  tiktokId: string;
+  label: string;
+  title: string;
 }
 
 export interface SeoRouteEntry {

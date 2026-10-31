@@ -11,6 +11,9 @@ export const LANDING_PAGES: LandingPageDef[] = [
     navLabel: 'iPhone au Cameroun',
     h1: 'iPhone au Cameroun : neufs et reconditionnés',
     title: 'iPhone au Cameroun : prix, neufs et reconditionnés | Xeption',
+    videos: [
+      { tiktokId: '7682157613429050644', label: 'Vidéo : Samsung ou iPhone ?', title: 'Samsung contre iPhone' },
+    ],
     metaDescription:
       "Achetez votre iPhone au Cameroun chez Xeption : modèles neufs et reconditionnés vérifiés, paiement Orange Money ou MoMo, livraison Yaoundé et Douala.",
     intro: [
@@ -65,6 +68,12 @@ export const LANDING_PAGES: LandingPageDef[] = [
     title: 'Smartphones Samsung Galaxy au Cameroun | Xeption',
     metaDescription:
       "Samsung Galaxy A, S et Z au Cameroun : modèles neufs et reconditionnés, paiement Mobile Money, livraison partout au Cameroun et retrait à Yaoundé.",
+    videos: [
+      { tiktokId: '7683448857837210900', label: 'Vidéo : nouveaux prix Samsung chez Xeption', title: 'Nouveaux prix des Samsung chez Xeption' },
+      { tiktokId: '7683090008517004565', label: 'Vidéo : téléphones waterproof', title: 'Téléphones waterproof chez Xeption' },
+      { tiktokId: '7682157613429050644', label: 'Vidéo : Samsung ou iPhone ?', title: 'Samsung contre iPhone' },
+      { tiktokId: '7681744213339360533', label: 'Vidéo : tablettes Samsung 12 et 13 pouces avec SIM', title: 'Arrivage de tablettes Samsung 12 et 13 pouces' },
+    ],
     intro: [
       "De la gamme Galaxy A abordable aux Galaxy S haut de gamme, retrouvez les smartphones Samsung disponibles chez Xeption.",
       "Chaque fiche précise l'état (neuf ou reconditionné), la mémoire et la garantie applicable.",
@@ -111,6 +120,12 @@ export const LANDING_PAGES: LandingPageDef[] = [
     navLabel: 'PC portables reconditionnés',
     h1: 'PC portables reconditionnés au Cameroun',
     title: 'PC portables reconditionnés au Cameroun | Xeption',
+    videos: [
+      { tiktokId: '7682699910810029332', label: 'Vidéo : prix cassés Lenovo pour la rentrée', title: 'Prix cassés des Lenovo pour la rentrée' },
+      { tiktokId: '7654653157460512008', label: 'Vidéo : Lenovo 300e, en gros ou au détail', title: 'Lenovo 300e disponibles chez Xeption' },
+      { tiktokId: '7682496925492514068', label: 'Vidéo : les cadeaux offerts avec un ordinateur', title: 'Un ordinateur acheté, des cadeaux offerts chez Xeption' },
+      { tiktokId: '7684336014868925716', label: 'Vidéo : 6 choses à vérifier avant d’acheter un ordinateur', title: '6 choses à vérifier avant d’acheter son ordinateur' },
+    ],
     metaDescription:
       "PC portables reconditionnés HP, Dell, Lenovo et Apple au Cameroun : machines contrôlées, garantie indiquée sur chaque fiche, livraison et retrait à Yaoundé.",
     intro: [
@@ -311,6 +326,9 @@ export const LANDING_PAGES: LandingPageDef[] = [
     navLabel: 'PC portables HP',
     h1: 'Ordinateurs portables HP au Cameroun',
     title: 'PC portables HP au Cameroun : EliteBook, ProBook | Xeption',
+    videos: [
+      { tiktokId: '7682496925492514068', label: 'Vidéo : les cadeaux offerts avec un ordinateur', title: 'Un ordinateur acheté, des cadeaux offerts chez Xeption' },
+    ],
     metaDescription:
       "PC portables HP reconditionnés au Cameroun : EliteBook, ProBook et 2-en-1 comparés, paiement Orange Money ou MoMo, livraison et retrait à Yaoundé.",
     intro: [

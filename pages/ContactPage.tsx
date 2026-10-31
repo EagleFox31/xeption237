@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Clock3, Mail, MapPin, MessageCircle, Navigation, Phone, RefreshCw, ShieldCheck, Wrench } from 'lucide-react';
 import { PageSEO } from '../utils/seo';
-import { SHOP_MAPS_EMBED_URL, SHOP_MAPS_URL } from '../constants/contact';
+import { SHOP_MAPS_EMBED_URL, SHOP_MAPS_URL, SHOP_TOUR_VIDEOS } from '../constants/contact';
+import { TikTokVideoButton } from '../components/TikTokVideoButton';
 import {
   INSTITUTIONAL_FEATURE_CARD_CLASS,
   INSTITUTIONAL_HEADER_BADGE_CLASS,
@@ -216,6 +217,17 @@ const ContactPage: React.FC = () => {
                 <Navigation className="w-4 h-4" />
                 Ouvrir l'itinéraire dans Google Maps
               </a>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {SHOP_TOUR_VIDEOS.map((video) => (
+                  <TikTokVideoButton
+                    key={video.tiktokId}
+                    videoId={video.tiktokId}
+                    label={video.label}
+                    title={video.title}
+                    className="text-xs"
+                  />
+                ))}
+              </div>
             </Section>
 
             <Section id="quand-nous-contacter" icon={<Clock3 className="w-5 h-5" />} title="Quand Nous Contacter">

@@ -14,6 +14,7 @@ import ProductLinkGrid from '../components/content/ProductLinkGrid';
 import RelatedLinks from '../components/content/RelatedLinks';
 import { guideLinks, helpLinks, landingLinks } from '../components/content/contentLinks';
 import SkeletonLoader from '../components/common/SkeletonLoader';
+import { TikTokVideoButton } from '../components/TikTokVideoButton';
 
 interface LandingPageProps {
   products: Product[];
@@ -62,11 +63,24 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
       <ContentPageShell
         crumbs={[{ name: 'Accueil', path: '/' }, { name: 'Boutique', path: '/shop' }, { name: def.navLabel }]}
         h1={def.h1}
-        lead={def.intro.map((t, i) => (
-          <p key={i} className="mt-3 max-w-3xl text-gray-300 leading-relaxed">
-            {t}
-          </p>
-        ))}
+        lead={
+          <>
+            {def.intro.map((t, i) => (
+              <p key={i} className="mt-3 max-w-3xl text-gray-300 leading-relaxed">
+                {t}
+              </p>
+            ))}
+            {def.videos?.map((video) => (
+              <TikTokVideoButton
+                key={video.tiktokId}
+                videoId={video.tiktokId}
+                label={video.label}
+                title={video.title}
+                className="mt-3 mr-4 text-xs"
+              />
+            ))}
+          </>
+        }
       >
         <section className={INSTITUTIONAL_SECTION_CLASS} aria-labelledby="selection-title">
           <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">

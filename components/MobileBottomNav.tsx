@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { SHOP_TIKTOK_URL } from '../constants/contact';
 import {
   Home,
   Camera,
@@ -290,7 +291,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   <span className="text-zinc-700">·</span>
                   <a href="https://www.instagram.com/xeption_corp/" target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-amber-400 font-tech uppercase tracking-wider">Instagram</a>
                   <span className="text-zinc-700">·</span>
-                  <a href="https://www.tiktok.com/@xeption237?_r=1&_t=ZM-939Ae3o3r2J" target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-amber-400 font-tech uppercase tracking-wider">TikTok</a>
+                  <a href={SHOP_TIKTOK_URL} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-amber-400 font-tech uppercase tracking-wider">TikTok</a>
                 </div>
               </div>
 

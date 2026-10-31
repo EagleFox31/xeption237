@@ -1,5 +1,7 @@
 import React from 'react';
 import { ShieldCheck, Camera, Coins, Store, ArrowRight } from 'lucide-react';
+import { TikTokVideoButton } from '../TikTokVideoButton';
+import { TROC_TUTORIAL_TIKTOK_VIDEO_ID } from '../../constants/contact';
 
 export interface MobileTrocViewProps {
   onStart: () => void;
@@ -123,6 +125,12 @@ export const MobileTrocView: React.FC<MobileTrocViewProps> = ({ onStart }) => {
           <ArrowRight className="w-5 h-5 stroke-[2.8]" />
           <span>Commencer</span>
         </button>
+        <TikTokVideoButton
+          videoId={TROC_TUTORIAL_TIKTOK_VIDEO_ID}
+          label="Voir le tuto vidéo"
+          title="Tutoriel Smart Troc Xeption"
+          className="w-full pt-2.5 text-xs"
+        />
       </div>
     </div>
   );

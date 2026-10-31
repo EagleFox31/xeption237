@@ -26,6 +26,7 @@ import MobileBottomNav from './components/MobileBottomNav';
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import ProductPage from './pages/ProductPage';
+import { SHOP_TIKTOK_URL } from './constants/contact';
 
 // Pages secondaires : lazy pour alléger le main bundle (voir docs/engineering/PERF_AUDIT_TROC.md).
 const AboutPage = lazy(() => import('./pages/AboutPage'));
@@ -470,7 +471,7 @@ const App: React.FC = () => {
               <div className="flex space-x-6 flex-wrap justify-center gap-y-4">
                 <a href="https://web.facebook.com/xeptioon/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Facebook</a>
                 <a href="https://www.instagram.com/xeption_corp/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">Instagram</a>
-                <a href="https://www.tiktok.com/@xeption237?_r=1&_t=ZM-939Ae3o3r2J" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">TikTok</a>
+                <a href={SHOP_TIKTOK_URL} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">TikTok</a>
                 <a href="https://wa.me/237641891031" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-xeption-gold transition-colors font-tech uppercase tracking-wider">WhatsApp</a>
               </div>
               <div className="flex gap-4 text-[11px] text-gray-600">

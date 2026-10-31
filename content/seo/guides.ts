@@ -1,4 +1,5 @@
 import { CATEGORY_SLUGS } from '../../constants/dbSchema';
+import { TROC_TUTORIAL_TIKTOK_VIDEO_ID } from '../../constants/contact';
 import type { ArticleDef } from './types';
 
 /** Guides d'achat (/guides/:slug), reliés aux landings et aux fiches produit. */
@@ -206,6 +207,9 @@ export const GUIDES: ArticleDef[] = [
     navLabel: 'Préparer une reprise Smart Troc',
     h1: 'Comment préparer son téléphone pour une reprise Smart Troc ?',
     title: 'Préparer son téléphone pour une reprise Smart Troc',
+    videos: [
+      { tiktokId: TROC_TUTORIAL_TIKTOK_VIDEO_ID, label: 'Vidéo : le Smart Troc en pratique', title: 'Tutoriel Smart Troc Xeption' },
+    ],
     metaDescription:
       "Sauvegarde, déconnexion iCloud ou Google, photos, IMEI : les étapes pour préparer votre téléphone avant une reprise Smart Troc chez Xeption à Yaoundé.",
     summary: "Les étapes avant l'estimation en ligne et le dépôt en boutique.",
@@ -278,6 +282,13 @@ export const GUIDES: ArticleDef[] = [
     metaDescription:
       "SSD, mémoire, processeur, Windows 11 : les critères pour choisir un PC portable à 200 000 FCFA au Cameroun pour les études ou le travail, avec notre sélection.",
     summary: 'Études, bureautique ou travail : les critères qui comptent et les compromis à accepter.',
+    videos: [
+      {
+        tiktokId: '7684336014868925716',
+        label: 'Vidéo : 6 choses à vérifier avant d’acheter un ordinateur',
+        title: '6 choses à vérifier avant d’acheter son ordinateur',
+      },
+    ],
     updatedAt: '2026-10-31',
     sections: [
       {
@@ -353,6 +364,13 @@ export const GUIDES: ArticleDef[] = [
     navLabel: 'Téléphone importé : que vérifier ?',
     h1: 'Téléphone importé : que vérifier pour l’utiliser au Cameroun ?',
     title: 'Téléphone importé : que vérifier pour l’utiliser au Cameroun ?',
+    videos: [
+      {
+        tiktokId: '7623722371685338389',
+        label: 'Vidéo : activer un téléphone neuf (SIM + appel) pour éviter les frais',
+        title: 'Téléphones neufs : activation SIM et appel obligatoire',
+      },
+    ],
     metaDescription:
       "SIM ou eSIM, blocage opérateur, réseau, version régionale et garantie : ce qu'il faut vérifier avant d'acheter un téléphone américain, coréen ou japonais.",
     summary: 'SIM, réseau, version régionale et garantie : les points à vérifier avant de payer.',

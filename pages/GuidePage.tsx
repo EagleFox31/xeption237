@@ -10,6 +10,7 @@ import ArticleBody from '../components/content/ArticleBody';
 import FaqSection from '../components/content/FaqSection';
 import ProductLinkGrid from '../components/content/ProductLinkGrid';
 import RelatedLinks from '../components/content/RelatedLinks';
+import { TikTokVideoButton } from '../components/TikTokVideoButton';
 import { guideLinks, landingLinks } from '../components/content/contentLinks';
 import { INSTITUTIONAL_SECTION_CLASS } from '../constants/institutionalPageStyles';
 
@@ -71,6 +72,15 @@ const GuidePage: React.FC<GuidePageProps> = ({ products, onAddToCart }) => {
             <p className="mt-2 text-xs text-gray-500">
               Mis à jour le <time dateTime={guide.updatedAt}>{formatDate(guide.updatedAt)}</time>
             </p>
+            {guide.videos?.map((video) => (
+              <TikTokVideoButton
+                key={video.tiktokId}
+                videoId={video.tiktokId}
+                label={video.label}
+                title={video.title}
+                className="mt-3 mr-4 text-xs"
+              />
+            ))}
           </>
         }
       >

@@ -350,7 +350,7 @@ export const GUIDES: ArticleDef[] = [
         a: "La génération compte plus que le nom : un Core i5 de 8e génération ou plus récent est plus rapide et compatible Windows 11, contrairement à certains Core i7 plus anciens.",
       },
     ],
-    relatedLandings: ['pc-portables-reconditionnes-cameroun', 'pc-portables-hp-cameroun'],
+    relatedLandings: ['pc-portables-reconditionnes-cameroun', 'pc-portables-hp-cameroun', 'pc-portables-lenovo-cameroun'],
     relatedGuides: ['occasion-reconditionne-ou-neuf'],
     products: {
       filter: { categories: [CATEGORY_SLUGS.ORDINATEURS], minPrice: 1, maxPrice: 200000, inStockOnly: true },
@@ -669,7 +669,7 @@ export const GUIDES: ArticleDef[] = [
         a: "Apportez l'ordinateur ou son ancien chargeur en boutique au Mfoundi Mall : nous vérifions la compatibilité avec vous.",
       },
     ],
-    relatedLandings: ['pc-portables-reconditionnes-cameroun', 'pc-portables-hp-cameroun'],
+    relatedLandings: ['pc-portables-reconditionnes-cameroun', 'pc-portables-hp-cameroun', 'pc-portables-lenovo-cameroun'],
     relatedGuides: ['quel-pc-portable-200000-fcfa'],
     products: {
       filter: { categories: [CATEGORY_SLUGS.ACCESSORIES], nameIncludes: ['chargeur ordinateur', 'chargeur adaptateur secteur'] },

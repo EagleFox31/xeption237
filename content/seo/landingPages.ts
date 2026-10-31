@@ -165,7 +165,7 @@ export const LANDING_PAGES: LandingPageDef[] = [
     limit: 24,
     shopHref: '/shop?cat=computer&condition=refurbished',
     relatedGuides: ['quel-pc-portable-200000-fcfa', 'occasion-reconditionne-ou-neuf', 'choisir-chargeur-pc-portable'],
-    relatedLandings: ['pc-portables-hp-cameroun', 'telephones-moins-100000-fcfa'],
+    relatedLandings: ['pc-portables-hp-cameroun', 'pc-portables-lenovo-cameroun', 'telephones-moins-100000-fcfa'],
     showInFooter: true,
     updatedAt: '2026-10-30',
   },
@@ -368,7 +368,59 @@ export const LANDING_PAGES: LandingPageDef[] = [
     limit: 24,
     shopHref: '/shop?cat=computer&brand=hp',
     relatedGuides: ['quel-pc-portable-200000-fcfa', 'occasion-reconditionne-ou-neuf', 'choisir-chargeur-pc-portable'],
-    relatedLandings: ['pc-portables-reconditionnes-cameroun'],
+    relatedLandings: ['pc-portables-reconditionnes-cameroun', 'pc-portables-lenovo-cameroun'],
+    showInFooter: true,
+    updatedAt: '2026-10-31',
+  },
+  {
+    slug: 'pc-portables-lenovo-cameroun',
+    navLabel: 'PC portables Lenovo',
+    h1: 'Ordinateurs portables Lenovo au Cameroun',
+    title: 'PC portables Lenovo au Cameroun : ThinkPad, 300e | Xeption',
+    videos: [
+      { tiktokId: '7682699910810029332', label: 'Vidéo : prix cassés Lenovo pour la rentrée', title: 'Prix cassés des Lenovo pour la rentrée' },
+      { tiktokId: '7654653157460512008', label: 'Vidéo : Lenovo 300e, en gros ou au détail', title: 'Lenovo 300e disponibles chez Xeption' },
+    ],
+    metaDescription:
+      "PC portables Lenovo reconditionnés au Cameroun : ThinkPad, Lenovo 300e et LOQ gaming, paiement Orange Money ou MoMo, livraison et retrait à Yaoundé.",
+    intro: [
+      "Du petit Lenovo 300e pensé pour l'école aux ThinkPad professionnels, en passant par la gamme gaming LOQ, retrouvez les ordinateurs Lenovo disponibles chez Xeption.",
+      "Les modèles sont classés du moins cher au plus cher. Chaque fiche indique le processeur, la mémoire, le stockage et la garantie.",
+    ],
+    buyingTips: [
+      {
+        title: 'Lenovo 300e : l’ordinateur des élèves',
+        body: "Le 300e est un 2-en-1 compact conçu par Lenovo pour l'éducation : écran tactile qui se replie en tablette, châssis renforcé. Il convient à la bureautique et aux cours en ligne, pas aux logiciels lourds. Commandes en gros possibles pour les écoles.",
+      },
+      {
+        title: 'ThinkPad : la gamme professionnelle',
+        body: "Les ThinkPad sont réputés pour leur clavier et leur robustesse. Les séries A et E équipées d'un Ryzen ou d'un Core i5 avec SSD restent fluides pour le travail de bureau.",
+      },
+      {
+        title: 'LOQ : pour le jeu et la création',
+        body: "La gamme LOQ embarque une carte graphique dédiée : utile pour le jeu, le montage vidéo ou la 3D. Elle est plus lourde et consomme davantage qu'un ultraportable.",
+      },
+    ],
+    faq: [
+      {
+        q: 'Les PC Lenovo reconditionnés sont-ils garantis ?',
+        a: "Oui. La garantie applicable est précisée sur la fiche produit et sur la facture.",
+      },
+      {
+        q: 'Peut-on acheter des Lenovo 300e en gros ?',
+        a: "Oui, pour une école ou une entreprise : contactez-nous sur WhatsApp ou passez en boutique pour connaître le stock disponible.",
+      },
+      {
+        q: 'Comment payer un ordinateur chez Xeption ?',
+        a: "Par Orange Money, MTN Mobile Money, ou en espèces à la livraison ou au retrait en boutique au Mfoundi Mall.",
+      },
+    ],
+    filter: { categories: [CATEGORY_SLUGS.ORDINATEURS], brands: ['Lenovo'] },
+    sort: 'price-asc',
+    limit: 24,
+    shopHref: '/shop?cat=computer&brand=lenovo',
+    relatedGuides: ['quel-pc-portable-200000-fcfa', 'occasion-reconditionne-ou-neuf', 'choisir-chargeur-pc-portable'],
+    relatedLandings: ['pc-portables-reconditionnes-cameroun', 'pc-portables-hp-cameroun'],
     showInFooter: true,
     updatedAt: '2026-10-31',
   },

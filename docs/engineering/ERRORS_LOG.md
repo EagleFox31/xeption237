@@ -584,3 +584,13 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : test de présence `this.props.fallback !== undefined` ; test `tests/unit/errorBoundary.test.tsx` (`fallback={null}` → rendu vide).
 
 **Comment ne plus la refaire** : une prop optionnelle dont `null` est une valeur légitime (ReactNode) se teste avec `!== undefined`, jamais par vérité.
+
+## 2026-10-31 — Carte produit : seul le nom ouvre la fiche (lien étiré confiné)
+
+**Symptôme** : sur les cartes `ProductCard` (shop, rayons, accueil), cliquer sur la photo ou le prix n'ouvre pas le produit ; seul le titre réagit.
+
+**Cause racine** : le lien étiré (`after:absolute after:inset-0`) se positionne sur son bloc conteneur. Le `h3` parent portait `drop-shadow-md` (= `filter`), et un `filter` (comme `transform`, `backdrop-filter`, `will-change`) crée un bloc conteneur pour les descendants absolus : la zone cliquable était limitée au titre.
+
+**Résolution** : ombre déplacée sur un `<span>` à l'intérieur du lien ; vérifié par `elementFromPoint` sur la zone image des cartes (desktop + mobile).
+
+**Comment ne plus la refaire** : entre un lien `stretched` et la carte `relative`, aucun ancêtre avec `filter` / `drop-shadow` / `transform` / `backdrop-blur`. Appliquer les effets au texte, pas au conteneur du lien.

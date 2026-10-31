@@ -45,9 +45,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onProdu
 
     <div className="p-2 md:p-3 flex-1 flex flex-col">
       <div className="mb-1">
-        <h3 className="text-sm md:text-base font-bold text-white font-tech uppercase tracking-wide group-hover:text-xeption-gold transition-colors truncate drop-shadow-md">
+        <h3 className="text-sm md:text-base font-bold text-white font-tech uppercase tracking-wide group-hover:text-xeption-gold transition-colors truncate">
+          {/* Ombre sur le texte seul : un `filter` sur un ancêtre du lien étiré confinerait la zone cliquable au titre. */}
           <ProductLink product={product} onOpen={onProductClick} stretched>
-            {getProductDisplayName(product)}
+            <span className="drop-shadow-md">{getProductDisplayName(product)}</span>
           </ProductLink>
         </h3>
         <ProductBadgeChips product={product} size="sm" theme="dark" className="mt-1.5" />

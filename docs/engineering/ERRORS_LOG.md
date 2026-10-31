@@ -594,3 +594,13 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : ombre déplacée sur un `<span>` à l'intérieur du lien ; vérifié par `elementFromPoint` sur la zone image des cartes (desktop + mobile).
 
 **Comment ne plus la refaire** : entre un lien `stretched` et la carte `relative`, aucun ancêtre avec `filter` / `drop-shadow` / `transform` / `backdrop-blur`. Appliquer les effets au texte, pas au conteneur du lien.
+
+## 2026-10-31 — Deux sessions d'agent dans le même dépôt : un commit embarque les fichiers de l'autre (near miss)
+
+**Symptôme** : le commit `2fcdd00` « feat(telegram): mode vente… » contient aussi `components/content/VideoTeaser.tsx`, `pages/GuidePage.tsx`, `pages/LandingPage.tsx` (encart vidéo SEO), puis il est poussé, ce qui déploie en prod un travail que l'autre session n'avait pas encore validé. Côté SEO, `git add` échoue sur `index.lock: File exists`.
+
+**Cause racine** : deux sessions (bot de vente, boutique SEO) partagent le **même arbre de travail et le même index git**. Les fichiers indexés par l'une sont commités par le `git commit` de l'autre, qui ne relit pas `git diff --cached`.
+
+**Résolution** : le code embarqué était complet et testé (tsc, vitest, Playwright) ; historique poussé non réécrit. Le test oublié a été commité à part.
+
+**Comment ne plus la refaire** : une session parallèle = un `git worktree` (ou une branche) à elle. À défaut : `git commit -- <chemins>` (ne commite que ces chemins) et relire `git diff --cached --stat` avant tout commit ; un `index.lock` présent signale une autre session active.

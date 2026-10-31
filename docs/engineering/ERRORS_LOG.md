@@ -595,6 +595,16 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 
 **Comment ne plus la refaire** : entre un lien `stretched` et la carte `relative`, aucun ancêtre avec `filter` / `drop-shadow` / `transform` / `backdrop-blur`. Appliquer les effets au texte, pas au conteneur du lien.
 
+## 2026-10-31 — Commit bot embarquant les fichiers d'une autre session (near miss)
+
+**Symptôme** : le commit `2fcdd00` (mode vente du bot Telegram), poussé sur `main`, contient aussi `VideoTeaser.tsx`, `GuidePage.tsx` et `LandingPage.tsx`, travail SEO d'une session parallèle.
+
+**Cause racine** : `git add <mes fichiers>` puis `git commit` committe **tout l'index**. L'autre session avait déjà indexé ses fichiers ; `git status --short` ne distinguait pas « indexé » de « modifié » à la lecture rapide (colonne 1 vs 2), et `git diff --cached --stat` n'a été lu qu'après le commit.
+
+**Résolution** : pas de réécriture de `main` (force push). Les 3 fichiers compilent et leurs imports se résolvent (bundle esbuild) ; la session SEO est prévenue que son travail est déjà poussé.
+
+**Comment ne plus la refaire** : avec une session parallèle, committer par chemins explicites : `git commit -m … -- <fichiers>` (ignore le reste de l'index), puis vérifier `git show --stat HEAD` **avant** `git push`.
+
 ## 2026-10-31 — Deux sessions d'agent dans le même dépôt : un commit embarque les fichiers de l'autre (near miss)
 
 **Symptôme** : le commit `2fcdd00` « feat(telegram): mode vente… » contient aussi `components/content/VideoTeaser.tsx`, `pages/GuidePage.tsx`, `pages/LandingPage.tsx` (encart vidéo SEO), puis il est poussé, ce qui déploie en prod un travail que l'autre session n'avait pas encore validé. Côté SEO, `git add` échoue sur `index.lock: File exists`.

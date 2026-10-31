@@ -16,7 +16,7 @@ import { RelatedCardSections } from '../components/content/RelatedCards';
 import type { CardSectionDef } from '../utils/contentCards';
 import { helpLinks } from '../components/content/contentLinks';
 import SkeletonLoader from '../components/common/SkeletonLoader';
-import { TikTokVideoButton } from '../components/TikTokVideoButton';
+import { VideoTeaserList } from '../components/content/VideoTeaser';
 
 interface LandingPageProps {
   products: Product[];
@@ -79,15 +79,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
                 {t}
               </p>
             ))}
-            {def.videos?.map((video) => (
-              <TikTokVideoButton
-                key={video.tiktokId}
-                videoId={video.tiktokId}
-                label={video.label}
-                title={video.title}
-                className="mt-3 mr-4 text-xs"
-              />
-            ))}
+            <VideoTeaserList videos={def.videos} eyebrow="Voir avant d'acheter" />
           </>
         }
       >

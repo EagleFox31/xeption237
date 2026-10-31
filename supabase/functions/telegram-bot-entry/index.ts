@@ -28,6 +28,10 @@ import {
 } from "../_shared/telegramSaleTrocScreens.ts";
 import { buildSaleReceiptButton } from "../_shared/saleReceipt.ts";
 import {
+  SALE_BACK_FLAG, baseToken, isSaleToken, parseSaleSearchTag, saleBackCb, saleSearchCb,
+  saleSearchPrompt, withSaleMode
+} from "../_shared/telegramSaleMode.ts";
+import {
   STOCK_REASON_TEXT, calculateProductPreset, parseCorrectionReply, parseManualSplitReply,
   parseReceiveReply, parseSplitTag, parseStockTag, presetRatios, splitTag, stockBulkBrandListCb,
   stockBulkCatListCb, stockBulkExecCb, stockBulkMenuCb, stockBulkPreviewCb, stockCorrectCb,
@@ -892,33 +896,45 @@ const CATEGORIES: Record<string, { label: string; names: string[] }> = {
   pc: { label: "PC & Tablettes", names: ["Surface", "MacBook", "Dell", "HP"] }
 };
 
-const categoryButtons = (suffix: string): InlineButton[] => [
-  { text: "🍏 Apple / iPhone", callback_data: "nav:cat:apple" + suffix },
-  { text: "🤖 Samsung & Android", callback_data: "nav:cat:android" + suffix },
-  { text: "💻 PC & Tablettes", callback_data: "nav:cat:pc" + suffix }
+const categoryButtons = (suffix: string, sale = false): InlineButton[] => [
+  { text: "🍏 Apple / iPhone", callback_data: "nav:cat:" + withSaleMode("apple", sale) + suffix },
+  { text: "🤖 Samsung & Android", callback_data: "nav:cat:" + withSaleMode("android", sale) + suffix },
+  { text: "💻 PC & Tablettes", callback_data: "nav:cat:" + withSaleMode("pc", sale) + suffix }
 ];
 
-/** Sale entry: same catalogue as the stock screen, without the stock management tools. */
+/** Sale entry: same catalogue as the stock screen, in sale mode (no stock management tools). */
 async function screenSaleStart(staff: StaffMember, storeCode?: string): Promise<Screen> {
   const store = await scopedStore(staff, storeCode);
   // A sale needs a store whose stock is debited (direction picks it from the store space;
   // the product sheet and the RPC re-check it against the remembered scope).
   if (!store) return screenMain(staff);
-  const [apple, android, pc] = categoryButtons(scopeSuffix(store));
+  const [apple, android, pc] = categoryButtons(scopeSuffix(store), true);
   const back = staff.rank >= RANK_DIRECTION ? "nav:store:" + store.code : "nav:main";
   return {
     text:
       `🛒 <b>Nouvelle vente</b> — ${escapeHtml(store.name)}\n\n` +
-      `🔍 <i>Tapez le nom du produit vendu dans le chat (ex: <b>s24</b>, <b>iphone 13</b>), ` +
+      `🔍 <i>Répondez au message ci-dessous avec le nom du produit vendu (ex: <b>s24</b>, <b>iphone 13</b>), ` +
       `ou touchez une catégorie, puis « Vendre ce produit » sur sa fiche.</i>`,
     reply_markup: {
       inline_keyboard: [
         [apple, android],
         [pc],
+        [{ text: "🔍 Rechercher le produit", callback_data: saleSearchCb(store.code) }],
         [{ text: "⬅️ Retour", callback_data: back }]
       ]
     }
   };
+}
+
+/** ForceReply prompt: the reply searches the catalogue in sale mode (plain chat text cannot carry the mode). */
+async function actionSaleSearchPrompt(staff: StaffMember, storeCode: string, chatId: string | number): Promise<void> {
+  const store = await scopedStore(staff, storeCode);
+  if (!store) return;
+  await telegram("sendMessage", {
+    chat_id: chatId,
+    text: saleSearchPrompt(store.name, store.code),
+    reply_markup: { force_reply: true, input_field_placeholder: "ex. iPhone 13" }
+  });
 }
 
 async function screenStocksCategories(staff: StaffMember, storeCode?: string): Promise<Screen> {
@@ -957,9 +973,12 @@ async function screenStocksCategories(staff: StaffMember, storeCode?: string): P
   };
 }
 
-async function screenSearchResults(staff: StaffMember, query: string, storeCode?: string): Promise<Screen> {
+async function screenSearchResults(staff: StaffMember, query: string, storeCode?: string, sale = false): Promise<Screen> {
   const store = await scopedStore(staff, storeCode);
   const suffix = scopeSuffix(store);
+  // Sale mode needs a store: without one the search falls back to the stock view.
+  const saleMode = sale && store !== null;
+  const searchToken = withSaleMode("search", saleMode);
   const supabase = db();
   if (!supabase) {
     return {
@@ -993,7 +1012,7 @@ async function screenSearchResults(staff: StaffMember, query: string, storeCode?
 
   const buttons: InlineButton[][] = [];
   for (const p of products) {
-    if (!cbFits(`nav:p:${p.id}:search${suffix}`)) continue;
+    if (!cbFits(`nav:p:${p.id}:${searchToken}${suffix}`)) continue;
     const shortName = p.name.length > 28 ? p.name.slice(0, 26) + "…" : p.name;
     const effectiveStock = store ? p.store_stock : p.stock;
     const stockInfo = store && p.store_stock !== p.stock
@@ -1001,19 +1020,28 @@ async function screenSearchResults(staff: StaffMember, query: string, storeCode?
       : `${effectiveStock} dispo`;
     buttons.push([{
       text: `${shortName} (${stockInfo})`,
-      callback_data: `nav:p:${p.id}:search${suffix}`
+      callback_data: `nav:p:${p.id}:${searchToken}${suffix}`
     }]);
   }
 
-  buttons.push([
-    { text: "📦 Voir Catégories", callback_data: "nav:stocks" + suffix },
-    { text: "🏠 Accueil", callback_data: "nav:main" }
-  ]);
+  if (saleMode && store) {
+    buttons.push([{ text: "🔍 Nouvelle recherche", callback_data: saleSearchCb(store.code) }]);
+    buttons.push([
+      { text: "📂 Voir Catégories", callback_data: saleBackCb(store.code) },
+      { text: "🏠 Accueil", callback_data: "nav:main" }
+    ]);
+  } else {
+    buttons.push([
+      { text: "📦 Voir Catégories", callback_data: "nav:stocks" + suffix },
+      { text: "🏠 Accueil", callback_data: "nav:main" }
+    ]);
+  }
+  const heading = saleMode ? "🛒 Vente — " : "";
 
   if (products.length === 0) {
     return {
       text:
-        `🔍 <b>Recherche : « ${escapeHtml(query)} »</b> — ${escapeHtml(scopeLabel(store))}\n\n` +
+        `${heading}🔍 <b>Recherche : « ${escapeHtml(query)} »</b> — ${escapeHtml(scopeLabel(store))}\n\n` +
         `Aucun modèle correspondant trouvé à 2-3 caractères près.\n\n` +
         `💡 <i>Vérifiez l'orthographe ou parcourez directement par catégories ci-dessous :</i>`,
       reply_markup: { inline_keyboard: buttons }
@@ -1022,8 +1050,10 @@ async function screenSearchResults(staff: StaffMember, query: string, storeCode?
 
   return {
     text:
-      `🔍 <b>Résultats pour « ${escapeHtml(query)} »</b> — ${escapeHtml(scopeLabel(store))}\n\n` +
-      `Sélectionnez un modèle pour voir son stock, son prix ou vendre :`,
+      `${heading}🔍 <b>Résultats pour « ${escapeHtml(query)} »</b> — ${escapeHtml(scopeLabel(store))}\n\n` +
+      (saleMode
+        ? `Sélectionnez le modèle vendu :`
+        : `Sélectionnez un modèle pour voir son stock, son prix ou vendre :`),
     reply_markup: { inline_keyboard: buttons }
   };
 }
@@ -1070,10 +1100,12 @@ function parseCategoryToken(token: string): { cat: string; page: number } {
 const categoryToken = (cat: string, page: number) => page > 1 ? `${cat}.${page}` : cat;
 
 async function screenCategory(staff: StaffMember, token: string, storeCode?: string): Promise<Screen> {
-  const { cat, page } = parseCategoryToken(token);
+  const { cat, page } = parseCategoryToken(baseToken(token));
   const category = CATEGORIES[cat];
-  const catKey = categoryToken(cat, page);
   const store = await scopedStore(staff, storeCode);
+  const sale = isSaleToken(token) && store !== null;
+  const pageKey = (p: number) => withSaleMode(categoryToken(cat, p), sale);
+  const catKey = pageKey(page);
   const suffix = scopeSuffix(store);
   // One extra row tells whether a next page exists.
   const rows = await stockRows(store, {
@@ -1089,21 +1121,22 @@ async function screenCategory(staff: StaffMember, token: string, storeCode?: str
     buttons.push([{ text: `${shortName} (${p.stock} dispo)`, callback_data: `nav:p:${p.id}:${catKey}${suffix}` }]);
   }
   const pager: InlineButton[] = [];
-  if (page > 1) pager.push({ text: "◀️ Page précédente", callback_data: `nav:cat:${categoryToken(cat, page - 1)}${suffix}` });
-  if (hasNext) pager.push({ text: "Page suivante ▶️", callback_data: `nav:cat:${categoryToken(cat, page + 1)}${suffix}` });
+  if (page > 1) pager.push({ text: "◀️ Page précédente", callback_data: `nav:cat:${pageKey(page - 1)}${suffix}` });
+  if (hasNext) pager.push({ text: "Page suivante ▶️", callback_data: `nav:cat:${pageKey(page + 1)}${suffix}` });
   if (pager.length) buttons.push(pager);
   buttons.push([
-    { text: "⬅️ Précédent (Catégories)", callback_data: "nav:stocks" + suffix },
+    { text: "⬅️ Précédent (Catégories)", callback_data: sale && store ? saleBackCb(store.code) : "nav:stocks" + suffix },
     { text: "🏠 Accueil", callback_data: "nav:main" }
   ]);
 
   return {
     text:
+      (sale ? "🛒 Vente — " : "") +
       `📂 <b>${escapeHtml(category.label)}</b> — ${escapeHtml(scopeLabel(store))}` +
       (page > 1 || hasNext ? ` · page ${page}` : "") + `\n\n` +
       (products.length === 0
         ? "Aucun produit trouvé dans cette catégorie."
-        : "Sélectionnez un modèle pour voir son détail :"),
+        : sale ? "Sélectionnez le modèle vendu :" : "Sélectionnez un modèle pour voir son détail :"),
     reply_markup: { inline_keyboard: buttons }
   };
 }
@@ -1112,9 +1145,11 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
   const store = await scopedStore(staff, storeCode);
   const suffix = scopeSuffix(store);
   const [product] = await stockRows(store, { productId, limit: 1, ascending: false });
-  const back = backCat === "search" || backCat === "stocks"
-    ? `nav:stocks${suffix}`
-    : `nav:cat:${backCat}${suffix}`;
+  const sale = isSaleToken(backCat) && store !== null;
+  const base = baseToken(backCat);
+  const back = base === "search" || base === "stocks"
+    ? (sale && store ? saleBackCb(store.code) : `nav:stocks${suffix}`)
+    : `nav:cat:${withSaleMode(base, sale)}${suffix}`;
 
   if (!product) {
     return {
@@ -1125,9 +1160,26 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
 
   const rows: InlineButton[][] = [];
   // Selling only from one's own store; the RPC re-checks store and stock.
-  if (staff.store && store?.id === staff.store.id && product.stock > 0 && cbFits(salePayCb("C", product.id)) &&
-    cbFits(saleStartCb(product.id, backCat))) {
+  const canSell = Boolean(staff.store && store?.id === staff.store.id && product.stock > 0 && cbFits(salePayCb("C", product.id)) &&
+    cbFits(saleStartCb(product.id, backCat)));
+  if (canSell) {
     rows.push([{ text: "🛒 Vendre ce produit", callback_data: saleStartCb(product.id, backCat) }]);
+  }
+  const head =
+    `📱 <b>${escapeHtml(product.name)}</b>\n\n` +
+    `• Prix boutique : <b>${money(product.price)}</b>\n` +
+    `• Stock ${escapeHtml(scopeLabel(store))} : <b>${product.stock} unité(s)</b>`;
+  // Sale mode: the seller only needs to sell — stock tools stay on the Stock screens.
+  if (sale) {
+    const why = canSell ? ""
+      : product.stock <= 0 ? "\n\n⚠️ <i>Rupture dans cette boutique : vente impossible.</i>"
+      : "\n\n⚠️ <i>Vente possible uniquement dans votre boutique" +
+        (staff.store ? ` (${escapeHtml(staff.store.name)})` : "") + ".</i>";
+    rows.push([
+      { text: base === "search" ? "⬅️ Précédent (Vente)" : "⬅️ Précédent", callback_data: back },
+      { text: "🏠 Accueil", callback_data: "nav:main" }
+    ]);
+    return { text: "🛒 Vente — " + head + why, reply_markup: { inline_keyboard: rows } };
   }
   // A transfer request only makes sense for someone attached to a store.
   if (staff.store) rows.push([{ text: "🚚 Demander transfert", callback_data: `nav:trans:${product.id}:${backCat}${suffix}` }]);
@@ -1149,13 +1201,7 @@ async function screenProductDetail(staff: StaffMember, productId: string, backCa
     { text: backCat === "search" ? "⬅️ Précédent (Catégories)" : "⬅️ Précédent", callback_data: back },
     { text: "🏠 Accueil", callback_data: "nav:main" }
   ]);
-  return {
-    text:
-      `📱 <b>${escapeHtml(product.name)}</b>\n\n` +
-      `• Prix boutique : <b>${money(product.price)}</b>\n` +
-      `• Stock ${escapeHtml(scopeLabel(store))} : <b>${product.stock} unité(s)</b>`,
-    reply_markup: { inline_keyboard: rows }
-  };
+  return { text: head, reply_markup: { inline_keyboard: rows } };
 }
 
 // ── Stock : réception (+N) et correction d'inventaire (chiffre compté + motif) ──
@@ -3266,6 +3312,15 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     screen = await screenStocksCategories(staff, parts[2]);
   } else if (action === "sell") {
     screen = await screenSaleStart(staff, parts[2]);
+    // Menu entry (not a "back"): open the search prompt right away so typing the name stays in sale mode.
+    if (parts[3] !== SALE_BACK_FLAG) {
+      await renderScreen(chatId, messageId, screen);
+      await actionSaleSearchPrompt(staff, parts[2] || staff.store?.code || "", chatId);
+      return;
+    }
+  } else if (action === "sellq") {
+    await actionSaleSearchPrompt(staff, parts[2] ?? "", chatId);
+    return;
   } else if (action === "cat") {
     screen = await screenCategory(staff, parts[2] || "apple", parts[3]);
   } else if (action === "p") {
@@ -3736,6 +3791,20 @@ async function handleMessage(message: Obj, chatId: number | string): Promise<voi
       return;
     }
     await renderScreen(chatId, undefined, await actionSaleMixedCashReply(staff, mixedSale.productId, rawText));
+    return;
+  }
+
+  // Reply to the sale search prompt (#SELLQ:): search in sale mode (product sheets without stock tools).
+  const saleSearch = (reply?.from as Obj | undefined)?.is_bot === true
+    ? parseSaleSearchTag(String(reply?.text ?? ""))
+    : null;
+  if (saleSearch && rawText.length >= 2) {
+    const staff = await getStaff(fromId);
+    if (!staff) {
+      await telegram("sendMessage", { chat_id: chatId, text: linkHint, reply_markup: shareKeyboard });
+      return;
+    }
+    await renderScreen(chatId, undefined, await screenSearchResults(staff, rawText, saleSearch.storeCode, true));
     return;
   }
 

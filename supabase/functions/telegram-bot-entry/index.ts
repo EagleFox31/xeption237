@@ -875,6 +875,8 @@ async function screenStore(staff: StaffMember, storeCode: string): Promise<Scree
           { text: "📦 Stocks", callback_data: "nav:stocks:" + store.code },
           { text: "📊 Ventes", callback_data: "nav:sales:" + store.code }
         ],
+        // Same entry as the store staff menu: browsing this store's stock scopes the sale to it.
+        [{ text: "🛒 Enregistrer une vente", callback_data: "nav:stocks:" + store.code }],
         [
           { text: "📊 Rapport de Caisse & Clôture", callback_data: "nav:cr_start:" + store.code }
         ],

@@ -22,6 +22,10 @@ describe('Bot Telegram : boutique consultée par la direction', () => {
     expect(bot).not.toMatch(/screenSearchResults\(staff, (rawText|query)\)/);
   });
 
+  it("l'espace boutique de la direction mène à la vente via le stock de cette boutique", () => {
+    expect(bot).toContain('{ text: "🛒 Enregistrer une vente", callback_data: "nav:stocks:" + store.code }');
+  });
+
   it('écrit seulement pour la direction et seulement si la boutique change', () => {
     expect(bot).toContain('staff.rank < RANK_DIRECTION || staff.scope_store_code === storeCode) return;');
   });

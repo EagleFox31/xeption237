@@ -10,6 +10,8 @@ export const SHOP_GEO = { latitude: 3.86579, longitude: 11.520552 } as const;
 
 /** Second point de vente (stock suivi par le bot : `telegramStock.ts`). Garder `index.html` (JSON-LD department) aligné. */
 export const SHOP_OLEMBE_ADDRESS = "Gare routière d'Olembé, face au poste de police, Yaoundé";
+export const SHOP_OLEMBE_PHONE_DISPLAY = '+237 691 341 224';
+export const SHOP_OLEMBE_PHONE_TEL = '+237691341224';
 export const SHOP_OLEMBE_MAPS_URL = 'https://www.google.com/maps/search/?api=1&query=Gare+routi%C3%A8re+Olemb%C3%A9+Yaound%C3%A9';
 
 /** Compte TikTok officiel. Garder `index.html` (JSON-LD sameAs) aligné. */

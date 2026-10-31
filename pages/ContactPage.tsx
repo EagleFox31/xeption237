@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Clock3, Mail, MapPin, MessageCircle, Navigation, Phone, RefreshCw, ShieldCheck, Wrench } from 'lucide-react';
 import { PageSEO } from '../utils/seo';
-import { SHOP_MAPS_EMBED_URL, SHOP_MAPS_URL, SHOP_OLEMBE_ADDRESS, SHOP_OLEMBE_MAPS_URL, SHOP_TOUR_VIDEOS } from '../constants/contact';
+import { SHOP_MAPS_EMBED_URL, SHOP_MAPS_URL, SHOP_OLEMBE_ADDRESS, SHOP_OLEMBE_MAPS_URL, SHOP_OLEMBE_PHONE_DISPLAY, SHOP_OLEMBE_PHONE_TEL, SHOP_TOUR_VIDEOS } from '../constants/contact';
 import { TikTokVideoButton } from '../components/TikTokVideoButton';
 import {
   INSTITUTIONAL_FEATURE_CARD_CLASS,
@@ -189,6 +189,7 @@ const ContactPage: React.FC = () => {
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Entreprise</span><span className="text-white font-medium">ETS XEPTION</span></p>
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Adresse</span><span className="text-white">Mfoundi Mall, Boutique 2063, Avenue Mgr Vogt, Marché Mfoundi, Centre-ville, Yaoundé, Cameroun</span></p>
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Point de vente Olembé</span><span className="text-white">{SHOP_OLEMBE_ADDRESS}</span></p>
+                <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Téléphone Olembé</span><a href={`tel:${SHOP_OLEMBE_PHONE_TEL}`} className="text-xeption-gold hover:underline">{SHOP_OLEMBE_PHONE_DISPLAY}</a></p>
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Téléphone</span><a href="tel:+237641891031" className="text-xeption-gold hover:underline">+237 641 891 031</a></p>
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Email</span><a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline">support@xeptionetwork.shop</a></p>
               </div>
@@ -219,7 +220,8 @@ const ContactPage: React.FC = () => {
                 Ouvrir l'itinéraire dans Google Maps
               </a>
               <p>
-                Second point de vente : {SHOP_OLEMBE_ADDRESS}.{' '}
+                Second point de vente : {SHOP_OLEMBE_ADDRESS}, tél.{' '}
+                <a href={`tel:${SHOP_OLEMBE_PHONE_TEL}`} className="text-xeption-gold hover:underline">{SHOP_OLEMBE_PHONE_DISPLAY}</a>.{' '}
                 <a href={SHOP_OLEMBE_MAPS_URL} target="_blank" rel="noopener noreferrer" className="text-xeption-gold hover:underline">
                   Voir sur Google Maps
                 </a>

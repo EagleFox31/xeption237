@@ -46,7 +46,7 @@ const GuideCard: React.FC<GuideCardProps> = ({ guide, fallbackProduct }) => {
       ) : (
         <Link to={guidePath(guide.slug)} className={`${MEDIA_CLASS} bg-white`} tabIndex={-1} aria-hidden>
           {fallbackProduct?.image ? (
-            <img src={optimizeImage(fallbackProduct.image, 400)} alt="" loading="lazy" className="w-full h-full object-contain p-4" />
+            <img src={optimizeImage(fallbackProduct.image, 400)} alt="" loading="lazy" className="w-full h-full object-cover" />
           ) : (
             <span className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1a1a1f] to-black">
               <BookOpen className="w-12 h-12 text-xeption-gold/80" />

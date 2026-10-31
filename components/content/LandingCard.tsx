@@ -37,7 +37,7 @@ const LandingCard: React.FC<LandingCardProps> = ({ landing, cover, productCount 
             src={optimizeImage(cover.image, 400)}
             alt=""
             loading="lazy"
-            className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1a1a1f] to-black">

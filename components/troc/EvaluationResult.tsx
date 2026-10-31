@@ -270,7 +270,8 @@ export const EvaluationResult: React.FC<EvaluationResultProps> = ({
             <button
               type="button"
               onClick={() => setShowUpgrade(true)}
-              className="w-full border border-xeption-gold/40 text-xeption-gold hover:bg-xeption-gold/10 font-tech font-bold uppercase tracking-widest py-3 text-xs transition-all rounded-sm"
+              disabled={isSubmitting}
+              className="w-full border border-xeption-gold/40 text-xeption-gold hover:bg-xeption-gold/10 font-tech font-bold uppercase tracking-widest py-3 text-xs transition-all rounded-sm disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Utiliser mon crédit sur un appareil →
             </button>

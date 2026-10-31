@@ -139,7 +139,9 @@ export function resolveTrocCoach(input: TrocCoachInput): TrocCoachView {
           ? (done === 0
               ? `On commence par ${input.formNext}.`
               : `${done} sur ${total}, ça avance. Maintenant ${input.formNext}.`)
-          : 'Compose *#06# sur le téléphone à reprendre, prends le premier numéro.',
+          : input.imeiStatus === 'valid'
+            ? 'IMEI reconnu ! Prochaine étape : les photos de ton téléphone.'
+            : 'Compose *#06# sur le téléphone à reprendre, prends le premier numéro.',
       };
     }
     case 'photos':

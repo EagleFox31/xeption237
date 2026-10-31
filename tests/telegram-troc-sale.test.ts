@@ -167,10 +167,11 @@ describe("Lot 4 — Vente comptoir avec bon troc", () => {
   });
 
   describe("Contrat de la migration SQL (20261029_001)", () => {
+    // Fins de ligne normalisées : avec core.autocrlf=true la copie Windows est en CRLF.
     const sql = readFileSync(
       "supabase/migrations/20261029_001_pos_sale_troc_voucher.sql",
       "utf8"
-    );
+    ).replace(/\r\n/g, "\n");
 
     it("ajoute trade_in_request_id avec ON DELETE SET NULL", () => {
       expect(sql).toContain(

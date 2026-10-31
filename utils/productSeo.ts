@@ -16,6 +16,20 @@ export const truncateAtWord = (text: string, max: number): string => {
   return `${base.replace(/[\s,;:.\-–—]+$/, '')}${ELLIPSIS}`;
 };
 
+/**
+ * Marqueur présent dans tout titre de fiche produit : reprend la requête réelle
+ * (« <modèle> prix Cameroun »). Dupliqué dans la garde de `scripts/prerender.mjs`.
+ */
+export const PRODUCT_SEO_TITLE_MARKER = 'prix Cameroun';
+
+const formatFcfa = (price: number): string => `${price.toLocaleString('fr-FR')} FCFA`;
+
+/** Titre de fiche au format des résultats concurrents : modèle, « prix Cameroun », montant. */
+export const buildProductSeoTitle = (displayName: string, price?: number | null): string => {
+  const pricePart = price && price > 0 ? ` : ${formatFcfa(price)}` : '';
+  return `${displayName} ${PRODUCT_SEO_TITLE_MARKER}${pricePart} | Xeption`;
+};
+
 export interface ProductSeoDescriptionInput {
   displayName: string;
   description?: string | null;
@@ -33,7 +47,7 @@ export const buildProductSeoDescription = ({
   price,
   inStock,
 }: ProductSeoDescriptionInput): string => {
-  const pricePart = price && price > 0 ? `${price.toLocaleString('fr-FR')} FCFA` : null;
+  const pricePart = price && price > 0 ? formatFcfa(price) : null;
   const stockPart = inStock ? 'En stock' : 'Sur commande';
   const head = [pricePart, stockPart].filter(Boolean).join(' · ');
   const body =

@@ -73,6 +73,8 @@ const SPA_CLIENT_ONLY_ROUTES = ['/admin'];
 const PRERENDER_READY_TIMEOUT_MS = Number(process.env.PRERENDER_READY_TIMEOUT_MS || 20_000);
 const PRODUCT_SEO_TIMEOUT_MS = Number(process.env.PRODUCT_SEO_TIMEOUT_MS || 20_000);
 const PRODUCT_SEO_POLL_MS = 250;
+// Miroir de PRODUCT_SEO_TITLE_MARKER (utils/productSeo.ts) : absent = Helmet n'a pas posé le titre de fiche.
+const PRODUCT_TITLE_MARKER = 'prix Cameroun';
 const MAX_RENDER_ATTEMPTS = 3;
 
 const slugify = (input = '') =>
@@ -252,7 +254,7 @@ const waitForProductSeo = async (page, route) => {
   const expectedCanonical = expectedCanonicalForRoute(route);
 
   const result = await page.evaluate(
-    async ({ expectedCanonical, timeoutMs, pollMs }) => {
+    async ({ expectedCanonical, titleMarker, timeoutMs, pollMs }) => {
       const hasProductJsonLd = () => {
         const containsProduct = (value) => {
           if (!value) return false;
@@ -295,7 +297,7 @@ const waitForProductSeo = async (page, route) => {
 
       while (Date.now() - startedAt < timeoutMs) {
         const ready =
-          state.title.includes('Acheter au Cameroun') &&
+          state.title.includes(titleMarker) &&
           state.description.length >= 20 &&
           state.canonical === expectedCanonical &&
           state.ogTitle === state.title &&
@@ -311,6 +313,7 @@ const waitForProductSeo = async (page, route) => {
     },
     {
       expectedCanonical,
+      titleMarker: PRODUCT_TITLE_MARKER,
       timeoutMs: PRODUCT_SEO_TIMEOUT_MS,
       pollMs: PRODUCT_SEO_POLL_MS,
     },
@@ -482,7 +485,7 @@ const inspectProductHtml = (route, html) => {
     /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/i.test(html) &&
     /"@type"\s*:\s*"Product"/i.test(html);
 
-  if (!title.includes('Acheter au Cameroun')) {
+  if (!title.includes(PRODUCT_TITLE_MARKER)) {
     errors.push(`title invalide: "${title || '(aucun)'}"`);
   }
   if (description.length < 20) {

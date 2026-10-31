@@ -8,7 +8,7 @@ import { getProductSlug } from '../utils/slug';
 import { getProductDisplayName } from '../utils/productDisplay';
 import { PageSEO, JsonLd, productJsonLd, breadcrumbJsonLd, faqJsonLd, toOgImage } from '../utils/seo';
 import { buildProductFaq } from '../utils/productFaq';
-import { buildProductSeoDescription } from '../utils/productSeo';
+import { buildProductSeoDescription, buildProductSeoTitle } from '../utils/productSeo';
 import { buildShopReturnPath } from '../utils/shopFilterStorage';
 import SkeletonLoader from '../components/common/SkeletonLoader';
 import { trackViewItem } from '../utils/analytics';
@@ -120,7 +120,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
     const productUrl = `https://www.xeptionetwork.shop${productPath}`;
     const productImages = [product.image, ...(product.images || [])].filter(Boolean);
     const ogImage = toOgImage(productImages[0]) ?? null;
-    const seoTitle = `${displayName} — Acheter au Cameroun | Xeption`;
+    const seoTitle = buildProductSeoTitle(displayName, product.price);
     const inStock = product.stock > 0;
     const productCondition = product.condition === 'refurbished' ? 'refurbished' : 'new';
     const seoDescription = buildProductSeoDescription({

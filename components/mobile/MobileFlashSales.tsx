@@ -120,7 +120,7 @@ export const MobileFlashSales: React.FC<MobileFlashSalesProps> = ({
               className="relative w-[150px] sm:w-[160px] shrink-0 bg-[#121214] border border-zinc-800/80 rounded-2xl p-2 flex flex-col justify-between shadow-lg cursor-pointer hover:border-zinc-700 active:scale-[0.98] transition-all snap-start"
             >
               {/* Vignette carrée blanche mettant en valeur le produit (conforme maquette) */}
-              <div className="w-full aspect-square bg-white rounded-xl relative p-2 flex items-center justify-center overflow-hidden">
+              <div className="w-full aspect-square bg-white rounded-xl relative flex items-center justify-center overflow-hidden">
                 {/* Badge contextuel (réduction réelle ou occasion certifiée) */}
                 {badge && (
                   <span className={`absolute top-1.5 left-1.5 ${badge.color} text-[9.5px] font-black px-1.5 py-0.5 rounded leading-none z-10 uppercase tracking-tight`}>
@@ -137,7 +137,7 @@ export const MobileFlashSales: React.FC<MobileFlashSalesProps> = ({
                   sizes="160px"
                   loading="lazy"
                   placeholderClassName="bg-white/80"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/logos/apple.svg';
                   }}

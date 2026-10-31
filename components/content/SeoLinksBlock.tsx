@@ -9,7 +9,7 @@ import HomeCarouselRow from '../home/HomeCarouselRow';
 import GuideCard from './GuideCard';
 import LandingCard from './LandingCard';
 
-const GUIDE_ITEM_CLASS = 'w-[calc((100%-0.75rem)/1.4)] md:w-[calc((100%-2rem)/3)] xl:w-[calc((100%-3rem)/4)]';
+const GUIDE_ITEM_CLASS = 'w-[calc((100%-0.75rem)/2.15)] md:w-[calc((100%-2rem)/3)] xl:w-[calc((100%-3rem)/4)]';
 
 /**
  * Accueil : rayons et guides d'achat en carrousels de cartes (même coque que les rangées produit).

@@ -51,7 +51,7 @@ const HeroWelcomeSlide: React.FC<HeroWelcomeSlideProps> = ({ compact, desktopCom
                 : 'text-xl sm:text-2xl lg:text-[1.65rem]'
           }`}
         >
-          au meilleur prix au Mboa
+          au meilleur prix au Cameroun
         </span>
       </h1>
 

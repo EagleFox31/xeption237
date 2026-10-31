@@ -55,8 +55,21 @@ export const selectProducts = (
 export const selectLandingProducts = (products: Product[], def: LandingPageDef): Product[] =>
   selectProducts(products, def.filter, def.sort, def.limit);
 
+/** Poids de ciblage : un guide sur un modèle précis passe avant un guide de catégorie. */
+const GUIDE_TARGET_WEIGHT = { nameIncludes: 4, brands: 2, conditions: 1, price: 1 } as const;
+
+const guideSpecificity = (filter: ProductFilter): number =>
+  (filter.nameIncludes?.length ? GUIDE_TARGET_WEIGHT.nameIncludes : 0) +
+  (filter.brands?.length ? GUIDE_TARGET_WEIGHT.brands : 0) +
+  (filter.conditions?.length ? GUIDE_TARGET_WEIGHT.conditions : 0) +
+  (filter.maxPrice !== undefined ? GUIDE_TARGET_WEIGHT.price : 0);
+
+/** Guides utiles d'une fiche, les plus ciblés d'abord (tri stable : ordre du fichier à égalité). */
 export const getGuidesForProduct = (product: Product, guides: ArticleDef[], max = 3): ArticleDef[] =>
-  guides.filter((g) => g.appliesTo && matchesProductFilter(product, g.appliesTo)).slice(0, max);
+  guides
+    .filter((g) => g.appliesTo && matchesProductFilter(product, g.appliesTo))
+    .sort((a, b) => guideSpecificity(b.appliesTo!) - guideSpecificity(a.appliesTo!))
+    .slice(0, max);
 
 /** Landing la plus spécifique (marque > prix > catégorie) contenant ce produit. */
 export const getPrimaryLandingForProduct = (

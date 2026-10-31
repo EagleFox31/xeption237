@@ -87,3 +87,30 @@ describe('liens produit → contenus', () => {
     expect(getPrimaryLandingForProduct(cheap, LANDING_PAGES)?.slug).toBe('telephones-moins-100000-fcfa');
   });
 });
+
+describe('rayons accessoires et comparatifs', () => {
+  const acc = (name: string) => p({ name, category: CATEGORY_SLUGS.ACCESSORIES, brandName: 'Samsung' });
+  const landingOf = (product: Product) => getPrimaryLandingForProduct(product, LANDING_PAGES)?.slug;
+  const guidesOf = (product: Product) => getGuidesForProduct(product, GUIDES).map((g) => g.slug);
+
+  it('montres, audio et chargeurs ne se chevauchent pas', () => {
+    expect(landingOf(acc('Samsung Galaxy Watch8 Classic'))).toBe('montres-connectees-samsung-cameroun');
+    expect(landingOf(acc('Samsung Galaxy Fit3'))).toBe('montres-connectees-samsung-cameroun');
+    expect(landingOf(acc('Samsung Galaxy Buds3 Pro'))).toBe('ecouteurs-casques-bluetooth-cameroun');
+    expect(landingOf(acc('Écouteurs CMF buds pro 2'))).toBe('ecouteurs-casques-bluetooth-cameroun');
+    expect(landingOf(acc('Chargeur Ordinateur Portable HP'))).toBeUndefined();
+    expect(guidesOf(acc('Chargeur Ordinateur Portable HP'))).toContain('choisir-chargeur-pc-portable');
+    expect(guidesOf(acc('Samsung Galaxy Buds FE'))).not.toContain('choisir-chargeur-pc-portable');
+  });
+
+  it('un téléphone hors accessoires reste hors des rayons accessoires', () => {
+    expect(landingOf(p({ name: 'Samsung Galaxy A55', brandName: 'Samsung' }))).toBe('smartphones-samsung-cameroun');
+  });
+
+  it('comparatifs rattachés aux bonnes fiches', () => {
+    expect(guidesOf(p({ name: 'iPhone 12pro 128 Go', brandName: 'Apple' }))).toContain('iphone-12-ou-iphone-13');
+    expect(guidesOf(p({ name: 'iPhone 14 128 Go', brandName: 'Apple' }))).not.toContain('iphone-12-ou-iphone-13');
+    expect(guidesOf(p({ name: 'Google Pixel 7a 128 Go' }))).toContain('google-pixel-7-ou-samsung-galaxy-a55');
+    expect(guidesOf(p({ name: 'Samsung Galaxy A55 128 Go' }))).toContain('google-pixel-7-ou-samsung-galaxy-a55');
+  });
+});

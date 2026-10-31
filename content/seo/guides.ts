@@ -424,4 +424,240 @@ export const GUIDES: ArticleDef[] = [
     relatedGuides: ['verifier-iphone-occasion', 'occasion-reconditionne-ou-neuf'],
     appliesTo: { categories: [CATEGORY_SLUGS.PHONES], nameIncludes: ['korea', 'japan', 'esim'] },
   },
+  {
+    slug: 'iphone-12-ou-iphone-13',
+    navLabel: 'iPhone 12 ou iPhone 13 ?',
+    h1: 'iPhone 12 ou iPhone 13 : lequel choisir ?',
+    title: 'iPhone 12 ou iPhone 13 : lequel choisir au Cameroun ?',
+    metaDescription:
+      "Puce, autonomie, photo, stockage : les vraies différences entre iPhone 12 et iPhone 13, les variantes Pro et les compromis, avec les prix du jour.",
+    summary: "Deux iPhone très proches en apparence : ce qui change vraiment et pour qui chacun est le bon choix.",
+    updatedAt: '2026-10-31',
+    sections: [
+      {
+        id: 'en-bref',
+        heading: 'En bref',
+        paragraphs: [
+          "Même format (écran OLED de 6,1 pouces), même 5G, même MagSafe, même résistance à l'eau IP68. L'iPhone 13 apporte surtout une meilleure autonomie, une photo plus stable et un stockage de départ plus confortable. L'iPhone 12 reste le meilleur prix d'entrée pour un iPhone moderne.",
+        ],
+      },
+      {
+        id: 'differences',
+        heading: 'Les différences qui comptent',
+        paragraphs: ["D'après les fiches techniques d'Apple :"],
+        bullets: [
+          "Puce : A14 Bionic pour l'iPhone 12, A15 Bionic pour l'iPhone 13. Les deux restent fluides au quotidien.",
+          "Autonomie : Apple annonce jusqu'à 17 heures de lecture vidéo pour l'iPhone 12 et 19 heures pour l'iPhone 13. C'est l'écart le plus sensible à l'usage.",
+          "Photo : l'iPhone 13 ajoute la stabilisation par déplacement du capteur sur l'objectif principal, le mode Cinématique pour la vidéo et les Styles photographiques.",
+          "Écran : luminosité maximale typique de 800 nits sur l'iPhone 13 contre 625 nits sur l'iPhone 12, plus lisible en plein soleil. L'encoche de l'iPhone 13 est plus petite.",
+          "Stockage : l'iPhone 13 commence à 128 Go ; l'iPhone 12 existe aussi en 64 Go. Pour les photos et WhatsApp, 128 Go est un minimum confortable.",
+        ],
+      },
+      {
+        id: 'variantes-pro',
+        heading: 'Et les versions Pro ?',
+        paragraphs: [
+          "Les iPhone 12 Pro et 13 Pro ajoutent un téléobjectif et un châssis en acier. L'iPhone 13 Pro passe à un écran ProMotion jusqu'à 120 Hz, plus fluide, et à un zoom optique 3x (2x sur le 12 Pro). Les versions Pro Max offrent un écran de 6,7 pouces et la plus grande batterie de chaque génération.",
+        ],
+      },
+      {
+        id: 'etat',
+        heading: "Sur un reconditionné, l'état compte autant que le modèle",
+        paragraphs: [
+          "Un iPhone 12 avec une batterie en bon état peut offrir une meilleure expérience qu'un iPhone 13 à la batterie usée. Vérifiez l'état de la batterie et l'historique des pièces avant d'acheter.",
+        ],
+        links: [
+          { to: '/guides/verifier-iphone-occasion', label: 'Vérifier un iPhone avant achat' },
+          { to: '/categorie/iphone-cameroun', label: 'Tous nos iPhone' },
+        ],
+      },
+      {
+        id: 'verdict',
+        heading: 'Pour qui ?',
+        bullets: [
+          "iPhone 12 : budget serré, usage classique (appels, réseaux sociaux, photos du quotidien).",
+          "iPhone 13 : vous passez beaucoup de temps sur votre téléphone loin d'une prise, ou vous filmez souvent.",
+          "iPhone 13 Pro : vous voulez un écran 120 Hz et un vrai zoom.",
+        ],
+        paragraphs: [
+          "Les prix ci-dessous sont ceux du catalogue au moment où vous lisez cette page.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "L'iPhone 12 reçoit-il encore les mises à jour ?",
+        a: "Oui, à la date de cet article. L'iPhone 13, plus récent d'un an, sera en principe pris en charge plus longtemps.",
+      },
+      {
+        q: "L'écart de prix vaut-il le coup ?",
+        a: "Si l'autonomie est votre priorité, oui. Pour un usage léger, l'iPhone 12 offre l'essentiel de l'expérience pour moins cher.",
+      },
+      {
+        q: 'Puis-je faire reprendre mon ancien téléphone ?',
+        a: "Oui, avec Smart Troc : votre ancien appareil est estimé en ligne et vous recevez un bon d'achat utilisable en boutique.",
+      },
+    ],
+    relatedLandings: ['iphone-cameroun'],
+    relatedGuides: ['verifier-iphone-occasion', 'occasion-reconditionne-ou-neuf'],
+    products: {
+      filter: { categories: [CATEGORY_SLUGS.PHONES], nameIncludes: ['iphone 12', 'iphone 13'] },
+      limit: 8,
+      sort: 'price-asc',
+    },
+    appliesTo: { categories: [CATEGORY_SLUGS.PHONES], nameIncludes: ['iphone 12', 'iphone 13'] },
+  },
+  {
+    slug: 'google-pixel-7-ou-samsung-galaxy-a55',
+    navLabel: 'Pixel 7 ou Galaxy A55 ?',
+    h1: 'Google Pixel 7 ou Samsung Galaxy A55 : lequel choisir ?',
+    title: 'Google Pixel 7 ou Samsung Galaxy A55 : lequel choisir ?',
+    metaDescription:
+      "Écran, autonomie, photo, mises à jour : Pixel 7 et Galaxy A55 comparés, avec les variantes Pixel 7a et 7 Pro et les prix du jour au Cameroun.",
+    summary: "Un ancien haut de gamme Google face à un milieu de gamme Samsung plus récent : les compromis de chacun.",
+    updatedAt: '2026-10-31',
+    sections: [
+      {
+        id: 'en-bref',
+        heading: 'En bref',
+        paragraphs: [
+          "Le Pixel 7 (sorti en 2022) mise sur le logiciel de Google et un format compact. Le Galaxy A55 (sorti en 2024) offre un grand écran plus fluide, une plus grosse batterie et un suivi logiciel plus long.",
+        ],
+      },
+      {
+        id: 'differences',
+        heading: 'Les différences qui comptent',
+        paragraphs: ["D'après les fiches techniques de Google et de Samsung :"],
+        bullets: [
+          "Écran : 6,3 pouces à 90 Hz pour le Pixel 7 ; 6,6 pouces à 120 Hz pour le Galaxy A55, plus fluide et plus grand.",
+          "Batterie : 4 355 mAh pour le Pixel 7, 5 000 mAh pour le Galaxy A55.",
+          "Photo : capteur principal de 50 Mpx et ultra grand-angle sur les deux. Google met en avant son traitement d'image ; le Galaxy A55 ajoute un capteur macro.",
+          "Recharge : le Pixel 7 accepte la recharge sans fil, pas le Galaxy A55.",
+          "Résistance : IP68 pour le Pixel 7, IP67 pour le Galaxy A55.",
+        ],
+      },
+      {
+        id: 'mises-a-jour',
+        heading: 'Les mises à jour, critère décisif',
+        paragraphs: [
+          "Google garantit les mises à jour de sécurité du Pixel 7 jusqu'en octobre 2027. Samsung promet quatre versions d'Android et cinq ans de mises à jour de sécurité pour le Galaxy A55, sorti en 2024. Pour garder le téléphone longtemps, l'avantage va au Galaxy A55.",
+        ],
+      },
+      {
+        id: 'variantes',
+        heading: 'Les variantes comparées',
+        bullets: [
+          "Pixel 7a : même puce Tensor G2 que le Pixel 7, écran de 6,1 pouces, moins cher.",
+          "Pixel 7 Pro : écran de 6,7 pouces à 120 Hz et téléobjectif, pour qui veut le zoom.",
+          "Galaxy A55 importé : vérifiez la version (une ou deux cartes SIM) sur la fiche.",
+        ],
+        paragraphs: [],
+        links: [
+          { to: '/guides/telephone-importe-cameroun', label: 'Acheter un téléphone importé' },
+          { to: '/categorie/google-pixel-cameroun', label: 'Tous nos Google Pixel' },
+          { to: '/categorie/smartphones-samsung-cameroun', label: 'Tous nos Samsung' },
+        ],
+      },
+      {
+        id: 'verdict',
+        heading: 'Pour qui ?',
+        bullets: [
+          "Pixel 7 : vous voulez un format compact, la recharge sans fil et l'Android de Google.",
+          "Galaxy A55 : vous voulez un grand écran, de l'autonomie et des mises à jour plus longues.",
+        ],
+        paragraphs: ["Les prix ci-dessous sont ceux du catalogue au moment où vous lisez cette page."],
+      },
+    ],
+    faq: [
+      {
+        q: 'Lequel tient le plus longtemps sur batterie ?',
+        a: "Sur le papier, le Galaxy A55 grâce à sa batterie de 5 000 mAh. L'autonomie réelle dépend de votre usage.",
+      },
+      {
+        q: 'Lequel sera mis à jour le plus longtemps ?',
+        a: "Le Galaxy A55 : il est plus récent et Samsung promet cinq ans de mises à jour de sécurité.",
+      },
+      {
+        q: 'Puis-je faire reprendre mon ancien téléphone ?',
+        a: "Oui, avec Smart Troc : votre ancien appareil est estimé en ligne et vous recevez un bon d'achat utilisable en boutique.",
+      },
+    ],
+    relatedLandings: ['google-pixel-cameroun', 'smartphones-samsung-cameroun'],
+    relatedGuides: ['telephone-importe-cameroun', 'quel-smartphone-100000-fcfa'],
+    products: {
+      filter: { categories: [CATEGORY_SLUGS.PHONES], nameIncludes: ['pixel 7', 'galaxy a55'] },
+      limit: 8,
+      sort: 'price-asc',
+    },
+    appliesTo: { categories: [CATEGORY_SLUGS.PHONES], nameIncludes: ['pixel 7', 'galaxy a55'] },
+  },
+  {
+    slug: 'choisir-chargeur-pc-portable',
+    navLabel: 'Choisir un chargeur de PC portable',
+    h1: 'Comment choisir un chargeur compatible avec son ordinateur portable ?',
+    title: 'Choisir un chargeur compatible avec son PC portable',
+    metaDescription:
+      "Tension, puissance, embout ou USB-C : les trois vérifications pour acheter un chargeur compatible avec votre ordinateur portable HP, Dell, Lenovo ou ASUS.",
+    summary: "Trois informations à relever sur votre chargeur d'origine avant d'en acheter un nouveau.",
+    updatedAt: '2026-10-31',
+    sections: [
+      {
+        id: 'etiquette',
+        heading: "Lire l'étiquette du chargeur d'origine",
+        paragraphs: [
+          "Sous le bloc du chargeur (ou sous l'ordinateur), une étiquette indique la sortie (« Output ») : une tension en volts (V), une intensité en ampères (A) et souvent une puissance en watts (W). Prenez-la en photo et apportez-la en boutique.",
+        ],
+      },
+      {
+        id: 'verifications',
+        heading: 'Les trois vérifications',
+        bullets: [
+          "Tension (V) : elle doit être identique à celle du chargeur d'origine, par exemple 19,5 V ou 20 V.",
+          "Puissance (W) : égale ou supérieure à l'origine. Un chargeur moins puissant charge lentement, voire pas du tout pendant l'utilisation.",
+          "Connecteur : même embout (forme et diamètre) que l'origine. Deux ordinateurs de la même marque n'utilisent pas toujours le même embout.",
+        ],
+        paragraphs: [],
+      },
+      {
+        id: 'usb-c',
+        heading: 'Le cas des ordinateurs en USB-C',
+        paragraphs: [
+          "De nombreux portables récents se chargent par USB-C. Vérifiez que le port de votre ordinateur accepte la charge (symbole d'éclair ou de prise) et choisissez un chargeur USB-C Power Delivery d'une puissance au moins égale à celle d'origine, souvent 45 W ou 65 W.",
+        ],
+      },
+      {
+        id: 'securite',
+        heading: 'Éviter les chargeurs à risque',
+        paragraphs: [
+          "Un chargeur de mauvaise qualité chauffe, abîme la batterie et peut provoquer une panne. Méfiez-vous des chargeurs universels à embouts multiples sans marque, et protégez votre matériel des variations de tension du réseau électrique.",
+        ],
+        links: [
+          { to: '/categorie/pc-portables-reconditionnes-cameroun', label: 'Nos PC portables reconditionnés' },
+          { to: '/categorie/pc-portables-hp-cameroun', label: 'Nos PC portables HP' },
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Puis-je utiliser un chargeur plus puissant que celui d’origine ?',
+        a: "Oui, si la tension et le connecteur sont identiques : l'ordinateur ne prélève que la puissance dont il a besoin.",
+      },
+      {
+        q: 'Mon chargeur de téléphone USB-C peut-il charger mon PC ?',
+        a: "Rarement : il est en général trop peu puissant. Au mieux, la charge sera très lente.",
+      },
+      {
+        q: 'Je ne trouve pas l’étiquette, comment faire ?',
+        a: "Apportez l'ordinateur ou son ancien chargeur en boutique au Mfoundi Mall : nous vérifions la compatibilité avec vous.",
+      },
+    ],
+    relatedLandings: ['pc-portables-reconditionnes-cameroun', 'pc-portables-hp-cameroun'],
+    relatedGuides: ['quel-pc-portable-200000-fcfa'],
+    products: {
+      filter: { categories: [CATEGORY_SLUGS.ACCESSORIES], nameIncludes: ['chargeur ordinateur', 'chargeur adaptateur secteur'] },
+      limit: 8,
+      sort: 'price-asc',
+    },
+    appliesTo: { categories: [CATEGORY_SLUGS.ACCESSORIES], nameIncludes: ['chargeur ordinateur', 'chargeur adaptateur secteur'] },
+  },
 ];

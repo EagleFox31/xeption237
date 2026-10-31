@@ -53,7 +53,7 @@ export const LANDING_PAGES: LandingPageDef[] = [
     sort: 'newest',
     limit: 24,
     shopHref: '/shop?cat=phones&brand=apple',
-    relatedGuides: ['verifier-iphone-occasion', 'occasion-reconditionne-ou-neuf', 'preparer-telephone-reprise-smart-troc'],
+    relatedGuides: ['verifier-iphone-occasion', 'occasion-reconditionne-ou-neuf', 'preparer-telephone-reprise-smart-troc', 'iphone-12-ou-iphone-13'],
     relatedLandings: ['smartphones-samsung-cameroun', 'telephones-moins-100000-fcfa'],
     showInFooter: true,
     updatedAt: '2026-10-30',
@@ -101,7 +101,7 @@ export const LANDING_PAGES: LandingPageDef[] = [
     sort: 'newest',
     limit: 24,
     shopHref: '/shop?cat=phones&brand=samsung',
-    relatedGuides: ['quel-smartphone-100000-fcfa', 'occasion-reconditionne-ou-neuf'],
+    relatedGuides: ['quel-smartphone-100000-fcfa', 'occasion-reconditionne-ou-neuf', 'google-pixel-7-ou-samsung-galaxy-a55'],
     relatedLandings: ['iphone-cameroun', 'telephones-moins-100000-fcfa'],
     showInFooter: true,
     updatedAt: '2026-10-30',
@@ -149,7 +149,7 @@ export const LANDING_PAGES: LandingPageDef[] = [
     sort: 'price-asc',
     limit: 24,
     shopHref: '/shop?cat=computer&condition=refurbished',
-    relatedGuides: ['quel-pc-portable-200000-fcfa', 'occasion-reconditionne-ou-neuf'],
+    relatedGuides: ['quel-pc-portable-200000-fcfa', 'occasion-reconditionne-ou-neuf', 'choisir-chargeur-pc-portable'],
     relatedLandings: ['pc-portables-hp-cameroun', 'telephones-moins-100000-fcfa'],
     showInFooter: true,
     updatedAt: '2026-10-30',
@@ -301,7 +301,7 @@ export const LANDING_PAGES: LandingPageDef[] = [
     sort: 'newest',
     limit: 24,
     shopHref: '/shop?cat=phones&brand=google-pixel',
-    relatedGuides: ['telephone-importe-cameroun', 'occasion-reconditionne-ou-neuf', 'preparer-telephone-reprise-smart-troc'],
+    relatedGuides: ['telephone-importe-cameroun', 'occasion-reconditionne-ou-neuf', 'preparer-telephone-reprise-smart-troc', 'google-pixel-7-ou-samsung-galaxy-a55'],
     relatedLandings: ['iphone-cameroun', 'smartphones-samsung-cameroun', 'smartphones-xiaomi-redmi-poco-cameroun'],
     showInFooter: true,
     updatedAt: '2026-10-31',
@@ -349,8 +349,119 @@ export const LANDING_PAGES: LandingPageDef[] = [
     sort: 'price-asc',
     limit: 24,
     shopHref: '/shop?cat=computer&brand=hp',
-    relatedGuides: ['quel-pc-portable-200000-fcfa', 'occasion-reconditionne-ou-neuf'],
+    relatedGuides: ['quel-pc-portable-200000-fcfa', 'occasion-reconditionne-ou-neuf', 'choisir-chargeur-pc-portable'],
     relatedLandings: ['pc-portables-reconditionnes-cameroun'],
+    showInFooter: true,
+    updatedAt: '2026-10-31',
+  },
+  {
+    slug: 'montres-connectees-samsung-cameroun',
+    navLabel: 'Montres connectées Samsung',
+    h1: 'Montres et bracelets connectés Samsung au Cameroun',
+    title: 'Montres connectées Samsung Galaxy Watch au Cameroun | Xeption',
+    metaDescription:
+      "Galaxy Watch, Watch Ultra ou Galaxy Fit : choisir sa montre Samsung selon son téléphone, l'autonomie, les fonctions santé et le budget. Retrait à Yaoundé.",
+    intro: [
+      "Samsung propose trois familles : le bracelet Galaxy Fit pour le suivi d'activité, la Galaxy Watch pour les notifications, les applications et la santé, et la Galaxy Watch Ultra pour le sport et l'autonomie.",
+      "Avant de choisir, vérifiez la compatibilité avec votre téléphone : c'est le premier critère, avant le design ou le prix.",
+    ],
+    buyingTips: [
+      {
+        title: 'Compatibilité avec votre téléphone',
+        body: "Les Galaxy Watch récentes (Watch4 et suivantes) et le Galaxy Fit3 fonctionnent avec un smartphone Android, via l'application Galaxy Wearable. Ils ne sont pas compatibles avec l'iPhone. Certaines fonctions santé, comme l'ECG, demandent un smartphone Samsung Galaxy.",
+      },
+      {
+        title: 'Autonomie',
+        body: "Le Galaxy Fit tient plusieurs jours entre deux charges. Une Galaxy Watch se recharge en général tous les un à deux jours selon l'usage. La Watch Ultra, avec sa plus grande batterie, tient plus longtemps : c'est le bon choix si vous oubliez souvent de recharger.",
+      },
+      {
+        title: 'Fonctions recherchées',
+        body: "Pas, sommeil et fréquence cardiaque : le Galaxy Fit suffit. Réponses aux messages, paiement, applications et GPS intégré : choisissez une Galaxy Watch. Les versions Classic ajoutent une lunette rotative pour naviguer sans toucher l'écran.",
+      },
+      {
+        title: 'Budget et version',
+        body: "Une génération récente reste prise en charge plus longtemps. Les versions importées (par exemple Korea) peuvent présenter des différences de langue ou de fonctions santé selon la région : demandez-nous avant l'achat si une fonction précise compte pour vous.",
+      },
+    ],
+    faq: [
+      {
+        q: 'Une Galaxy Watch fonctionne-t-elle avec un iPhone ?',
+        a: "Non. Depuis la Galaxy Watch4, les montres Samsung fonctionnent uniquement avec des smartphones Android.",
+      },
+      {
+        q: 'Que signifie « Scellé » sur une fiche ?',
+        a: "L'appareil est vendu neuf dans sa boîte d'origine, jamais ouverte.",
+      },
+      {
+        q: 'Galaxy Fit ou Galaxy Watch : lequel choisir ?',
+        a: "Le Galaxy Fit est léger, abordable et tient longtemps sur batterie pour le suivi d'activité. La Galaxy Watch est une vraie montre connectée : applications, réponses aux messages et suivi santé plus complet.",
+      },
+      {
+        q: 'Comment payer une montre chez Xeption ?',
+        a: "Par Orange Money, MTN Mobile Money, ou en espèces à la livraison ou au retrait en boutique au Mfoundi Mall.",
+      },
+    ],
+    filter: { categories: [CATEGORY_SLUGS.ACCESSORIES], nameIncludes: ['galaxy watch', 'galaxy fit'] },
+    sort: 'price-asc',
+    limit: 24,
+    shopHref: '/shop?cat=accessories&brand=samsung',
+    relatedGuides: ['telephone-importe-cameroun'],
+    relatedLandings: ['smartphones-samsung-cameroun', 'ecouteurs-casques-bluetooth-cameroun'],
+    showInFooter: true,
+    updatedAt: '2026-10-31',
+  },
+  {
+    slug: 'ecouteurs-casques-bluetooth-cameroun',
+    navLabel: 'Écouteurs et casques Bluetooth',
+    h1: 'Écouteurs et casques Bluetooth au Cameroun',
+    title: 'Écouteurs et casques Bluetooth au Cameroun | Xeption',
+    metaDescription:
+      "Écouteurs sans fil, tour de cou ou casque Bluetooth : choisir selon les appels, la musique, le sport, l'autonomie et votre téléphone. Retrait à Yaoundé.",
+    intro: [
+      "Écouteurs sans fil, modèles tour de cou ou casques : chaque format répond à un usage. Tous se connectent en Bluetooth à n'importe quel smartphone, Android ou iPhone.",
+    ],
+    buyingTips: [
+      {
+        title: 'Appels',
+        body: "Pour téléphoner souvent, notamment dans la rue ou en moto-taxi, privilégiez un modèle avec plusieurs micros et réduction du bruit pendant les appels.",
+      },
+      {
+        title: 'Musique et réduction de bruit',
+        body: "La réduction de bruit active (ANC) atténue le bruit ambiant : utile dans les transports ou un bureau animé. Un casque offre en général un son plus ample et une meilleure autonomie que des écouteurs.",
+      },
+      {
+        title: 'Sport',
+        body: "Pour le sport, choisissez des écouteurs bien maintenus dans l'oreille ou un modèle tour de cou, qui ne se perd pas. Vérifiez sur la fiche la résistance à la transpiration.",
+      },
+      {
+        title: 'Autonomie et compatibilité',
+        body: "Comparez l'autonomie des écouteurs seuls et avec leur boîtier de charge. Les Galaxy Buds de Samsung fonctionnent avec tous les téléphones, mais leurs réglages avancés sont plus complets avec un smartphone Samsung Galaxy.",
+      },
+    ],
+    faq: [
+      {
+        q: 'Des écouteurs Samsung fonctionnent-ils avec un iPhone ?',
+        a: "Oui, en Bluetooth : musique et appels fonctionnent. Certains réglages avancés sont réservés aux smartphones Android ou Samsung.",
+      },
+      {
+        q: "Qu'est-ce que la réduction de bruit active (ANC) ?",
+        a: "Des micros captent le bruit ambiant et les écouteurs le compensent. Le bruit de fond diminue, ce qui permet d'écouter à un volume plus bas.",
+      },
+      {
+        q: 'Écouteurs ou casque ?',
+        a: "Les écouteurs sont discrets et se glissent dans une poche. Le casque est plus confortable pour de longues écoutes et tient souvent plus longtemps sur batterie.",
+      },
+      {
+        q: 'Comment payer chez Xeption ?',
+        a: "Par Orange Money, MTN Mobile Money, ou en espèces à la livraison ou au retrait en boutique au Mfoundi Mall.",
+      },
+    ],
+    filter: { categories: [CATEGORY_SLUGS.ACCESSORIES], nameIncludes: ['buds', 'ecouteur', 'casque', 'jbl tune'] },
+    sort: 'price-asc',
+    limit: 24,
+    shopHref: '/shop?cat=accessories',
+    relatedGuides: [],
+    relatedLandings: ['montres-connectees-samsung-cameroun', 'smartphones-samsung-cameroun'],
     showInFooter: true,
     updatedAt: '2026-10-31',
   },

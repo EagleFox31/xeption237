@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Clock3, Mail, MapPin, MessageCircle, Phone, RefreshCw, ShieldCheck, Wrench } from 'lucide-react';
+import { ChevronRight, Clock3, Mail, MapPin, MessageCircle, Navigation, Phone, RefreshCw, ShieldCheck, Wrench } from 'lucide-react';
 import { PageSEO } from '../utils/seo';
+import { SHOP_MAPS_EMBED_URL, SHOP_MAPS_URL } from '../constants/contact';
 import {
   INSTITUTIONAL_FEATURE_CARD_CLASS,
   INSTITUTIONAL_HEADER_BADGE_CLASS,
@@ -61,6 +62,7 @@ const ContactCard: React.FC<{
 const SECTIONS = [
   { id: 'acces-rapide', label: 'Accès rapide' },
   { id: 'coordonnees', label: 'Coordonnées' },
+  { id: 'venir-boutique', label: 'Venir à la boutique' },
   { id: 'quand-nous-contacter', label: 'Quand nous contacter' },
   { id: 'suivi-sav-troc', label: 'Suivi, SAV et Troc' },
   { id: 'informations-utiles', label: 'Informations utiles' },
@@ -176,6 +178,8 @@ const ContactPage: React.FC = () => {
                   icon={<MapPin className="w-5 h-5" />}
                   title="Boutique"
                   text="Mfoundi Mall, Boutique 2063, Yaoundé. Passage utile pour SAV et vérification Smart Troc."
+                  href={SHOP_MAPS_URL}
+                  cta="Itinéraire"
                 />
               </div>
             </section>
@@ -186,6 +190,32 @@ const ContactPage: React.FC = () => {
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Téléphone</span><a href="tel:+237641891031" className="text-xeption-gold hover:underline">+237 641 891 031</a></p>
                 <p><span className="text-white/75 uppercase tracking-widest text-[10px] block mb-1">Email</span><a href="mailto:support@xeptionetwork.shop" className="text-xeption-gold hover:underline">support@xeptionetwork.shop</a></p>
               </div>
+            </Section>
+
+            <Section id="venir-boutique" icon={<Navigation className="w-5 h-5" />} title="Venir à la boutique">
+              <p>
+                La boutique 2063 se trouve au Mfoundi Mall, avenue Mgr Vogt, près du marché Mfoundi, au centre-ville de
+                Yaoundé.
+              </p>
+              <div className="overflow-hidden rounded-xl border border-white/10 aspect-[4/3] sm:aspect-[16/9]">
+                <iframe
+                  src={SHOP_MAPS_EMBED_URL}
+                  title="Carte : boutique Xeption au Mfoundi Mall, Yaoundé"
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
+              </div>
+              <a
+                href={SHOP_MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-3 bg-xeption-gold/10 border border-xeption-gold/30 text-xeption-gold hover:bg-xeption-gold/20 transition-all rounded-lg text-xs font-bold uppercase tracking-widest"
+              >
+                <Navigation className="w-4 h-4" />
+                Ouvrir l'itinéraire dans Google Maps
+              </a>
             </Section>
 
             <Section id="quand-nous-contacter" icon={<Clock3 className="w-5 h-5" />} title="Quand Nous Contacter">

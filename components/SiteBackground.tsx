@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { optimizeVideo } from '../utils/mediaOptimization';
 import { useRotatingBackground } from '../hooks/useRotatingBackground';
 
+/** La vidéo d'ambiance accueille le visiteur puis laisse place au diaporama : moins de distraction, de batterie et de data. */
+export const BACKGROUND_VIDEO_PLAY_MS = 20_000;
+/** Doit égaler `duration-700` de la vidéo : on la retire du DOM une fois le fondu terminé. */
+const BACKGROUND_VIDEO_FADE_MS = 700;
+
 interface SiteBackgroundProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   videoUrl: string;
@@ -25,6 +30,20 @@ const SiteBackground: React.FC<SiteBackgroundProps> = ({
   const [fadeIn, setFadeIn] = useState(true);
   const isFirstImage = useRef(true);
   const lastPoolKey = useRef(poolKey);
+  const [videoFading, setVideoFading] = useState(false);
+  const [videoRetired, setVideoRetired] = useState(false);
+
+  useEffect(() => {
+    if (isVideoPaused || videoRetired) return;
+    const timer = window.setTimeout(() => setVideoFading(true), BACKGROUND_VIDEO_PLAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [isVideoPaused, videoRetired]);
+
+  useEffect(() => {
+    if (!videoFading) return;
+    const timer = window.setTimeout(() => setVideoRetired(true), BACKGROUND_VIDEO_FADE_MS);
+    return () => window.clearTimeout(timer);
+  }, [videoFading]);
 
   useEffect(() => {
     if (lastPoolKey.current !== poolKey) {
@@ -78,7 +97,7 @@ const SiteBackground: React.FC<SiteBackgroundProps> = ({
         aria-hidden
       />
 
-      {!isVideoPaused && (
+      {!isVideoPaused && !videoRetired && (
         <video
           ref={videoRef}
           autoPlay
@@ -86,7 +105,9 @@ const SiteBackground: React.FC<SiteBackgroundProps> = ({
           muted
           playsInline
           poster={frontImage}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-90 md:opacity-100"
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
+            videoFading ? 'opacity-0' : 'opacity-90 md:opacity-100'
+          }`}
         >
           <source src={optimizeVideo(videoUrl)} type="video/mp4" />
         </video>

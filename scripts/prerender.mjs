@@ -535,7 +535,8 @@ const verifyPrerenderOutput = (routes) => {
   if (extractMetaContent(homeHtml, 'name', 'description').length < 20) {
     errors.push('dist/index.html missing meta description (prerender may have failed)');
   }
-  if (homeHtml.includes('Leader High-Tech & Troc au Cameroun') && !homeHtml.includes('Ndamba du Digital')) {
+  // Texte de HOME_SEO_TITLE (pages/HomePage.tsx) : absent = Helmet n'a pas remplacé le titre de repli.
+  if (homeHtml.includes('Leader High-Tech & Troc au Cameroun') && !homeHtml.includes('Smartphones, PC &amp; accessoires au Cameroun') && !homeHtml.includes('Smartphones, PC & accessoires au Cameroun')) {
     errors.push('dist/index.html still has fallback title — Helmet SEO not applied');
   }
 

@@ -1,5 +1,8 @@
 import React, { useMemo } from 'react';
 import { PageSEO, JsonLd, websiteJsonLd, itemListJsonLd, absoluteUrl } from '../utils/seo';
+
+/** Mots-clés recherchés en tête, marque en fin (garder `scripts/prerender.mjs` aligné : contrôle du titre). */
+export const HOME_SEO_TITLE = 'Smartphones, PC & accessoires au Cameroun | Xeption Yaoundé';
 import { Zap, Smartphone, RotateCcw, Headphones, Laptop, Sparkles, ArrowRight } from 'lucide-react';
 import Hero from '../components/Hero';
 import HomeTrustBandeau from '../components/HomeTrustBandeau';
@@ -83,7 +86,7 @@ const HomePage: React.FC<HomePageProps> = ({
   return (
     <>
       <PageSEO
-        title="Xeption | Le Ndamba du Digital au Cameroun"
+        title={HOME_SEO_TITLE}
         description="Achetez, Vendez ou Troquez vos Smartphones et PC au Cameroun chez Xeption. iPhone, Samsung, MacBook au meilleur prix. Livraison Yaoundé & Douala."
         path="/"
       />

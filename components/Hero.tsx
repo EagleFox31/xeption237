@@ -5,6 +5,7 @@ import { Product } from '../types';
 import { HeroDesktopProductSection } from './hero/HeroProductShowcase';
 import HeroWelcomeSlide from './hero/HeroWelcomeSlide';
 import HeroMobileCarousel from './hero/HeroMobileCarousel';
+import HeroLandingLinks from './hero/HeroLandingLinks';
 
 interface HeroProps {
   products: Product[];
@@ -105,6 +106,7 @@ const Hero: React.FC<HeroProps> = ({
         <HeroCardShell className="text-left" compact fillHeight>
           <div className="flex flex-col h-full min-h-0">
             <HeroWelcomeSlide desktopCompact />
+            <HeroLandingLinks className="mt-4" />
             <HeroCtaButtons
               onShopNow={onShopNow}
               onNavigateTroc={onNavigateTroc}

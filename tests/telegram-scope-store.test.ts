@@ -12,7 +12,7 @@ describe('Bot Telegram : boutique consultée par la direction', () => {
   });
 
   it('mémorise la boutique ouverte et la vide au menu principal', () => {
-    expect(bot).toContain('if (action === "store" || action === "stocks") await rememberScope(staff, parts[2] || null);');
+    expect(bot).toContain('if (action === "store" || action === "stocks" || action === "sell") await rememberScope(staff, parts[2] || null);');
     expect(bot).toContain('else if (action === "main") await rememberScope(staff, null);');
   });
 
@@ -22,8 +22,12 @@ describe('Bot Telegram : boutique consultée par la direction', () => {
     expect(bot).not.toMatch(/screenSearchResults\(staff, (rawText|query)\)/);
   });
 
-  it("l'espace boutique de la direction mène à la vente via le stock de cette boutique", () => {
-    expect(bot).toContain('{ text: "🛒 Enregistrer une vente", callback_data: "nav:stocks:" + store.code }');
+  it("« Enregistrer une vente » ouvre l'écran de vente de la boutique, pas l'écran Stock", () => {
+    expect(bot).toContain('{ text: "🛒 Enregistrer une vente", callback_data: "nav:sell:" + store.code }');
+    expect(bot).toContain('{ text: "🛒 Enregistrer une vente", callback_data: "nav:sell" }');
+    expect(bot).not.toMatch(/"🛒 Enregistrer une vente", callback_data: "nav:stocks/);
+    expect(bot).toContain('screen = await screenSaleStart(staff, parts[2]);');
+    expect(bot).toContain('`🛒 <b>Nouvelle vente</b> — ${escapeHtml(store.name)}');
   });
 
   it('écrit seulement pour la direction et seulement si la boutique change', () => {

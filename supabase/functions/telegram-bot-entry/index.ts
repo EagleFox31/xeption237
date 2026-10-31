@@ -843,7 +843,7 @@ async function screenMain(staff: StaffMember): Promise<Screen> {
   // A sale starts from a product sheet: the entry point is the store catalogue.
   if (staff.store) {
     rows.push([
-      { text: "🛒 Enregistrer une vente", callback_data: "nav:stocks" },
+      { text: "🛒 Enregistrer une vente", callback_data: "nav:sell" },
       { text: "📊 Rapport de caisse (Clôture)", callback_data: "nav:cr_start" }
     ]);
   }
@@ -876,7 +876,7 @@ async function screenStore(staff: StaffMember, storeCode: string): Promise<Scree
           { text: "📊 Ventes", callback_data: "nav:sales:" + store.code }
         ],
         // Same entry as the store staff menu: browsing this store's stock scopes the sale to it.
-        [{ text: "🛒 Enregistrer une vente", callback_data: "nav:stocks:" + store.code }],
+        [{ text: "🛒 Enregistrer une vente", callback_data: "nav:sell:" + store.code }],
         [
           { text: "📊 Rapport de Caisse & Clôture", callback_data: "nav:cr_start:" + store.code }
         ],
@@ -892,18 +892,42 @@ const CATEGORIES: Record<string, { label: string; names: string[] }> = {
   pc: { label: "PC & Tablettes", names: ["Surface", "MacBook", "Dell", "HP"] }
 };
 
+const categoryButtons = (suffix: string): InlineButton[] => [
+  { text: "🍏 Apple / iPhone", callback_data: "nav:cat:apple" + suffix },
+  { text: "🤖 Samsung & Android", callback_data: "nav:cat:android" + suffix },
+  { text: "💻 PC & Tablettes", callback_data: "nav:cat:pc" + suffix }
+];
+
+/** Sale entry: same catalogue as the stock screen, without the stock management tools. */
+async function screenSaleStart(staff: StaffMember, storeCode?: string): Promise<Screen> {
+  const store = await scopedStore(staff, storeCode);
+  // A sale needs a store whose stock is debited (direction picks it from the store space;
+  // the product sheet and the RPC re-check it against the remembered scope).
+  if (!store) return screenMain(staff);
+  const [apple, android, pc] = categoryButtons(scopeSuffix(store));
+  const back = staff.rank >= RANK_DIRECTION ? "nav:store:" + store.code : "nav:main";
+  return {
+    text:
+      `🛒 <b>Nouvelle vente</b> — ${escapeHtml(store.name)}\n\n` +
+      `🔍 <i>Tapez le nom du produit vendu dans le chat (ex: <b>s24</b>, <b>iphone 13</b>), ` +
+      `ou touchez une catégorie, puis « Vendre ce produit » sur sa fiche.</i>`,
+    reply_markup: {
+      inline_keyboard: [
+        [apple, android],
+        [pc],
+        [{ text: "⬅️ Retour", callback_data: back }]
+      ]
+    }
+  };
+}
+
 async function screenStocksCategories(staff: StaffMember, storeCode?: string): Promise<Screen> {
   const store = await scopedStore(staff, storeCode);
   const suffix = scopeSuffix(store);
+  const [apple, android, pc] = categoryButtons(suffix);
   const rows: InlineButton[][] = [
-    [
-      { text: "🍏 Apple / iPhone", callback_data: "nav:cat:apple" + suffix },
-      { text: "🤖 Samsung & Android", callback_data: "nav:cat:android" + suffix }
-    ],
-    [
-      { text: "💻 PC & Tablettes", callback_data: "nav:cat:pc" + suffix },
-      { text: "⚠️ Stocks Faibles", callback_data: "nav:stock_low" + suffix }
-    ]
+    [apple, android],
+    [pc, { text: "⚠️ Stocks Faibles", callback_data: "nav:stock_low" + suffix }]
   ];
   if (staff.rank >= RANK_DIRECTION) {
     rows.push([{ text: "🔀 Ventilation en masse (Réseau)", callback_data: stockBulkMenuCb() }]);
@@ -3232,7 +3256,7 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
   const action = parts[1];
 
   // Free-text search has no context: remember where direction is browsing.
-  if (action === "store" || action === "stocks") await rememberScope(staff, parts[2] || null);
+  if (action === "store" || action === "stocks" || action === "sell") await rememberScope(staff, parts[2] || null);
   else if (action === "main") await rememberScope(staff, null);
 
   let screen: Screen;
@@ -3240,6 +3264,8 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
     screen = await screenStore(staff, parts[2] ?? "");
   } else if (action === "stocks") {
     screen = await screenStocksCategories(staff, parts[2]);
+  } else if (action === "sell") {
+    screen = await screenSaleStart(staff, parts[2]);
   } else if (action === "cat") {
     screen = await screenCategory(staff, parts[2] || "apple", parts[3]);
   } else if (action === "p") {

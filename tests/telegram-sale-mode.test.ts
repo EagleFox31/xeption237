@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  SALE_BACK_FLAG, baseToken, isSaleToken, parseSaleSearchTag, saleBackCb, saleSearchCb,
+  SALE_BACK_FLAG, SALE_CANCEL_BACK, baseToken, isSaleToken, parseSaleSearchTag, saleBackCb, saleSearchCb,
   saleSearchPrompt, saleSearchTag, withSaleMode
 } from '../supabase/functions/_shared/telegramSaleMode';
 import { saleStartCb } from '../supabase/functions/_shared/telegramSale';
@@ -50,6 +50,18 @@ describe('Bot Telegram : mode vente (catalogue sans outils stock)', () => {
   it('une réponse à l’invite cherche en mode vente', () => {
     expect(bot).toContain('parseSaleSearchTag(String(reply?.text ?? ""))');
     expect(bot).toContain('await screenSearchResults(staff, rawText, saleSearch.storeCode, true)');
+  });
+
+  it('« ❌ Annuler » des paiements mixte / bon troc reste en mode vente', () => {
+    expect(SALE_CANCEL_BACK).toBe('$search');
+    const cb = `nav:p:${PRODUCT_ID}:${SALE_CANCEL_BACK}:siege`;
+    expect(cb.split(':')).toHaveLength(5);
+    expect(Buffer.byteLength(cb)).toBeLessThanOrEqual(TELEGRAM_CALLBACK_MAX_BYTES);
+    const troc = readFileSync('supabase/functions/_shared/telegramSaleTrocScreens.ts', 'utf8');
+    for (const src of [bot, troc]) {
+      expect(src).not.toContain('nav:p:${product.id}:all');
+    }
+    expect(troc.match(/\$\{SALE_CANCEL_BACK\}/g)).toHaveLength(4);
   });
 
   it('la fiche produit en mode vente ne propose que la vente', () => {

@@ -12,6 +12,9 @@ export const isSaleToken = (token: string) => token.startsWith(SALE_MARK);
 export const baseToken = (token: string) => (isSaleToken(token) ? token.slice(SALE_MARK.length) : token);
 export const withSaleMode = (token: string, sale: boolean) => (sale ? SALE_MARK + baseToken(token) : baseToken(token));
 
+/** backCat of « ❌ Annuler » in payment flows: sale-mode product sheet whose « Précédent » returns to the sale screen. */
+export const SALE_CANCEL_BACK = withSaleMode("search", true);
+
 /** Back to the sale screen without re-sending the search prompt. */
 export const SALE_BACK_FLAG = "b";
 export const saleBackCb = (storeCode: string) => `nav:sell:${storeCode}:${SALE_BACK_FLAG}`;

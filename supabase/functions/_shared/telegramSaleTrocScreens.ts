@@ -18,6 +18,7 @@ import {
   type PaymentSplitItem
 } from "./telegramSale.ts";
 import type { TrocVoucherCheckResult } from "./trocVoucher.ts";
+import { SALE_CANCEL_BACK } from "./telegramSaleMode.ts";
 
 export interface TelegramSaleTrocDeps {
   db: () => any;
@@ -120,7 +121,7 @@ export async function actionSaleTrocRefReply(
       reply_markup: {
         inline_keyboard: [
           [{ text: `✅ Confirmer la reprise (${money(price)} déduits)`, callback_data: saleTrocConfirmExcessCb("TROC", product.id, check.trade_in_id!) }],
-          [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:all${scopeSuffix(staff.store)}` }]
+          [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:${SALE_CANCEL_BACK}${scopeSuffix(staff.store)}` }]
         ]
       }
     };
@@ -139,7 +140,7 @@ export async function actionSaleTrocRefReply(
       reply_markup: {
         inline_keyboard: [
           [{ text: "✅ Continuer vers la vente (0 FCFA)", callback_data: saleTrocChoiceCb("TROC", product.id, check.trade_in_id!) }],
-          [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:all${scopeSuffix(staff.store)}` }]
+          [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:${SALE_CANCEL_BACK}${scopeSuffix(staff.store)}` }]
         ]
       }
     };
@@ -162,7 +163,7 @@ export async function actionSaleTrocRefReply(
         [{ text: `🟠 Orange Money (${money(remaining)})`, callback_data: saleTrocChoiceCb("O", product.id, check.trade_in_id!) }],
         [{ text: `🟡 MTN MoMo (${money(remaining)})`, callback_data: saleTrocChoiceCb("M", product.id, check.trade_in_id!) }],
         [{ text: `🔀 Mixte (Espèces + Mobile)`, callback_data: saleTrocChoiceCb("X", product.id, check.trade_in_id!) }],
-        [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:all${scopeSuffix(staff.store)}` }]
+        [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:${SALE_CANCEL_BACK}${scopeSuffix(staff.store)}` }]
       ]
     }
   };
@@ -283,7 +284,7 @@ export async function actionSaleTrocMixedCashReply(
       inline_keyboard: [
         [{ text: `🟠 Orange Money (${money(remainingMobile)})`, callback_data: saleTrocMixedChoiceCb("O", product.id, tradeInId, cash) }],
         [{ text: `🟡 MTN MoMo (${money(remainingMobile)})`, callback_data: saleTrocMixedChoiceCb("M", product.id, tradeInId, cash) }],
-        [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:all${scopeSuffix(staff.store)}` }]
+        [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:${SALE_CANCEL_BACK}${scopeSuffix(staff.store)}` }]
       ]
     }
   };

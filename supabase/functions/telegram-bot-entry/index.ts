@@ -28,7 +28,7 @@ import {
 } from "../_shared/telegramSaleTrocScreens.ts";
 import { buildSaleReceiptButton } from "../_shared/saleReceipt.ts";
 import {
-  SALE_BACK_FLAG, baseToken, isSaleToken, parseSaleSearchTag, saleBackCb, saleSearchCb,
+  SALE_BACK_FLAG, SALE_CANCEL_BACK, baseToken, isSaleToken, parseSaleSearchTag, saleBackCb, saleSearchCb,
   saleSearchPrompt, withSaleMode
 } from "../_shared/telegramSaleMode.ts";
 import {
@@ -2680,7 +2680,7 @@ async function actionSaleMixedCashReply(staff: StaffMember, productId: string, r
       inline_keyboard: [
         [{ text: `🟠 Orange Money (${money(remaining)})`, callback_data: saleMixedChoiceCb("O", product.id, cash) }],
         [{ text: `🟡 MTN MoMo (${money(remaining)})`, callback_data: saleMixedChoiceCb("M", product.id, cash) }],
-        [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:all${scopeSuffix(staff.store)}` }]
+        [{ text: "❌ Annuler", callback_data: `nav:p:${product.id}:${SALE_CANCEL_BACK}${scopeSuffix(staff.store)}` }]
       ]
     }
   };

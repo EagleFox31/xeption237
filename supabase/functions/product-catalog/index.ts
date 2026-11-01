@@ -52,6 +52,20 @@ Deno.serve(async (req: Request) => {
     brandsRes.ok ? (await brandsRes.json()).map((b: { id: string; name: string }) => [b.id, b.name]) : [],
   );
 
+  // products.category contient le slug de la table categories : on publie son nom en g:product_type
+  // (filtrable dans les ensembles de produits Meta) et une catégorie Google plus précise si connue.
+  const categoriesRes = await fetch(`${supabaseUrl}/rest/v1/categories?select=slug,name`, {
+    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+  });
+  const categoryNames = new Map<string, string>(
+    categoriesRes.ok ? (await categoriesRes.json()).map((c: { slug: string; name: string }) => [c.slug, c.name]) : [],
+  );
+  const GOOGLE_CATEGORY: Record<string, string> = {
+    phones: '267',     // Electronics > Communications > Telephony > Mobile Phones
+    computer: '278',   // Electronics > Computers
+    tablettes: '4745', // Electronics > Computers > Tablet Computers
+  };
+
   // Google/Meta refusent les fiches sans vraie photo (ex. icône de repli `/icons/...`) :
   // on ne publie que les URL d'image absolues ; la fiche revient dès qu'une photo est posée.
   const hasRealImage = (p: Product) => /^https?:\/\//.test(p.image || '');
@@ -68,6 +82,7 @@ Deno.serve(async (req: Request) => {
       ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] ?? c
     );
     const title = escXml(p.name);
+    const productType = p.category ? escXml(categoryNames.get(p.category) || p.category) : '';
     const brand = escXml((p.brand && brandNames.get(p.brand)) || p.brand || 'Xeption');
 
     // Images additionnelles (jusqu'à 10 pour Facebook)
@@ -89,7 +104,8 @@ Deno.serve(async (req: Request) => {
       <g:availability>${available}</g:availability>
       <g:condition>${condition}</g:condition>
       <g:brand>${brand}</g:brand>
-      <g:google_product_category>Electronics</g:google_product_category>
+      <g:google_product_category>${GOOGLE_CATEGORY[p.category ?? ''] ?? 'Electronics'}</g:google_product_category>
+      ${productType ? `<g:product_type>${productType}</g:product_type>` : ''}
     </item>`;
   }).join('');
 

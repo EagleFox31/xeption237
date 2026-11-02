@@ -100,7 +100,7 @@ Garanties :
 | `store_cash_report` | Clôture journalière de caisse (`actionCashReportSubmit`) | tous staff | in-app + groupe Telegram + WhatsApp (Trigenys Notify) | ✅ |
 | `troc_stale` | pg_cron horaire `notify_time_based_reminders()` (dossier troc sans contact depuis > 48 h, créé il y a < 14 j) | responsable | in-app + Telegram | ✅ Livré |
 | `voucher_expiring` | pg_cron horaire `notify_time_based_reminders()` (bon troc expirant dans < 48 h, statut actif) | responsable | in-app + Telegram + WhatsApp | ✅ Livré |
-| `debt_overdue` | pg_cron horaire `notify_time_based_reminders()` (résumé hebdo par boutique des dettes > 7 j) | tous staff | in-app + Telegram | ✅ Livré |
+| `debt_overdue` | pg_cron horaire `notify_time_based_reminders()` (résumé hebdo par boutique des dettes > 7 j) | tous staff | in-app + Telegram + WhatsApp (`finance.debt_overdue`, depuis le 02/11/2026) | ✅ Livré |
 | `stock_alert` | (remplacé par `stock_low` / `stock_out`) | — | — | — |
 | `security_alert` | `useAdminData` sur `security_events` (déjà intégré via shim) | `direction`+ | in-app | ✅ MVP (via shim legacy) |
 
@@ -113,7 +113,9 @@ Garanties :
   - Sur chaque vente comptoir enregistrée (`actionSaleComplete`), comme le téléphone client y est obligatoire, le bot Telegram propose systématiquement au vendeur un bouton interactif `📲 Envoyer le reçu au client`.
   - Ce bouton ouvre l'application WhatsApp du vendeur avec un message pré-rempli (`wa.me`) contenant le reçu détaillé (tronqué à 1 600 caractères max), sans envoi automatique backend (zéro risque de signalement spam ou de ban de numéro boutique).
 - **Groupe WhatsApp (Urgences commerciales, Stocks critiques & Clôtures)** :
-  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report']`).
+  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report', 'debt_overdue']`).
+  - ⚠️ Chaque alias de `NOTIFY_EVENT_ALIASES` doit aussi figurer dans `ALLOWED_TYPES` de Trigenys Notify (`src/core/dispatch.ts`), sinon l'envoi est refusé en **HTTP 400** (`notify_http_400` dans `notification_deliveries.last_error`). Garde-fou : test miroir dans `tests/waha-notify-channel.test.ts`.
+  - Rappel dettes : uniquement le nom de la boutique, le nombre de dettes de plus de 7 jours et le reste à encaisser (aucun nom client).
   - Protégé contre la fuite de données personnelles (enveloppe canonique Trigenys Notify sans noms ni numéros clients).
   - Clôtures de caisse : mappées sur l'événement canonique `cash_report.closed` avec les faits métier (`closingCashXaf`, `totalInflowXaf`, `totalOutflowXaf`, `actor`), bridgées vers le bon groupe WhatsApp par Trigenys Notify.
 

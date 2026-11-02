@@ -614,3 +614,13 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : le code embarqué était complet et testé (tsc, vitest, Playwright) ; historique poussé non réécrit. Le test oublié a été commité à part.
 
 **Comment ne plus la refaire** : une session parallèle = un `git worktree` (ou une branche) à elle. À défaut : `git commit -- <chemins>` (ne commite que ces chemins) et relire `git diff --cached --stat` avant tout commit ; un `index.lock` présent signale une autre session active.
+
+## 2026-11-02 — WhatsApp : commandes, paiements, bons troc et clôtures refusés en 400 par Trigenys Notify (récidive)
+
+**Symptôme** : le rappel `debt_overdue` n'allait que sur Telegram. En vérifiant `notification_deliveries` (14 j, lecture seule), `order_created`, `store_cash_report` et `voucher_expiring` restaient en attente sur le canal `whatsapp_waha` avec `last_error = notify_http_400`. Ils n'ont **jamais** atteint le groupe WhatsApp, alors que `NOTIFICATIONS.md` les annonçait « ✅ Livré ».
+
+**Cause racine** : le contrat est en deux parties. Xeption déclare `WAHA_DEFAULT_EVENT_TYPES` + `NOTIFY_EVENT_ALIASES` (`_shared/staffNotifyChannels/waha.ts`) ; Trigenys Notify n'accepte que son `ALLOWED_TYPES` (`src/core/dispatch.ts`), qui ne contenait que les 5 types d'origine (`EVENT_NOT_ALLOWED` → 400). Les tests de Xeption vérifiaient l'enveloppe produite, pas son acceptation par le récepteur. Récidive de l'entrée du 2026-10-23 (clôture de caisse), corrigée côté Xeption seulement.
+
+**Résolution** : PR Trigenys/trigenys-notify#59 (5 types acceptés, modèles et faits bornés) + alias `debt_overdue → finance.debt_overdue` et faits agrégés (boutique, nombre, reste à encaisser) côté Xeption.
+
+**Comment ne plus la refaire** : test miroir `every default type is accepted by Trigenys Notify` (`tests/waha-notify-channel.test.ts`). Ajouter un alias sans l'ajouter à la liste miroir fait échouer la CI, ce qui oblige à ouvrir la PR côté Notify. Après tout ajout de type WhatsApp, contrôler `notification_deliveries.last_error` du canal `whatsapp_waha` au premier envoi réel.

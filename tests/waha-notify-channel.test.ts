@@ -147,6 +147,35 @@ describe('Xeption producer -> Trigenys Notify',()=>{
     });
     expect(JSON.stringify(voucher)).not.toMatch(/John Doe|\+237|client/i);
   });
+  it('maps debt_overdue to finance.debt_overdue with store aggregates only', () => {
+    expect(WAHA_DEFAULT_EVENT_TYPES).toContain('debt_overdue');
+    const debt = toNotifyEvent({
+      ...sample,
+      event_type: 'debt_overdue',
+      title: '📋 Dettes en attente — Boutique Test',
+      message: '3 dette(s) de plus de 7 j — 125 000 FCFA restants',
+      link_to_tab: null,
+      link_to_id: null
+    }, ctx);
+    expect(debt.type).toBe('finance.debt_overdue');
+    expect(debt.resource).toEqual({ kind: 'finance', id: sample.notification_id });
+    expect(debt.facts).toEqual({ subject: 'Boutique Test', debtCount: 3, debtOutstandingXaf: 125000 });
+  });
+  it('every default type is accepted by Trigenys Notify (mirror of its ALLOWED_TYPES)', () => {
+    // Mirror of trigenys-notify src/core/dispatch.ts ALLOWED_TYPES (PR Trigenys/trigenys-notify#59).
+    // Adding an alias here without adding it there = silent HTTP 400 (ERRORS_LOG 2026-11-02).
+    const NOTIFY_ALLOWED_TYPES = new Set([
+      'inventory.stock_low', 'inventory.stock_out', 'catalog.product_missing_image',
+      'barter.requested', 'marketplace.listing_created',
+      'order.created', 'order.paid', 'barter.voucher_expiring', 'cash_report.closed', 'finance.debt_overdue'
+    ]);
+    for (const t of WAHA_DEFAULT_EVENT_TYPES) expect(NOTIFY_ALLOWED_TYPES.has(NOTIFY_EVENT_ALIASES[t])).toBe(true);
+  });
+  it('every alias type is a dotted type Trigenys Notify can validate', () => {
+    for (const type of Object.values(NOTIFY_EVENT_ALIASES))
+      expect(type).toMatch(/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,3}$/);
+    for (const t of WAHA_DEFAULT_EVENT_TYPES) expect(NOTIFY_EVENT_ALIASES[t]).toBeDefined();
+  });
   it('preserves retry failures but does not leak upstream bodies',async()=>{
     const remote=createWahaChannel(reader(env),vi.fn(async()=>new Response('secret +237',{status:503})) as typeof fetch);
     expect(await remote?.send(sample,ctx)).toBe('notify_http_503');

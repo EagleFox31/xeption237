@@ -93,6 +93,17 @@ export const extractNotificationFacts=(n:StaffNotification)=>{
       if(dev)facts.deviceModel=dev;
       if(exp)facts.expiresAtText=exp;
     }
+  }else if(n.event_type==='debt_overdue'){
+    // Aggregate per store only (SQL notify_time_based_reminders): never a customer name.
+    const store=label(n.title.split(' — ').slice(1).join(' — '),80);
+    if(store)facts.subject=store;else delete facts.subject;
+    const match=n.message.match(/^(\d+) dette\(s\).*?—\s*([\d\s  ]+)\s*FCFA/i);
+    if(match){
+      const count=Number(match[1]);
+      if(Number.isSafeInteger(count)&&count<=1_000_000)facts.debtCount=count;
+      const due=money(match[2]);
+      if(due!==undefined)facts.debtOutstandingXaf=due;
+    }
   }
   return Object.keys(facts).length?facts:undefined;
 };

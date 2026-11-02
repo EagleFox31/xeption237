@@ -17,7 +17,8 @@ import {
 import {extractNotificationFacts} from '../staffNotifyFacts.ts';
 
 export const WAHA_DEFAULT_EVENT_TYPES = [
-  'order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report'
+  'order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report',
+  'debt_overdue'
 ];
 
 export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
@@ -29,8 +30,10 @@ export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
   troc_submitted:'barter.requested',
   voucher_expiring:'barter.voucher_expiring',
   marketplace_listed:'marketplace.listing_created',
-  store_cash_report:'cash_report.closed'
+  store_cash_report:'cash_report.closed',
+  debt_overdue:'finance.debt_overdue'
 };
+// Every alias must also be in Trigenys Notify's ALLOWED_TYPES, or it is rejected with HTTP 400.
 
 const DISPATCH_URL =
   'https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/v1/dispatch/xeption/whatsapp';
@@ -58,7 +61,8 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
     type.startsWith('catalog.')?'catalog':
     type.startsWith('barter.')?'barter':
     type.startsWith('order.')?'order':
-    type.startsWith('cash_report.')?'cash_report':'marketplace';
+    type.startsWith('cash_report.')?'cash_report':
+    type.startsWith('finance.')?'finance':'marketplace';
   if(!n.created_at||!Number.isFinite(Date.parse(n.created_at)))
     throw new Error('NOTIFICATION_TIMESTAMP_REQUIRED');
   const facts=extractNotificationFacts(n);

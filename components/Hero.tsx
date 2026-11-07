@@ -105,7 +105,7 @@ const Hero: React.FC<HeroProps> = ({
       >
         <HeroCardShell className="text-left" compact fillHeight>
           <div className="flex flex-col h-full min-h-0">
-            <HeroWelcomeSlide desktopCompact />
+            <HeroWelcomeSlide desktopCompact asH1={false} />
             <HeroLandingLinks className="mt-4" />
             <HeroCtaButtons
               onShopNow={onShopNow}

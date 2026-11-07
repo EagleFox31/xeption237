@@ -70,6 +70,9 @@ const routeRequiresFaq = (route) => route.startsWith('/categorie/');
 /** Routes SPA sans prerender (auth admin, tokens dynamiques) — copie index.html pour refresh direct */
 const SPA_CLIENT_ONLY_ROUTES = ['/admin'];
 
+/** Shell Vite brut servi par le fourre-tout de vercel.json (doit rester aligné sur sa destination). */
+const SPA_FALLBACK_FILE = 'spa.html';
+
 const PRERENDER_READY_TIMEOUT_MS = Number(process.env.PRERENDER_READY_TIMEOUT_MS || 20_000);
 const PRODUCT_SEO_TIMEOUT_MS = Number(process.env.PRODUCT_SEO_TIMEOUT_MS || 20_000);
 const PRODUCT_SEO_POLL_MS = 250;
@@ -534,6 +537,13 @@ const verifyPrerenderOutput = (routes) => {
     }
   }
 
+  const spaFallbackPath = path.join(distDir, SPA_FALLBACK_FILE);
+  if (!fs.existsSync(spaFallbackPath)) {
+    errors.push(`dist/${SPA_FALLBACK_FILE} missing (catch-all rewrite target)`);
+  } else if (/rel="canonical"/.test(fs.readFileSync(spaFallbackPath, 'utf8'))) {
+    errors.push(`dist/${SPA_FALLBACK_FILE} contains a canonical (must be the raw Vite shell)`);
+  }
+
   const homeHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
   if (extractMetaContent(homeHtml, 'name', 'description').length < 20) {
     errors.push('dist/index.html missing meta description (prerender may have failed)');
@@ -723,6 +733,9 @@ const main = async () => {
 
   // Snapshot immuable du shell généré par Vite AVANT que "/" ne réécrive dist/index.html.
   const spaShellHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
+  // Cible du fourre-tout vercel.json : une URL inconnue ne doit pas servir le HTML de l'accueil
+  // (canonical "/" → soft 404). Le routeur client affiche alors NotFoundPage (noindex).
+  fs.writeFileSync(path.join(distDir, SPA_FALLBACK_FILE), spaShellHtml);
 
   const incremental = prepareIncremental({ routes, spaShellHtml, catalog, sources });
   const { plan } = incremental;

@@ -14,7 +14,7 @@
     },
     {
       "source": "/((?!assets/|.*\\..*).*)",
-      "destination": "/index.html"
+      "destination": "/spa.html"
     }
   ]
 }

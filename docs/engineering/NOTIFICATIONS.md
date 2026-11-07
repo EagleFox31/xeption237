@@ -101,6 +101,7 @@ Garanties :
 | `troc_stale` | pg_cron horaire `notify_time_based_reminders()` (dossier troc sans contact depuis > 48 h, créé il y a < 14 j) | responsable | in-app + Telegram | ✅ Livré |
 | `voucher_expiring` | pg_cron horaire `notify_time_based_reminders()` (bon troc expirant dans < 48 h, statut actif) | responsable | in-app + Telegram + WhatsApp | ✅ Livré |
 | `debt_overdue` | pg_cron horaire `notify_time_based_reminders()` (résumé hebdo par boutique des dettes > 7 j) | tous staff | in-app + Telegram + WhatsApp (`finance.debt_overdue`, depuis le 02/11/2026) | ✅ Livré |
+| `daily_digest` | pg_cron `daily-digest-evening` 19:00 UTC (20 h Douala) → `notify_daily_digest()` : bilan du jour par boutique active (ventes, canaux, caisse, dettes, trocs, objectifs), dedup `daily_digest.<store_code>.<YYYY-MM-DD>` | responsable | in-app + Telegram (bouton « ✅ Vu » → `ack_staff_notification_from_telegram`) ; WhatsApp non (type non accepté par Trigenys Notify) | ✅ Livré le 07/11/2026 (ADR-001) |
 | `stock_alert` | (remplacé par `stock_low` / `stock_out`) | — | — | — |
 | `security_alert` | `useAdminData` sur `security_events` (déjà intégré via shim) | `direction`+ | in-app | ✅ MVP (via shim legacy) |
 
@@ -165,4 +166,4 @@ Migration `20261020_002_staff_notification_deliveries.sql` + Edge Function `noti
 - **SMS WhatsApp** pour les CTAs clients (déjà en place via `whatsappShare.ts`, à harmoniser).
 - **Notifs per-user** si l'équipe staff dépasse 10 personnes (table `notification_reads`).
 - **Préférences utilisateur** (opt-out par type) → table `staff_notification_preferences`.
-- **Digest quotidien** par email aux `direction` → cron Edge Function.
+- **Digest quotidien** : livré sur Telegram (`daily_digest`, voir [ADR-001](../adr/ADR-001-daily-digest-telegram.md)). Reste à faire : commandes bot `/jour` et `/ventes` (bilan à la demande), relais WhatsApp quand Trigenys Notify acceptera le type, variante email `direction`.

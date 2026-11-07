@@ -49,4 +49,5 @@ Index de la documentation projet. (Les instructions agent et le README applicati
 ## 🛠️ Engineering — [`engineering/`](./engineering/)
 
 - [ERRORS_LOG](./engineering/ERRORS_LOG.md) — **journal d'erreurs** (symptôme → cause → résolution → comment ne plus la refaire)
+- [adr/](./adr/) — **décisions d'architecture** (ADR-001 : rapport journalier Telegram = fonction SQL + pg_cron + outbox)
 - [COUTS_INFRA_BOSS](./engineering/COUTS_INFRA_BOSS.md) — **dépenses infra** à présenter à la direction (services, paliers gratuits, coûts)

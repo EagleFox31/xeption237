@@ -51,7 +51,11 @@ export const DEFAULT_STAFF_EVENT_TYPES = [
   'troc_stale',
   'voucher_expiring',
   'debt_overdue',
+  'daily_digest',
 ] as const;
+
+/** Bilan journalier par boutique (notify_daily_digest, pg_cron) : format dédié multi-lignes. */
+export const DAILY_DIGEST_EVENT_TYPE = 'daily_digest';
 
 const EVENT_ICONS: Record<string, string> = {
   troc_submitted: '🔄',
@@ -69,6 +73,7 @@ const EVENT_ICONS: Record<string, string> = {
   troc_stale: '⏱️',
   voucher_expiring: '⏳',
   debt_overdue: '📋',
+  daily_digest: '📅',
 };
 const DEFAULT_ICON = '🔔';
 
@@ -135,7 +140,7 @@ export interface StaffNotificationView {
   details: string[];
 }
 
-const cleanHeading = (title: string): string => {
+export const cleanHeading = (title: string): string => {
   const stripped = title.replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\s]+/u, '').trim();
   return stripped || title.trim();
 };
@@ -148,8 +153,29 @@ export const toNotificationView = (n: StaffNotification): StaffNotificationView 
   return { icon: eventIcon(n.event_type), heading: cleanHeading(n.title), subject, details };
 };
 
+export const isDailyDigest = (n: Pick<StaffNotification, 'event_type'>): boolean =>
+  n.event_type === DAILY_DIGEST_EVENT_TYPE;
+
+/** Séparateur des lignes d'un digest (une ligne = un bloc : ventes, canaux, caisse…). */
+const DIGEST_LINE_SEPARATOR = '\n';
+
+/**
+ * Lignes d'un bilan journalier, dans l'ordre produit par notify_daily_digest.
+ * Le message n'est pas découpé sur « — » : le titre porte déjà la boutique.
+ */
+export const dailyDigestLines = (n: StaffNotification): string[] =>
+  n.message
+    .split(DIGEST_LINE_SEPARATOR)
+    .map((line) => formatAmounts(line.trim()))
+    .filter(Boolean);
+
 /** Texte brut commun (canaux sans mise en forme : SMS, WhatsApp texte…). */
 export const formatPlainNotification = (n: StaffNotification, ctx?: StaffNotifyContext): string => {
+  if (isDailyDigest(n)) {
+    return [`${eventIcon(n.event_type)} ${cleanHeading(n.title)}`, ...dailyDigestLines(n), ctx && notificationLink(n, ctx).url]
+      .filter(Boolean)
+      .join('\n');
+  }
   const v = toNotificationView(n);
   return [`${v.icon} ${v.heading}`, v.subject, ...v.details.map((d) => `• ${d}`), ctx && notificationLink(n, ctx).url]
     .filter(Boolean)

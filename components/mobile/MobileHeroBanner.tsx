@@ -34,7 +34,7 @@ export const DEFAULT_MOBILE_HERO_SLIDES: MobileHeroSlide[] = [
     suffixText: 'au Cameroun',
     ctaText: 'Découvrir le catalogue',
     ctaLink: '/shop',
-    image: '/hero-phones-clean.png',
+    image: '/hero-phones-clean.webp',
     imageAlt: 'Smartphones haut de gamme Xeption',
     glowColor: 'bg-amber-500/15',
   },
@@ -56,7 +56,7 @@ export const DEFAULT_MOBILE_HERO_SLIDES: MobileHeroSlide[] = [
     suffixText: 'vérifié par Xeption',
     ctaText: 'Voir les annonces',
     ctaLink: '/marketplace',
-    image: '/hero-phones-clean.png',
+    image: '/hero-phones-clean.webp',
     imageAlt: 'Téléphones d\'occasion vérifiés par Xeption',
     glowColor: 'bg-emerald-500/15',
   },
@@ -211,6 +211,8 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({
                   alt={slide.imageAlt || slide.title}
                   className="w-full h-auto max-h-[165px] object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] transition-transform duration-500 hover:scale-105"
                   loading={index === 0 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  {...(index === 0 ? { fetchpriority: 'high' } : {})}
                 />
               </div>
 

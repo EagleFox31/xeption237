@@ -467,7 +467,9 @@ export const GUIDES: ArticleDef[] = [
     metaDescription:
       "Puce, autonomie, photo, stockage : les vraies différences entre iPhone 12 et iPhone 13, les variantes Pro et les compromis, avec les prix du jour.",
     summary: "Deux iPhone très proches en apparence : ce qui change vraiment et pour qui chacun est le bon choix.",
-    updatedAt: '2026-10-31',
+    verdict:
+      "Prenez l'iPhone 13 si l'autonomie compte (19 h de vidéo contre 17 h) ; l'iPhone 12 reste le meilleur prix d'entrée pour un iPhone moderne, à condition que sa batterie soit en bon état.",
+    updatedAt: '2026-11-07',
     sections: [
       {
         id: 'en-bref',
@@ -487,6 +489,17 @@ export const GUIDES: ArticleDef[] = [
           "Écran : luminosité maximale typique de 800 nits sur l'iPhone 13 contre 625 nits sur l'iPhone 12, plus lisible en plein soleil. L'encoche de l'iPhone 13 est plus petite.",
           "Stockage : l'iPhone 13 commence à 128 Go ; l'iPhone 12 existe aussi en 64 Go. Pour les photos et WhatsApp, 128 Go est un minimum confortable.",
         ],
+        table: {
+          caption: 'iPhone 12 et iPhone 13 : fiches techniques Apple',
+          head: ['Critère', 'iPhone 12', 'iPhone 13'],
+          rows: [
+            ['Puce', 'A14 Bionic', 'A15 Bionic'],
+            ['Autonomie (lecture vidéo)', "Jusqu'à 17 h", "Jusqu'à 19 h"],
+            ['Luminosité typique', '625 nits', '800 nits'],
+            ['Stabilisation photo principale', 'Optique', 'Par déplacement du capteur'],
+            ['Stockage de départ', '64 Go', '128 Go'],
+          ],
+        },
       },
       {
         id: 'variantes-pro',
@@ -551,7 +564,9 @@ export const GUIDES: ArticleDef[] = [
     metaDescription:
       "Écran, autonomie, photo, mises à jour : Pixel 7 et Galaxy A55 comparés, avec les variantes Pixel 7a et 7 Pro et les prix du jour au Cameroun.",
     summary: "Un ancien haut de gamme Google face à un milieu de gamme Samsung plus récent : les compromis de chacun.",
-    updatedAt: '2026-10-31',
+    verdict:
+      "Pour garder le téléphone longtemps, le Galaxy A55 l'emporte (mises à jour plus longues, plus grande batterie, écran 120 Hz) ; le Pixel 7 convient si vous voulez un format compact et la recharge sans fil.",
+    updatedAt: '2026-11-07',
     sections: [
       {
         id: 'en-bref',
@@ -571,6 +586,17 @@ export const GUIDES: ArticleDef[] = [
           "Recharge : le Pixel 7 accepte la recharge sans fil, pas le Galaxy A55.",
           "Résistance : IP68 pour le Pixel 7, IP67 pour le Galaxy A55.",
         ],
+        table: {
+          caption: 'Google Pixel 7 et Samsung Galaxy A55 : fiches techniques constructeurs',
+          head: ['Critère', 'Pixel 7', 'Galaxy A55'],
+          rows: [
+            ['Écran', '6,3 pouces, 90 Hz', '6,6 pouces, 120 Hz'],
+            ['Batterie', '4 355 mAh', '5 000 mAh'],
+            ['Recharge sans fil', 'Oui', 'Non'],
+            ['Résistance', 'IP68', 'IP67'],
+            ['Mises à jour de sécurité', "Jusqu'en octobre 2027", '5 ans (sorti en 2024)'],
+          ],
+        },
       },
       {
         id: 'mises-a-jour',

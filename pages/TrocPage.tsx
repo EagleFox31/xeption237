@@ -484,8 +484,8 @@ const TrocPage: React.FC = () => {
   return (
     <div className="flex-1 h-full min-h-0 flex flex-col overflow-hidden">
       <PageSEO
-        title="Smart Troc — Reprise d'Appareils Cameroun | Xeption"
-        description="Choisissez le type d'appareil à faire reprendre. Reprise smartphone disponible maintenant, autres catégories en préparation dans l'univers Smart Troc de Xeption."
+        title="Troc et reprise de téléphone à Yaoundé | Smart Troc Xeption"
+        description="Échangez votre téléphone à Yaoundé : estimation en ligne, reprise validée au dépôt en boutique au Mfoundi Mall, valeur convertie en bon d'achat Xeption."
         path="/troc"
       />
       <JsonLd data={breadcrumbJsonLd([

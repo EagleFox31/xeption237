@@ -38,12 +38,13 @@ export const MobileTrocView: React.FC<MobileTrocViewProps> = ({ onStart }) => {
       {/* 2. EN-TÊTE : TITRE D'ACCROCHE */}
       <div className="relative z-10 pt-2 shrink-0">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] leading-[1.08] font-tech font-black text-white tracking-tight">
+          {/* Un seul <h1> réel sur /troc (celui de TrocPage) : variante mobile en rôle titre. */}
+          <div role="heading" aria-level={1} className="text-[32px] sm:text-[36px] leading-[1.08] font-tech font-black text-white tracking-tight">
             Vends ou échange <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffe072] via-[#e5b53b] to-[#b3861b]">
               ton téléphone
             </span>
-          </h1>
+          </div>
           <p className="text-zinc-400 text-sm font-normal mt-1.5">
             Rapide et simple.
           </p>

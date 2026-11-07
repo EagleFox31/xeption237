@@ -52,6 +52,7 @@ const Checkout = lazy(() => import('./components/Checkout'));
 const AiConsultant = lazy(() => import('./components/AiConsultant'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const StudioPage = lazy(() => import('./pages/StudioPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 const PageFallback: React.FC = () => (
   <div className="min-h-[40vh] flex items-center justify-center">
@@ -431,6 +432,7 @@ const App: React.FC = () => {
               />
             </Suspense>
           } />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
         </Suspense>
       </main>

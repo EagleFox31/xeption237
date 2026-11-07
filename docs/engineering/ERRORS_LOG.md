@@ -624,3 +624,23 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : PR Trigenys/trigenys-notify#59 (5 types acceptés, modèles et faits bornés) + alias `debt_overdue → finance.debt_overdue` et faits agrégés (boutique, nombre, reste à encaisser) côté Xeption.
 
 **Comment ne plus la refaire** : test miroir `every default type is accepted by Trigenys Notify` (`tests/waha-notify-channel.test.ts`). Ajouter un alias sans l'ajouter à la liste miroir fait échouer la CI, ce qui oblige à ouvrir la PR côté Notify. Après tout ajout de type WhatsApp, contrôler `notification_deliveries.last_error` du canal `whatsapp_waha` au premier envoi réel.
+
+## 2026-11-07 — Accueil mobile : LCP à 6,5–7 s, toutes les images du carrousel en priorité haute
+
+**Symptôme** : mesure Playwright (Pixel 7, 4G lente émulée, CPU ×4) sur la production : LCP 6,5–7,1 s sur `/hero-phones-clean.png`, au-delà du seuil Google de 2,5 s.
+
+**Cause racine** : dans `HeroMobileCarousel`, `loading` et `priority` dépendaient de `index` (le slide **actif**, 0 au chargement) au lieu de `i` (la **position** du slide). Les 9 images produit partaient donc toutes en `eager` + `fetchpriority=high` et se disputaient la bande passante avec l'image LCP. L'image du hero (PNG de 115 Ko) n'avait pas non plus de priorité.
+
+**Résolution** : `i <= 1 ? 'eager' : 'lazy'` et `priority={i === 0}` ; hero en WebP (6 Ko) avec `fetchpriority="high"` sur le premier slide de `MobileHeroBanner`. Mesure sur le build local : LCP 1,9–2,2 s.
+
+**Comment ne plus la refaire** : dans une liste rendue, une priorité de chargement se décide sur l'indice de la boucle, jamais sur un état. Après tout changement de hero, relancer la mesure LCP mobile (script Playwright avec throttling) avant de pousser.
+
+## 2026-11-07 — /troc : deux `<h1>` prérendus (variante mobile et desktop)
+
+**Symptôme** : `dist/troc/index.html` contenait deux `<h1>` (`MobileTrocView` + `TrocPage`), alors que le correctif H1 unique de `7199de4` ne couvrait que l'accueil et la fiche produit.
+
+**Cause racine** : les variantes mobile et desktop sont toutes deux dans le DOM (masquées en CSS) et chacune déclarait son propre `<h1>`. Le prérendu ne contrôlait le nombre de H1 sur aucune page.
+
+**Résolution** : la variante mobile passe en `role="heading" aria-level={1}`, convention de `HeroWelcomeSlide`.
+
+**Comment ne plus la refaire** : `scripts/lib/seoChecks.mjs` (`checkSingleH1`) fait échouer le build Vercel si une page statique, une route de contenu ou une fiche produit n'a pas exactement un `<h1>`. Le contrôle couvre aussi l'Offer du JSON-LD Product et `llms.txt`.

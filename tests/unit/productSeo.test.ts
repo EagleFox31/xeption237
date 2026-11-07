@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import {
   PRODUCT_SEO_TITLE_MARKER,
   SEO_DESCRIPTION_MAX_LENGTH,
+  SEO_TITLE_MAX_LENGTH,
   buildProductSeoDescription,
   buildProductSeoTitle,
   truncateAtWord,
@@ -19,6 +20,18 @@ describe('buildProductSeoTitle', () => {
   it('omet le montant sans prix', () => {
     expect(buildProductSeoTitle('Pixel 10', 0)).toBe('Pixel 10 prix Cameroun | Xeption');
     expect(buildProductSeoTitle('Pixel 10', null)).toBe('Pixel 10 prix Cameroun | Xeption');
+  });
+
+  it('retire le montant quand le titre dépasserait la limite, garde le marqueur', () => {
+    const out = buildProductSeoTitle('HP Elite x2 1012 G1 Core m5 — 8 Go / SSD 256 Go', 155000);
+    expect(out).toBe('HP Elite x2 1012 G1 Core m5 — 8 Go / SSD 256 Go prix Cameroun | Xeption');
+    expect(out).toContain(PRODUCT_SEO_TITLE_MARKER);
+  });
+
+  it('garde le montant tant que le titre tient dans la limite', () => {
+    const out = buildProductSeoTitle('iPhone 13', 250000);
+    expect(out.length).toBeLessThanOrEqual(SEO_TITLE_MAX_LENGTH);
+    expect(out).toContain('FCFA');
   });
 
   it('reste aligné sur la garde du prérendu', () => {

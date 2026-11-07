@@ -18,7 +18,7 @@ d'un cache disque.
 | Pages volatiles | Une page qui lit une source non déclarée (`globalSources`) ou un script hors manifeste est toujours re-rendue (avertissement dans les logs). |
 | Reprise | Chaque page réussie est écrite dans le cache immédiatement (HTML puis entrée, écritures atomiques). Après une interruption, la passe suivante ne refait que ce qui manque. |
 | Réutilisation | Le HTML en cache reçoit les balises JS/CSS du build courant (`rebaseHtmlAssets`). |
-| Vérification | Toujours sur 100 % des pages : SEO produit, liens, canonical, FAQ, et chaque `/assets/*` référencé doit exister dans `dist/`. |
+| Vérification | Toujours sur 100 % des pages : SEO produit, liens, canonical, FAQ, et chaque `/assets/*` référencé doit exister dans `dist/`. Contrôles de non-régression SEO (`scripts/lib/seoChecks.mjs`) : un seul `<h1>` par page statique, route de contenu et fiche ; Offer complet en XAF (prix, disponibilité, état, vendeur, politique de retour) ; `dist/llms.txt` présent avec l'adresse de la boutique. |
 
 Le log affiche le plan : `plan : N à rendre (nouvelle=…, donnees=…, code=…, ttl=…), M reprise(s) du cache, K retirée(s) du cache`.
 

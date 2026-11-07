@@ -5,13 +5,15 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { getSeoContentRoutes } from './content/seo';
+import { buildLlmsTxt } from './content/seo/llmsTxt';
 
-/** Émet dist/seo-routes.json : routes de contenu SEO consommées par sitemap et prerender. */
+/** Émet dist/seo-routes.json (routes de contenu SEO pour sitemap et prerender) et dist/llms.txt. */
 const seoRoutesManifest = (): Plugin => ({
   name: 'seo-routes-manifest',
   apply: 'build',
   generateBundle() {
     this.emitFile({ type: 'asset', fileName: 'seo-routes.json', source: JSON.stringify(getSeoContentRoutes(), null, 2) });
+    this.emitFile({ type: 'asset', fileName: 'llms.txt', source: buildLlmsTxt() });
   },
 });
 

@@ -17,6 +17,7 @@ import type { CardSectionDef } from '../utils/contentCards';
 import { helpLinks } from '../components/content/contentLinks';
 import SkeletonLoader from '../components/common/SkeletonLoader';
 import { VideoTeaserList } from '../components/content/VideoTeaser';
+import LandingPriceTable from '../components/content/LandingPriceTable';
 
 interface LandingPageProps {
   products: Product[];
@@ -103,6 +104,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ products, onAddToCart }) => {
             </p>
           )}
         </section>
+
+        {def.priceTable && !catalogueLoading && <LandingPriceTable products={selection} title={def.priceTable.title} />}
 
         <section className={`mt-6 ${INSTITUTIONAL_SECTION_CLASS}`} aria-labelledby="conseils-title">
           <h2 id="conseils-title" className="text-xl md:text-2xl font-tech font-bold uppercase tracking-wide mb-4">

@@ -12,6 +12,7 @@ import ProductLinkGrid from '../components/content/ProductLinkGrid';
 import { RelatedCardSections } from '../components/content/RelatedCards';
 import type { CardSectionDef } from '../utils/contentCards';
 import { VideoTeaserList } from '../components/content/VideoTeaser';
+import LandingPriceTable from '../components/content/LandingPriceTable';
 import { INSTITUTIONAL_SECTION_CLASS } from '../constants/institutionalPageStyles';
 
 interface GuidePageProps {
@@ -76,6 +77,12 @@ const GuidePage: React.FC<GuidePageProps> = ({ products, onAddToCart }) => {
         lead={
           <>
             <p className="mt-3 max-w-3xl text-gray-300 leading-relaxed">{guide.summary}</p>
+            {guide.verdict && (
+              <p className="mt-4 max-w-3xl rounded-lg border-l-4 border-xeption-gold bg-white/5 px-4 py-3 text-white leading-relaxed">
+                <strong className="text-xeption-gold">Notre verdict : </strong>
+                {guide.verdict}
+              </p>
+            )}
             <p className="mt-2 text-xs text-gray-500">
               Mis à jour le <time dateTime={guide.updatedAt}>{formatDate(guide.updatedAt)}</time>
             </p>
@@ -94,6 +101,7 @@ const GuidePage: React.FC<GuidePageProps> = ({ products, onAddToCart }) => {
             <ProductLinkGrid products={picks} onAddToCart={onAddToCart} />
           </section>
         )}
+        <LandingPriceTable products={picks} title="Prix du jour chez Xeption" />
         {guide.faq?.length ? <FaqSection items={guide.faq} /> : null}
         <RelatedCardSections sections={relatedSections} products={products} />
       </ContentPageShell>

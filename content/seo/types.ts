@@ -56,6 +56,8 @@ export interface LandingPageDef {
   updatedAt: string;
   /** Vidéos TikTok du compte officiel, ouvertes à la demande sous l'introduction. */
   videos?: ArticleVideo[];
+  /** Tableau de prix daté de la sélection (titre H2), pour les requêtes « prix … Cameroun ». */
+  priceTable?: { title: string };
 }
 
 export interface ArticleSection {
@@ -63,6 +65,8 @@ export interface ArticleSection {
   heading: string;
   paragraphs: string[];
   bullets?: string[];
+  /** Tableau comparatif (première colonne = critère), rendu après les puces. */
+  table?: { caption: string; head: string[]; rows: string[][] };
   links?: ContentLink[];
 }
 
@@ -76,6 +80,8 @@ export interface ArticleDef {
   /** Étiquette éditoriale des cartes (Budget, Comparatif…). */
   tag?: string;
   summary: string;
+  /** Réponse directe en une à deux phrases, affichée en tête (format citable). */
+  verdict?: string;
   updatedAt: string;
   sections: ArticleSection[];
   faq?: FaqItem[];

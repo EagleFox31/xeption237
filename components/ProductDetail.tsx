@@ -153,9 +153,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                         </div>
 
                         <div>
-                            <h1 className="hidden md:block text-5xl md:text-7xl font-bold font-tech uppercase leading-none text-black drop-shadow-sm mix-blend-hard-light mb-2">
+                            {/* Le <h1> réel de la fiche est dans MobileProductDetailView (mobile-first) : ici, rôle titre sans dupliquer le H1. */}
+                            <div role="heading" aria-level={1} className="hidden md:block text-5xl md:text-7xl font-bold font-tech uppercase leading-none text-black drop-shadow-sm mix-blend-hard-light mb-2">
                                 {displayName}
-                            </h1>
+                            </div>
 
                             {/* Étoiles affichées UNIQUEMENT s'il existe de vrais avis clients.
                                 Le `|| 5` d'origine peignait cinq étoiles pleines même sans
@@ -246,9 +247,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                     {linkCopied ? 'Copié' : 'Partager'}
                                 </button>
                             </div>
-                            <h1 className="text-2xl sm:text-3xl font-bold font-tech uppercase leading-tight text-black">
+                            <div role="heading" aria-level={1} className="text-2xl sm:text-3xl font-bold font-tech uppercase leading-tight text-black">
                                 {displayName}
-                            </h1>
+                            </div>
                             {hasCustomerRating && (
                               <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-sm">
                                 <div className="flex">

@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_TROC_AI: string;
   readonly VITE_GTM_ID?: string;
   readonly VITE_TELEGRAM_MINIAPP_LINK?: string;
+  readonly VITE_GOOGLE_REVIEW_URL?: string;
   readonly DEV?: boolean;
 }
 

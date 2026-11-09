@@ -141,3 +141,14 @@
   cette branche ; un deploy depuis main seul retirerait le bouton « Vu ». Priorité dès l'accord d'Anjl :
   push + merge de `claude/daily-digest-ca6b98` dans main (conflit ERRORS_LOG → union), puis deploy
   depuis main. En attente d'Anjl : --apply de l'import, puis merge.
+
+## 2026-11-09 11:15 — Branche mergée dans main (accord Anjl) et poussée
+
+- `origin/main` fusionné dans la branche (conflit ERRORS_LOG résolu en union, c45e5d4), branche poussée,
+  `origin/main` avancé en fast-forward d121889 → c45e5d4. Verrou notify-staff levé : main contient
+  bouton « Vu » + lien commande ; tout deploy peut partir de main.
+- Tests : whatsapp-cash-import 14/14, notify-daily-digest verts. Échecs restants hors périmètre :
+  « Cannot find package react » (node_modules incomplet dans ce worktree) et
+  `staff-notification-actor` (fins de ligne CRLF sur une migration de main, non touchée ici).
+- **Reste pour Anjl** : `--apply` de l'import (≈ 30 rapports corrigés) puis `npm run cash:summary` ;
+  vérifier le premier bilan Telegram à 20 h Douala.

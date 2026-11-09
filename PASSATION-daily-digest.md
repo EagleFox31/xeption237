@@ -85,3 +85,14 @@
   remontée), `node --check` + 11 tests verts, dry-run identique. Entrée ERRORS_LOG ajoutée.
 - `--apply` non relancé par la session (écriture prod refusée en mode auto) : Anjl relance deux fois,
   la seconde doit donner `0 créés, 0 mis à jour`.
+
+## 2026-11-09 10:01 — Backfill WhatsApp importé en prod (303 rapports)
+
+- `--apply` lancé par Anjl : **303 créés, 0 mis à jour, 0 protégés**. Vérifié en base (lecture seule) :
+  MF1092 19 (14/10 → 06/11), MFOUNDI 139 (26/05 → 07/11), OLEMBE 145 (21/05 → 06/11), tous `source=whatsapp_backfill` ;
+  la seule ligne `bot` (siège, 23/10) intacte ; 0 doublon (store, date).
+- Second `--apply` (preuve zéro écriture) **pas encore lancé** : attendu `0 créés, 0 mis à jour, 303 inchangés`.
+- Laissés de côté : 4 `conflict` (OLEMBE 23/06 ×2, MFOUNDI 30/10 et 04/11 double saisie même auteur, cf. CSV
+  `%TEMP%\xeption-whatsapp-cash-import\whatsapp-cash-reports-review.csv`), 19 `superseded` (normal).
+- Reste pour Anjl : redéployer `telegram-bot-entry` (fix parseAmount), relire les `inflow_total_mismatch` > 10 M
+  dans le CSV, fusionner `claude/daily-digest-ca6b98` dans main. Rien poussé.

@@ -674,3 +674,33 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
   no-op sans total déclaré) ; `npm run cash:summary` liste les jours > `--max-day` (5 M par défaut) après
   tout import. Leçon : un total déclaré par l'auteur est une **contrainte** à exploiter pour désambiguïser,
   pas seulement un contrôle à posteriori.
+
+## 2026-11-09 — WhatsApp « Nouvelle commande » illisible : seulement « Livraison : delivery »
+
+**Symptôme** : une vraie commande web (ORD-3MR8-G6XF, 90 000 FCFA, Yaoundé) est arrivée dans le groupe staff sous la forme « 🛒 Nouvelle commande / Livraison : delivery / lien ». Il manquait le client, son téléphone, son e-mail, le produit, la quantité, le prix et le paiement.
+
+**Cause racine** : (1) par conception, aucune donnée client ne sortait de Xeption ; (2) le producteur reconstruisait les faits en analysant le texte affiché du trigger `notify_order_created`. Or `to_char(total,'FM999G999G999')` rend `90,000` sous `lc_numeric = en_US` (refusé par la regex du montant), et la ville `Yaoundé (Centre), Nsimeyong` contient parenthèses et virgule (refusée par la regex lettres seules). Seul `delivery` passait.
+
+**Résolution** : dérogation documentée, limitée à `order_created` (Trigenys Notify ADR-002). `notify-staff` relit la ligne `orders` en un lot (`withOrderSnapshots`) et `staffNotifyOrder.ts` envoie un instantané typé : client, téléphone au format +237, e-mail, articles (≤ 10 lignes, nom ≤ 80 car.), total, paiement, mode et adresse de livraison. Repli sur le message : montant avec virgule et ville avant la virgule acceptés.
+
+**Comment ne plus la refaire** : tests `tests/waha-notify-channel.test.ts` (instantané complet, champs invalides écartés, retrait boutique sans adresse, corps ≤ 4000 octets avec 30 articles, repli `90,000 FCFA`) et tests de rendu côté Notify. Leçon : un producteur envoie des valeurs typées lues à la source, pas un texte d'affichage ré-analysé ; un formatage dépendant de la locale de la base n'est jamais un contrat.
+
+## 2026-11-09 — Fiche commande admin : produit illisible sur téléphone
+
+**Symptôme** : sur mobile, le boss ne parvenait pas à faire défiler la fiche de la commande ORD-3MR8-G6XF pour voir le produit. Le nom de l'article était tronqué dans le tableau.
+
+**Cause racine** : `OrderDetailModal` affichait les articles dans un tableau `min-w-[320px]` placé dans un conteneur `overflow-x-auto`, lui-même dans un corps à défilement vertical. Sur un écran étroit, le geste tactile était capté par le défilement horizontal du tableau, et les colonnes écrasaient le nom.
+
+**Résolution** : sous `sm`, les articles s'affichent en cartes empilées (image, nom complet avec `break-words`, catégorie, `quantité × prix unitaire`, sous-total). Il n'y a donc plus de défilement horizontal. Le tableau est conservé à partir de `sm`.
+
+**Comment ne plus la refaire** : test `tests/components/OrderDetailModal.test.tsx` (cartes mobiles, aucun tableau dans la liste mobile, tableau réservé à `sm`) ; contrôle Playwright à 390 px (aucun débordement horizontal). Leçon : dans l'admin, pas de tableau à défilement horizontal imbriqué dans une zone à défilement vertical sur mobile ; passer en cartes.
+
+## 2026-11-09 — Lien « Voir les commandes » des alertes : n'ouvre pas la commande
+
+**Symptôme** : le lien des alertes WhatsApp/Telegram « Nouvelle commande » ouvrait `/admin/orders` (la liste), pas la fiche de la commande signalée.
+
+**Cause racine** : double. (1) `notificationLink` (`supabase/functions/_shared/staffNotify.ts`) ne construit `/admin/<onglet>/<id>` que pour les onglets de `ITEM_LINK_LABELS` ; `orders` n'y figurait pas, l'id était donc ignoré. (2) `OrdersTab` ne consommait pas l'id de lien profond (`deepLinkId`) fourni par `AdminPanel`, contrairement à `TrocTab`/inventaire.
+
+**Résolution** : `orders: 'Ouvrir la commande'` ajouté à `ITEM_LINK_LABELS` ; `OrdersTab` reçoit `focusRequestId`/`onFocusHandled` (même contrat que `TrocTab`), ouvre la fiche ciblée, ou affiche « Commande introuvable », puis l'URL revient à `/admin/orders`. Les alertes déjà envoyées gardent l'ancien lien.
+
+**Comment ne plus la refaire** : `tests/components/OrdersTab.deeplink.test.tsx` (URL avec id, ouverture de la fiche, id inconnu) et `tests/order-paid-notification.test.ts` (actionUrl). Leçon : ajouter un onglet à `ITEM_LINK_LABELS` exige que l'onglet consomme `focusRequestId`, et inversement ; tester les deux bouts du lien.

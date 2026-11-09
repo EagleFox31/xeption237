@@ -3,6 +3,7 @@ import {
   createWahaChannel,toNotifyEvent,WAHA_DEFAULT_EVENT_TYPES,
   NOTIFY_EVENT_ALIASES,withNotificationDates
 } from '../supabase/functions/_shared/staffNotifyChannels/waha';
+import {formatOrderPhone,orderSnapshotFacts,withOrderSnapshots} from '../supabase/functions/_shared/staffNotifyOrder';
 
 const sample={
   notification_id:'123e4567-e89b-12d3-a456-426614174000',
@@ -104,6 +105,52 @@ describe('Xeption producer -> Trigenys Notify',()=>{
       city:'Douala',
       deliveryMode:'Livraison à domicile'
     });
+  });
+  it('order_created fallback parses a comma-grouped total and a « Ville (Région), Quartier » city',()=>{
+    const order=toNotifyEvent({...sample,event_type:'order_created',
+      message:'90,000 FCFA — Yaoundé (Centre), Nsimeyong — delivery'},ctx);
+    expect(order.facts).toMatchObject({orderTotalXaf:90000,city:'Yaoundé (Centre)',deliveryMode:'delivery'});
+    expect(JSON.stringify(order)).not.toMatch(/Nsimeyong/);
+  });
+  const orderRow={
+    id:'ORD-3MR8-G6XF',customer_name:'Jean Mbarga',customer_phone:'699 99 99 99',
+    customer_email:' Jean.Mbarga@Example.com ',customer_city:'Yaoundé (Centre), Nsimeyong',
+    delivery_mode:'delivery',payment_method:'Cash à la livraison',total:'180000',
+    items:[{id:'p1',name:'Samsung Galaxy A16 128 Go',price:90000,quantity:2,description:'long text',specs:{}}]
+  };
+  const orderNotification={...sample,event_type:'order_created',link_to_tab:'orders',
+    link_to_id:orderRow.id,message:'180,000 FCFA — Yaoundé (Centre), Nsimeyong — delivery'};
+  it('order_created sends the typed order snapshot the staff needs to call and deliver',async()=>{
+    const read=vi.fn(async(ids:string[])=>ids.includes(orderRow.id)?[orderRow]:[]);
+    const rows=await withOrderSnapshots([orderNotification,sample],read);
+    expect(read).toHaveBeenCalledWith([orderRow.id]);
+    expect(rows[1]).toBe(sample);
+    const event=toNotifyEvent(rows[0],ctx);
+    expect(event.facts).toEqual({
+      customerName:'Jean Mbarga',customerPhone:'+237699999999',customerEmail:'jean.mbarga@example.com',
+      items:[{name:'Samsung Galaxy A16 128 Go',quantity:2,unitPriceXaf:90000}],
+      orderTotalXaf:180000,paymentMethod:'Cash à la livraison',deliveryMode:'Livraison à domicile',
+      city:'Yaoundé (Centre)',deliveryAddress:'Nsimeyong'
+    });
+    expect(JSON.stringify(event)).not.toMatch(/long text|description/);
+    expect(JSON.stringify(toNotifyEvent(rows[0],ctx))).toBe(JSON.stringify(event));
+  });
+  it('order snapshot drops invalid fields, pickup address and stays under the 4096-byte limit',()=>{
+    const pickup=orderSnapshotFacts({...orderRow,delivery_mode:'pickup',customer_city:'Retrait Boutique',
+      customer_phone:'appelez-moi',customer_email:'pas-un-mail',
+      items:[{name:'Produit *promo*',quantity:0},{name:'Coque',price:'x'}]});
+    expect(pickup).toEqual({customerName:'Jean Mbarga',items:[{name:'Coque',quantity:1}],orderTotalXaf:180000,
+      paymentMethod:'Cash à la livraison',deliveryMode:'Retrait en boutique'});
+    const items=Array.from({length:30},(_,i)=>({name:`Écran tactile démonstration très long numéro ${i} `.repeat(4),quantity:999,price:999999}));
+    const event=toNotifyEvent({...orderNotification,order:{...orderRow,items}},ctx);
+    expect(new TextEncoder().encode(JSON.stringify(event)).length).toBeLessThanOrEqual(4000);
+    const sent=event.facts?.items as Array<{name:string}>;
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent.length).toBeLessThanOrEqual(10);
+    expect(sent[0].name.length).toBeLessThanOrEqual(80);
+    expect(formatOrderPhone('+237 6 99 99 99 99')).toBe('+237699999999');
+    expect(formatOrderPhone('00 33 6 12 34 56 78')).toBe('+33612345678');
+    expect(formatOrderPhone('12')).toBeUndefined();
   });
   it('extracts store_cash_report business fields and maps to cash_report.closed', () => {
     const report = toNotifyEvent({

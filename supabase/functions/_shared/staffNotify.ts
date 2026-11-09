@@ -6,6 +6,8 @@
  * dans notify-staff/index.ts. Aucune migration : notification_deliveries est indexée par canal.
  */
 
+import type { OrderNotificationSnapshot } from './staffNotifyOrder.ts';
+
 export interface StaffNotification {
   notification_id: string;
   /** Persisted event time, hydrated for the canonical WhatsApp envelope. */
@@ -15,6 +17,8 @@ export interface StaffNotification {
   message: string;
   link_to_tab?: string | null;
   link_to_id?: string | null;
+  /** order_created only, hydrated for the WhatsApp alert (staffNotifyOrder.ts). */
+  order?: OrderNotificationSnapshot;
 }
 
 export interface StaffNotifyContext {
@@ -112,6 +116,7 @@ const LINK_TARGETS: Record<string, NotificationLink> = {
 const ITEM_LINK_LABELS: Record<string, string> = {
   inventory: 'Ouvrir le produit',
   troc: 'Ouvrir le dossier',
+  orders: 'Ouvrir la commande',
 };
 
 export const notificationLink = (n: StaffNotification, ctx: StaffNotifyContext): NotificationLink => {

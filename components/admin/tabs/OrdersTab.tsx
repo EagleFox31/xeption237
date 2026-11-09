@@ -1,5 +1,6 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { notifyInfo } from '../../../utils/notify';
 import { Order } from '../../../types';
 import { generateInvoiceHTML, generateInvoiceHTMLAsync, downloadInvoicePDF, printInvoiceHTML } from '../../../utils/invoiceGenerator';
 import {
@@ -35,6 +36,9 @@ interface OrdersTabProps {
   onInitiateCampay: (phone: string) => Promise<void>;
   onMarkCashPaid: () => Promise<void>;
   onResetPaymentError?: () => void;
+  /** Id issu de /admin/orders/<id> : ouvre directement la fiche de la commande. */
+  focusRequestId?: string | null;
+  onFocusHandled?: () => void;
 }
 
 const statusStyles: Record<Order['status'], string> = {
@@ -119,8 +123,19 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
   onInitiateCampay,
   onMarkCashPaid,
   onResetPaymentError,
+  focusRequestId,
+  onFocusHandled,
 }) => {
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+
+  // Lien direct /admin/orders/<id> (alerte WhatsApp/Telegram) : ouvre la fiche une fois les commandes chargées.
+  useEffect(() => {
+    if (!focusRequestId || orders.length === 0) return;
+    const target = orders.find((o) => o.id === focusRequestId);
+    if (target) setViewingOrder(target);
+    else notifyInfo('Commande introuvable', 'Actualise la liste ou vérifie le lien.');
+    onFocusHandled?.();
+  }, [focusRequestId, orders]);
   const { invites: dueInvites, refresh: refreshInvites, markSent } = useDueFeedbackInvites();
   const [filter, setFilter] = useState<OrderFilter>('all');
   const [sort, setSort] = useState<OrderSort>('date-desc');

@@ -102,3 +102,11 @@
 - Second passage : **0 créés, 0 mis à jour, 303 inchangés, 0 protégés**. Backfill WhatsApp terminé.
 - Branche `claude/daily-digest-ca6b98` complète et propre, rien poussé. Reste à Anjl : redéployer
   `telegram-bot-entry` (parseAmount), revue CSV (4 conflits, totaux > 10 M), fusion dans main.
+
+## 2026-11-09 10:49 — Edge Functions déployées, prod alignée sur la branche
+
+- Anjl a déployé `telegram-bot-entry` (parseAmount, bouton Vu du bilan) et `notify-staff` (relais outbox,
+  format dédié du bilan du jour). Il n'existe pas de fonction `notify-daily-digest` : le digest est la fonction
+  SQL `notify_daily_digest` + job cron `daily-digest-evening` (migration 20261107_001, déjà appliquée).
+- État : tout ce qui est déployé est dans git (branche `claude/daily-digest-ca6b98`). Rien poussé ni fusionné.
+- Prochaine étape : contrôle visuel du premier bilan ce soir à 20 h (Douala) dans Telegram, puis fusion dans main.

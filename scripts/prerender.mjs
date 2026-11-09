@@ -21,6 +21,7 @@ import {
   stripAssetTags,
   summarizeReasons,
 } from './lib/prerenderCache.mjs';
+import { checkLlmsTxt, checkProductOffer, checkSingleH1 } from './lib/seoChecks.mjs';
 
 dotenv.config();
 
@@ -69,6 +70,9 @@ const routeRequiresFaq = (route) => route.startsWith('/categorie/');
 
 /** Routes SPA sans prerender (auth admin, tokens dynamiques) — copie index.html pour refresh direct */
 const SPA_CLIENT_ONLY_ROUTES = ['/admin'];
+
+/** Shell Vite brut servi par le fourre-tout de vercel.json (doit rester aligné sur sa destination). */
+const SPA_FALLBACK_FILE = 'spa.html';
 
 const PRERENDER_READY_TIMEOUT_MS = Number(process.env.PRERENDER_READY_TIMEOUT_MS || 20_000);
 const PRODUCT_SEO_TIMEOUT_MS = Number(process.env.PRODUCT_SEO_TIMEOUT_MS || 20_000);
@@ -388,6 +392,7 @@ const inspectLinkingAndContent = (contentRoutes) => {
       continue;
     }
     if (extractCanonical(html) !== expectedCanonicalForRoute(route)) errors.push(`${route}: canonical incorrect`);
+    errors.push(...checkSingleH1(html).map((e) => `${route}: ${e}`));
     if (routeRequiresFaq(route) && !html.includes('"FAQPage"')) errors.push(`${route}: FAQPage absent`);
     if (route.startsWith('/categorie/') && !html.includes('href="/product/')) {
       if (html.includes('data-empty-selection')) console.warn(`[prerender] ${route} : sélection vide (aucun produit ne correspond)`);
@@ -501,7 +506,10 @@ const inspectProductHtml = (route, html) => {
   }
   if (!hasProductJsonLd) {
     errors.push('JSON-LD Product absent');
+  } else {
+    errors.push(...checkProductOffer(html));
   }
+  errors.push(...checkSingleH1(html));
 
   return errors;
 };
@@ -532,6 +540,22 @@ const verifyPrerenderOutput = (routes) => {
     if (!/<loc>https:\/\/www\.xeptionetwork\.shop\/<\/loc>/.test(sitemap)) {
       errors.push('dist/sitemap.xml has no homepage URL');
     }
+  }
+
+  const spaFallbackPath = path.join(distDir, SPA_FALLBACK_FILE);
+  if (!fs.existsSync(spaFallbackPath)) {
+    errors.push(`dist/${SPA_FALLBACK_FILE} missing (catch-all rewrite target)`);
+  } else if (/rel="canonical"/.test(fs.readFileSync(spaFallbackPath, 'utf8'))) {
+    errors.push(`dist/${SPA_FALLBACK_FILE} contains a canonical (must be the raw Vite shell)`);
+  }
+
+  const llmsPath = path.join(distDir, 'llms.txt');
+  errors.push(...checkLlmsTxt(fs.existsSync(llmsPath) ? fs.readFileSync(llmsPath, 'utf8') : ''));
+
+  for (const route of STATIC_ROUTES) {
+    const file = route === '/' ? path.join(distDir, 'index.html') : path.join(distDir, route, 'index.html');
+    if (!fs.existsSync(file)) continue;
+    errors.push(...checkSingleH1(fs.readFileSync(file, 'utf8')).map((e) => `${route}: ${e}`));
   }
 
   const homeHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
@@ -723,6 +747,9 @@ const main = async () => {
 
   // Snapshot immuable du shell généré par Vite AVANT que "/" ne réécrive dist/index.html.
   const spaShellHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
+  // Cible du fourre-tout vercel.json : une URL inconnue ne doit pas servir le HTML de l'accueil
+  // (canonical "/" → soft 404). Le routeur client affiche alors NotFoundPage (noindex).
+  fs.writeFileSync(path.join(distDir, SPA_FALLBACK_FILE), spaShellHtml);
 
   const incremental = prepareIncremental({ routes, spaShellHtml, catalog, sources });
   const { plan } = incremental;

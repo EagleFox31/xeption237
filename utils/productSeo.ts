@@ -24,10 +24,14 @@ export const PRODUCT_SEO_TITLE_MARKER = 'prix Cameroun';
 
 const formatFcfa = (price: number): string => `${price.toLocaleString('fr-FR')} FCFA`;
 
+/** Au-delà, Google tronque le titre : le montant (déjà en tête de la meta description) est retiré. */
+export const SEO_TITLE_MAX_LENGTH = 60;
+
 /** Titre de fiche au format des résultats concurrents : modèle, « prix Cameroun », montant. */
 export const buildProductSeoTitle = (displayName: string, price?: number | null): string => {
-  const pricePart = price && price > 0 ? ` : ${formatFcfa(price)}` : '';
-  return `${displayName} ${PRODUCT_SEO_TITLE_MARKER}${pricePart} | Xeption`;
+  const base = `${displayName} ${PRODUCT_SEO_TITLE_MARKER}`;
+  const withPrice = price && price > 0 ? `${base} : ${formatFcfa(price)} | Xeption` : null;
+  return withPrice && withPrice.length <= SEO_TITLE_MAX_LENGTH ? withPrice : `${base} | Xeption`;
 };
 
 export interface ProductSeoDescriptionInput {

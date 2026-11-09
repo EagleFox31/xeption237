@@ -152,3 +152,12 @@
   `staff-notification-actor` (fins de ligne CRLF sur une migration de main, non touchée ici).
 - **Reste pour Anjl** : `--apply` de l'import (≈ 30 rapports corrigés) puis `npm run cash:summary` ;
   vérifier le premier bilan Telegram à 20 h Douala.
+
+## 2026-11-09 11:25 — Import corrigé appliqué en prod (autorisation Anjl)
+
+- `--apply` : 0 créés, 30 mis à jour, 273 inchangés, 0 protégés ; second passage : 0 écriture (idempotent).
+- `cash:summary` : 0 jour suspect. MFOUNDI 139 j, entrées 40,8 M / sorties 37,9 M (les 58,9 M « hors
+  suspects » d'avant incluaient des jours < 5 M eux aussi gonflés, ex. « Ryzen 3 150 000 ») ; OLEMBE 2,9 M ;
+  MF1092 1,8 M / 3,1 M ; dettes restantes 4,08 M + 77 k.
+- Tout est sur `origin/main`. Reste : vérifier le premier bilan Telegram à 20 h Douala ; revoir les
+  4 conflits du CSV de revue (OLEMBE 23/06, MFOUNDI 30/10 et 04/11) si besoin.

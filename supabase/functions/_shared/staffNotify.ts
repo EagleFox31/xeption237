@@ -111,6 +111,7 @@ const LINK_TARGETS: Record<string, NotificationLink> = {
 const ITEM_LINK_LABELS: Record<string, string> = {
   inventory: 'Ouvrir le produit',
   troc: 'Ouvrir le dossier',
+  orders: 'Ouvrir la commande',
 };
 
 export const notificationLink = (n: StaffNotification, ctx: StaffNotifyContext): NotificationLink => {

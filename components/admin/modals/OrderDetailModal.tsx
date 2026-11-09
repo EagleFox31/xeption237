@@ -198,7 +198,33 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
             <h3 className="text-xs font-bold uppercase text-gray-400 mb-3 flex items-center gap-2">
               <Package className="w-4 h-4 text-xeption-gold" /> Articles Commandés ({(order.items || []).length})
             </h3>
-            <div className="bg-black/40 border border-white/10 rounded-sm overflow-x-auto">
+            {/* Mobile : cartes empilées, nom complet, aucun défilement horizontal. */}
+            <ul className="sm:hidden space-y-2" data-testid="order-items-mobile">
+              {(order.items || []).map((item, idx) => {
+                const unit = Number(item.price) || 0;
+                const qty = Number(item.quantity) || 1;
+                return (
+                  <li key={idx} className="bg-black/40 border border-white/10 rounded-sm p-3 flex gap-3">
+                    <div className="w-14 h-14 bg-white/10 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      {item.image ? (
+                        <img src={optimizeImage(item.image, 120)} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <Package className="w-5 h-5 text-gray-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-white text-sm leading-snug break-words">{item.name}</div>
+                      <div className="text-[10px] text-gray-400 uppercase mt-0.5">{item.category}</div>
+                      <div className="mt-2 flex items-end justify-between gap-2 text-xs">
+                        <span className="text-gray-400 font-mono">{qty} × {unit.toLocaleString()} FCFA</span>
+                        <span className="text-white font-bold font-mono whitespace-nowrap">{(unit * qty).toLocaleString()} FCFA</span>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="hidden sm:block bg-black/40 border border-white/10 rounded-sm overflow-x-auto">
               <table className="w-full text-left min-w-[320px]">
                 <thead className="bg-white/5 text-gray-400 text-[10px] uppercase font-bold">
                   <tr>

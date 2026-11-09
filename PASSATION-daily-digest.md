@@ -134,3 +134,10 @@
 - **Prochaine étape (Anjl)** : `node scripts/import-whatsapp-cash-reports.mjs "<export.txt>" --apply`
   (attendu ≈ 30 mis à jour, reste inchangé ; 2e passage = 0 écriture), puis `npm run cash:summary`
   (0 jour suspect attendu). Ensuite merge de `claude/daily-digest-ca6b98` dans main.
+
+## 2026-11-09 11:05 — Verrou prod : notify-staff dépend du merge de cette branche
+
+- Confirmé par « xeption code » : `notify-staff` en prod = fusion temporaire main (PR #48, d121889) +
+  cette branche ; un deploy depuis main seul retirerait le bouton « Vu ». Priorité dès l'accord d'Anjl :
+  push + merge de `claude/daily-digest-ca6b98` dans main (conflit ERRORS_LOG → union), puis deploy
+  depuis main. En attente d'Anjl : --apply de l'import, puis merge.

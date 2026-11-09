@@ -35,6 +35,9 @@ export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
 };
 // Every alias must also be in Trigenys Notify's ALLOWED_TYPES, or it is rejected with HTTP 400.
 
+/** Trigenys Notify rejects bodies over 4096 bytes; keep a margin. */
+const MAX_EVENT_BYTES = 4000;
+
 const DISPATCH_URL =
   'https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev/v1/dispatch/xeption/whatsapp';
 
@@ -68,7 +71,7 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
   const facts=extractNotificationFacts(n);
   const resourceId=n.link_to_id&&/^[a-zA-Z0-9._:-]{1,128}$/.test(n.link_to_id)
     ?n.link_to_id:n.notification_id;
-  return {
+  const event={
     version:1,project:'xeption',id:n.notification_id,type,
     occurredAt:new Date(n.created_at).toISOString(),
     priority:n.event_type==='stock_out'||n.event_type==='order_created'?'critical':
@@ -79,6 +82,10 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
     // Do not use a client-controlled origin from message or source settings.
     actionUrl:notificationLink(n,{siteUrl:'https://www.xeptionetwork.shop'}).url
   };
+  // Deterministic trim: a long basket keeps its first lines, the total stays exact.
+  const items=Array.isArray(facts?.items)?facts.items:undefined;
+  while(items&&items.length>1&&new TextEncoder().encode(JSON.stringify(event)).length>MAX_EVENT_BYTES)items.pop();
+  return event;
 }
 
 /** This ID is stable to preserve Xeption's (notification_id, channel) outbox. */

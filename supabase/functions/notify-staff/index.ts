@@ -13,6 +13,7 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { StaffNotification, StaffNotifyChannel, StaffNotifyContext } from '../_shared/staffNotify.ts';
 import { createTelegramChannel } from '../_shared/staffNotifyChannels/telegram.ts';
 import { createWahaChannel, withNotificationDates } from '../_shared/staffNotifyChannels/waha.ts';
+import { ORDER_SNAPSHOT_COLUMNS, withOrderSnapshots, type OrderNotificationSnapshot } from '../_shared/staffNotifyOrder.ts';
 
 const CLAIM_BATCH_SIZE = 20;
 
@@ -51,9 +52,15 @@ const relayChannel = async (
         if (snapshotError) throw snapshotError;
         return snapshots ?? [];
       });
+      rows = await withOrderSnapshots(rows, async (ids) => {
+        const {data: orders, error: orderError} = await supabase
+          .from('orders').select(ORDER_SNAPSHOT_COLUMNS).in('id', ids);
+        if (orderError) throw orderError;
+        return (orders ?? []) as OrderNotificationSnapshot[];
+      });
     } catch {
       snapshotUnavailable = true;
-      console.error('notify-staff: persisted notification timestamp unavailable', {channel: channel.id});
+      console.error('notify-staff: persisted notification snapshot unavailable', {channel: channel.id});
     }
   }
   let sent = 0;

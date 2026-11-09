@@ -624,3 +624,13 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : PR Trigenys/trigenys-notify#59 (5 types acceptés, modèles et faits bornés) + alias `debt_overdue → finance.debt_overdue` et faits agrégés (boutique, nombre, reste à encaisser) côté Xeption.
 
 **Comment ne plus la refaire** : test miroir `every default type is accepted by Trigenys Notify` (`tests/waha-notify-channel.test.ts`). Ajouter un alias sans l'ajouter à la liste miroir fait échouer la CI, ce qui oblige à ouvrir la PR côté Notify. Après tout ajout de type WhatsApp, contrôler `notification_deliveries.last_error` du canal `whatsapp_waha` au premier envoi réel.
+
+## 2026-11-09 — WhatsApp « Nouvelle commande » illisible : seulement « Livraison : delivery »
+
+**Symptôme** : une vraie commande web (ORD-3MR8-G6XF, 90 000 FCFA, Yaoundé) est arrivée dans le groupe staff sous la forme « 🛒 Nouvelle commande / Livraison : delivery / lien ». Il manquait le client, son téléphone, son e-mail, le produit, la quantité, le prix et le paiement.
+
+**Cause racine** : (1) par conception, aucune donnée client ne sortait de Xeption ; (2) le producteur reconstruisait les faits en analysant le texte affiché du trigger `notify_order_created`. Or `to_char(total,'FM999G999G999')` rend `90,000` sous `lc_numeric = en_US` (refusé par la regex du montant), et la ville `Yaoundé (Centre), Nsimeyong` contient parenthèses et virgule (refusée par la regex lettres seules). Seul `delivery` passait.
+
+**Résolution** : dérogation documentée, limitée à `order_created` (Trigenys Notify ADR-002). `notify-staff` relit la ligne `orders` en un lot (`withOrderSnapshots`) et `staffNotifyOrder.ts` envoie un instantané typé : client, téléphone au format +237, e-mail, articles (≤ 10 lignes, nom ≤ 80 car.), total, paiement, mode et adresse de livraison. Repli sur le message : montant avec virgule et ville avant la virgule acceptés.
+
+**Comment ne plus la refaire** : tests `tests/waha-notify-channel.test.ts` (instantané complet, champs invalides écartés, retrait boutique sans adresse, corps ≤ 4000 octets avec 30 articles, repli `90,000 FCFA`) et tests de rendu côté Notify. Leçon : un producteur envoie des valeurs typées lues à la source, pas un texte d'affichage ré-analysé ; un formatage dépendant de la locale de la base n'est jamais un contrat.

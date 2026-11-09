@@ -6,6 +6,7 @@ import {
   parseOperators,
   extractTrailingAmount,
   parseEntryLine,
+  reconcileItemsWithDeclaredTotal,
   parseCashReportText,
 } from '../scripts/lib/cashReportText.mjs';
 import { createStoreResolver } from '../scripts/lib/cashReportStoreResolver.mjs';
@@ -89,10 +90,10 @@ describe('parseAmount (shared with the bot)', () => {
 
 describe('extractTrailingAmount / parseEntryLine', () => {
   it('reads amounts with spaces, dots, currency variants and sums', () => {
-    expect(extractTrailingAmount('MacBook Pro 2012 90.000f')).toEqual({ label: 'MacBook Pro 2012', amount: 90000 });
-    expect(extractTrailingAmount('xr 23 000 CFA')).toEqual({ label: 'xr', amount: 23000 });
-    expect(extractTrailingAmount('clavier 40.000frs')).toEqual({ label: 'clavier', amount: 40000 });
-    expect(extractTrailingAmount('S24 167.500f + 500.000f')).toEqual({ label: 'S24', amount: 667500 });
+    expect(extractTrailingAmount('MacBook Pro 2012 90.000f')).toMatchObject({ label: 'MacBook Pro 2012', amount: 90000 });
+    expect(extractTrailingAmount('xr 23 000 CFA')).toMatchObject({ label: 'xr', amount: 23000 });
+    expect(extractTrailingAmount('clavier 40.000frs')).toMatchObject({ label: 'clavier', amount: 40000 });
+    expect(extractTrailingAmount('S24 167.500f + 500.000f')).toMatchObject({ label: 'S24', amount: 667500 });
     expect(extractTrailingAmount('Pas de montant')).toBeNull();
   });
 
@@ -103,6 +104,38 @@ describe('extractTrailingAmount / parseEntryLine', () => {
     expect(parseEntryLine('iPhone XR vendu par Bob 75 000F', matchSeller)).toEqual({ label: 'iPhone XR', amount: 75000, seller_name: 'Bob Essai' });
     expect(parseEntryLine("Pas d'entrée aujourd'hui")).toBeNull();
     expect(parseEntryLine('Entrée totale = 0 F')).toBeNull();
+  });
+});
+
+describe('reconcileItemsWithDeclaredTotal', () => {
+  it('offers the leading groups of a thousands number as alternative readings', () => {
+    const read = extractTrailingAmount('Reste de Ryzen 5 100 000');
+    expect(read.amount).toBe(5100000);
+    expect(read.readings).toEqual([{ label: 'Reste de Ryzen 5', amount: 100000 }]);
+    // Le groupe « 000 » seul vaut 0 : pas une relecture.
+    expect(extractTrailingAmount('Hp Elitebook 840 200 000').readings).toEqual([{ label: 'Hp Elitebook 840', amount: 200000 }]);
+    expect(extractTrailingAmount('xr 23 000 CFA').readings).toEqual([]);
+    expect(extractTrailingAmount('S24 167.500f + 500.000f').readings).toEqual([]);
+  });
+
+  it('gives a model number back to the label when the declared total says so', () => {
+    const items = [parseEntryLine('Reste de Ryzen 5 100 000'), parseEntryLine('Coque 15 000f'), parseEntryLine('Hp Elitebook 840 200 000 (Bob Essai)', (t) => (/bob/i.test(t) ? 'Bob Essai' : null))];
+    const { items: fixed, changed } = reconcileItemsWithDeclaredTotal(items, 315000);
+    expect(changed).toBe(true);
+    expect(fixed).toEqual([
+      { label: 'Reste de Ryzen 5', amount: 100000 },
+      { label: 'Coque', amount: 15000 },
+      { label: 'Hp Elitebook 840', amount: 200000, seller_name: 'Bob Essai' },
+    ]);
+    expect(JSON.stringify(fixed)).not.toContain('readings');
+  });
+
+  it('leaves items alone without a declared total or when they already add up', () => {
+    const items = [parseEntryLine('Ryzen 5 100 000'), parseEntryLine('Coque 15 000f')];
+    expect(reconcileItemsWithDeclaredTotal(items, null)).toEqual({ items, changed: false });
+    expect(reconcileItemsWithDeclaredTotal(items, 5115000).changed).toBe(false);
+    // Total déclaré incohérent sans relecture possible : rien n'est inventé.
+    expect(reconcileItemsWithDeclaredTotal([parseEntryLine('Coque 15 000f')], 20000)).toEqual({ items: [{ label: 'Coque', amount: 15000 }], changed: false });
   });
 });
 

@@ -656,3 +656,21 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 - **Prévention** : dans un script à flux module-level, déclarer toutes les constantes avant le premier `await`
   (ou envelopper le flux dans `main()` appelé en fin de fichier). Le chemin `--apply` doit être exercé au
   moins une fois hors prod (test avec client mocké) avant livraison : un dry-run vert ne couvre pas l'upsert.
+
+## 2026-11-09 — Import WhatsApp : numéros de modèle lus comme des millions (« Ryzen 5 100 000 »)
+
+- **Symptôme** : 19 jours avec des entrées > 5 M XAF dans `store_cash_reports` (jusqu'à 840 M le 05/07),
+  tous signalés `inflow_total_mismatch` par l'import.
+- **Cause racine** : `TRAILING_AMOUNT` accepte des groupes de milliers séparés par des espaces ; le numéro
+  de modèle qui précède le prix (« Ryzen **5** 100 000 », « Elitebook **840** 200 000 », « iPhone **13**
+  170 000 ») forme avec lui un nombre syntaxiquement valide. Le total déclaré de la section était lu
+  correctement mais n'était utilisé que pour avertir, jamais pour corriger.
+- **Résolution** : `extractTrailingAmount` renvoie aussi les relectures possibles (groupe de tête rendu au
+  libellé) ; `reconcileItemsWithDeclaredTotal` les applique quand la somme des lignes ne retombe pas sur le
+  total déclaré (égalité exacte d'abord, puis ligne impossible seule au-dessus du total). Avertissement
+  `inflow_items_reread` / `outflow_items_reread` quand une relecture a eu lieu. Résultat : 0 ligne > 2 M,
+  `inflow_total_mismatch` 66 → 30 ; relance `--apply` = upsert des seules lignes changées.
+- **Prévention vérifiable** : tests `reconcileItemsWithDeclaredTotal` (relectures, réconciliation,
+  no-op sans total déclaré) ; `npm run cash:summary` liste les jours > `--max-day` (5 M par défaut) après
+  tout import. Leçon : un total déclaré par l'auteur est une **contrainte** à exploiter pour désambiguïser,
+  pas seulement un contrôle à posteriori.

@@ -45,6 +45,10 @@ const SELLER_PREFIX = /^(?:vendu\s+par|par|vente\s+de|vente)\s+/i;
  * Groupe 1 = nombre, groupe 2 = multiplicateur (k/m/mil), groupe 3 = devise (ignorée).
  */
 const TRAILING_AMOUNT = /(?:^|[\s:=])((?:\d{1,3}(?:[ .,]\d{3})+|\d+)(?:[.,]\d+)?)\s*(?:(k|m|mil)|(xaf|cfa|f[a-z]{0,5}))?\.?\s*\)?\s*$/i;
+/** Nombre à groupes de milliers (« 5 100 000 ») : seul cas où un groupe de tête peut être un numéro de modèle. */
+const GROUPED_NUMBER = /^\d{1,3}(?:[ .,]\d{3})+$/;
+/** Une passe par ligne relue : deux lignes mal lues le même jour suffisent en pratique. */
+const MAX_RECONCILE_PASSES = 4;
 /** Zéro explicite (« 0 FCFA », « 0f ») : un vrai montant, pas une absence. */
 const EXPLICIT_ZERO = /^0+\s*(?:xaf|cfa|f[a-z]{0,5})?\.?$/i;
 /** Devise collée au nombre avec variantes (« 60.000f. », « 40.000frs ») → forme `60.000f` comprise par le bot. */
@@ -91,6 +95,7 @@ export function extractTrailingAmount(text) {
   let rest = (text ?? '').trim();
   let total = 0;
   let found = false;
+  let readings = [];
   for (;;) {
     const m = rest.match(TRAILING_AMOUNT);
     if (!m) break;
@@ -98,11 +103,67 @@ export function extractTrailingAmount(text) {
     if (amount <= 0) break;
     total += amount;
     found = true;
-    rest = rest.slice(0, m.index).replace(/[\s:=]+$/, '').trim();
+    const before = rest.slice(0, m.index).replace(/[\s:=]+$/, '').trim();
+    // Relectures : « Ryzen 5 100 000 » peut être « Ryzen 5 » + 100 000. Sur un montant simple seulement.
+    readings = total === amount && !m[2] ? alternativeReadings(before, m[1]) : [];
+    rest = before;
     if (!/\+$/.test(rest)) break;
     rest = rest.replace(/\+$/, '').trim();
   }
-  return found ? { label: rest, amount: total } : null;
+  return found ? { label: rest, amount: total, readings } : null;
+}
+
+/**
+ * Autres découpages d'un nombre à groupes de milliers : chaque groupe de tête peut être la fin du
+ * libellé (numéro de modèle : « Ryzen 5 », « Elitebook 840 ») et non le début du montant.
+ * @returns {{ label: string, amount: number }[]} du plus grand montant au plus petit
+ */
+function alternativeReadings(before, number) {
+  if (!GROUPED_NUMBER.test(number)) return [];
+  const groups = number.split(/[ .,]/);
+  const out = [];
+  for (let k = 1; k < groups.length; k += 1) {
+    const amount = parseAmount(groups.slice(k).join(' '));
+    if (amount <= 0) continue;
+    out.push({ label: `${before} ${groups.slice(0, k).join(' ')}`.trim(), amount });
+  }
+  return out;
+}
+
+/**
+ * Quand la somme des lignes ne retombe pas sur le total déclaré de la section, essaie les
+ * relectures des lignes (groupe de tête rendu au libellé) jusqu'à retrouver ce total.
+ * Une ligne qui dépasse à elle seule le total déclaré est relue même sans égalité exacte.
+ * Muet quand aucun total n'est déclaré. Ne mute pas les entrées.
+ * @returns {{ items: object[], changed: boolean }}
+ */
+export function reconcileItemsWithDeclaredTotal(items, declaredTotal) {
+  if (declaredTotal === null || declaredTotal === undefined) return { items, changed: false };
+  // `readings` est non énumérable sur l'item (hors JSON) : la copie l'emporte explicitement.
+  const work = items.map((it) => ({ ...it, readings: it.readings ?? [] }));
+  const sum = () => work.reduce((s, it) => s + it.amount, 0);
+  let changed = false;
+  for (let pass = 0; pass < MAX_RECONCILE_PASSES && sum() !== declaredTotal; pass += 1) {
+    const current = sum();
+    let applied = false;
+    // 1. Une relecture qui redonne exactement le total déclaré.
+    for (const it of work) {
+      const exact = (it.readings ?? []).find((r) => current - it.amount + r.amount === declaredTotal);
+      if (exact) { Object.assign(it, { label: exact.label, amount: exact.amount }); applied = true; break; }
+    }
+    // 2. Sinon, une ligne impossible (seule au-dessus du total) prend sa plus grande relecture plausible.
+    if (!applied) {
+      const impossible = work.find((it) => it.amount > declaredTotal && (it.readings ?? []).some((r) => r.amount <= declaredTotal));
+      if (impossible) {
+        const r = impossible.readings.find((x) => x.amount <= declaredTotal);
+        Object.assign(impossible, { label: r.label, amount: r.amount });
+        applied = true;
+      }
+    }
+    if (!applied) break;
+    changed = true;
+  }
+  return { items: work.map(({ readings, ...it }) => it), changed };
 }
 
 /**
@@ -151,6 +212,11 @@ export function parseEntryLine(rawLine, matchSeller = () => null) {
   if (!label) label = 'Sans libellé';
   const item = { label, amount: parsed.amount };
   if (sellerName) item.seller_name = sellerName;
+  if (parsed.readings.length) {
+    const suffix = notes.length ? ` (${notes.join(') (')})` : '';
+    const readings = parsed.readings.map((r) => ({ label: r.label.replace(SELLER_PREFIX, '') + suffix, amount: r.amount }));
+    Object.defineProperty(item, 'readings', { value: readings, enumerable: false });
+  }
   return item;
 }
 
@@ -280,6 +346,14 @@ export function parseCashReportText(lines, options = {}) {
   }
   result.observations = observationLines.join('\n').trim();
 
+  for (const [key, declared, warning] of [
+    ['inflow_items', result.declared_total_inflow, 'inflow_items_reread'],
+    ['outflow_items', result.declared_total_outflow, 'outflow_items_reread'],
+  ]) {
+    const r = reconcileItemsWithDeclaredTotal(result[key], declared);
+    result[key] = r.items;
+    if (r.changed) warnings.push(warning);
+  }
   const sumInflow = result.inflow_items.reduce((s, it) => s + it.amount, 0);
   const sumOutflow = result.outflow_items.reduce((s, it) => s + it.amount, 0);
   if (result.declared_total_inflow !== null && result.declared_total_inflow !== sumInflow) warnings.push('inflow_total_mismatch');

@@ -121,3 +121,16 @@
   OLEMBE ≈ 2,9 M sur 145 j, MF1092 ≈ 1 M sur 19 j ; dettes restantes 4,08 M (MFOUNDI) + 77 k (OLEMBE).
 - Suite possible : corriger le parseur (préférer le total déclaré quand la somme des lignes s'en écarte
   fortement) puis relancer `--apply` : l'upsert ne réécrira que les lignes changées.
+
+## 2026-11-09 11:00 — Parseur : numéros de modèle collés au prix, corrigé
+
+- Cause des 19 jours aberrants : « Ryzen 5 100 000 » lu 5 100 000, « Elitebook 840 200 000 » lu 840 M.
+  Fix dans `scripts/lib/cashReportText.mjs` : relectures alternatives + `reconcileItemsWithDeclaredTotal`
+  (le total déclaré de la section tranche). Tests 14/14 verts ; dry-run : 0 ligne > 2 M, 0 jour > 5 M,
+  `inflow_total_mismatch` 66 → 30. Entrée ERRORS_LOG ajoutée.
+- Session parente prévenue de l'étendue des travaux (message livré). Elle signale que `notify-staff` en
+  prod = fusion origin/main + cette branche (bouton « Vu » conservé + lien commande de la PR #48) ; elle
+  demande de merger la branche dans main (seul conflit : ERRORS_LOG, union) puis déployer depuis main.
+- **Prochaine étape (Anjl)** : `node scripts/import-whatsapp-cash-reports.mjs "<export.txt>" --apply`
+  (attendu ≈ 30 mis à jour, reste inchangé ; 2e passage = 0 écriture), puis `npm run cash:summary`
+  (0 jour suspect attendu). Ensuite merge de `claude/daily-digest-ca6b98` dans main.

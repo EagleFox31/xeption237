@@ -96,3 +96,9 @@
   `%TEMP%\xeption-whatsapp-cash-import\whatsapp-cash-reports-review.csv`), 19 `superseded` (normal).
 - Reste pour Anjl : redéployer `telegram-bot-entry` (fix parseAmount), relire les `inflow_total_mismatch` > 10 M
   dans le CSV, fusionner `claude/daily-digest-ca6b98` dans main. Rien poussé.
+
+## 2026-11-09 10:10 — Idempotence prouvée : second `--apply` = 0 écriture
+
+- Second passage : **0 créés, 0 mis à jour, 303 inchangés, 0 protégés**. Backfill WhatsApp terminé.
+- Branche `claude/daily-digest-ca6b98` complète et propre, rien poussé. Reste à Anjl : redéployer
+  `telegram-bot-entry` (parseAmount), revue CSV (4 conflits, totaux > 10 M), fusion dans main.

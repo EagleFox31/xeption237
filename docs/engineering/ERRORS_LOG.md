@@ -624,3 +624,23 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : PR Trigenys/trigenys-notify#59 (5 types acceptés, modèles et faits bornés) + alias `debt_overdue → finance.debt_overdue` et faits agrégés (boutique, nombre, reste à encaisser) côté Xeption.
 
 **Comment ne plus la refaire** : test miroir `every default type is accepted by Trigenys Notify` (`tests/waha-notify-channel.test.ts`). Ajouter un alias sans l'ajouter à la liste miroir fait échouer la CI, ce qui oblige à ouvrir la PR côté Notify. Après tout ajout de type WhatsApp, contrôler `notification_deliveries.last_error` du canal `whatsapp_waha` au premier envoi réel.
+
+## 2026-11-09 — `parseAmount` lisait « 243,000 » comme 243 (virgule = décimale)
+
+**Symptôme** : lors de la reprise des rapports de caisse WhatsApp (`scripts/import-whatsapp-cash-reports.mjs`), des soldes « 243,000 FCFA » ressortaient à 243 et déclenchaient des `balance_mismatch` massifs. Le même helper sert au bot Telegram (`_shared/telegramCashReport.ts`) : une saisie « 98,000 » y était aussi comptée 98.
+
+**Cause racine** : `parseAmount` traitait toute virgule comme séparateur décimal. En XAF il n'y a pas de centimes : une virgule suivie d'exactement trois chiffres est un séparateur de milliers (usage anglophone courant dans les rapports).
+
+**Résolution** : dans la branche sans multiplicateur, la virgule suivie de trois chiffres est retirée avant la conversion ; « 2,5k » et « 12,5 » restent décimaux. Test de non-régression : `tests/whatsapp-cash-import.test.ts` (« parseAmount (shared with the bot) »). `telegram-bot-entry` doit être redéployé pour que le bot en bénéficie.
+
+**Comment ne plus la refaire** : tout helper de parsing de montant a un test paramétré sur les formats réellement vus dans les données (« 150.000 », « 243,000 », « 98,000f », « 2,5k », « 1.5m ») avant d'être branché sur un flux métier ; un contrôle de cohérence (ouverture + entrées − sorties = clôture) sur un échantillon réel révèle ce genre d'erreur avant la mise en base.
+
+## 2026-11-09 — Regex « rien à déclarer » trop large : « 17 000F » pris pour zéro (near miss)
+
+**Symptôme** : après ajout de `0 F` aux lignes « sans entrée », le dry-run a vu `balance_mismatch` passer de 151 à 205 : les lignes dont le montant finit par « 000F » (« 17 000F », « 90.000f ») étaient ignorées.
+
+**Cause racine** : motif `0+\s*f?$` sans ancre sur le début du nombre : « 000F » matche la fin de « 17 000F ».
+
+**Résolution** : zéro reconnu seulement après `:`/`=` ou en début de ligne (`[:=]\s*0+…$`). Tests synthétiques « Total sortie : 17 000F » / « Entrée totale = 0 F » dans `tests/whatsapp-cash-import.test.ts`.
+
+**Comment ne plus la refaire** : un dry-run avec compteurs d'avertissements avant/après chaque retouche de regex (ici le saut de 151 → 205 a tout de suite trahi la régression) ; ne jamais fusionner une retouche de parseur qui augmente un compteur d'incohérence sans l'expliquer.

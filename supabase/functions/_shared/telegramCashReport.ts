@@ -106,8 +106,9 @@ export function parseAmount(text: string): number {
       const num = parseFloat(clean);
       if (!isNaN(num) && num > 0) total += Math.round(num * multiplier);
     } else {
-      // Without multiplier: dots are thousand separators ("150.000" -> 150000)
-      clean = clean.replace(/[.]/g, "").replace(",", ".");
+      // Without multiplier: dots are thousand separators ("150.000" -> 150000), and so is a
+      // comma followed by exactly three digits ("243,000" -> 243000 — XAF has no cents).
+      clean = clean.replace(/[.]/g, "").replace(/,(?=\d{3}(?!\d))/g, "").replace(",", ".");
       const num = parseFloat(clean);
       if (!isNaN(num) && num > 0) total += Math.round(num);
     }

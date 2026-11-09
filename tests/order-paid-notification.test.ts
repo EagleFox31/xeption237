@@ -259,7 +259,7 @@ describe('Lot 5 — Notification order_paid (CamPay webhook / statut)', () => {
           paymentChannel: 'Orange Money',
           paymentStatus: 'Paiement en ligne confirmé',
         },
-        actionUrl: 'https://www.xeptionetwork.shop/admin/orders',
+        actionUrl: `https://www.xeptionetwork.shop/admin/orders/${orderId}`,
       });
     });
   });

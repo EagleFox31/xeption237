@@ -620,6 +620,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                           }
                         }}
                         onResetPaymentError={() => orderPayment.setError(null)}
+                        focusRequestId={deepLinkId}
+                        onFocusHandled={() => goToTab('orders', { replace: true })}
                       />
                     )}
                     {activeTab === 'inventory' && (

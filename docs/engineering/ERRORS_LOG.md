@@ -644,3 +644,13 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : sous `sm`, les articles s'affichent en cartes empilées (image, nom complet avec `break-words`, catégorie, `quantité × prix unitaire`, sous-total). Il n'y a donc plus de défilement horizontal. Le tableau est conservé à partir de `sm`.
 
 **Comment ne plus la refaire** : test `tests/components/OrderDetailModal.test.tsx` (cartes mobiles, aucun tableau dans la liste mobile, tableau réservé à `sm`) ; contrôle Playwright à 390 px (aucun débordement horizontal). Leçon : dans l'admin, pas de tableau à défilement horizontal imbriqué dans une zone à défilement vertical sur mobile ; passer en cartes.
+
+## 2026-11-09 — Lien « Voir les commandes » des alertes : n'ouvre pas la commande
+
+**Symptôme** : le lien des alertes WhatsApp/Telegram « Nouvelle commande » ouvrait `/admin/orders` (la liste), pas la fiche de la commande signalée.
+
+**Cause racine** : double. (1) `notificationLink` (`supabase/functions/_shared/staffNotify.ts`) ne construit `/admin/<onglet>/<id>` que pour les onglets de `ITEM_LINK_LABELS` ; `orders` n'y figurait pas, l'id était donc ignoré. (2) `OrdersTab` ne consommait pas l'id de lien profond (`deepLinkId`) fourni par `AdminPanel`, contrairement à `TrocTab`/inventaire.
+
+**Résolution** : `orders: 'Ouvrir la commande'` ajouté à `ITEM_LINK_LABELS` ; `OrdersTab` reçoit `focusRequestId`/`onFocusHandled` (même contrat que `TrocTab`), ouvre la fiche ciblée, ou affiche « Commande introuvable », puis l'URL revient à `/admin/orders`. Les alertes déjà envoyées gardent l'ancien lien.
+
+**Comment ne plus la refaire** : `tests/components/OrdersTab.deeplink.test.tsx` (URL avec id, ouverture de la fiche, id inconnu) et `tests/order-paid-notification.test.ts` (actionUrl). Leçon : ajouter un onglet à `ITEM_LINK_LABELS` exige que l'onglet consomme `focusRequestId`, et inversement ; tester les deux bouts du lien.

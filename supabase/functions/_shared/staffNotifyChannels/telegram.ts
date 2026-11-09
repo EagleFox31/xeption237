@@ -4,6 +4,10 @@
  * TELEGRAM_MINIAPP_LINK, TELEGRAM_BOT_USERNAME (sinon déduit du lien Mini App).
  */
 import {
+  cleanHeading,
+  dailyDigestLines,
+  eventIcon,
+  isDailyDigest,
   notificationLink,
   parseEventTypes,
   toNotificationView,
@@ -13,23 +17,49 @@ import {
   type StaffNotifyContext,
 } from '../staffNotify.ts';
 import { botChatLink, buildStartPayload, resolveBotUsername } from '../telegramStartPayload.ts';
+import { digestAckButton, type TelegramInlineButton } from '../telegramDigestAck.ts';
 
 /** Limite Telegram d'un message texte. */
 export const TELEGRAM_MAX_MESSAGE_LENGTH = 4096;
 
+/** Marque de troncature quand un message dépasse la limite Telegram. */
+const TRUNCATION_MARK = '…';
+
 /** Repère visuel devant le produit concerné (Telegram n'accepte pas de couleur). */
 const SUBJECT_ICON = '📱';
+
+/** Puce des lignes d'un bilan journalier. */
+const DIGEST_LINE_ICON = '▫️';
 
 export const escapeTelegramHtml = (text: string): string =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+/**
+ * Tronque proprement : coupe à la dernière fin de ligne complète avant la limite, pour ne pas
+ * laisser une balise HTML ouverte ou un montant coupé en deux (sendMessage refuserait le HTML).
+ */
+export const truncateTelegramText = (text: string, max = TELEGRAM_MAX_MESSAGE_LENGTH): string => {
+  if (text.length <= max) return text;
+  const budget = max - TRUNCATION_MARK.length;
+  const cut = text.lastIndexOf('\n', budget);
+  return `${text.slice(0, cut > 0 ? cut : budget)}${TRUNCATION_MARK}`;
+};
+
+/** Bilan journalier : titre (boutique) puis une ligne par bloc, sans « sujet » souligné. */
+const formatTelegramDailyDigest = (n: StaffNotification): string => {
+  const lines = [`${eventIcon(n.event_type)} <b>${escapeTelegramHtml(cleanHeading(n.title))}</b>`, ''];
+  for (const line of dailyDigestLines(n)) lines.push(`${DIGEST_LINE_ICON} ${escapeTelegramHtml(line)}`);
+  return lines.join('\n');
+};
+
 /** Corps du message ; le lien direct est porté par un bouton (telegramReplyMarkup). */
 export const formatTelegramNotification = (n: StaffNotification): string => {
+  if (isDailyDigest(n)) return truncateTelegramText(formatTelegramDailyDigest(n));
   const v = toNotificationView(n);
   const lines = [`${v.icon} <b>${escapeTelegramHtml(v.heading.toUpperCase())}</b>`];
   if (v.subject) lines.push('', `${SUBJECT_ICON} <b><u>${escapeTelegramHtml(v.subject)}</u></b>`);
   for (const d of v.details) lines.push(`▫️ ${escapeTelegramHtml(d)}`);
-  return lines.join('\n').slice(0, TELEGRAM_MAX_MESSAGE_LENGTH);
+  return truncateTelegramText(lines.join('\n'));
 };
 
 const trustedMiniAppLink = (raw: string | undefined): string | null => {
@@ -52,13 +82,15 @@ export const telegramReplyMarkup = (
   const link = notificationLink(n, ctx);
   const miniApp = trustedMiniAppLink(miniAppUrl);
   // Lien direct vers l'élément + Mini App côte à côte : le staff choisit le site ou Telegram.
-  const row = [{ text: `${link.label} ↗`, url: link.url }];
+  const row: TelegramInlineButton[] = [{ text: `${link.label} ↗`, url: link.url }];
   if (miniApp) row.push({ text: 'Gérer dans Telegram ↗', url: miniApp });
-  const keyboard = [row];
+  const keyboard: TelegramInlineButton[][] = [row];
   // Discussion privée du bot, ouverte directement sur l'élément quand il a un écran bot.
   if (botUsername) {
     keyboard.push([{ text: '💬 Gérer avec le bot', url: botChatLink(botUsername, buildStartPayload(n.link_to_tab, n.link_to_id)) }]);
   }
+  // Bilan journalier : acquittement en un clic depuis le groupe (ack_staff_notification_from_telegram).
+  if (isDailyDigest(n)) keyboard.push([digestAckButton(n.notification_id)]);
   return { inline_keyboard: keyboard };
 };
 

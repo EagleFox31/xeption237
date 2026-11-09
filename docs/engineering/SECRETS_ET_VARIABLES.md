@@ -81,6 +81,9 @@ ton `.env`.
 | `IMEI_PREMIUM_API_KEY` | contrôle blacklist mondial | imeicheck.net |
 | `CAMPAY_API_TOKEN` · `CAMPAY_BASE_URL` · `CAMPAY_WEBHOOK_KEY` | paiement Mobile Money | tableau de bord Campay |
 | `CRON_SECRET` | protège les endpoints déclenchés par cron | valeur que tu choisis |
+| `TELEGRAM_BOT_TOKEN` · `TELEGRAM_CHAT_ID` | relais des notifications staff vers le groupe Telegram (`notify-staff`) | BotFather / id du groupe |
+| `TELEGRAM_EVENT_TYPES` | facultatif — liste `a,b,c` des types relayés sur Telegram ; **absent = tous les types de `DEFAULT_STAFF_EVENT_TYPES`** (dont `daily_digest`). S'il est défini, y ajouter `daily_digest` sinon le bilan du jour n'est jamais envoyé | valeur que tu choisis |
+| `TELEGRAM_MINIAPP_LINK` · `TELEGRAM_BOT_USERNAME` | facultatifs — boutons « Gérer dans Telegram » / « Gérer avec le bot » | BotFather |
 | `STAFF_DEFAULT_PASSWORD` | mot de passe initial d'un compte staff | valeur que tu choisis |
 | `SUPER_ADMIN_EMAILS` | qui accède au super-admin | tes adresses |
 | `BING_SEARCH_API_KEY` | recherche de prix (facultatif) | portal.azure.com |

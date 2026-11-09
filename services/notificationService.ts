@@ -42,6 +42,7 @@ export type NotificationEventType =
   | 'troc_stale'
   | 'voucher_expiring'
   | 'debt_overdue'
+  | 'daily_digest'
   | 'manual';
 
 export interface CreateNotificationInput {

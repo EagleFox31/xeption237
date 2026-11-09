@@ -85,6 +85,7 @@ import {
   handleDebtReply,
   type TelegramDebtDeps
 } from "../_shared/telegramDebtScreens.ts";
+import { handleDigestAckCallback } from "../_shared/telegramDigestAck.ts";
 
 
 declare const Deno: {
@@ -3229,6 +3230,19 @@ async function renderScreen(chatId: number | string, messageId: number | undefin
   });
 }
 
+// ── Acquittement d'une notification staff (bouton « Vu ») ─────────────────────
+
+async function ackStaffNotificationFromTelegram(notificationId: string, telegramUserId: string) {
+  const supabase = db();
+  if (!supabase) return { acknowledged: false, errorCode: "no_db" };
+  const { data, error } = await supabase.rpc("ack_staff_notification_from_telegram", {
+    p_notification_id: notificationId,
+    p_telegram_user_id: telegramUserId
+  });
+  if (error && error.code !== "42501") console.error("telegram-bot-entry: notification ack failed", { code: error.code });
+  return { acknowledged: data === true, errorCode: error?.code ?? null };
+}
+
 // ── Routeur des Boutiques & Callbacks ─────────────────────────────────────────
 
 async function handleCallbackQuery(cb: Obj): Promise<void> {
@@ -3247,6 +3261,9 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
 
   // Bouton cliqué depuis le groupe Telegram Staff : router vers la discussion privée de l'utilisateur
   if (isGroup) {
+    // « ✅ Vu » d'un bilan journalier : la RPC vérifie elle-même le rang (responsable+).
+    if (await handleDigestAckCallback(cb, { ack: ackStaffNotificationFromTelegram, telegram })) return;
+
     if (!staff || staff.rank < RANK_DIRECTION) {
       await telegram("answerCallbackQuery", {
         callback_query_id: cbId,

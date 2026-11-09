@@ -1,7 +1,9 @@
 /** Allowlisted business fields from the persisted notification, not live product state.
- * Customer/contact fragments and arbitrary notification titles never leave Xeption.
+ * Customer/contact fragments and arbitrary notification titles never leave Xeption,
+ * except the typed order snapshot of order_created (staffNotifyOrder.ts).
  */
 import type {StaffNotification} from './staffNotify.ts';
+import {orderSnapshotFacts} from './staffNotifyOrder.ts';
 
 const contact=/@|https?:\/\/|www\.|\+\s*\d(?:[\s().-]*\d){7,}|\b\d{9,15}\b|\b(?:237[\s.-]*)?[26]\d{2}(?:[\s.-]*\d{3}){2}\b/i;
 const label=(raw:string|undefined,max:number):string|undefined=>{
@@ -11,11 +13,16 @@ const label=(raw:string|undefined,max:number):string|undefined=>{
   return value&&value.length<=max&&!contact.test(value)?value:undefined;
 };
 const money=(raw:string):number|undefined=>{
-  const value=Number(raw.replace(/[\s\u00a0\u202f]/g,''));
+  // Thousands separators: space, NBSP, NNBSP or comma (to_char under an en_US lc_numeric).
+  const value=Number(raw.replace(/[\s\u00a0\u202f,]/g,''));
   return Number.isSafeInteger(value)&&value>=0&&value<=1_000_000_000_000?value:undefined;
 };
 
-export const extractNotificationFacts=(n:StaffNotification)=>{
+export const extractNotificationFacts=(n:StaffNotification):Record<string,unknown>|undefined=>{
+  if(n.event_type==='order_created'&&n.order){
+    const snapshot=orderSnapshotFacts(n.order);
+    if(Object.keys(snapshot).length)return snapshot;
+  }
   const parts=n.message.slice(0,4000).split(' — ').map(s=>s.trim()).filter(Boolean);
   const facts:Record<string,string|number>={};
   const subject=label(parts[0],160);if(subject)facts.subject=subject;
@@ -35,13 +42,14 @@ export const extractNotificationFacts=(n:StaffNotification)=>{
       if(value!==undefined)facts[match[2]==='cash'?'cashOfferXaf':'voucherOfferXaf']=value;
     }
   }else if(n.event_type==='order_created'){
-    const totalMatch=parts[0]?.match(/^([\d\s.]+)\s*FCFA$/i);
+    const totalMatch=parts[0]?.match(/^([\d\s.,]+)\s*FCFA$/i);
     if(totalMatch){
       const t=money(totalMatch[1]);
       if(t!==undefined)facts.orderTotalXaf=t;
     }
-    const city=label(parts[1],80);
-    if(city&&/^[\p{L}][\p{L} '\-]*$/u.test(city))facts.city=city;
+    // Checkout format « Ville (Région), Quartier »: keep the city, never the free-text address.
+    const city=label(parts[1]?.split(',')[0],80);
+    if(city&&/^[\p{L}][\p{L} '\-()]*$/u.test(city))facts.city=city;
     const delivery=label(parts[2],80);
     if(delivery)facts.deliveryMode=delivery;
   }else if(n.event_type==='order_paid'){

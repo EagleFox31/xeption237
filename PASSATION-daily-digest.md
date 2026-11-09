@@ -55,3 +55,12 @@
 - Avertissements restants (revue, non bloquants) : balance_mismatch 93 (arithmétique des rapports eux-mêmes),
   inflow_total_mismatch 61, outflow_total_mismatch 33, debt_line_unparsed 25, inflow_line_unparsed 15.
 - Rien poussé, rien déployé, aucune écriture en base.
+
+## 2026-11-09 09:40 — Migration appliquée ; conflits MFOUNDI = deux caisses
+
+- Anjl a appliqué `20261109_001_store_cash_reports_source.sql` (db:apply OK, enregistrée). Import `--apply` pas encore lancé.
+- Les 36 rapports en `conflict` ne sont pas des doublons : ligne « Boutique MF 1092 » (une caisse, 1-2 opérateurs,
+  chaîne de solde continue 12 000 → 11 000 → 19 000 …) vs « Boutique mfoundi mall » (3 opérateurs, autre chaîne).
+  Résolus tous deux sur MFOUNDI (opérateurs/auteur). Décision attendue : créer une boutique « MF 1092 » dans `stores`
+  (le resolver la reconnaîtra par le token « 1092 ») puis relancer le dry-run, sinon laisser ces jours de côté.
+- Quelques totaux d'entrées aberrants (> 10 M) dans ces rapports = lignes mal lues, déjà signalées `inflow_total_mismatch`, à revoir dans le CSV.

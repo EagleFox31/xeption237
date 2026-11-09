@@ -110,3 +110,14 @@
   SQL `notify_daily_digest` + job cron `daily-digest-evening` (migration 20261107_001, déjà appliquée).
 - État : tout ce qui est déployé est dans git (branche `claude/daily-digest-ca6b98`). Rien poussé ni fusionné.
 - Prochaine étape : contrôle visuel du premier bilan ce soir à 20 h (Douala) dans Telegram, puis fusion dans main.
+
+## 2026-11-09 10:51 — Script de bilan `npm run cash:summary`
+
+- Nouveau `scripts/cash-reports-summary.mjs` (lecture seule) : bilan par boutique et par mois, dettes au dernier
+  rapport, jours suspects (entrées > 5 M XAF par défaut, `--max-day`) exclus des totaux. Options `--since`,
+  `--until`, `--store=CODE`, `--source`.
+- Résultat : 19 jours suspects (MFOUNDI 17, MF1092 2), ex. 840 M le 05/07 — lignes mal lues par l'import
+  (déjà signalées `inflow_total_mismatch`). Hors ces jours : MFOUNDI ≈ 58,9 M d'entrées sur 139 j,
+  OLEMBE ≈ 2,9 M sur 145 j, MF1092 ≈ 1 M sur 19 j ; dettes restantes 4,08 M (MFOUNDI) + 77 k (OLEMBE).
+- Suite possible : corriger le parseur (préférer le total déclaré quand la somme des lignes s'en écarte
+  fortement) puis relancer `--apply` : l'upsert ne réécrira que les lignes changées.

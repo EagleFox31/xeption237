@@ -19,6 +19,7 @@
     "db:verify:step2": "node scripts/verify-erp-step2.mjs",
     "db:verify:step4": "node scripts/verify-erp-step4.mjs",
     "db:inventory": "node scripts/db-inventory.mjs",
+    "cash:summary": "node scripts/cash-reports-summary.mjs",
     "db:policies-export": "node scripts/export-policies-registry.mjs && node scripts/generate-policies-registry-md.mjs",
     "db:apply:order-fix": "node scripts/apply-migration.mjs supabase/migrations/20260611_002_fix_create_order_atomic_date.sql",
     "db:introspect": "node scripts/db-introspect.mjs",

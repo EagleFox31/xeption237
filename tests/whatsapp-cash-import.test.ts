@@ -53,6 +53,8 @@ const STORES = [
   { id: 's-test', code: 'TESTVILLE', name: 'Testville Mall' },
   { id: 's-demo', code: 'DEMOVILLE', name: 'Démoville' },
   { id: 's-hq', code: 'SIEGE', name: 'Xeption — Siège' },
+  // Seconde caisse d'un même centre : reconnue par son numéro, sans partager le nom du centre.
+  { id: 's-test2', code: 'TV1092', name: 'TV 1092' },
 ];
 const STAFF = [
   { id: 'u1', name: 'Alice Test', store_id: 's-test' },
@@ -159,6 +161,11 @@ describe('createStoreResolver', () => {
     expect(resolver.resolveStore({ store_hint: 'Boutique', operators: ['Carol Demo'] }, 'x')).toMatchObject({ method: 'operators', store: { code: 'DEMOVILLE' } });
     expect(resolver.resolveStore({ store_hint: null, operators: ['Inconnu'] }, 'Dan Inconnu')).toMatchObject({ method: 'author', store: { code: 'DEMOVILLE' } });
     expect(resolver.resolveStore({ store_hint: null, operators: [] }, 'x')).toEqual({ store: null, method: null });
+  });
+
+  it('tells two cash desks of the same centre apart by the number in the store line', () => {
+    expect(resolver.resolveStore({ store_hint: 'Boutique TV 1092', operators: ['Alice Test'] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'TV1092' } });
+    expect(resolver.resolveStore({ store_hint: 'Boutique testville mall', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'TESTVILLE' } });
   });
 
   it('never matches the head office on generic words and needs a unique seller', () => {

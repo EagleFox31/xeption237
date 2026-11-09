@@ -64,3 +64,15 @@
   Résolus tous deux sur MFOUNDI (opérateurs/auteur). Décision attendue : créer une boutique « MF 1092 » dans `stores`
   (le resolver la reconnaîtra par le token « 1092 ») puis relancer le dry-run, sinon laisser ces jours de côté.
 - Quelques totaux d'entrées aberrants (> 10 M) dans ces rapports = lignes mal lues, déjà signalées `inflow_total_mismatch`, à revoir dans le CSV.
+
+## 2026-11-09 09:41 — Boutique MF 1092 : migration écrite, à appliquer par Anjl
+
+- Décision Anjl : créer la seconde caisse du Mfoundi Mall dans `stores`. Migration
+  `supabase/migrations/20261109_002_store_mf_1092.sql` (code `MF1092`, nom « MF 1092 », idempotente).
+  Le nom ne contient pas « Mfoundi » : sinon la ligne « Boutique mfoundi mall » deviendrait ambiguë
+  pour le resolver (deux boutiques touchées → aucune). Test ajouté (`tests/whatsapp-cash-import.test.ts`, 11 verts).
+- **Non appliquée** : `db:apply` refusé en mode auto (écriture prod). Anjl l'applique, puis relance le dry-run,
+  puis `--apply`, puis un second `--apply` (doit écrire 0 ligne).
+- Simulation sur le dernier JSON de revue : les 36 `conflict` se répartissent MF1092 18 / MFOUNDI 16 / OLEMBE 2.
+  Restent en double le même jour : OLEMBE 2026-06-23 (vrai conflit, laissé de côté), MFOUNDI 2026-10-30 et
+  2026-11-04, MF1092 2026-10-30 (même auteur → la déduplication normale tranchera au dry-run).

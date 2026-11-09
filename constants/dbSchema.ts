@@ -103,6 +103,8 @@ export const DB_SCHEMA = {
         PAYMENT_STATUS: 'payment_status',
         PAID_AT: 'paid_at',
         DISCOUNT_AMOUNT: 'discount_amount',
+        UNREACHABLE_COUNT: 'unreachable_count',
+        LAST_UNREACHABLE_AT: 'last_unreachable_at',
     },
     ORDER_PAYMENTS: {
         ID: 'id',

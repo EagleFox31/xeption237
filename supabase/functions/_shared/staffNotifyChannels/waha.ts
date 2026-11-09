@@ -18,12 +18,29 @@ import {extractNotificationFacts} from '../staffNotifyFacts.ts';
 
 export const WAHA_DEFAULT_EVENT_TYPES = [
   'order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report',
-  'debt_overdue'
+  'debt_overdue','order_delivered','order_cancelled','order_unreachable','order_stale'
 ];
+
+/**
+ * Staff events deliberately NOT relayed to WhatsApp (no alias). Every DEFAULT_STAFF_EVENT_TYPES
+ * entry must be either aliased below or listed here, with its reason (tests/waha-notify-channel).
+ */
+export const WAHA_EXCLUDED_EVENT_TYPES: Record<string,string> = {
+  troc_completed:'Telegram only: back-office follow-up of a trade-in already handled',
+  troc_refused:'Telegram only: back-office follow-up of a trade-in already handled',
+  pos_sale:'Counter sale: the seller is present, a group message would be noise',
+  stock_correction:'Internal stock audit trail, not an operational alert',
+  troc_stale:'Not yet in Trigenys Notify ALLOWED_TYPES (barter.stale): add both sides together',
+  daily_digest:'Multi-line digest format, Telegram only for now'
+};
 
 export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
   order_created:'order.created',
   order_paid:'order.paid',
+  order_delivered:'order.delivered',
+  order_cancelled:'order.cancelled',
+  order_unreachable:'order.unreachable',
+  order_stale:'order.stale',
   stock_low:'inventory.stock_low',
   stock_out:'inventory.stock_out',
   product_missing_image:'catalog.product_missing_image',
@@ -75,7 +92,8 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
     version:1,project:'xeption',id:n.notification_id,type,
     occurredAt:new Date(n.created_at).toISOString(),
     priority:n.event_type==='stock_out'||n.event_type==='order_created'?'critical':
-      n.event_type==='stock_low'||n.event_type==='troc_submitted'||n.event_type==='store_cash_report'||n.event_type==='voucher_expiring'||n.event_type==='order_paid'?'high':'normal',
+      n.event_type==='stock_low'||n.event_type==='troc_submitted'||n.event_type==='store_cash_report'||n.event_type==='voucher_expiring'||n.event_type==='order_paid'||
+      n.event_type==='order_stale'||n.event_type==='order_unreachable'?'high':'normal',
     resource:{kind,id:resourceId},
     audience:'staff',
     ...(facts?{facts}:{}),

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_STAFF_EVENT_TYPES,
+  eventIcon,
   formatPlainNotification,
   notificationLink,
   parseEventTypes,
@@ -146,5 +147,41 @@ describe('adaptateur Telegram', () => {
     expect(formatTelegramNotification(debt)).toBe(
       '📋 <b>DETTES EN ATTENTE — BASTOS</b>\n\n📱 <b><u>2 dette(s) de plus de 7 j</u></b>\n▫️ 90 000 FCFA restants',
     );
+  });
+});
+
+describe('suivi de commande (20261110_001)', () => {
+  const outcome = (event_type: string, message: string): StaffNotification => ({
+    notification_id: `n_${event_type}`,
+    event_type,
+    title: 'Commande',
+    message,
+    link_to_tab: 'orders',
+    link_to_id: 'ORD-3MR8-G6XF',
+  });
+
+  it('relaie les 4 événements par défaut, chacun avec son icône', () => {
+    const types = ['order_delivered', 'order_cancelled', 'order_unreachable', 'order_stale'];
+    for (const t of types) {
+      expect(DEFAULT_STAFF_EVENT_TYPES).toContain(t);
+      expect(eventIcon(t)).not.toBe('🔔');
+    }
+    expect(new Set(types.map(eventIcon)).size).toBe(4);
+  });
+
+  it('ouvre la fiche de la commande concernée', () => {
+    const link = notificationLink(outcome('order_stale', '#ORD-3MR8-G6XF — 90 000 FCFA — en attente depuis 49 h'), ctx);
+    expect(link.url).toBe('https://www.xeptionetwork.shop/admin/orders/ORD-3MR8-G6XF');
+  });
+
+  it('formate une annulation avec motif et auteur sur Telegram', () => {
+    const out = formatTelegramNotification({
+      ...outcome('order_cancelled', '#ORD-3MR8-G6XF — 90 000 FCFA — Motif : Client injoignable — Par : Awa'),
+      title: 'Commande annulée',
+    });
+    expect(out).toContain('❌ <b>COMMANDE ANNULÉE</b>');
+    expect(out).toContain('#ORD-3MR8-G6XF');
+    expect(out).toContain('Motif : Client injoignable');
+    expect(out).toContain('Awa');
   });
 });

@@ -49,6 +49,8 @@ export const useAdminData = (addNotification?: (n: AdminNotification) => void) =
                     discountReason: linkedTroc?.ref ? `Bon Smart Troc ${linkedTroc.ref}` : undefined,
                     staffId: o[DB_SCHEMA.ORDERS.STAFF_ID] ?? undefined,
                     storeId: o[DB_SCHEMA.ORDERS.STORE_ID] ?? undefined,
+                    unreachableCount: Number(o[DB_SCHEMA.ORDERS.UNREACHABLE_COUNT] ?? 0),
+                    lastUnreachableAt: o[DB_SCHEMA.ORDERS.LAST_UNREACHABLE_AT] ?? null,
                     customerName: o[DB_SCHEMA.ORDERS.CUSTOMER_NAME],
                     customerEmail: o[DB_SCHEMA.ORDERS.CUSTOMER_EMAIL],
                     customerPhone: o[DB_SCHEMA.ORDERS.CUSTOMER_PHONE],

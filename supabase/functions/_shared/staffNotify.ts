@@ -56,6 +56,10 @@ export const DEFAULT_STAFF_EVENT_TYPES = [
   'voucher_expiring',
   'debt_overdue',
   'daily_digest',
+  'order_delivered',
+  'order_cancelled',
+  'order_unreachable',
+  'order_stale',
 ] as const;
 
 /** Bilan journalier par boutique (notify_daily_digest, pg_cron) : format dédié multi-lignes. */
@@ -78,6 +82,10 @@ const EVENT_ICONS: Record<string, string> = {
   voucher_expiring: '⏳',
   debt_overdue: '📋',
   daily_digest: '📅',
+  order_delivered: '✅',
+  order_cancelled: '❌',
+  order_unreachable: '📵',
+  order_stale: '⏰',
 };
 const DEFAULT_ICON = '🔔';
 

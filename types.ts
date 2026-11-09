@@ -126,6 +126,9 @@ export interface Order {
   createdAt?: string;
   staffId?: string;
   storeId?: string;
+  /** Tentatives de contact sans réponse (mark_order_unreachable). */
+  unreachableCount?: number;
+  lastUnreachableAt?: string | null;
   /** Vente enregistrée localement, en attente de synchronisation serveur. */
   queuedLocally?: boolean;
 }

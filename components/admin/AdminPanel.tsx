@@ -204,7 +204,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
       const targetOrder = data.orders.find((o) => o.id === orderId);
       if (targetOrder && (targetOrder.status === 'shipped' || targetOrder.status === 'ready')) {
         try {
-          await ordersMgr.updateStatus(orderId, 'delivered');
+          await ordersMgr.updateStatus(orderId, 'delivered', targetOrder.status);
         } catch (err) {
           console.error('Erreur clôture commande après encaissement:', err);
         }
@@ -361,11 +361,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
   }, [activeTab, currentStaffSession.staff?.id, salesTargets.fetchProgress]);
 
   // Orders
-  const onCancelOrder = (order: Order) =>
+  const onCancelOrder = (order: Order, reason?: string) =>
     confirm.danger(
       'Annuler la commande',
-      `Confirmer l’annulation de #${order.id} ? Les réservations stock seront libérées si la commande est encore en attente.`,
-      () => ordersMgr.cancelOrder(order),
+      `Confirmer l’annulation de #${order.id}${reason ? ` (motif : ${reason})` : ''} ? Les réservations stock seront libérées si la commande est encore en attente.`,
+      () => ordersMgr.cancelOrder(order, reason),
     );
 
   // Categories & Staff
@@ -590,6 +590,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                         orders={data.orders}
                         onUpdateStatus={ordersMgr.updateStatus}
                         onCancelOrder={onCancelOrder}
+                        onMarkUnreachable={ordersMgr.markUnreachable}
                         onCollectPayment={(order) => {
                           orderPayment.resetPaymentUi();
                           setCollectingOrder(order);

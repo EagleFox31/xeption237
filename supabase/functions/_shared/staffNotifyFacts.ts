@@ -62,6 +62,17 @@ export const extractNotificationFacts=(n:StaffNotification):Record<string,unknow
     if(ch)facts.paymentChannel=ch;
     const st=label(parts[2],80);
     if(st)facts.paymentStatus=st;
+  }else if(n.event_type==='order_delivered'||n.event_type==='order_cancelled'||
+    n.event_type==='order_unreachable'||n.event_type==='order_stale'){
+    // SQL format (20261110_001): « #id — N FCFA [— Motif : X | — tentative n°N | — en attente depuis N h [— injoignable ×N]] ».
+    const total=parts.map(s=>s.match(/^([\d\s  .,]+)\s*FCFA$/i)).find(Boolean);
+    if(total){const t=money(total[1]);if(t!==undefined)facts.orderTotalXaf=t;}
+    const reason=label(parts.find(s=>s.startsWith('Motif : '))?.slice('Motif : '.length),80);
+    if(reason)facts.outcomeReason=reason;
+    const attempt=parts.map(s=>s.match(/^(?:tentative n°|injoignable ×)(\d{1,3})$/i)).find(Boolean);
+    if(attempt)facts.attemptCount=Number(attempt[1]);
+    const waiting=parts.map(s=>s.match(/^en attente depuis (\d{1,5}) h$/i)).find(Boolean);
+    if(waiting)facts.waitingHours=Number(waiting[1]);
   }else if(n.event_type==='marketplace_listed'){
     const specification=parts.find(s=>/^\d{1,4} Go(?: \/ \d{1,4} Go)?$/.test(s));
     if(specification)facts.specification=specification;

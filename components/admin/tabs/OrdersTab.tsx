@@ -10,6 +10,7 @@ import {
   getInvoiceHint,
   getOrderActionHint,
   getOrderStatusLabel,
+  planDeliveredSteps,
   SALES_PAGE_HINT,
 } from '../../../utils/orderWorkflow';
 import { Eye, Printer, Download, CreditCard } from 'lucide-react';
@@ -18,6 +19,7 @@ import OrderCollectPaymentModal from '../modals/OrderCollectPaymentModal';
 import TableShell from '../shared/TableShell';
 import { adminUi } from '../shared/adminUi';
 import type { OrderPaymentUiState } from '../../../hooks/admin/useOrderPayment';
+import type { MarkUnreachableResult } from '../../../hooks/admin/useOrdersManager';
 import { useDueFeedbackInvites } from '../../../hooks/useDueFeedbackInvites';
 import OrderFeedbackInviteButton from '../OrderFeedbackInviteButton';
 
@@ -26,8 +28,11 @@ type OrderSort = 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc' | 'custom
 
 interface OrdersTabProps {
   orders: Order[];
-  onUpdateStatus: (id: string, status: Order['status']) => void;
-  onCancelOrder: (order: Order) => void;
+  /** `from` : statut connu quand plusieurs étapes s'enchaînent avant le re-rendu. */
+  onUpdateStatus: (id: string, status: Order['status'], from?: Order['status']) => void | Promise<void>;
+  onCancelOrder: (order: Order, reason?: string) => void;
+  /** Tentative de contact sans réponse (fiche commande). Absent : bouton masqué. */
+  onMarkUnreachable?: (orderId: string) => Promise<MarkUnreachableResult>;
   onCollectPayment: (order: Order) => void;
   paymentUiState: OrderPaymentUiState;
   paymentError: string | null;
@@ -115,6 +120,7 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
   orders,
   onUpdateStatus,
   onCancelOrder,
+  onMarkUnreachable,
   onCollectPayment,
   paymentUiState,
   paymentError,
@@ -126,17 +132,31 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
   focusRequestId,
   onFocusHandled,
 }) => {
-  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  // On garde l'id, pas un instantané : la fiche suit les changements de statut
+  // (Livrée, Annulée, tentatives) sans être fermée puis rouverte.
+  const [viewingOrderId, setViewingOrderId] = useState<string | null>(null);
+  const viewingOrder = useMemo(
+    () => (viewingOrderId ? orders.find((o) => o.id === viewingOrderId) ?? null : null),
+    [orders, viewingOrderId],
+  );
 
   // Lien direct /admin/orders/<id> (alerte WhatsApp/Telegram) : ouvre la fiche une fois les commandes chargées.
   useEffect(() => {
     if (!focusRequestId || orders.length === 0) return;
     const target = orders.find((o) => o.id === focusRequestId);
-    if (target) setViewingOrder(target);
+    if (target) setViewingOrderId(target.id);
     else notifyInfo('Commande introuvable', 'Actualise la liste ou vérifie le lien.');
     onFocusHandled?.();
   }, [focusRequestId, orders]);
+  // Une seule instance : la fiche reçoit les invitations en props (pas de 2e appel RPC).
   const { invites: dueInvites, refresh: refreshInvites, markSent } = useDueFeedbackInvites();
+
+  // Fiche d'une commande livrée (encaissement terminé ou lien direct) : les invitations
+  // d'avis viennent du trigger trg_orders_feedback_invites, on relit la liste.
+  const viewingDelivered = viewingOrder?.status === 'delivered';
+  useEffect(() => {
+    if (viewingDelivered) void refreshInvites();
+  }, [viewingOrderId, viewingDelivered, refreshInvites]);
   const [filter, setFilter] = useState<OrderFilter>('all');
   const [sort, setSort] = useState<OrderSort>('date-desc');
   const [search, setSearch] = useState('');
@@ -198,10 +218,24 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
       onCollectPayment(o);
       return;
     }
-    onUpdateStatus(o.id, 'delivered');
+    void onUpdateStatus(o.id, 'delivered', o.status);
     window.setTimeout(() => {
       void refreshInvites();
     }, 400);
+  };
+
+  /**
+   * « Livrée » depuis la fiche : enchaîne les étapes intermédiaires (validation,
+   * expédition ou préparation) puis passe par l'encaissement habituel, seul chemin
+   * vers delivered. Les erreurs remontent à la fiche qui les affiche.
+   */
+  const handleMarkDelivered = async (o: Order) => {
+    let current = o;
+    for (const step of planDeliveredSteps(o)) {
+      await onUpdateStatus(o.id, step, current.status);
+      current = { ...current, status: step };
+    }
+    handleComplete(current);
   };
 
   const handlePrint = async (order: Order) => {
@@ -227,7 +261,7 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
     <div className="flex items-center justify-end gap-1.5 flex-wrap">
                         <button
                           type="button"
-                          onClick={() => setViewingOrder(o)}
+                          onClick={() => setViewingOrderId(o.id)}
                           className="p-2 bg-white/5 hover:bg-white/20 text-white rounded transition-colors"
                           title="Voir détails"
                         >
@@ -544,7 +578,17 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
       </div>
 
       {viewingOrder && (
-        <OrderDetailModal order={viewingOrder} onClose={() => setViewingOrder(null)} />
+        <OrderDetailModal
+          order={viewingOrder}
+          onClose={() => setViewingOrderId(null)}
+          feedbackInvites={dueInvites}
+          onFeedbackSent={markSent}
+          outcome={{
+            onMarkDelivered: handleMarkDelivered,
+            onCancel: onCancelOrder,
+            onMarkUnreachable,
+          }}
+        />
       )}
 
       {collectingOrder && (

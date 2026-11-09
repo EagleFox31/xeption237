@@ -34,6 +34,34 @@ export const BACKFILL_SOURCE = 'whatsapp_backfill';
 const REVIEW_JSON = 'whatsapp-cash-reports.json';
 const REVIEW_CSV = 'whatsapp-cash-reports-review.csv';
 
+// Déclaré avant le flux principal (await au niveau module) : une constante déclarée plus bas
+// serait encore en zone morte temporelle au moment de l'import.
+const UPSERT_SQL = `
+insert into public.store_cash_reports
+  (store_id, report_date, operators, opening_cash, closing_cash, total_inflow, total_outflow,
+   inflow_items, outflow_items, debts_snapshot, observations, source, source_ref)
+values ($1, $2::date, $3::text[], $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11, $12, $13)
+on conflict (store_id, report_date) do update set
+  operators = excluded.operators,
+  opening_cash = excluded.opening_cash,
+  closing_cash = excluded.closing_cash,
+  total_inflow = excluded.total_inflow,
+  total_outflow = excluded.total_outflow,
+  inflow_items = excluded.inflow_items,
+  outflow_items = excluded.outflow_items,
+  debts_snapshot = excluded.debts_snapshot,
+  observations = excluded.observations,
+  source_ref = excluded.source_ref,
+  updated_at = now()
+where store_cash_reports.source = excluded.source
+  and (store_cash_reports.operators, store_cash_reports.opening_cash, store_cash_reports.closing_cash,
+       store_cash_reports.total_inflow, store_cash_reports.total_outflow, store_cash_reports.inflow_items,
+       store_cash_reports.outflow_items, store_cash_reports.debts_snapshot, store_cash_reports.observations)
+      is distinct from
+      (excluded.operators, excluded.opening_cash, excluded.closing_cash, excluded.total_inflow,
+       excluded.total_outflow, excluded.inflow_items, excluded.outflow_items, excluded.debts_snapshot, excluded.observations)
+returning (xmax = 0) as inserted`;
+
 const args = process.argv.slice(2);
 const inputPath = args.find((a) => !a.startsWith('--'));
 const flag = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
@@ -207,31 +235,6 @@ async function ensureSourceColumn(client) {
   }
 }
 
-const UPSERT_SQL = `
-insert into public.store_cash_reports
-  (store_id, report_date, operators, opening_cash, closing_cash, total_inflow, total_outflow,
-   inflow_items, outflow_items, debts_snapshot, observations, source, source_ref)
-values ($1, $2::date, $3::text[], $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11, $12, $13)
-on conflict (store_id, report_date) do update set
-  operators = excluded.operators,
-  opening_cash = excluded.opening_cash,
-  closing_cash = excluded.closing_cash,
-  total_inflow = excluded.total_inflow,
-  total_outflow = excluded.total_outflow,
-  inflow_items = excluded.inflow_items,
-  outflow_items = excluded.outflow_items,
-  debts_snapshot = excluded.debts_snapshot,
-  observations = excluded.observations,
-  source_ref = excluded.source_ref,
-  updated_at = now()
-where store_cash_reports.source = excluded.source
-  and (store_cash_reports.operators, store_cash_reports.opening_cash, store_cash_reports.closing_cash,
-       store_cash_reports.total_inflow, store_cash_reports.total_outflow, store_cash_reports.inflow_items,
-       store_cash_reports.outflow_items, store_cash_reports.debts_snapshot, store_cash_reports.observations)
-      is distinct from
-      (excluded.operators, excluded.opening_cash, excluded.closing_cash, excluded.total_inflow,
-       excluded.total_outflow, excluded.inflow_items, excluded.outflow_items, excluded.debts_snapshot, excluded.observations)
-returning (xmax = 0) as inserted`;
 
 async function upsertReports(client, ready) {
   const counts = { inserted: 0, updated: 0, unchanged: 0, protected: 0 };

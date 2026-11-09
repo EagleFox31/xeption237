@@ -76,3 +76,12 @@
 - Simulation sur le dernier JSON de revue : les 36 `conflict` se répartissent MF1092 18 / MFOUNDI 16 / OLEMBE 2.
   Restent en double le même jour : OLEMBE 2026-06-23 (vrai conflit, laissé de côté), MFOUNDI 2026-10-30 et
   2026-11-04, MF1092 2026-10-30 (même auteur → la déduplication normale tranchera au dry-run).
+
+## 2026-11-09 09:50 — MF 1092 appliquée, dry-run OK, bug TDZ corrigé, `--apply` à relancer
+
+- Anjl a appliqué `20261109_002_store_mf_1092.sql`. Dry-run : 326 rapports, MF1092 19 j / MFOUNDI 139 j /
+  OLEMBE 145 j, ready=303, superseded=19, **conflict=4** (était 36).
+- Premier `--apply` planté : `UPSERT_SQL` déclaré après le flux module-level (TDZ). Corrigé (constante
+  remontée), `node --check` + 11 tests verts, dry-run identique. Entrée ERRORS_LOG ajoutée.
+- `--apply` non relancé par la session (écriture prod refusée en mode auto) : Anjl relance deux fois,
+  la seconde doit donner `0 créés, 0 mis à jour`.

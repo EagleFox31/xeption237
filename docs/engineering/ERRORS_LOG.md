@@ -644,3 +644,15 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : zéro reconnu seulement après `:`/`=` ou en début de ligne (`[:=]\s*0+…$`). Tests synthétiques « Total sortie : 17 000F » / « Entrée totale = 0 F » dans `tests/whatsapp-cash-import.test.ts`.
 
 **Comment ne plus la refaire** : un dry-run avec compteurs d'avertissements avant/après chaque retouche de regex (ici le saut de 151 → 205 a tout de suite trahi la régression) ; ne jamais fusionner une retouche de parseur qui augmente un compteur d'incohérence sans l'expliquer.
+
+## 2026-11-09 — Import WhatsApp `--apply` : `ReferenceError: Cannot access 'UPSERT_SQL' before initialization`
+
+- **Symptôme** : le dry-run passe, le premier `--apply` plante au premier upsert (`scripts/import-whatsapp-cash-reports.mjs`).
+- **Cause racine** : script en module ESM avec un flux principal en `await` au niveau module, placé *avant*
+  la déclaration `const UPSERT_SQL`. Les fonctions sont hissées, pas les `const` : la constante était encore
+  en zone morte temporelle quand `upsertReports` l'a lue. Le dry-run ne la touche jamais, d'où un bug
+  invisible tant qu'on n'écrit pas.
+- **Résolution** : constante déplacée avant le flux principal, avec un commentaire sur le pourquoi.
+- **Prévention** : dans un script à flux module-level, déclarer toutes les constantes avant le premier `await`
+  (ou envelopper le flux dans `main()` appelé en fin de fichier). Le chemin `--apply` doit être exercé au
+  moins une fois hors prod (test avec client mocké) avant livraison : un dry-run vert ne couvre pas l'upsert.

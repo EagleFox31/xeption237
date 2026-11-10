@@ -704,3 +704,16 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : `orders: 'Ouvrir la commande'` ajouté à `ITEM_LINK_LABELS` ; `OrdersTab` reçoit `focusRequestId`/`onFocusHandled` (même contrat que `TrocTab`), ouvre la fiche ciblée, ou affiche « Commande introuvable », puis l'URL revient à `/admin/orders`. Les alertes déjà envoyées gardent l'ancien lien.
 
 **Comment ne plus la refaire** : `tests/components/OrdersTab.deeplink.test.tsx` (URL avec id, ouverture de la fiche, id inconnu) et `tests/order-paid-notification.test.ts` (actionUrl). Leçon : ajouter un onglet à `ITEM_LINK_LABELS` exige que l'onglet consomme `focusRequestId`, et inversement ; tester les deux bouts du lien.
+
+## 2026-11-10 — Bilan Telegram : dettes de test affichées, dettes réelles ignorées
+
+- **Symptôme** : la ligne « Dettes en cours » du bilan journalier montrait les 3 dettes de test saisies via le bot
+  sur le siège, alors que 35 dettes réelles venaient d'être importées depuis les rapports WhatsApp.
+- **Cause racine** : deux sources pour une même notion. `notify_daily_digest` lisait `store_debts` (bot) ; l'import
+  WhatsApp écrit dans `store_cash_reports.debts_snapshot`. Le digest a été conçu avant l'import, sans revoir la
+  source quand une seconde est apparue.
+- **Résolution** : purge des 3 lignes de test (autorisation Anjl) + migration `20261110_001` : `store_debts`
+  prime, sinon repli sur le `debts_snapshot` du dernier rapport, date du rapport affichée.
+- **Prévention** : tout nouvel import ou nouvelle table qui porte une notion déjà notifiée (dettes, caisse, ventes)
+  → relire `docs/engineering/NOTIFICATIONS.md` et lister les fonctions SQL qui lisent l'ancienne source
+  (`grep -l "<table>" supabase/migrations/*.sql`) ; tests de contenu sur la migration de repli.

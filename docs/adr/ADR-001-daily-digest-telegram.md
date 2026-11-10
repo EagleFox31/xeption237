@@ -68,3 +68,11 @@ select public.notify_daily_digest();          -- renvoie 0 : rien d'inséré
 select dedup_key, title from public.admin_notifications
  where event_type = 'daily_digest' order by created_at desc limit 5;
 ```
+
+## Amendement 2026-11-10 — source des dettes
+
+`notify_daily_digest` lisait uniquement `store_debts` (bot caisse). Les dettes des rapports WhatsApp importés
+(`store_cash_reports.debts_snapshot`) n'apparaissaient donc pas. Migration `20261110_001` : par boutique,
+`store_debts` prime ; sans dette ouverte, repli sur le `debts_snapshot` (reste > 0) du dernier rapport daté
+`<= jour`, avec la date du rapport dans la ligne. Pas de cumul des deux sources (évite les doublons au
+prochain import). Alternative écartée : recopier le snapshot dans `store_debts` (doublons à chaque import).

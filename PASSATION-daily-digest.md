@@ -174,3 +174,14 @@
   dernier rapport quand un magasin n'a aucune dette ouverte dans `store_debts` (à annoncer dans
   `docs/engineering/NOTIFICATIONS.md`) ; (3) backfill de `store_debts` depuis le snapshot (déconseillé :
   doublons au prochain import). Recommandation : 1 + 2.
+
+## 2026-11-10 21:32 — Purge des dettes de test + migration de repli snapshot (choix Anjl)
+
+- Prod : 3 lignes `store_debts` du siège supprimées (aucune table ne les référence) → table vide.
+- Nouvelle migration `supabase/migrations/20261110_001_daily_digest_debts_snapshot_fallback.sql` (NON appliquée,
+  Anjl applique via `npm run db:apply -- supabase/migrations/20261110_001_daily_digest_debts_snapshot_fallback.sql`) :
+  dettes = `store_debts` ouvertes, sinon `debts_snapshot` (reste > 0) du dernier rapport <= jour, avec
+  « (rapport du JJ/MM) ». Tests `tests/notify-daily-digest.test.ts` 25/25 ; doc NOTIFICATIONS.md + ADR-001 amendé ;
+  ERRORS_LOG.
+- Tant que la migration n'est pas appliquée, le bilan de ce soir affichera « Dettes en cours : aucune ».
+- Branche locale en avance sur origin/main (pas de push sans accord).

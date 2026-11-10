@@ -197,3 +197,11 @@
 - `--apply` refusé par le classifieur (écriture prod) → demander « j'autorise » à Anjl, puis second passage
   (0 écriture attendu) et `npm run cash:summary`.
 - Toujours à faire par Anjl : appliquer la migration `20261110_001` (repli dettes) ; push non fait.
+
+## 2026-11-11 00:04 — Import WhatsApp jusqu'au 10/11 appliqué (autorisation Anjl)
+
+- `--apply` : 4 créés, 0 mis à jour, 303 inchangés, 0 protégés. Second passage lancé en arrière-plan
+  (0 écriture attendu, résultat dans l'entrée suivante).
+- `cash:summary` : 0 jour suspect. MFOUNDI 141 j, entrées 41,7 M / sorties 38,4 M, dernier solde 493 000 ;
+  OLEMBE 147 j, dernier solde 31 000 ; dettes au dernier rapport MFOUNDI 28 / 4 047 500, OLEMBE 8 / 77 000.
+- Reste pour Anjl : appliquer la migration `20261110_001` (repli dettes), autoriser le push de la branche.

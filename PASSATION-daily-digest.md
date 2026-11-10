@@ -205,3 +205,7 @@
 - `cash:summary` : 0 jour suspect. MFOUNDI 141 j, entrées 41,7 M / sorties 38,4 M, dernier solde 493 000 ;
   OLEMBE 147 j, dernier solde 31 000 ; dettes au dernier rapport MFOUNDI 28 / 4 047 500, OLEMBE 8 / 77 000.
 - Reste pour Anjl : appliquer la migration `20261110_001` (repli dettes), autoriser le push de la branche.
+
+## 2026-11-11 00:09 — Second passage import
+
+- Import : 0 créés, 0 mis à jour, 307 inchangés, 0 protégés (saisie bot, non écrasés). → idempotent confirmé.

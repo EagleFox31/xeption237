@@ -185,3 +185,15 @@
   ERRORS_LOG.
 - Tant que la migration n'est pas appliquée, le bilan de ce soir affichera « Dettes en cours : aucune ».
 - Branche locale en avance sur origin/main (pas de push sans accord).
+
+## 2026-11-10 23:54 — Nouvel export WhatsApp (jusqu'au 10/11) : dry-run OK, apply en attente d'autorisation
+
+- Zip Anjl : `~/Downloads/Discussion WhatsApp avec Administration XEPTION.zip`, extrait dans le scratchpad
+  (`wa-export-20261110/`, chemin du .txt dans `path.txt`, revue dans `review/`).
+- Dry-run : 330 rapports, ready=307 (+4 vs dernier apply : MFOUNDI 09 et 10/11, OLEMBE 09 et 10/11), mêmes
+  4 conflits. Les 4 nouveaux jours sont cohérents (entrées/sorties = totaux déclarés, soldes chaînés) ;
+  OLEMBE 10/11 : total sorties déclaré 100 vs 1 000 calculé (coquille du rapport, solde cohérent).
+  MFOUNDI 10/11 : 28 dettes, reste 4 047 500 (le `debt_line_unparsed` est le même cas que le 06/11).
+- `--apply` refusé par le classifieur (écriture prod) → demander « j'autorise » à Anjl, puis second passage
+  (0 écriture attendu) et `npm run cash:summary`.
+- Toujours à faire par Anjl : appliquer la migration `20261110_001` (repli dettes) ; push non fait.

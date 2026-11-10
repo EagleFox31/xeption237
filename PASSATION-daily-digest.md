@@ -161,3 +161,16 @@
   MF1092 1,8 M / 3,1 M ; dettes restantes 4,08 M + 77 k.
 - Tout est sur `origin/main`. Reste : vérifier le premier bilan Telegram à 20 h Douala ; revoir les
   4 conflits du CSV de revue (OLEMBE 23/06, MFOUNDI 30/10 et 04/11) si besoin.
+
+## 2026-11-10 20:05 — Dettes de test dans le bilan Telegram (diagnostic, rien modifié)
+
+- Anjl signale que le bilan affiche encore ses dettes de test. Cause : `notify_daily_digest` lit
+  `public.store_debts` (statuts active/partial) = table de travail du bot, où ne restent que
+  3 lignes de test sur `siege` (créées le 23/10, reste 330 000). Les dettes réelles importées depuis
+  WhatsApp sont dans `store_cash_reports.debts_snapshot` du dernier rapport (MFOUNDI 27 lignes /
+  4 082 500, OLEMBE 8 / 77 000) et ne sont lues que par `cash:summary`.
+- Options proposées à Anjl (aucune appliquée) : (1) supprimer les 3 lignes de test de `store_debts`
+  (écriture prod, autorisation requise) ; (2) NOUVELLE migration : repli sur le `debts_snapshot` du
+  dernier rapport quand un magasin n'a aucune dette ouverte dans `store_debts` (à annoncer dans
+  `docs/engineering/NOTIFICATIONS.md`) ; (3) backfill de `store_debts` depuis le snapshot (déconseillé :
+  doublons au prochain import). Recommandation : 1 + 2.

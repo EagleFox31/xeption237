@@ -152,3 +152,13 @@ Verrou inchangé : ajout du numéro WAHA au groupe « administration xeption » 
 
 La session est réveillée sur commentaires de revue / conflits de la PR #52. Rien d'autre à faire côté code ;
 verrou inchangé (numéro WAHA à ajouter au groupe caisse, puis `--apply --group=<id>@g.us`).
+
+## 2026-11-11 10:38 — Numéro ajouté au groupe caisse ; écoute restreinte à « Administration XEPTION »
+
+Le boss a ajouté le numéro WAHA au groupe. Id relevé via `GET /api/trigenys-test/groups` : `120363412648458199@g.us`
+(« Administration XEPTION », 8 membres). `npm run deploy:whatsapp-cash -- --apply --group=120363412648458199@g.us`
+→ seule action : secret `WHATSAPP_CASH_GROUP_IDS` créé ; migration, HMAC, fonction, webhook WAHA en no-op.
+Le groupe de test « Xeption app test » n'est donc plus écouté (répondu `ignored / group_not_allowed`).
+**Prochaine étape** : attendre la clôture du soir (rapports réels) puis
+`select source, count(*) from store_cash_reports group by 1` → lignes `whatsapp_live` ; roadmap : alerte 21 h
+si une boutique n'a rien posté. PR #52 ouverte, auto-fix activé.

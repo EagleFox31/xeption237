@@ -312,3 +312,11 @@
 ## 2026-11-11 15:20 — Plan de retrait du siège reçu, recadré sur MF1092
 
 - Session Siège : option A (migration 20261111_004 : transfert stock 217 lignes / 2 634 unités + 1 réservation, bascule is_default, siege inactif « Ancien siège (archivé) », fallbacks SQL via _default_store_id(), bot Telegram « siege » en dur à corriger + redéploiement telegram-bot-entry). Recadrée : cible MF1092 et non MFOUNDI. Note partagée : retrait-magasin-siege.md. En attente du « J autorise » du user.
+
+## 2026-11-11 15:26 — Retrait du siège autorisé, session coupée par la limite de modèle
+
+- User : « J autorise » l option A vers MF1092, transmis à la session Siège (local_98d711d6, worktree sharp-rhodes-803414, branche claude/sharp-rhodes-803414).
+- La session s est arrêtée sur la limite du modèle Fable. Prod intacte (siege toujours is_default avec 217 lignes de stock). Son worktree contient, non commités et non appliqués : supabase/migrations/20261111_005_merge_siege_into_mf1092.sql + modification de telegram-bot-entry/index.ts.
+- Changement de modèle de cette session refusé par le mode auto : le user doit passer la session sur Opus 5.5 dans l app et lui dire de continuer.
+- Réponse au boss envoyée (« Mfoundi-Mall 1092 est le siège », correction du message précédent).
+- Préfixe 20261111_003 en double en prod (cash_movements_and_gap sur PR 52 et store_names_official_points sur main) : versions distinctes dans schema_migrations, donc sans effet sur le suivi ; ne pas renommer (fichiers appliqués figés). À consigner dans ERRORS_LOG.

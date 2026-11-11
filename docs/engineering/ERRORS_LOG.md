@@ -736,3 +736,17 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 - **Prévention** : tout nouvel import ou nouvelle table qui porte une notion déjà notifiée (dettes, caisse, ventes)
   → relire `docs/engineering/NOTIFICATIONS.md` et lister les fonctions SQL qui lisent l'ancienne source
   (`grep -l "<table>" supabase/migrations/*.sql`) ; tests de contenu sur la migration de repli.
+
+## 2026-11-11 — Préfixe de migration 20261111_003 attribué deux fois
+
+- **Symptôme** : deux fichiers `20261111_003_*` appliqués en prod le même jour, l'un sur `main`
+  (`store_names_official_points`), l'autre sur la branche de la PR 52 (`daily_digest_cash_movements_and_gap`).
+  Même incident déjà vu le matin avec `20261111_001`.
+- **Cause racine** : plusieurs sessions parallèles choisissent leur numéro en listant seulement leur propre
+  worktree ; une migration non encore fusionnée dans `main` est invisible pour les autres branches.
+- **Résolution** : aucune modification. `schema_migrations` enregistre le nom de fichier complet, les deux
+  versions sont distinctes et le suivi reste correct. Renommer un fichier appliqué le ferait passer pour
+  « en attente » : les fichiers restent figés.
+- **Prévention** : avant de choisir `NNN`, lister les préfixes du jour en prod (`npm run db:status`) et sur
+  toutes les branches distantes (`git ls-tree --name-only origin/<branche> supabase/migrations/`), puis prendre
+  le maximum + 1. En session parallèle, réserver le numéro dans la note partagée avant d'écrire le fichier.

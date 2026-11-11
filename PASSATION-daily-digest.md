@@ -320,3 +320,9 @@
 - Changement de modèle de cette session refusé par le mode auto : le user doit passer la session sur Opus 5.5 dans l app et lui dire de continuer.
 - Réponse au boss envoyée (« Mfoundi-Mall 1092 est le siège », correction du message précédent).
 - Préfixe 20261111_003 en double en prod (cash_movements_and_gap sur PR 52 et store_names_official_points sur main) : versions distinctes dans schema_migrations, donc sans effet sur le suivi ; ne pas renommer (fichiers appliqués figés). À consigner dans ERRORS_LOG.
+
+## 2026-11-11 18:51 — Siège fusionné dans MF1092 (vérifié en prod)
+
+- Session Siège (branche claude/sharp-rhodes-803414, commit c11f208) : migration 20261111_005_merge_siege_into_mf1092.sql appliquée, telegram-bot-entry redéployé. Vérifié en lecture : MF1092 « Mfoundi-Mall 1092 » is_default, 217 lignes / 2 634 unités ; siege « Ancien siège (archivé) » inactif, stock vide.
+- Non poussé : branche claude/sharp-rhodes-803414 (code en prod hors git, à pousser/fusionner sur accord). Suite proposée par la session : la redistribution du bot vise encore siege.
+- Ici : commit 76ab75b (ERRORS_LOG préfixe en double) + passations non poussés.

@@ -254,3 +254,9 @@
 ## 2026-11-11 07:57 — Partage du bilan
 
 - Bilan artifact partageable via le bouton Partager de claude.ai (privé par défaut). Pour une vue dans l'ERP : carte de session « Page bilan caisse dans l'ERP admin » proposée (lecture directe de store_cash_reports, staff direction).
+
+## 2026-11-11 08:24 — Retours des deux sessions filles
+
+- WhatsApp : commit f2c3244 sur claude/wonderful-haslett-3e2f95 (Edge Function whatsapp-cash-webhook, parseur TS partagé, migration 20261111_001, ADR-002), rien déployé ni poussé.
+- ERP : commit 181580f sur claude/ecstatic-mendel-e0d052 (onglet admin Bilan caisse, 23 tests), migration RLS 20261111_001 non appliquée ; la session attend l'accord d'Anjl.
+- CONFLIT : les deux branches utilisent le préfixe 20261111_001 → renommer l'une en 20261111_002 avant fusion. Rien fusionné ici.

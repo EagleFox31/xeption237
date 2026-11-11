@@ -103,3 +103,9 @@ Message fourni à Anjl pour demander au boss l'ajout du numéro de la session `t
 « Trigenys Group », lu via `GET /api/sessions/trigenys-test` → `me.id`) au groupe « administration xeption ».
 En attente de l'ajout. Ensuite : `GET /api/trigenys-test/groups` pour l'id, puis
 `npm run deploy:whatsapp-cash -- --apply --group=<id>@g.us`, puis rapport de test → ligne `whatsapp_live`.
+
+## 2026-11-11 09:19 — Message envoyé dans le groupe de test via WAHA
+
+À la demande d'Anjl, le message au boss a été posté par la session `trigenys-test` dans le groupe « Xeption app test »
+(`120363432964279423@g.us`, POST `/api/sendText`, HTTP 201). Ce groupe de test est le seul groupe de la session ;
+il peut servir de cible `--group=` pour un test de bout en bout avant l'ajout au vrai groupe caisse.

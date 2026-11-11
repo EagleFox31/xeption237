@@ -119,3 +119,12 @@ webhook est abonné à `message` seulement — comportement voulu en prod (le bo
 messages). Le test valide doit donc être posté par un autre membre du groupe (Anjl, depuis son téléphone).
 Logs WAHA non relus : SSH VPS « Connection reset » après plusieurs connexions rapprochées (anti-bruteforce
 probable) — réessayer plus tard. Aucune ligne de test à nettoyer en base.
+
+## 2026-11-11 10:08 — Webhook livré et répondu 200, mais rapport de test ignoré (boutique « Siège » non résolue)
+
+Anjl a posté le rapport de test depuis son téléphone : WAHA a bien envoyé l'événement `message` à la fonction
+(logs WAHA 09:05 UTC, « POST request was sent with status code: 200 ») → la chaîne WAHA → HMAC → fonction
+fonctionne. Aucune ligne créée car le texte disait « Boutique Siège » : `siege` est dans `GENERIC_STORE_WORDS`
+(storeResolver), donc `store_unresolved` (200 skipped). Vérifié localement : « Siège » → null, « Olembe » → OLEMBE.
+Pas un bug (le siège n'est pas une boutique de vente). Prochaine étape : refaire le test avec « Boutique Olembe »,
+date 01/01/2020, puis supprimer la ligne de test (`source = whatsapp_live`, report_date 2020-01-01).

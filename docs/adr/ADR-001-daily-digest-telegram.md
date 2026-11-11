@@ -27,7 +27,7 @@ Choix de données :
 |---|---|---|
 | Ventes | `orders_reportable` | commandes sans `store_id` rattachées à la boutique `is_default` |
 | Canaux | `order_payments` (`status = 'paid'`) | sinon repli sur `orders.payment_method` |
-| Caisse | `store_cash_reports` (store, date) | clôturée si une ligne existe |
+| Caisse | `store_cash_reports` (store, date) | clôturée si une ligne existe ; depuis `20261111_003` : mouvements (+entrées · −sorties) et « ⚠ Écart de caisse » si ouverture + entrées − sorties ≠ clôture |
 | Dettes | `store_debts` (`active`, `partial`) | nombre + reste à encaisser |
 | Trocs | `trade_in_requests` | statuts ouverts, compteur global (pas de boutique sur un troc) |
 | Objectifs | `sales_targets` (`scope_type = 'store'`) | jour / semaine / mois actifs, CA via `orders_reportable` |

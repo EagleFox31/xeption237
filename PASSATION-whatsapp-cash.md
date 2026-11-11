@@ -189,3 +189,15 @@ OLEMBE ~20 k/j, MF1092 jeune (19 j) et sorties > entrées ; « sortie boss » = 
 70/307 rapports incohérents (ouverture+entrées−sorties ≠ clôture, écarts jusqu'à ~940 k) ; dettes MFOUNDI
 28 lignes / ~4,05 M restants. Pistes non faites : ligne « Entrées/Sorties » et contrôle de cohérence dans
 le digest, alerte si une boutique n'a pas posté.
+
+## 2026-11-11 15:22 — Digest enrichi : mouvements, écart de caisse, variation dettes
+
+Demande user « Oui, enrichir ». Migration `20261111_003_daily_digest_cash_movements_and_gap.sql`
+(CREATE OR REPLACE `notify_daily_digest`, dérivée de `20261110_001`) : quand un rapport du jour existe →
+« Mouvements caisse : +X entrées · −Y sorties » et « ⚠ Écart de caisse : manque/excédent de Z FCFA » si
+ouverture + entrées − sorties ≠ clôture (tolérance `v_cash_gap_tolerance = 0`) ; repli dettes snapshot →
+« (rapport du jj/mm, ±Δ vs précédent) ». Dry-run en prod dans une transaction ROLLBACK sur 10/11 et 26/10 :
+rendu conforme (MF1092 26/10 : excédent 737 000 ; MFOUNDI 10/11 : −25 000 vs précédent). Appliquée en prod,
+vérifiée via pg_get_functiondef. Tests : 29 OK. Docs ADR-001 + NOTIFICATIONS.md. État : cron 22 h Douala,
+PR #52 (auto-fix). Prochaine étape : lire les bilans de ce soir 22 h ; si « excédent de 14 FCFA » type bruit
+gêne, relever `v_cash_gap_tolerance` dans une nouvelle migration.

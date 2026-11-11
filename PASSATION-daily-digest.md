@@ -243,3 +243,10 @@
   (webhook WAHA → Edge Function ou worker VPS, parseur réutilisé, rien déployé sans accord). Alternative
   immédiate sans code : le staff poste le rapport dans le bot Telegram caisse (source `bot`).
 - Toujours à observer : bilan Telegram de 20 h Douala. Commits de passation non poussés.
+
+## 2026-11-11 07:55 — Push et fusion (fast-forward) dans main
+
+- origin/main = 7573f40 (= origin/claude/daily-digest-ca6b98). Prod et git alignés.
+- Session « Ingestion automatique des rapports caisse WhatsApp » démarrée par Anjl (local_0d6f2e42), travaille
+  sur sa propre branche ; elle rendra compte ici.
+- Reste : observer le bilan Telegram de 20 h Douala.

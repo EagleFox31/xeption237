@@ -36,6 +36,8 @@ import {
 
   BarChart3,
 
+  Wallet,
+
 } from 'lucide-react';
 
 
@@ -49,6 +51,8 @@ export const ADMIN_TAB_IDS = [
   'mySales',
 
   'targets',
+
+  'cashReport',
 
   'orders',
 
@@ -189,6 +193,20 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         description: 'Quotas vendeurs et boutiques, seuils de prime et taux d\'atteinte.',
 
         icon: Target,
+
+      },
+
+      {
+
+        id: 'cashReport',
+
+        label: 'Bilan caisse',
+
+        shortLabel: 'Caisse',
+
+        description: 'Entrées, sorties, dettes et couverture des rapports de caisse par boutique.',
+
+        icon: Wallet,
 
       },
 

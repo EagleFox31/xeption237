@@ -285,3 +285,8 @@
 - Format validé par le user : pas d emoji, titres en gras, une donnée par ligne, « | » seulement sur la ligne de synthèse, bloc « À noter » en fin. Modèle de référence : docs/engineering/WHATSAPP_BILAN_FORMAT.txt (chiffres du 11/11, à titre d exemple).
 - Session WhatsApp : digest passé à 22 h Douala, migration 20261111_002 appliquée en prod, PR #52 à jour (a01983e) → conflit de préfixe réglé.
 - Bilan WhatsApp périodique : cadence pas encore choisie, rien lancé.
+
+## 2026-11-11 14:57 — Message du boss : 3 points de vente actuels
+
+- Le boss a posté dans « Xeption app test » la liste des 3 points actuels : Mfoundi-Mall 1038, Mfoundi-Mall 1092, Olembé gare routière.
+- Table stores (prod, lecture seule) : MFOUNDI « Mfoundi Mall », MF1092 « MF 1092 », OLEMBE « Olembe », siege « Xeption — Siège » (is_default, pas un point de vente). Proposition : aligner les 3 libellés name sur ceux du boss (UPDATE prod, sur « J autorise »), codes inchangés ; siège à garder comme entité par défaut ou à désactiver, à trancher.

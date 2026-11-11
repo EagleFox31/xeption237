@@ -59,3 +59,9 @@
 - Preuves : 33 tests unitaires verts (`cashReportStats`, `chartScale`, `cashReportTones`), `vite build` OK,
   `tsc` sans erreur sur les fichiers touchés, 0 mojibake dans le diff.
 - Reste : push, PR, merge si checks verts, contrôle visuel en compte direction.
+
+## 2026-11-11 09:31 — PR #51 fusionnée dans main
+
+- Checks verts (Vercel preview + sync-project), état CLEAN ; fusion par merge commit.
+- Reste : contrôle visuel de la page « Bilan caisse » en compte direction sur le déploiement main
+  (cartes opaques, filtres sur une ligne, couleurs, graphes).

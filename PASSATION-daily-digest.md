@@ -290,3 +290,10 @@
 
 - Le boss a posté dans « Xeption app test » la liste des 3 points actuels : Mfoundi-Mall 1038, Mfoundi-Mall 1092, Olembé gare routière.
 - Table stores (prod, lecture seule) : MFOUNDI « Mfoundi Mall », MF1092 « MF 1092 », OLEMBE « Olembe », siege « Xeption — Siège » (is_default, pas un point de vente). Proposition : aligner les 3 libellés name sur ceux du boss (UPDATE prod, sur « J autorise »), codes inchangés ; siège à garder comme entité par défaut ou à désactiver, à trancher.
+
+## 2026-11-11 15:01 — Boutiques renommées en prod (autorisé)
+
+- Migration 20261111_003_store_names_official_points.sql appliquée via db:apply (UPDATE par code, idempotent) : MFOUNDI → « Mfoundi-Mall 1038 », MF1092 → « Mfoundi-Mall 1092 », OLEMBE → « Olembé gare routière ». Vérifié en base.
+- « siege » (nom de test selon le user) NON désactivé : is_default et porteur du stock principal (217 store_stock, 259 mouvements, 9 commandes). Sa suppression = transfert de stock vers Mfoundi-Mall 1038 + bascule du défaut, à cadrer à part.
+- Réponse envoyée au boss dans « Xeption app test » (noms enregistrés, siège retiré des bilans). À tenir : exclure le siège des bilans tant qu il existe.
+- Préfixes 20261111 : _001 et _002 sur la branche WhatsApp (PR 52), _003 ici.

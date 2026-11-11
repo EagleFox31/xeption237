@@ -297,3 +297,9 @@
 - « siege » (nom de test selon le user) NON désactivé : is_default et porteur du stock principal (217 store_stock, 259 mouvements, 9 commandes). Sa suppression = transfert de stock vers Mfoundi-Mall 1038 + bascule du défaut, à cadrer à part.
 - Réponse envoyée au boss dans « Xeption app test » (noms enregistrés, siège retiré des bilans). À tenir : exclure le siège des bilans tant qu il existe.
 - Préfixes 20261111 : _001 et _002 sur la branche WhatsApp (PR 52), _003 ici.
+
+## 2026-11-11 15:15 — Branche poussée et fusionnée dans main (879e1b8)
+
+- Migration 20261111_003 (noms officiels des boutiques) et passation désormais sur origin/main. Prod et git alignés.
+- Session « Retirer le magasin test Siège » lancée par le user (local_98d711d6) : travaille dans son propre worktree, rapportera ici.
+- Reste : PR 52 (WhatsApp, migrations 20261111_001/_002) à fusionner ; bilan WhatsApp périodique non cadré.

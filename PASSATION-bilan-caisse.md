@@ -33,3 +33,8 @@
   (service_role) n'est pas affecté.
 - État : commit `181580f` + ce suivi sur `claude/ecstatic-mendel-e0d052`, rien poussé. Prochaine étape :
   push / PR vers `main` sur accord, puis vérifier l'onglet « Bilan caisse » en compte direction.
+
+## 2026-11-11 08:42 — Branche poussée, PR ouverte
+
+- PR #50 vers `main` : https://github.com/EagleFox31/xeption237/pull/50 (prête pour revue, pas de brouillon).
+- Prochaine étape : revue / merge, puis contrôle visuel de l'onglet « Bilan caisse » en compte direction.

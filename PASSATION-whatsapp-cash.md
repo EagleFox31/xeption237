@@ -141,3 +141,9 @@ Group ») doit être ajouté par le boss au groupe « administration xeption » 
 de test). Dès l'ajout : `GET /api/trigenys-test/groups` → id du groupe caisse, puis
 `npm run deploy:whatsapp-cash -- --apply --group=<id>@g.us` pour restreindre l'écoute à ce groupe.
 Leçon : « Siège » est un mot générique du résolveur → un rapport « Boutique Siège » est ignoré (voulu).
+
+## 2026-11-11 10:18 — PR ouverte : EagleFox31/xeption237#52
+
+Branche `claude/wonderful-haslett-3e2f95` poussée, PR #52 vers `main` (prête, pas brouillon, section RAIDER review).
+Verrou inchangé : ajout du numéro WAHA au groupe « administration xeption » par le boss, puis
+`npm run deploy:whatsapp-cash -- --apply --group=<id>@g.us`.

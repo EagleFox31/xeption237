@@ -303,3 +303,8 @@
 - Migration 20261111_003 (noms officiels des boutiques) et passation désormais sur origin/main. Prod et git alignés.
 - Session « Retirer le magasin test Siège » lancée par le user (local_98d711d6) : travaille dans son propre worktree, rapportera ici.
 - Reste : PR 52 (WhatsApp, migrations 20261111_001/_002) à fusionner ; bilan WhatsApp périodique non cadré.
+
+## 2026-11-11 15:18 — Le boss précise : Mfoundi-Mall 1092 = siège
+
+- Second message du boss dans le groupe test : « Mfoundi-Mall 1092 (siège) ». Le siège n est donc pas un nom de test : c est la boutique 1092. Session « Retirer le magasin Siège » (local_98d711d6) prévenue : cible du stock et du défaut = MF1092, pas MFOUNDI.
+- Ma réponse de 14:01 au boss (« Siège était un nom de test ») est à rectifier : attendre l accord du user pour répondre.

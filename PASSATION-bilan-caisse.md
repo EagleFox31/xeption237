@@ -38,3 +38,9 @@
 
 - PR #50 vers `main` : https://github.com/EagleFox31/xeption237/pull/50 (prête pour revue, pas de brouillon).
 - Prochaine étape : revue / merge, puis contrôle visuel de l'onglet « Bilan caisse » en compte direction.
+
+## 2026-11-11 08:55 — PR #50 fusionnée dans main
+
+- Checks verts (Vercel preview OK), aucun conflit ; merge commit `5b58640` sur `main`.
+- La branche `claude/ecstatic-mendel-e0d052` peut être supprimée. Reste : contrôle visuel de l'onglet
+  « Bilan caisse » en compte direction sur le déploiement main.

@@ -65,3 +65,9 @@
 - Checks verts (Vercel preview + sync-project), état CLEAN ; fusion par merge commit.
 - Reste : contrôle visuel de la page « Bilan caisse » en compte direction sur le déploiement main
   (cartes opaques, filtres sur une ligne, couleurs, graphes).
+
+## 2026-11-11 09:58 — Rapport test « Xeption — Siège » supprimé
+
+- Le seul rapport de la boutique « Xeption — Siège » (23/10/2026, source bot) était un test du bot Telegram
+  (confirmé par le user) ; supprimé en prod par DELETE ciblé sur son id, 0 rapport restant pour cette boutique.
+- La page Bilan caisse n'affiche plus que Mfoundi Mall, Olembe et MF 1092. Rien d'autre en attente.

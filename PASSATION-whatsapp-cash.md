@@ -109,3 +109,13 @@ En attente de l'ajout. Ensuite : `GET /api/trigenys-test/groups` pour l'id, puis
 À la demande d'Anjl, le message au boss a été posté par la session `trigenys-test` dans le groupe « Xeption app test »
 (`120363432964279423@g.us`, POST `/api/sendText`, HTTP 201). Ce groupe de test est le seul groupe de la session ;
 il peut servir de cible `--group=` pour un test de bout en bout avant l'ajout au vrai groupe caisse.
+
+## 2026-11-11 10:03 — Test bout en bout : un message envoyé PAR le bot ne déclenche pas le webhook
+
+Rapport synthétique (« RAPPORT DU 01/01/2020 », Boutique Siège, montants fictifs) posté dans « Xeption app test »
+via `POST /api/sendText` (HTTP 201) → aucune ligne `whatsapp_live` après 30 s (307 lignes `whatsapp_backfill`, inchangé).
+Cause attendue : l'événement WAHA `message` exclut les messages `fromMe` (seul `message.any` les inclut) et le
+webhook est abonné à `message` seulement — comportement voulu en prod (le bot n'a pas à ingérer ses propres
+messages). Le test valide doit donc être posté par un autre membre du groupe (Anjl, depuis son téléphone).
+Logs WAHA non relus : SSH VPS « Connection reset » après plusieurs connexions rapprochées (anti-bruteforce
+probable) — réessayer plus tard. Aucune ligne de test à nettoyer en base.

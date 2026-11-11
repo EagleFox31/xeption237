@@ -147,3 +147,8 @@ Leçon : « Siège » est un mot générique du résolveur → un rapport « Bou
 Branche `claude/wonderful-haslett-3e2f95` poussée, PR #52 vers `main` (prête, pas brouillon, section RAIDER review).
 Verrou inchangé : ajout du numéro WAHA au groupe « administration xeption » par le boss, puis
 `npm run deploy:whatsapp-cash -- --apply --group=<id>@g.us`.
+
+## 2026-11-11 10:19 — Auto-fix activé sur la PR #52
+
+La session est réveillée sur commentaires de revue / conflits de la PR #52. Rien d'autre à faire côté code ;
+verrou inchangé (numéro WAHA à ajouter au groupe caisse, puis `--apply --group=<id>@g.us`).

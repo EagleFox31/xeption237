@@ -308,3 +308,7 @@
 
 - Second message du boss dans le groupe test : « Mfoundi-Mall 1092 (siège) ». Le siège n est donc pas un nom de test : c est la boutique 1092. Session « Retirer le magasin Siège » (local_98d711d6) prévenue : cible du stock et du défaut = MF1092, pas MFOUNDI.
 - Ma réponse de 14:01 au boss (« Siège était un nom de test ») est à rectifier : attendre l accord du user pour répondre.
+
+## 2026-11-11 15:20 — Plan de retrait du siège reçu, recadré sur MF1092
+
+- Session Siège : option A (migration 20261111_004 : transfert stock 217 lignes / 2 634 unités + 1 réservation, bascule is_default, siege inactif « Ancien siège (archivé) », fallbacks SQL via _default_store_id(), bot Telegram « siege » en dur à corriger + redéploiement telegram-bot-entry). Recadrée : cible MF1092 et non MFOUNDI. Note partagée : retrait-magasin-siege.md. En attente du « J autorise » du user.

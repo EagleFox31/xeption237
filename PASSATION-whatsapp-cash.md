@@ -174,3 +174,18 @@ une ligne `whatsapp_live` du jour donne « Caisse : clôturée (X FCFA en caisse
 apparaît « non clôturée » (il nourrira le repli dettes du lendemain) ; (2) les entrées/sorties du rapport
 ne figurent pas dans le bilan (Ventes/Canaux viennent des commandes ERP). Pistes : décaler le cron (ex. 21 h)
 ou ajouter une ligne « Entrées/Sorties caisse » au digest — non demandé, non fait.
+
+## 2026-11-11 12:45 — Bilan journalier décalé à 22 h Douala ; analyse des rapports en base
+
+Demande user : « 22h ». Migration `20261111_002_daily_digest_at_22h_douala.sql` (unschedule/schedule
+idempotent, `0 21 * * *` UTC) appliquée via apply-migration (env du checkout principal :
+`node -r dotenv/config scripts/apply-migration.mjs <fichier> dotenv_config_path=<racine>/.env`, car le worktree
+n'a pas de `.env`). Vérifié : `cron.job` = `0 21 * * *` actif, enregistré dans `schema_migrations`.
+Test ajouté dans `tests/notify-daily-digest.test.ts` (26 OK). ADR-001 + NOTIFICATIONS.md mis à jour.
+⚠ `schema_migrations` contient aussi `20261111_001_store_cash_reports_direction_only.sql` (autre session,
+même préfixe que notre `20261111_001`) : doublon de préfixe à surveiller au merge.
+Analyse (lecture seule, 307 rapports backfill) donnée au user : MFOUNDI porte l'activité (~296 k/j d'entrées),
+OLEMBE ~20 k/j, MF1092 jeune (19 j) et sorties > entrées ; « sortie boss » = 1er poste de sorties ;
+70/307 rapports incohérents (ouverture+entrées−sorties ≠ clôture, écarts jusqu'à ~940 k) ; dettes MFOUNDI
+28 lignes / ~4,05 M restants. Pistes non faites : ligne « Entrées/Sorties » et contrôle de cohérence dans
+le digest, alerte si une boutique n'a pas posté.

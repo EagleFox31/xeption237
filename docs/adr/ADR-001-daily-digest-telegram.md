@@ -13,7 +13,7 @@
 
 Le digest est produit **en base** par `public.notify_daily_digest(p_day date DEFAULT NULL)`
 (SECURITY DEFINER, service_role seulement, même style que `notify_time_based_reminders`),
-planifiée par pg_cron sous le nom `daily-digest-evening` (`0 19 * * *` UTC = 20 h Douala).
+planifiée par pg_cron sous le nom `daily-digest-evening` (`0 19 * * *` UTC = 20 h Douala ; décalée à 22 h Douala — `0 21 * * *` UTC — par `20261111_002`, les rapports WhatsApp du soir arrivant après 20 h).
 Elle insère **une notification par boutique active** avec
 `event_type = 'daily_digest'` et `dedup_key = 'daily_digest.<store_code>.<YYYY-MM-DD>'`
 (date Africa/Douala), `ON CONFLICT (dedup_key) DO NOTHING`. L'envoi Telegram reste à la

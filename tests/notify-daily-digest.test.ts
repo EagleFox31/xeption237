@@ -139,6 +139,22 @@ describe('Daily digest — migration 20261107_001', () => {
   });
 });
 
+describe('Daily digest — migration 20261111_002 (22 h Douala)', () => {
+  const sql2 = readFileSync(
+    resolve(__dirname, '../supabase/migrations/20261111_002_daily_digest_at_22h_douala.sql'),
+    'utf8',
+  );
+
+  it('replanifie daily-digest-evening à 21:00 UTC (22 h Douala) de façon idempotente', () => {
+    expect(sql2).toMatch(/c_job_name\s+constant text := 'daily-digest-evening'/);
+    expect(sql2).toMatch(/c_schedule_utc constant text := '0 21 \* \* \*'/);
+    expect(sql2).toMatch(/cron\.unschedule\(jobid\)/);
+    expect(sql2).toMatch(/\$cron\$SELECT public\.notify_daily_digest\(\);\$cron\$/);
+    expect(sql2).toMatch(/^BEGIN;/m);
+    expect(sql2).toMatch(/^COMMIT;/m);
+  });
+});
+
 describe('Daily digest — type d’événement', () => {
   it('est relayé par défaut sur Telegram avec son icône, pas sur WhatsApp', () => {
     expect(DEFAULT_STAFF_EVENT_TYPES).toContain('daily_digest');

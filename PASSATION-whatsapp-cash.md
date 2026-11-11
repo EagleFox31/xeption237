@@ -65,3 +65,10 @@ ou `--rotate-key`.
 
 **Reste à faire par Anjl** : `npm run deploy:whatsapp-cash -- --apply` (accord VPS implicite dans la commande),
 puis test réel : rapport posté dans le groupe → ligne `whatsapp_live`.
+
+## 2026-11-11 08:47 — `.env` du dépôt principal repris depuis un worktree
+
+Anjl a lancé le plan depuis le worktree → « Accès base absent ». Correctif dans le script : si `.env` manque,
+il prend celui du dépôt principal (`git rev-parse --git-common-dir`) et affiche la ligne `env : <chemin>`.
+Plan rejoué depuis le worktree : 4 actions restantes, rien appliqué. Prochaine étape inchangée :
+`npm run deploy:whatsapp-cash -- --apply` par Anjl.

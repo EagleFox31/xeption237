@@ -33,7 +33,20 @@ import dotenv from 'dotenv';
 import { resolveDatabaseUrl } from './lib/supabaseDbUrl.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-dotenv.config({ path: resolve(root, '.env') });
+
+/** `.env` du dossier courant, sinon celui du dépôt principal (cas d'un worktree git, qui n'a pas le sien). */
+function resolveEnvFile() {
+  const local = resolve(root, '.env');
+  if (existsSync(local)) return local;
+  try {
+    const common = execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: root, encoding: 'utf8' }).trim();
+    const shared = resolve(dirname(resolve(root, common)), '.env');
+    if (existsSync(shared)) return shared;
+  } catch { /* hors git : on reste sur le .env local, absent */ }
+  return local;
+}
+const ENV_FILE = resolveEnvFile();
+dotenv.config({ path: ENV_FILE, quiet: true });
 
 // ── Options ──────────────────────────────────────────────────────────────────
 const argv = process.argv.slice(2);
@@ -273,7 +286,8 @@ function inspectWaha(hmacKey, hmacKnown) {
 
 // ── Orchestration : plan complet, puis apply dans l'ordre migration → secrets → fonction → WAHA ──
 async function main() {
-  console.log(`${APPLY ? 'APPLY' : 'PLAN (lecture seule — ajouter --apply pour exécuter)'} · projet ${PROJECT_REF} · ${WEBHOOK_URL}\n`);
+  console.log(`${APPLY ? 'APPLY' : 'PLAN (lecture seule — ajouter --apply pour exécuter)'} · projet ${PROJECT_REF} · ${WEBHOOK_URL}`);
+  console.log(`env : ${ENV_FILE}${existsSync(ENV_FILE) ? '' : ' (absent)'}\n`);
 
   const migration = await inspectMigration();
   log('migration', migration.state, migration.action);

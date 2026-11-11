@@ -166,7 +166,8 @@ webhooks de la session sont conservés. Un second `--apply` convergé = zéro é
   **redémarre la session** (quelques secondes sans réception).
 - Clé HMAC déjà en place côté Supabase mais inconnue localement : la fournir dans l'env (`WHATSAPP_CASH_WEBHOOK_HMAC_KEY`)
   ou `--rotate-key` (régénère et aligne les deux côtés). `--skip-vps` / `--skip-deploy` pour une étape seule.
-- Accès requis : `DATABASE_URL` (ou `SUPABASE_DB_PASSWORD`) dans `.env`, CLI Supabase connectée, clé SSH
+- Accès requis : `DATABASE_URL` (ou `SUPABASE_DB_PASSWORD`) dans `.env` (depuis un worktree git, celui du
+  dépôt principal est repris automatiquement), CLI Supabase connectée, clé SSH
   `~/.ssh/id_ed25519_fleet_vps` (surcharges : `WAHA_VPS_SSH`, `WAHA_VPS_SSH_KEY`, `WAHA_CONTAINER`, `WAHA_LOCAL_URL`).
 - Rien n'est affiché en clair : empreintes seulement. L'identifiant du groupe (`…@g.us`) se lit dans
   `GET /api/<session>/groups`. Vérification : `select source, count(*) from store_cash_reports group by 1`.

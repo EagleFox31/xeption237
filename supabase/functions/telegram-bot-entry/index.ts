@@ -106,6 +106,7 @@ interface Store {
   id: string;
   name: string;
   code: string;
+  is_default?: boolean;
 }
 
 interface StaffMember {
@@ -266,8 +267,8 @@ async function getStaff(telegramUserId: string): Promise<StaffMember | null> {
   let resolvedStore = staff.store;
   if (!resolvedStore && staff.rank >= RANK_DIRECTION) {
     const stores = await listStores();
-    const targetCode = scope || "siege";
-    resolvedStore = stores.find(s => s.code === targetCode) ?? stores[0] ?? null;
+    resolvedStore = (scope ? stores.find(s => s.code === scope) : undefined)
+      ?? stores.find(s => s.is_default) ?? stores[0] ?? null;
   }
 
   return {
@@ -311,8 +312,18 @@ async function managerTelegramIds(exclude: string): Promise<string[]> {
 async function listStores(): Promise<Store[]> {
   const supabase = db();
   if (!supabase) return [];
-  const { data } = await supabase.from("stores").select("id, name, code").order("name");
+  const { data } = await supabase
+    .from("stores")
+    .select("id, name, code, is_default")
+    .eq("active", true)
+    .order("name");
   return (data ?? []) as Store[];
+}
+
+/** Code du magasin par défaut (is_default), à défaut le premier actif. */
+async function defaultStoreCode(): Promise<string | undefined> {
+  const stores = await listStores();
+  return (stores.find(s => s.is_default) ?? stores[0])?.code;
 }
 
 /**
@@ -1686,7 +1697,8 @@ async function handleProdCreateStart(staff: StaffMember, storeCode?: string): Pr
       reply_markup: { inline_keyboard: rows }
     };
   }
-  const resolvedCode = storeCode || staff.store?.code || "siege";
+  const resolvedCode = storeCode || staff.store?.code || (await defaultStoreCode());
+  if (!resolvedCode) return { text: "Aucune boutique active configurée.", reply_markup: { inline_keyboard: [[{ text: "🏠 Accueil", callback_data: "nav:main" }]] } };
   return await promptProductName(staff, resolvedCode);
 }
 

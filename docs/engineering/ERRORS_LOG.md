@@ -736,3 +736,14 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 - **Prévention** : tout nouvel import ou nouvelle table qui porte une notion déjà notifiée (dettes, caisse, ventes)
   → relire `docs/engineering/NOTIFICATIONS.md` et lister les fonctions SQL qui lisent l'ancienne source
   (`grep -l "<table>" supabase/migrations/*.sql`) ; tests de contenu sur la migration de repli.
+
+## 2026-11-11 — verify-erp-step2 signalait un stock incohérent qui ne l'était pas
+
+- **Symptôme** : « store_stock incohérent » sur 4 produits (stock 6/9/9/5 contre quantity 7/10/10/6), avant et après
+  la fusion du magasin `siege` dans MF1092.
+- **Cause racine** : le script comparait `products.stock` à la `quantity` brute du seul magasin par défaut, alors que
+  `trg_sync_product_stock_from_stores` écrit Σ(quantity − reserved) sur tous les magasins. Le contrôle datait d'avant
+  les réservations et le multi-magasin.
+- **Résolution** : le contrôle reproduit la formule du trigger (somme tous magasins, disponible plancher 0).
+- **Prévention** : un script de vérification qui recalcule une valeur dérivée doit reprendre la formule de l'objet qui
+  la maintient (trigger, RPC) ; au moindre changement de cette formule, `grep` les scripts `verify-*` qui la recopient.

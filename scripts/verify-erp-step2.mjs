@@ -49,15 +49,20 @@ if (defaultStores.length === 1) {
 }
 
 const { rows: stockMismatch } = await client.query(`
-  SELECT p.id, p.stock, ss.quantity
+  -- products.stock est maintenu par trg_sync_product_stock_from_stores :
+  -- somme, tous magasins, du disponible (quantity - reserved, plancher 0).
+  SELECT p.id, p.stock, COALESCE(s.available, 0) AS available
   FROM products p
-  LEFT JOIN store_stock ss ON ss.product_id = p.id
-    AND ss.store_id = (SELECT id FROM stores WHERE is_default LIMIT 1)
-  WHERE p.stock > 0 AND (ss.quantity IS NULL OR ss.quantity <> p.stock)
+  LEFT JOIN (
+    SELECT product_id, SUM(GREATEST(quantity - reserved, 0)) AS available
+    FROM store_stock
+    GROUP BY product_id
+  ) s ON s.product_id = p.id
+  WHERE COALESCE(p.stock, 0) <> COALESCE(s.available, 0)
   LIMIT 5
 `);
 if (!stockMismatch.length) {
-  ok('store_stock default = products.stock (stock > 0)');
+  ok('products.stock = Σ store_stock (quantity - reserved)');
 } else {
   fail('store_stock incohérent', JSON.stringify(stockMismatch));
 }

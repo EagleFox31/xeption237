@@ -250,3 +250,7 @@
 - Session « Ingestion automatique des rapports caisse WhatsApp » démarrée par Anjl (local_0d6f2e42), travaille
   sur sa propre branche ; elle rendra compte ici.
 - Reste : observer le bilan Telegram de 20 h Douala.
+
+## 2026-11-11 07:57 — Partage du bilan
+
+- Bilan artifact partageable via le bouton Partager de claude.ai (privé par défaut). Pour une vue dans l'ERP : carte de session « Page bilan caisse dans l'ERP admin » proposée (lecture directe de store_cash_reports, staff direction).

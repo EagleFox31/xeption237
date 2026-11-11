@@ -120,6 +120,56 @@ Garanties :
   - Protégé contre la fuite de données personnelles (enveloppe canonique Trigenys Notify sans noms ni numéros clients).
   - Clôtures de caisse : mappées sur l'événement canonique `cash_report.closed` avec les faits métier (`closingCashXaf`, `totalInflowXaf`, `totalOutflowXaf`, `actor`), bridgées vers le bon groupe WhatsApp par Trigenys Notify.
 
+### Ingestion automatique des rapports de caisse WhatsApp (`whatsapp-cash-webhook`)
+
+Sens **entrant** : les rapports « 📊 RAPPORT DU jj/mm/aaaa » postés par les boutiques dans le groupe WhatsApp
+caisse sont écrits dans `store_cash_reports` (`source = 'whatsapp_live'`) sans export manuel.
+Décision et alternatives : [ADR-002](../adr/ADR-002-whatsapp-cash-webhook.md).
+
+- **Flux** : WAHA (`trigenys-notify`, VPS OVH) → webhook `POST /functions/v1/whatsapp-cash-webhook` →
+  `_shared/whatsappCashReport/` (filtrage, parseur, boutique, plan d'écriture) → `store_cash_reports`.
+  Le parseur est **le même code** que le script de reprise `scripts/import-whatsapp-cash-reports.mjs`
+  (shims `scripts/lib/cashReportText.mjs`, `cashReportStoreResolver.mjs`).
+- **Authentification** : `WHATSAPP_CASH_WEBHOOK_HMAC_KEY` (HMAC-SHA512 du corps brut, en-têtes WAHA
+  `X-Webhook-Hmac` / `X-Webhook-Hmac-Algorithm`) ; à défaut `WHATSAPP_CASH_WEBHOOK_SECRET` attendu dans
+  `X-Webhook-Secret` (`customHeaders` WAHA). Aucun des deux → 503, signature invalide → 401.
+- **Filtrage** : événements `message` / `message.any`, expéditeur `…@g.us` uniquement, groupe dans
+  `WHATSAPP_CASH_GROUP_IDS` si renseigné, texte reconnu rapport (`isCashReportMessage`). Tout le reste →
+  200 `ignored` (WAHA ne rejoue pas).
+- **Boutique** : ligne « Boutique … » → vote des opérateurs connus (`staff.store_id`) → carte
+  `WHATSAPP_CASH_AUTHOR_STORES` (`{"2376XXXXXXXX":"MFOUNDI"}`). Non résolue → 200 `skipped`.
+- **Date** : titre du rapport ; sinon date d'envoi (`Africa/Douala`) avec `date_from_message` ; écart
+  titre / envoi → `date_differs_from_message`.
+- **Idempotence** (`planUpsert`) sur `(store_id, report_date)` : absent → `insert` ; `whatsapp_live` ou
+  `whatsapp_backfill` différent → `update`, identique → `unchanged` ; **`bot` → `protected`, jamais réécrit**.
+  Le script de reprise, lui, ne réécrit que `whatsapp_backfill` : il signale les lignes `whatsapp_live`
+  comme protégées. Erreur base → 500 (WAHA rejoue, l'écriture reste idempotente).
+- **Confidentialité** : logs et réponses = action, code boutique, date, avertissements, identifiant WAHA.
+  Jamais le texte du message ni un nom.
+
+**Déploiement (dans cet ordre)** :
+
+```bash
+npm run db:apply -- supabase/migrations/20261111_001_store_cash_reports_source_whatsapp_live.sql
+npx supabase secrets set WHATSAPP_CASH_WEBHOOK_HMAC_KEY=<openssl rand -hex 32> WHATSAPP_CASH_GROUP_IDS=<id>@g.us --project-ref tawnusmfyvugqczaydat
+npx supabase functions deploy whatsapp-cash-webhook --project-ref tawnusmfyvugqczaydat --no-verify-jwt --use-api --workdir .
+```
+
+Puis côté WAHA (VPS, `WAHA_BASE_URL` + `X-Api-Key: $WAHA_API_KEY`) : `GET /api/sessions/<WAHA_SESSION>`,
+reprendre `config` tel quel et **ajouter** à `config.webhooks` (ne pas remplacer ceux de Trigenys Notify) :
+
+```json
+{
+  "url": "https://tawnusmfyvugqczaydat.supabase.co/functions/v1/whatsapp-cash-webhook",
+  "events": ["message"],
+  "hmac": { "key": "<WHATSAPP_CASH_WEBHOOK_HMAC_KEY>" },
+  "retries": { "policy": "exponential", "delaySeconds": 2, "attempts": 5 }
+}
+```
+
+puis `PUT /api/sessions/<WAHA_SESSION>` avec la config complète. L'identifiant du groupe (`…@g.us`) se lit
+dans `GET /api/<WAHA_SESSION>/groups`. Vérification : `select source, count(*) from store_cash_reports group by 1`.
+
 ### Événements SMART TROC intermédiaires (`accepted → contacted → appointment`)
 
 **Choix conscient : pas de notification push.** Rationale :
@@ -166,4 +216,5 @@ Migration `20261020_002_staff_notification_deliveries.sql` + Edge Function `noti
 - **SMS WhatsApp** pour les CTAs clients (déjà en place via `whatsappShare.ts`, à harmoniser).
 - **Notifs per-user** si l'équipe staff dépasse 10 personnes (table `notification_reads`).
 - **Préférences utilisateur** (opt-out par type) → table `staff_notification_preferences`.
+- **Rapports de caisse WhatsApp** : ingestion automatique livrée (`whatsapp_live`, [ADR-002](../adr/ADR-002-whatsapp-cash-webhook.md)) ; déploiement à faire (migration `20261111_001`, secrets, fonction, webhook WAHA). Ensuite : alerte si une boutique n'a rien posté à 21 h.
 - **Digest quotidien** : livré sur Telegram (`daily_digest`, voir [ADR-001](../adr/ADR-001-daily-digest-telegram.md)). Reste à faire : commandes bot `/jour` et `/ventes` (bilan à la demande), relais WhatsApp quand Trigenys Notify acceptera le type, variante email `direction`.

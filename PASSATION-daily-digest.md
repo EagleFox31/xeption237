@@ -260,3 +260,8 @@
 - WhatsApp : commit f2c3244 sur claude/wonderful-haslett-3e2f95 (Edge Function whatsapp-cash-webhook, parseur TS partagé, migration 20261111_001, ADR-002), rien déployé ni poussé.
 - ERP : commit 181580f sur claude/ecstatic-mendel-e0d052 (onglet admin Bilan caisse, 23 tests), migration RLS 20261111_001 non appliquée ; la session attend l'accord d'Anjl.
 - CONFLIT : les deux branches utilisent le préfixe 20261111_001 → renommer l'une en 20261111_002 avant fusion. Rien fusionné ici.
+
+## 2026-11-11 10:20 — PR ouvertes par les sessions filles
+
+- ERP Bilan caisse : PR sur claude/ecstatic-mendel-e0d052 ; rapport test siège du 23/10 supprimé en prod par cette session (le bilan artifact du 11/11 montre encore la ligne siège : instantané).
+- WhatsApp : PR sur claude/wonderful-haslett-3e2f95. Conflit de préfixe 20261111_001 entre les deux PR à régler avant la seconde fusion.

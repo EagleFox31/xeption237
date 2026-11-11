@@ -23,3 +23,13 @@
   `xeption237/node_modules` (ignoré par git). Pas de `.env` dans le worktree : pour `db:apply`, copier celui
   du dépôt principal ou exporter `DATABASE_URL`.
 - Rien poussé, rien déployé.
+
+## 2026-11-11 08:35 — Migration RLS appliquée en prod
+
+- `20261111_001_store_cash_reports_direction_only.sql` appliquée par le user via `npm run db:apply`
+  (enregistrée dans `schema_migrations`, 07:29 UTC). Vérifié en lecture : seule policy SELECT sur
+  `store_cash_reports` = `store_cash_reports_direction_read` (`authenticated`, `is_direction_staff()`).
+  Depuis ce moment, seuls direction / super_admin lisent les rapports de caisse côté client ; le bot
+  (service_role) n'est pas affecté.
+- État : commit `181580f` + ce suivi sur `claude/ecstatic-mendel-e0d052`, rien poussé. Prochaine étape :
+  push / PR vers `main` sur accord, puis vérifier l'onglet « Bilan caisse » en compte direction.

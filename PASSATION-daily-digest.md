@@ -209,3 +209,12 @@
 ## 2026-11-11 00:09 — Second passage import
 
 - Import : 0 créés, 0 mis à jour, 307 inchangés, 0 protégés (saisie bot, non écrasés). → idempotent confirmé.
+
+## 2026-11-11 07:24 — Branche poussée, main avancé (autorisation Anjl « Oui, push et merge »)
+
+- origin/main avait reçu PR #42 (SEO/GEO) → fusionné dans la branche sans conflit (ERRORS_LOG : union des
+  entrées), tests digest + import 39/39. Branche et `origin/main` = `594abec`.
+- En prod : import WhatsApp à jour au 10/11, dettes de test purgées. **Non appliqué** : migration
+  `20261110_001_daily_digest_debts_snapshot_fallback.sql` (Anjl : `npm run db:apply -- supabase/migrations/20261110_001_daily_digest_debts_snapshot_fallback.sql`).
+  Tant qu'elle n'est pas appliquée, le bilan affiche « Dettes en cours : aucune ».
+- Ce commit de passation n'est pas poussé (push uniquement sur accord).

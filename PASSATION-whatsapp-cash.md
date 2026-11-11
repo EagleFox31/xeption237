@@ -162,3 +162,15 @@ Le groupe de test « Xeption app test » n'est donc plus écouté (répondu `ign
 **Prochaine étape** : attendre la clôture du soir (rapports réels) puis
 `select source, count(*) from store_cash_reports group by 1` → lignes `whatsapp_live` ; roadmap : alerte 21 h
 si une boutique n'a rien posté. PR #52 ouverte, auto-fix activé.
+
+## 2026-11-11 10:45 — Vérification : le digest du soir exploitera-t-il les rapports WhatsApp ?
+
+Question du user : « on aura un rapport des rapports ce soir ? ». Vérifié en lecture seule :
+cron `daily-digest-evening` actif (`0 19 * * *` UTC = 20 h Douala) ; hier 10/11 à 20:00 les 4 bilans
+ont été produits avec « Caisse : non clôturée » partout (aucun rapport du jour en base, l'export manuel datait).
+`notify_daily_digest` lit `store_cash_reports` par (store_id, report_date) **sans filtrer `source`** :
+une ligne `whatsapp_live` du jour donne « Caisse : clôturée (X FCFA en caisse) » + repli dettes sur son
+`debts_snapshot`. Limites signalées au user : (1) le bilan part à 20 h pile → un rapport posté après 20 h
+apparaît « non clôturée » (il nourrira le repli dettes du lendemain) ; (2) les entrées/sorties du rapport
+ne figurent pas dans le bilan (Ventes/Canaux viennent des commandes ERP). Pistes : décaler le cron (ex. 21 h)
+ou ajouter une ligne « Entrées/Sorties caisse » au digest — non demandé, non fait.

@@ -218,3 +218,12 @@
   `20261110_001_daily_digest_debts_snapshot_fallback.sql` (Anjl : `npm run db:apply -- supabase/migrations/20261110_001_daily_digest_debts_snapshot_fallback.sql`).
   Tant qu'elle n'est pas appliquée, le bilan affiche « Dettes en cours : aucune ».
 - Ce commit de passation n'est pas poussé (push uniquement sur accord).
+
+## 2026-11-11 07:35 — Migration 20261110_001 appliquée par Anjl (db:apply, via Postgres direct)
+
+- Vérifié en lecture : la fonction en base contient le repli snapshot, `store_debts` prime, ACL limitée à
+  postgres + service_role. Simulation de la ligne dettes : MFOUNDI 28 / 4 047 500 (rapport du 10/11),
+  OLEMBE 8 / 77 000 (10/11), MF1092 et siège « aucune ».
+- Note : la CLI Supabase n'est pas liée dans ce worktree (« Cannot find project ref »), le script a basculé sur
+  Postgres direct ; l'avertissement captcha de la vérification `create_order_atomic` est sans rapport.
+- Prochaine vérification : bilan Telegram de 20 h Douala. Prod = git (origin/main 594abec + cette passation non poussée).

@@ -275,3 +275,7 @@
 ## 2026-11-11 12:41 — Bilan WhatsApp : version sobre
 
 - Retour user : trop d emoji. Version sans emoji (titres en gras, séparateurs « · », liste « À noter ») renvoyée dans « Xeption app test » (HTTP 201). Convention à garder pour tout message staff WhatsApp : zéro emoji, gras pour les titres de section.
+
+## 2026-11-11 12:44 — Bilan WhatsApp : une donnée par ligne
+
+- Retour user : le séparateur « · » est peu lisible sur WhatsApp. Nouvelle version envoyée dans le groupe test (HTTP 201) : une donnée par ligne, « | » uniquement sur la ligne de synthèse. Convention : pas de « · », pas d emoji.

@@ -25,6 +25,8 @@ interface StatCardProps {
   sub?: string;
   icon: LucideIcon;
   tone?: StatTone;
+  /** Fond opaque (pages sur image de fond) au lieu du verre translucide. */
+  solid?: boolean;
 }
 
 const TONES: Record<StatTone, { card: string; chip: string; value: string; ghost: string }> = {
@@ -60,12 +62,12 @@ const TONES: Record<StatTone, { card: string; chip: string; value: string; ghost
   },
 };
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, sub, icon: Icon, tone = 'gold' }) => {
+const StatCard: React.FC<StatCardProps> = ({ label, value, sub, icon: Icon, tone = 'gold', solid = false }) => {
   const t = TONES[tone];
 
   return (
     <div
-      className={`relative overflow-hidden rounded-lg border p-5 backdrop-blur-md transition-colors duration-200 ${t.card}`}
+      className={`relative overflow-hidden rounded-lg border p-5 transition-colors duration-200 ${solid ? 'bg-[#0d0d12] shadow-lg shadow-black/40' : 'backdrop-blur-md'} ${t.card}`}
     >
       {/* Filigrane discret — décoratif, ne porte aucune information. */}
       <div

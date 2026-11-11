@@ -44,3 +44,18 @@
 - Checks verts (Vercel preview OK), aucun conflit ; merge commit `5b58640` sur `main`.
 - La branche `claude/ecstatic-mendel-e0d052` peut être supprimée. Reste : contrôle visuel de l'onglet
   « Bilan caisse » en compte direction sur le déploiement main.
+
+## 2026-11-11 09:24 — Itération UX bilan caisse (cartes opaques, filtres, couleurs, graphes)
+
+- Retour user sur la page live : cartes trop transparentes, filtres empilés, pas de couleur, pas de graphe.
+- Livré sur la branche `claude/ecstatic-mendel-e0d052` (PR à ouvrir vers `main`) :
+  - `StatCard` : prop `solid` (fond `#0d0d12`), `Section` opaque + ombre dans `CashReportTab.tsx`.
+  - Filtres boutique + période + actualiser sur une ligne (select local sans le `w-full` de `adminUi.input`).
+  - `utils/cashReportTones.ts` : seuils nommés (`signTone`, `coverageTone`, `bossShareTone`,
+    `versusAverageTone`, `burdenTone`) → vert `emerald-300` / rouge `rose-300` dans les tableaux.
+  - `utils/chartScale.ts` + `components/admin/shared/charts/BarChart.tsx` (SVG groupé/empilé, sans lib) :
+    4 graphes — entrées vs sorties par boutique, entrées mensuelles par boutique, dettes fin de mois
+    (empilé), entrée moyenne par jour de semaine.
+- Preuves : 33 tests unitaires verts (`cashReportStats`, `chartScale`, `cashReportTones`), `vite build` OK,
+  `tsc` sans erreur sur les fichiers touchés, 0 mojibake dans le diff.
+- Reste : push, PR, merge si checks verts, contrôle visuel en compte direction.

@@ -128,3 +128,16 @@ fonctionne. Aucune ligne créée car le texte disait « Boutique Siège » : `si
 (storeResolver), donc `store_unresolved` (200 skipped). Vérifié localement : « Siège » → null, « Olembe » → OLEMBE.
 Pas un bug (le siège n'est pas une boutique de vente). Prochaine étape : refaire le test avec « Boutique Olembe »,
 date 01/01/2020, puis supprimer la ligne de test (`source = whatsapp_live`, report_date 2020-01-01).
+
+## 2026-11-11 10:15 — TEST BOUT EN BOUT RÉUSSI (groupe « Xeption app test »)
+
+Rapport de test « Boutique Olembe », RAPPORT DU 01/01/2020, posté par Anjl depuis son téléphone → ligne
+`store_cash_reports` `source = whatsapp_live` créée (OLEMBE, 2020-01-01, opening 10 000, entrées 5 000,
+sorties 1 000, reste 14 000, items et opérateurs parsés, `source_ref = waha:<id message>`). Ligne de test supprimée
+ensuite (delete ciblé par id) ; base revenue à 307 lignes `whatsapp_backfill`.
+
+**État** : tout déployé, converge, fonctionnel. **Verrou restant** : le numéro WAHA (+237 670 754 372, « Trigenys
+Group ») doit être ajouté par le boss au groupe « administration xeption » (message de demande posté dans le groupe
+de test). Dès l'ajout : `GET /api/trigenys-test/groups` → id du groupe caisse, puis
+`npm run deploy:whatsapp-cash -- --apply --group=<id>@g.us` pour restreindre l'écoute à ce groupe.
+Leçon : « Siège » est un mot générique du résolveur → un rapport « Boutique Siège » est ignoré (voulu).

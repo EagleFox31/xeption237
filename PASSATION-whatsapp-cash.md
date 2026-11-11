@@ -87,3 +87,19 @@ Plan rejoué depuis le worktree : 4 actions restantes, rien appliqué. Prochaine
 - **Prochaine étape** : test réel — poster un rapport dans le groupe, puis
   `select source, count(*) from store_cash_reports group by 1` doit montrer `whatsapp_live`.
   Ensuite (roadmap) : alerte si une boutique n'a rien posté à 21 h.
+
+## 2026-11-11 09:00 — Verrou : le numéro WAHA n'est pas dans le groupe caisse
+
+Le numéro de la session WAHA `trigenys-test` n'est pas membre du groupe « administration xeption » :
+aucun message n'arrivera au webhook tant qu'il n'y est pas. Recommandation donnée à Anjl : demander au
+boss d'ajouter ce numéro au groupe (WAHA CORE = une seule session ; brancher le numéro perso d'Anjl
+obligerait à remplacer `trigenys-test`, utilisé par Trigenys Notify, et ferait transiter tout son WhatsApp
+perso par le VPS). Une fois ajouté : relever l'id du groupe (`GET /api/trigenys-test/groups`) puis
+`npm run deploy:whatsapp-cash -- --apply --group=<id>@g.us`, et tester avec un rapport posté.
+
+## 2026-11-11 09:15 — Message au boss rédigé (ajout du numéro WAHA au groupe)
+
+Message fourni à Anjl pour demander au boss l'ajout du numéro de la session `trigenys-test` (nom affiché
+« Trigenys Group », lu via `GET /api/sessions/trigenys-test` → `me.id`) au groupe « administration xeption ».
+En attente de l'ajout. Ensuite : `GET /api/trigenys-test/groups` pour l'id, puis
+`npm run deploy:whatsapp-cash -- --apply --group=<id>@g.us`, puis rapport de test → ligne `whatsapp_live`.

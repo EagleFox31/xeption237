@@ -227,3 +227,19 @@
 - Note : la CLI Supabase n'est pas liée dans ce worktree (« Cannot find project ref »), le script a basculé sur
   Postgres direct ; l'avertissement captcha de la vérification `create_order_atomic` est sans rapport.
 - Prochaine vérification : bilan Telegram de 20 h Douala. Prod = git (origin/main 594abec + cette passation non poussée).
+
+## 2026-11-11 07:53 — Bilan global des rapports de caisse (artifact) et piste d'automatisation WhatsApp
+
+- Bilan global 21/05 → 10/11/2026 livré comme tableau de bord Claude (type Data, privé tant que non partagé) :
+  https://claude.ai/artifact/YJkBfa7k6E652JijRy63cR — totaux par boutique, mensuel, dettes fin de mois,
+  jour de semaine, part « sortie de boss », couverture. Données = instantané lecture seule de
+  `store_cash_reports` (agrégats seulement, aucun nom/téléphone client) attaché au tableau en JSON.
+  Le tableau n'est pas relié en direct à la base : à régénérer si besoin (script d'agrégation dans le
+  scratchpad de session, non versionné).
+- Chiffres clés : MFOUNDI 141 jours, 41,7 M entrées / 38,4 M sorties, dettes 4 047 500 au 10/11 (pic
+  5 172 500 le 29/10) ; OLEMBE 147 jours, 2,9 M / 3,0 M, 57 jours à 0 ; MF1092 19 jours depuis le 14/10,
+  silence depuis le 06/11 ; siège 1 rapport (23/10, bot).
+- Export manuel WhatsApp : proposition de session « Ingestion automatique des rapports caisse WhatsApp »
+  (webhook WAHA → Edge Function ou worker VPS, parseur réutilisé, rien déployé sans accord). Alternative
+  immédiate sans code : le staff poste le rapport dans le bot Telegram caisse (source `bot`).
+- Toujours à observer : bilan Telegram de 20 h Douala. Commits de passation non poussés.

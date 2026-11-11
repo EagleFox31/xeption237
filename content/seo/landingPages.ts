@@ -57,9 +57,62 @@ export const LANDING_PAGES: LandingPageDef[] = [
     limit: 24,
     shopHref: '/shop?cat=phones&brand=apple',
     relatedGuides: ['verifier-iphone-occasion', 'occasion-reconditionne-ou-neuf', 'preparer-telephone-reprise-smart-troc', 'iphone-12-ou-iphone-13'],
-    relatedLandings: ['smartphones-samsung-cameroun', 'telephones-moins-100000-fcfa'],
+    relatedLandings: ['iphone-reconditionne-yaounde', 'smartphones-samsung-cameroun', 'telephones-moins-100000-fcfa'],
     showInFooter: true,
-    updatedAt: '2026-10-30',
+    priceTable: { title: 'Prix des iPhone au Cameroun' },
+    updatedAt: '2026-11-07',
+  },
+  {
+    slug: 'iphone-reconditionne-yaounde',
+    navLabel: 'iPhone reconditionné à Yaoundé',
+    h1: 'iPhone reconditionné à Yaoundé',
+    title: 'iPhone reconditionné à Yaoundé : prix et garantie | Xeption',
+    metaDescription:
+      "iPhone reconditionnés contrôlés en boutique au Mfoundi Mall à Yaoundé : prix en FCFA, état indiqué sur chaque fiche, paiement Orange Money ou MoMo, Smart Troc.",
+    intro: [
+      "Chez Xeption, chaque iPhone reconditionné passe par la boutique du Mfoundi Mall à Yaoundé avant la vente, où il est contrôlé.",
+      "Le tableau ci-dessous donne le prix de chaque modèle disponible, du moins cher au plus cher, avec la date du relevé.",
+    ],
+    buyingTips: [
+      {
+        title: "Essayer avant d'acheter",
+        body: "En boutique, vérifiez l'écran, Face ID ou Touch ID, les appareils photo et l'état de la batterie dans les réglages avant de valider l'achat.",
+      },
+      {
+        title: 'Lire la garantie',
+        body: "La garantie applicable à l'appareil est indiquée sur la fiche produit et reprise sur la facture. Gardez la facture : elle sert pour tout dossier SAV.",
+      },
+      {
+        title: 'Faire reprendre son ancien téléphone',
+        body: "Avec Smart Troc, estimez votre ancien téléphone en ligne : la reprise est validée au dépôt en boutique et sa valeur devient un bon d'achat.",
+      },
+    ],
+    faq: [
+      {
+        q: "Où voir un iPhone reconditionné à Yaoundé ?",
+        a: "À la boutique Xeption, Boutique 2063 au Mfoundi Mall, ouverte tous les jours de 9 h à 22 h. Appelez avant de passer pour vérifier la disponibilité du modèle voulu.",
+      },
+      {
+        q: "Quelle différence entre un iPhone reconditionné et un iPhone d'occasion ?",
+        a: "Un appareil reconditionné a été contrôlé avant la remise en vente ; son état et sa garantie sont indiqués. Un appareil d'occasion entre particuliers n'offre en général ni contrôle ni garantie.",
+      },
+      {
+        q: "Peut-on payer un iPhone reconditionné en Mobile Money ?",
+        a: "Oui : Orange Money, MTN Mobile Money, ou espèces au retrait en boutique ou à la livraison.",
+      },
+      {
+        q: "Peut-on retourner un iPhone reconditionné ?",
+        a: "Oui, sous 15 jours, avec un retour en boutique au Mfoundi Mall, dans les conditions prévues par les CGV.",
+      },
+    ],
+    filter: { categories: [CATEGORY_SLUGS.PHONES], brands: ['Apple'], nameIncludes: ['iphone'], conditions: ['refurbished'] },
+    sort: 'price-asc',
+    limit: 40,
+    shopHref: '/shop?cat=phones&brand=apple',
+    relatedGuides: ['verifier-iphone-occasion', 'occasion-reconditionne-ou-neuf', 'iphone-12-ou-iphone-13'],
+    relatedLandings: ['iphone-cameroun', 'telephones-moins-100000-fcfa'],
+    priceTable: { title: 'Prix des iPhone reconditionnés à Yaoundé' },
+    updatedAt: '2026-11-07',
   },
   {
     slug: 'smartphones-samsung-cameroun',

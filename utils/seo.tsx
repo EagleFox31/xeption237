@@ -1,6 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { getPublicSpecs } from './publicSpecs';
+import { FREE_DELIVERY_THRESHOLD_XAF } from '../constants/delivery';
 
 const SITE_URL = 'https://www.xeptionetwork.shop';
 export const absoluteUrl = (path: string) => `${SITE_URL}${path}`;
@@ -108,6 +109,34 @@ export interface ProductSchemaInput {
   rating?: { value: number; count: number } | null;
 }
 
+/** Politique de retour des CGV §7 (loi 2010/021) : 15 jours, retour en boutique, frais au client. */
+const MERCHANT_RETURN_POLICY = {
+  '@type': 'MerchantReturnPolicy',
+  applicableCountry: 'CM',
+  returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+  merchantReturnDays: 15,
+  returnMethod: 'https://schema.org/ReturnInStore',
+  returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
+};
+
+/**
+ * Livraison publiée seulement quand son tarif est certain : offerte dès le seuil (constants/delivery).
+ * Sous le seuil, le prix dépend de la zone → rien plutôt qu'un tarif inventé. Délais : CGV §6.
+ */
+const shippingDetailsFor = (price: number) =>
+  price >= FREE_DELIVERY_THRESHOLD_XAF
+    ? {
+        '@type': 'OfferShippingDetails',
+        shippingRate: { '@type': 'MonetaryAmount', value: 0, currency: 'XAF' },
+        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'CM' },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 0, unitCode: 'DAY' },
+          transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 7, unitCode: 'DAY' },
+        },
+      }
+    : undefined;
+
 export const productJsonLd = (p: ProductSchemaInput) => ({
   '@context': 'https://schema.org',
   '@type': 'Product',
@@ -128,6 +157,8 @@ export const productJsonLd = (p: ProductSchemaInput) => ({
             : 'https://schema.org/NewCondition',
         areaServed: 'Cameroun',
         seller: { '@id': `${SITE_URL}/#organization` },
+        shippingDetails: shippingDetailsFor(p.price),
+        hasMerchantReturnPolicy: MERCHANT_RETURN_POLICY,
       }
     : undefined,
   // Specs affichées → additionalProperty (fort levier d'extraction pour les LLM).

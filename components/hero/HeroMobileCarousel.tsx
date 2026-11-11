@@ -169,8 +169,10 @@ const HeroMobileCarousel: React.FC<HeroMobileCarouselProps> = ({
                         alt={getProductDisplayName(slide.product)}
                         width={640}
                         height={640}
-                        loading={index === 0 ? 'eager' : 'lazy'}
-                        priority={index === 0}
+                        // Position du slide (i), pas slide actif (index) : sinon toutes les images
+                        // partent en priorité haute et retardent l'image LCP.
+                        loading={i <= 1 ? 'eager' : 'lazy'}
+                        priority={i === 0}
                         sizes="(max-width: 640px) 90vw, 500px"
                         className="relative z-[1] w-auto h-auto max-h-[88%] max-w-[92%] object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.55)] group-hover:scale-[1.04] transition-transform duration-300"
                       />

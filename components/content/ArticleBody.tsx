@@ -24,6 +24,30 @@ const ArticleBody: React.FC<{ sections: ArticleSection[] }> = ({ sections }) => 
             ))}
           </ul>
         ) : null}
+        {section.table ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <caption className="text-left text-xs text-gray-400 pb-2">{section.table.caption}</caption>
+              <thead className="text-xs uppercase text-gray-400 border-b border-white/10">
+                <tr>
+                  {section.table.head.map((h) => (
+                    <th key={h} scope="col" className="py-2 pr-3">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {section.table.rows.map(([criterion, ...cells]) => (
+                  <tr key={criterion} className="border-b border-white/5 align-top">
+                    <th scope="row" className="py-2 pr-3 font-semibold text-white">{criterion}</th>
+                    {cells.map((c, i) => (
+                      <td key={i} className="py-2 pr-3">{c}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
         {section.links?.length ? (
           <p className="pt-1 flex flex-wrap gap-x-5 gap-y-2">
             {section.links.map((l) => (

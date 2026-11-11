@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Star } from 'lucide-react';
 import { PageSEO } from '../utils/seo';
 import { FEEDBACK_KIND_LABELS } from '../utils/orderFeedback';
+import { GOOGLE_REVIEW_URL } from '../constants/googleReview';
 import {
   getPublicFeedbackInvite,
   submitPublicFeedback,
@@ -111,6 +112,18 @@ const FeedbackPage: React.FC = () => {
             <p className="text-white/80 text-sm leading-relaxed">
               Ton avis est enregistré. Ça nous aide à mieux recevoir les clients à Yaoundé.
             </p>
+            {/* Proposé à tous, quelle que soit la note : Google interdit de ne solliciter que les avis positifs. */}
+            {GOOGLE_REVIEW_URL && (
+              <a
+                href={GOOGLE_REVIEW_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg border border-xeption-gold/60 px-4 py-2.5 text-sm font-semibold text-xeption-gold hover:bg-xeption-gold hover:text-black transition-colors"
+              >
+                <Star className="w-4 h-4" aria-hidden="true" />
+                Partager ton avis sur Google
+              </a>
+            )}
           </div>
         )}
         {load === 'ok' && invite && !done && (

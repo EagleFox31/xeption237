@@ -44,3 +44,24 @@ section « Ingestion automatique des rapports de caisse WhatsApp ».
 - Une ligne `bot` (saisie Telegram) n'est jamais réécrite ; le webhook répond `protected`.
 - WAHA rejoue sur 5xx : seules les erreurs base renvoient 500 ; signature invalide = 401 sans retry utile.
 - La tâche demandait `docs/engineering/adr/` ; le dépôt utilise déjà `docs/adr/` (ADR-001) → même dossier.
+
+## 2026-11-11 08:38 — Déploiement en une commande (`npm run deploy:whatsapp-cash`)
+
+Anjl : « y a pas une commande pour gérer ça ? » → `scripts/deploy-whatsapp-cash-webhook.mjs` (npm
+`deploy:whatsapp-cash`). Plan par défaut (lecture seule), `--apply` pour exécuter ; idempotent sur les 4
+étapes : migration (sautée si tracée), secrets (empreinte SHA-256 ; HMAC générée si absente), fonction,
+webhook WAHA via SSH sur le VPS (API en loopback ; clé API lue côté VPS, clé HMAC par stdin ; seule notre
+entrée `config.webhooks` est touchée). Options : `--session`, `--group`, `--rotate-key`, `--skip-vps`,
+`--skip-deploy`. Doc : NOTIFICATIONS.md, section « Déploiement — une commande ».
+
+**Plan exécuté (preuve, rien appliqué)** : migration non appliquée · HMAC à créer · fonction absente ·
+webhook absent de la session WAHA réelle **`trigenys-test`** (seule session WORKING, aucun webhook
+existant — la passation précédente parlait de `trigenys-notify`, qui n'existe pas sur ce WAHA).
+
+**Pièges** : le worktree n'a pas de `.env` (celui du dépôt principal : `../../../.env`) → lancer depuis le
+dépôt principal ou charger l'env. Le PUT WAHA redémarre la session. Si la clé HMAC existe déjà côté
+Supabase sans être connue localement et que WAHA n'a pas encore le webhook : env `WHATSAPP_CASH_WEBHOOK_HMAC_KEY`
+ou `--rotate-key`.
+
+**Reste à faire par Anjl** : `npm run deploy:whatsapp-cash -- --apply` (accord VPS implicite dans la commande),
+puis test réel : rapport posté dans le groupe → ligne `whatsapp_live`.

@@ -147,28 +147,29 @@ Décision et alternatives : [ADR-002](../adr/ADR-002-whatsapp-cash-webhook.md).
 - **Confidentialité** : logs et réponses = action, code boutique, date, avertissements, identifiant WAHA.
   Jamais le texte du message ni un nom.
 
-**Déploiement (dans cet ordre)** :
+**Déploiement — une commande, idempotente** (`scripts/deploy-whatsapp-cash-webhook.mjs`) :
 
 ```bash
-npm run db:apply -- supabase/migrations/20261111_001_store_cash_reports_source_whatsapp_live.sql
-npx supabase secrets set WHATSAPP_CASH_WEBHOOK_HMAC_KEY=<openssl rand -hex 32> WHATSAPP_CASH_GROUP_IDS=<id>@g.us --project-ref tawnusmfyvugqczaydat
-npx supabase functions deploy whatsapp-cash-webhook --project-ref tawnusmfyvugqczaydat --no-verify-jwt --use-api --workdir .
+npm run deploy:whatsapp-cash              # plan : lecture seule, montre l'état réel et les actions restantes
+npm run deploy:whatsapp-cash -- --apply   # exécute uniquement ce qui manque
 ```
 
-Puis côté WAHA (VPS, `WAHA_BASE_URL` + `X-Api-Key: $WAHA_API_KEY`) : `GET /api/sessions/<WAHA_SESSION>`,
-reprendre `config` tel quel et **ajouter** à `config.webhooks` (ne pas remplacer ceux de Trigenys Notify) :
+Le script inspecte puis réconcilie, dans l'ordre : **migration** `20261111_001` (sautée si tracée dans
+`schema_migrations`) → **secrets** Supabase (comparés par empreinte SHA-256 ; `WHATSAPP_CASH_WEBHOOK_HMAC_KEY`
+générée si absente ; `WHATSAPP_CASH_GROUP_IDS` / `WHATSAPP_CASH_AUTHOR_STORES` pilotés seulement si fournis via
+`--group=<id>@g.us` ou `.env`) → **fonction** (`functions deploy … --no-verify-jwt --use-api`) → **webhook WAHA**
+sur le VPS via SSH (l'API WAHA n'écoute que sur `127.0.0.1:3000` ; clé API lue dans l'env du conteneur côté VPS,
+clé HMAC transmise par stdin). Seule **notre** entrée de `config.webhooks` est ajoutée ou alignée ; les autres
+webhooks de la session sont conservés. Un second `--apply` convergé = zéro écriture.
 
-```json
-{
-  "url": "https://tawnusmfyvugqczaydat.supabase.co/functions/v1/whatsapp-cash-webhook",
-  "events": ["message"],
-  "hmac": { "key": "<WHATSAPP_CASH_WEBHOOK_HMAC_KEY>" },
-  "retries": { "policy": "exponential", "delaySeconds": 2, "attempts": 5 }
-}
-```
-
-puis `PUT /api/sessions/<WAHA_SESSION>` avec la config complète. L'identifiant du groupe (`…@g.us`) se lit
-dans `GET /api/<WAHA_SESSION>/groups`. Vérification : `select source, count(*) from store_cash_reports group by 1`.
+- Session WAHA : la seule en `WORKING` par défaut, sinon `--session=<nom>` (ou `WAHA_SESSION`). ⚠️ `PUT /api/sessions`
+  **redémarre la session** (quelques secondes sans réception).
+- Clé HMAC déjà en place côté Supabase mais inconnue localement : la fournir dans l'env (`WHATSAPP_CASH_WEBHOOK_HMAC_KEY`)
+  ou `--rotate-key` (régénère et aligne les deux côtés). `--skip-vps` / `--skip-deploy` pour une étape seule.
+- Accès requis : `DATABASE_URL` (ou `SUPABASE_DB_PASSWORD`) dans `.env`, CLI Supabase connectée, clé SSH
+  `~/.ssh/id_ed25519_fleet_vps` (surcharges : `WAHA_VPS_SSH`, `WAHA_VPS_SSH_KEY`, `WAHA_CONTAINER`, `WAHA_LOCAL_URL`).
+- Rien n'est affiché en clair : empreintes seulement. L'identifiant du groupe (`…@g.us`) se lit dans
+  `GET /api/<session>/groups`. Vérification : `select source, count(*) from store_cash_reports group by 1`.
 
 ### Événements SMART TROC intermédiaires (`accepted → contacted → appointment`)
 
@@ -216,5 +217,5 @@ Migration `20261020_002_staff_notification_deliveries.sql` + Edge Function `noti
 - **SMS WhatsApp** pour les CTAs clients (déjà en place via `whatsappShare.ts`, à harmoniser).
 - **Notifs per-user** si l'équipe staff dépasse 10 personnes (table `notification_reads`).
 - **Préférences utilisateur** (opt-out par type) → table `staff_notification_preferences`.
-- **Rapports de caisse WhatsApp** : ingestion automatique livrée (`whatsapp_live`, [ADR-002](../adr/ADR-002-whatsapp-cash-webhook.md)) ; déploiement à faire (migration `20261111_001`, secrets, fonction, webhook WAHA). Ensuite : alerte si une boutique n'a rien posté à 21 h.
+- **Rapports de caisse WhatsApp** : ingestion automatique livrée (`whatsapp_live`, [ADR-002](../adr/ADR-002-whatsapp-cash-webhook.md)) ; déploiement en une commande : `npm run deploy:whatsapp-cash -- --apply` (plan sans `--apply`). Ensuite : alerte si une boutique n'a rien posté à 21 h.
 - **Digest quotidien** : livré sur Telegram (`daily_digest`, voir [ADR-001](../adr/ADR-001-daily-digest-telegram.md)). Reste à faire : commandes bot `/jour` et `/ventes` (bilan à la demande), relais WhatsApp quand Trigenys Notify acceptera le type, variante email `direction`.

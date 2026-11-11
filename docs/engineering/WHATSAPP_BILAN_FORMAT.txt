@@ -1,0 +1,41 @@
+*BILAN CAISSE XEPTION* — 21/05 → 10/11/2026 _(test)_
+Entrées 46,5 M | Sorties 44,4 M | 307 rapports
+
+*Mfoundi* (141 j)
+Entrées 41,7 M
+Sorties 38,4 M
+Caisse 493 000
+Moyenne/jour 296 k, record 1 506 000 le 07/10
+Dettes : 28 clients, 4 047 500 restant dû
+
+*Olembe* (147 j)
+Entrées 2,9 M
+Sorties 3,0 M
+Caisse 31 000
+Moyenne/jour 20 k, 57 jours sans vente
+Dettes : 8 clients, 77 000
+
+*MF 1092* (19 j, depuis le 14/10)
+Entrées 1,8 M
+Sorties 3,1 M
+Caisse 8 000
+Aucun rapport depuis le 06/11
+
+*Par mois — entrées Mfoundi / Olembe*
+Juin  5,4 M / 571 k
+Juil  8,7 M / 796 k
+Août  6,6 M / 323 k
+Sept  8,3 M / 528 k
+Oct   8,7 M / 440 k
+Nov*  2,8 M / 167 k   (*10 jours)
+
+*Dettes Mfoundi en fin de mois*
+Août 2,7 M
+Sept 3,8 M
+Oct 5,2 M
+10/11 4,0 M
+
+*À noter*
+- Sorties « boss » : 83 % du total Mfoundi
+- Meilleur jour : mercredi (389 k à Mfoundi)
+- 4 journées à arbitrer (totaux ≠ détail)

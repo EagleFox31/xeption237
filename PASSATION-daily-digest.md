@@ -279,3 +279,9 @@
 ## 2026-11-11 12:44 — Bilan WhatsApp : une donnée par ligne
 
 - Retour user : le séparateur « · » est peu lisible sur WhatsApp. Nouvelle version envoyée dans le groupe test (HTTP 201) : une donnée par ligne, « | » uniquement sur la ligne de synthèse. Convention : pas de « · », pas d emoji.
+
+## 2026-11-11 14:56 — Format bilan WhatsApp validé
+
+- Format validé par le user : pas d emoji, titres en gras, une donnée par ligne, « | » seulement sur la ligne de synthèse, bloc « À noter » en fin. Modèle de référence : docs/engineering/WHATSAPP_BILAN_FORMAT.txt (chiffres du 11/11, à titre d exemple).
+- Session WhatsApp : digest passé à 22 h Douala, migration 20261111_002 appliquée en prod, PR #52 à jour (a01983e) → conflit de préfixe réglé.
+- Bilan WhatsApp périodique : cadence pas encore choisie, rien lancé.

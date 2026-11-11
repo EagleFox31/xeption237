@@ -326,3 +326,9 @@
 - Session Siège (branche claude/sharp-rhodes-803414, commit c11f208) : migration 20261111_005_merge_siege_into_mf1092.sql appliquée, telegram-bot-entry redéployé. Vérifié en lecture : MF1092 « Mfoundi-Mall 1092 » is_default, 217 lignes / 2 634 unités ; siege « Ancien siège (archivé) » inactif, stock vide.
 - Non poussé : branche claude/sharp-rhodes-803414 (code en prod hors git, à pousser/fusionner sur accord). Suite proposée par la session : la redistribution du bot vise encore siege.
 - Ici : commit 76ab75b (ERRORS_LOG préfixe en double) + passations non poussés.
+
+## 2026-11-11 21:16 — Siège et notes fusionnés dans main
+
+- Poussé : claude/sharp-rhodes-803414 (c11f208) et claude/daily-digest-ca6b98. origin/main = 586515f (contient la migration 20261111_005 et le correctif telegram-bot-entry déjà en prod).
+- Conflit ERRORS_LOG résolu en gardant les deux entrées (préfixe en double + verify-erp-step2).
+- Reste : PR 52 (WhatsApp, branche claude/wonderful-haslett-3e2f95, migrations 20261111_001/_002/_003 en prod) non fusionnée ; redistribution du bot vise encore siege (session Siège) ; cadence du bilan WhatsApp non choisie.

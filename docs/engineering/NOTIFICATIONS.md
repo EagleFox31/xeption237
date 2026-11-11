@@ -157,7 +157,8 @@ npm run deploy:whatsapp-cash -- --apply   # exécute uniquement ce qui manque
 Le script inspecte puis réconcilie, dans l'ordre : **migration** `20261111_001` (sautée si tracée dans
 `schema_migrations`) → **secrets** Supabase (comparés par empreinte SHA-256 ; `WHATSAPP_CASH_WEBHOOK_HMAC_KEY`
 générée si absente ; `WHATSAPP_CASH_GROUP_IDS` / `WHATSAPP_CASH_AUTHOR_STORES` pilotés seulement si fournis via
-`--group=<id>@g.us` ou `.env`) → **fonction** (`functions deploy … --no-verify-jwt --use-api`) → **webhook WAHA**
+`--group=<id>@g.us` ou `.env`) → **fonction** (`functions deploy … --no-verify-jwt --use-api`, seulement si les sources sont plus récentes que le
+déploiement, ou `--redeploy`) → **webhook WAHA**
 sur le VPS via SSH (l'API WAHA n'écoute que sur `127.0.0.1:3000` ; clé API lue dans l'env du conteneur côté VPS,
 clé HMAC transmise par stdin). Seule **notre** entrée de `config.webhooks` est ajoutée ou alignée ; les autres
 webhooks de la session sont conservés. Un second `--apply` convergé = zéro écriture.

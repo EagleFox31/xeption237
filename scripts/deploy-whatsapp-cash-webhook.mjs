@@ -10,11 +10,11 @@
  * réconciliation minimale) :
  *   1. migration `20261111_001` via scripts/apply-migration.mjs (déjà tracée = sautée) ;
  *   2. secrets Supabase (comparés par empreinte SHA-256, la seule chose que la CLI expose) ;
- *   3. déploiement de la fonction (toujours rejoué en --apply, opération sans effet de bord) ;
+ *   3. déploiement de la fonction (sources plus récentes que le déploiement, ou --redeploy) ;
  *   4. webhook de la session WAHA sur le VPS, via SSH (l'API WAHA n'écoute que sur 127.0.0.1) :
  *      ajout/mise à jour de NOTRE entrée seulement, les autres webhooks (Trigenys Notify) sont conservés.
  *
- * Options : --apply · --rotate-key (nouvelle clé HMAC des deux côtés) · --skip-vps · --skip-deploy
+ * Options : --apply · --rotate-key (nouvelle clé HMAC des deux côtés) · --skip-vps · --skip-deploy · --redeploy
  *           --session=<nom WAHA> · --group=<id@g.us>[,…]
  * Variables (.env ou environnement) : SUPABASE_PROJECT_REF, WHATSAPP_CASH_WEBHOOK_HMAC_KEY (pour réutiliser
  *   une clé existante), WHATSAPP_CASH_GROUP_IDS, WHATSAPP_CASH_AUTHOR_STORES, WAHA_SESSION, WAHA_VPS_SSH,
@@ -25,7 +25,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -61,6 +61,7 @@ const APPLY = flag('apply');
 const ROTATE_KEY = flag('rotate-key');
 const SKIP_VPS = flag('skip-vps');
 const SKIP_DEPLOY = flag('skip-deploy');
+const REDEPLOY = flag('redeploy');
 
 // ── Configuration (déclarative, surchargée par l'environnement) ──────────────
 const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'tawnusmfyvugqczaydat';
@@ -198,17 +199,35 @@ function applySecrets(pairs) {
 }
 
 // ── 3. Edge Function ─────────────────────────────────────────────────────────
+// Sources embarquées dans le bundle : le dossier de la fonction et tout `_shared` (imports relatifs).
+const FUNCTION_SOURCE_DIRS = [`supabase/functions/${FUNCTION_NAME}`, 'supabase/functions/_shared'];
+function newestMtime(dir) {
+  let newest = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    newest = Math.max(newest, entry.isDirectory() ? newestMtime(path) : statSync(path).mtimeMs);
+  }
+  return newest;
+}
+
+/** La CLI n'expose pas d'empreinte comparable au bundle : on compare la date du déploiement à celle des sources. */
 function inspectFunction() {
+  if (SKIP_DEPLOY) return { action: 'skip', state: 'non inspectée', detail: '--skip-deploy' };
+  let fn;
   try {
     const out = supabase(['functions', 'list', '-o', 'json']);
-    const list = JSON.parse(out.slice(out.indexOf('[')));
-    const fn = list.find((f) => f.slug === FUNCTION_NAME || f.name === FUNCTION_NAME);
-    if (!fn) return 'absente';
-    const when = fn.updated_at ? new Date(Number(fn.updated_at) || fn.updated_at).toISOString().slice(0, 10) : '?';
-    return `déployée (v${fn.version ?? '?'}, ${fn.status ?? ''} ${when})`;
+    fn = JSON.parse(out.slice(out.indexOf('['))).find((f) => f.slug === FUNCTION_NAME || f.name === FUNCTION_NAME);
   } catch {
-    return 'état inconnu (functions list indisponible)';
+    return { action: 'deploy', state: 'état inconnu (functions list indisponible)', detail: 'redéploiement par prudence' };
   }
+  if (!fn) return { action: 'deploy', state: 'absente' };
+  const deployedAt = Number(fn.updated_at) || Date.parse(fn.updated_at) || 0;
+  const label = `déployée (v${fn.version ?? '?'}, ${fn.status ?? ''} ${new Date(deployedAt).toISOString().slice(0, 16).replace('T', ' ')} UTC)`;
+  if (REDEPLOY) return { action: 'deploy', state: label, detail: '--redeploy' };
+  const sourcesAt = Math.max(...FUNCTION_SOURCE_DIRS.map((d) => newestMtime(resolve(root, d))));
+  return sourcesAt > deployedAt
+    ? { action: 'deploy', state: label, detail: 'sources modifiées depuis' }
+    : { action: 'no-op', state: label, detail: 'sources plus anciennes que le déploiement' };
 }
 const deployFunction = () =>
   supabase(['functions', 'deploy', FUNCTION_NAME, '--no-verify-jwt', '--use-api', '--workdir', '.'], { inherit: true });
@@ -294,7 +313,8 @@ async function main() {
 
   const secrets = planSecrets(listSecretDigests());
 
-  log('fonction', inspectFunction(), SKIP_DEPLOY ? 'skip' : 'deploy', SKIP_DEPLOY ? '--skip-deploy' : 'redéploiement sans effet de bord');
+  const fn = inspectFunction();
+  log('fonction', fn.state, fn.action, fn.detail ?? '');
 
   let waha = null;
   if (SKIP_VPS) log('waha', 'non inspecté', 'skip', '--skip-vps');
@@ -313,7 +333,7 @@ async function main() {
     applySecrets(secrets.desired);
     console.log(`✓ secrets    ${secrets.desired.map(([n]) => n).join(', ')} enregistrés`);
   }
-  if (!SKIP_DEPLOY) deployFunction();
+  if (fn.action === 'deploy') deployFunction();
   if (waha?.action === 'put') {
     const code = wahaPutSession(waha.session.name, waha.body).trim();
     if (!/^20\d$/.test(code)) throw new Error(`WAHA PUT /api/sessions/${waha.session.name} → HTTP ${code}`);

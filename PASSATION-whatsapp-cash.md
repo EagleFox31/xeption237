@@ -72,3 +72,18 @@ Anjl a lancé le plan depuis le worktree → « Accès base absent ». Correctif
 il prend celui du dépôt principal (`git rev-parse --git-common-dir`) et affiche la ligne `env : <chemin>`.
 Plan rejoué depuis le worktree : 4 actions restantes, rien appliqué. Prochaine étape inchangée :
 `npm run deploy:whatsapp-cash -- --apply` par Anjl.
+
+## 2026-11-11 08:54 — DÉPLOYÉ en prod (`--apply` lancé par Anjl) et convergé
+
+- Migration `20261111_001` appliquée et tracée ; secret `WHATSAPP_CASH_WEBHOOK_HMAC_KEY` créé (valeur
+  connue seulement de Supabase et de WAHA, pas dans `.env`) ; fonction `whatsapp-cash-webhook` v1 ACTIVE ;
+  webhook ajouté à la session WAHA `trigenys-test` (WORKING après redémarrage, hmac + retries conformes).
+- Tout ce qui est déployé est commité sur `claude/wonderful-haslett-3e2f95` (f2c3244, 0de9bb4, 78fcc65 + ce commit).
+- Étape fonction rendue idempotente : déploiement seulement si les sources (`functions/<fn>` + `_shared`)
+  sont plus récentes que `updated_at` de la fonction déployée, ou `--redeploy`. Second plan = « Tout est
+  déjà en place » (zéro écriture).
+- Non fait : `WHATSAPP_CASH_GROUP_IDS` (la session écoute tous ses groupes, filtrage par contenu seul) →
+  `npm run deploy:whatsapp-cash -- --apply --group=<id>@g.us` quand l'id du groupe caisse est connu.
+- **Prochaine étape** : test réel — poster un rapport dans le groupe, puis
+  `select source, count(*) from store_cash_reports group by 1` doit montrer `whatsapp_live`.
+  Ensuite (roadmap) : alerte si une boutique n'a rien posté à 21 h.

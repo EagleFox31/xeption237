@@ -265,3 +265,9 @@
 
 - ERP Bilan caisse : PR sur claude/ecstatic-mendel-e0d052 ; rapport test siège du 23/10 supprimé en prod par cette session (le bilan artifact du 11/11 montre encore la ligne siège : instantané).
 - WhatsApp : PR sur claude/wonderful-haslett-3e2f95. Conflit de préfixe 20261111_001 entre les deux PR à régler avant la seconde fusion.
+
+## 2026-11-11 10:45 — Test bilan WhatsApp envoyé
+
+- Bilan caisse (format WhatsApp, marqué « message test ») envoyé dans le groupe « Xeption app test » via l API WAHA locale du VPS OVH (session trigenys-test, POST /api/sendText, HTTP 201). Envoi manuel : le canal notify du dépôt n accepte pas de texte libre (types d événements allowlistés).
+- Si un bilan WhatsApp périodique est voulu : nouveau type d événement dans Trigenys Notify + fonction planifiée, à cadrer (hebdo / mensuel).
+- Commits passation 32ef9a5, c741395, aaaa078 non poussés. Conflit de préfixe 20261111_001 à régler avant fusion de la PR WhatsApp.

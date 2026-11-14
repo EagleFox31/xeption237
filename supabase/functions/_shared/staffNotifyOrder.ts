@@ -19,10 +19,12 @@ export interface OrderNotificationSnapshot {
   payment_method?:string|null;
   total?:number|string|null;
   items?:unknown;
+  /** Current status: decides whether the Telegram alert carries action buttons. */
+  status?:string|null;
 }
 
 export const ORDER_SNAPSHOT_COLUMNS =
-  'id,customer_name,customer_phone,customer_email,customer_city,delivery_mode,payment_method,total,items';
+  'id,customer_name,customer_phone,customer_email,customer_city,delivery_mode,payment_method,total,items,status';
 
 /** Must stay within Trigenys Notify's limits (10 items, 4096-byte body). */
 const MAX_ITEMS=10;
@@ -54,6 +56,19 @@ export const formatOrderPhone=(raw:unknown):string|undefined=>{
   const national=digits.replace(/^00/,'');
   const full=/^[26]\d{8}$/.test(national)?'237'+national:national;
   return /^\d{8,15}$/.test(full)?'+'+full:undefined;
+};
+
+/**
+ * wa.me link to the customer, with a short prefilled greeting (order number only, no amount).
+ * Internal Telegram group only: never sent to Trigenys Notify.
+ */
+export const customerWhatsAppLink=(order:OrderNotificationSnapshot,shopName?:string):string|undefined=>{
+  const phone=formatOrderPhone(order.customer_phone);
+  if(!phone||!/^[A-Za-z0-9_-]{1,40}$/.test(order.id))return undefined;
+  const name=clean(order.customer_name,80)?.split(' ')[0];
+  const shop=clean(shopName,60);
+  const text=`Bonjour${name?' '+name:''}, ici ${shop??'la boutique'} au sujet de votre commande #${order.id}.`;
+  return `https://wa.me/${phone.slice(1)}?text=${encodeURIComponent(text)}`;
 };
 
 export function orderSnapshotFacts(order:OrderNotificationSnapshot):Record<string,unknown>{

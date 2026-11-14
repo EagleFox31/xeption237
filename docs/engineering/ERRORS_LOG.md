@@ -789,3 +789,24 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 - **Prévention** : `tests/unit/uploadTrocPhotos.test.ts` (envoi séquentiel, aucun appel Cloudinary, codes d'erreur).
   Règle : un repli ne doit jamais remplacer le message d'échec du chemin principal ; il faut journaliser la cause
   première et l'afficher.
+
+## 2026-11-14 — Images restées sur Cloudinary malgré la migration vers R2
+
+- **Symptôme** : après la désactivation du compte Cloudinary, des images produits, une annonce de troc, des commandes,
+  le logo du site, la vidéo de fond et le son des notifications staff ne s'affichaient plus (401).
+- **Cause racine** : deux défauts.
+  1. Lors du passage de `scripts/migrate-cloudinary-to-r2.mjs` du 2026-10-27, les fichiers ont bien été copiés sur R2
+     (table de correspondance enregistrée), mais les écritures en base ont échoué (TLS). Au passage suivant, le filtre
+     de lignes écartait les URL déjà présentes dans la table : ces lignes n'ont jamais été repointées.
+     `marketplace_listings.photo_urls` et `orders.items` n'étaient pas couverts par le script.
+  2. Le logo, la vidéo de fond et le son étaient codés en dur avec des URL Cloudinary, hors de toute migration.
+- **Résolution** : le script sélectionne toute ligne contenant encore une URL Cloudinary et compte à part les lignes
+  à simplement repointer (`repointOnly`). Les portées `listings` et `orders` sont ajoutées (JSON parcouru
+  récursivement). En prod : 24 produits, 1 annonce et 7 commandes repointés ; le second passage n'a rien écrit.
+  Les ressources de marque sont servies depuis `public/` (`constants/brandAssets.ts`). La vidéo de fond est retirée,
+  car aucune copie n'existe.
+- **Prévention** : un script de migration doit sélectionner sur l'état de la cible (« encore une URL source ? ») et
+  non sur l'état de sa propre progression ; un second passage convergé doit indiquer 0 écriture. Les ressources de
+  marque ne dépendent d'aucun fournisseur média externe : `git grep res.cloudinary.com` hors `scripts/`, `data/` et
+  `tests/` doit rester vide.
+- **Reste** : 14 vidéos produits et 1 vidéo de commande Cloudinary n'ont aucune copie (décision métier en attente).

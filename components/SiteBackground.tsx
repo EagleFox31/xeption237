@@ -9,7 +9,8 @@ const BACKGROUND_VIDEO_FADE_MS = 700;
 
 interface SiteBackgroundProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
-  videoUrl: string;
+  /** Vidéo de fond facultative : sans URL, seul le fond d'images tournant s'affiche. */
+  videoUrl?: string;
   isVideoPaused: boolean;
   imagePool: readonly string[];
   /** Fond clair (pages légales, contact…) → pas d’overlay */
@@ -97,7 +98,7 @@ const SiteBackground: React.FC<SiteBackgroundProps> = ({
         aria-hidden
       />
 
-      {!isVideoPaused && !videoRetired && (
+      {videoUrl && !isVideoPaused && !videoRetired && (
         <video
           ref={videoRef}
           autoPlay

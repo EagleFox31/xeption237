@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import type { DashboardAnalytics } from './dashboardAnalytics';
+import { BRAND_ICON_PATH } from '../constants/brandAssets';
 import {
   formatFcfa,
   formatPeriodLabel,
@@ -8,9 +9,8 @@ import {
   topProductsCoverageNote,
 } from './dashboardAnalytics';
 
-/** Même logo que les factures — URL Cloudinary stable pour html2canvas (useCORS). */
-const REPORT_LOGO_URL =
-  'https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png';
+/** Même logo que les factures, servi par le site (même origine : pas de souci CORS pour html2canvas). */
+const REPORT_LOGO_URL = BRAND_ICON_PATH;
 
 const escapeCell = (v: string | number) =>
   `"${String(v).replace(/"/g, '""')}"`;

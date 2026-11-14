@@ -14,7 +14,7 @@ import {
   DeviceMismatchError,
   type ImeiDeviceInfo,
 } from '../services/trocEvaluationService';
-import { uploadTrocPhotos } from '../services/uploadService';
+import { TrocPhotoUploadError, uploadTrocPhotos } from '../services/uploadService';
 import { preflightDevicePhotos } from '../services/trocPhotoPreflight';
 import { validateTrocForm } from '../utils/trocFormValidation';
 import type { Product, TrocDeviceForm, TrocEvaluationResult, TradeInRequest } from '../types';
@@ -102,6 +102,10 @@ export const useTradeIn = () => {
   // Index 1-based des photos signalées non conformes par Gemini Vision.
   // Reset dès que l'utilisateur modifie sa sélection.
   const [photoIssueIndices, setPhotoIssueIndices] = useState<number[]>([]);
+  // Photo dont l'envoi a échoué : l'interface y affiche « Réessayer ».
+  const [failedPhoto, setFailedPhoto] = useState<File | null>(null);
+  // Photos déjà envoyées : un nouvel essai ne renvoie que celles qui manquent.
+  const uploadedPhotoUrlsRef = useRef(new WeakMap<File, string>());
   const [imeiStatus, setImeiStatus] = useState<TradeInRequest['imei_status']>(() => initialDraft?.imeiStatus ?? 'not_checked');
   const [imeiBlacklistStatus, setImeiBlacklistStatus] = useState<TradeInRequest['imei_blacklist_status']>(() => initialDraft?.imeiBlacklistStatus ?? 'unknown');
   const [imeiAssuranceLevel, setImeiAssuranceLevel] = useState<TradeInRequest['imei_assurance_level']>(() => initialDraft?.imeiAssuranceLevel ?? 'basic');
@@ -311,6 +315,7 @@ export const useTradeIn = () => {
   const updatePhotos = (files: File[]) => {
     setPhotos(files);
     setPhotoIssueIndices([]);
+    setFailedPhoto(null);
     setError(null);
   };
 
@@ -371,12 +376,13 @@ export const useTradeIn = () => {
     setIsUploading(true);
     setError(null);
     setPhotoIssueIndices([]);
+    setFailedPhoto(null);
     try {
       let urls: string[];
       if (photos.length >= 3) {
-        urls = await uploadTrocPhotos(photos, sessionKey);
+        urls = await uploadTrocPhotos(photos, sessionKey, uploadedPhotoUrlsRef.current);
       } else if (photos.length > 0) {
-        const newlyUploaded = await uploadTrocPhotos(photos, sessionKey);
+        const newlyUploaded = await uploadTrocPhotos(photos, sessionKey, uploadedPhotoUrlsRef.current);
         urls = [...newlyUploaded, ...photoUrls].slice(0, 4);
       } else {
         urls = photoUrls;
@@ -406,6 +412,11 @@ export const useTradeIn = () => {
       setError(null);
       setStep('diagnostic');
     } catch (err) {
+      if (err instanceof TrocPhotoUploadError) {
+        setFailedPhoto(err.file);
+        setError(err.message);
+        return;
+      }
       if (err instanceof PhotoRetakeRequiredError) {
         setPhotoIssueIndices(err.issueIndices);
         setError(
@@ -790,6 +801,7 @@ export const useTradeIn = () => {
     setPhotos([]);
     setPhotoUrls([]);
     setPhotoIssueIndices([]);
+    setFailedPhoto(null);
     setImeiStatus('not_checked');
     setImeiBlacklistStatus('unknown');
     setImeiAssuranceLevel('basic');
@@ -813,6 +825,7 @@ export const useTradeIn = () => {
     photos,
     photoUrls,
     photoIssueIndices,
+    failedPhoto,
     imeiStatus,
     imeiBlacklistStatus,
     imeiAssuranceLevel,

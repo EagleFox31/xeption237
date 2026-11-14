@@ -188,14 +188,43 @@ export const uploadProductVideo = async (_file: File): Promise<string> => {
  * Plus de repli Cloudinary (compte désactivé) : il masquait la vraie cause sous un message « preset ».
  * L'erreur levée porte un message client avec le numéro de photo et le code d'étape.
  */
-export const uploadTrocPhotos = async (files: File[], sessionKey?: string): Promise<string[]> => {
+export class TrocPhotoUploadError extends Error {
+  constructor(
+    message: string,
+    /** Photo qui a échoué : l'interface la repère par référence pour y placer « Réessayer ». */
+    public readonly file: File,
+    public readonly index: number,
+    public readonly code: StorageUploadErrorCode,
+  ) {
+    super(message);
+    this.name = 'TrocPhotoUploadError';
+  }
+}
+
+/**
+ * `uploaded` (optionnel) mémorise les photos déjà envoyées : un nouvel essai reprend à la photo
+ * en échec au lieu de tout renvoyer (quota 16 envois/heure, données mobiles du client).
+ */
+export const uploadTrocPhotos = async (
+  files: File[],
+  sessionKey?: string,
+  uploaded?: WeakMap<File, string>,
+): Promise<string[]> => {
   const urls: string[] = [];
   for (const [i, file] of files.entries()) {
+    const known = uploaded?.get(file);
+    if (known) {
+      urls.push(known);
+      continue;
+    }
     try {
-      urls.push(await uploadImageToTrigenysStorage(file, 'trocs', sessionKey));
+      const url = await uploadImageToTrigenysStorage(file, 'trocs', sessionKey);
+      uploaded?.set(file, url);
+      urls.push(url);
     } catch (error) {
-      console.warn('[troc] envoi photo échoué', { index: i + 1, code: (error as StorageUploadError)?.code, error });
-      throw new Error(trocUploadErrorMessage(error, i + 1));
+      const code: StorageUploadErrorCode = error instanceof StorageUploadError ? error.code : 'upload';
+      console.warn('[troc] envoi photo échoué', { index: i + 1, code, error });
+      throw new TrocPhotoUploadError(trocUploadErrorMessage(error, i + 1), file, i + 1, code);
     }
   }
   return urls;

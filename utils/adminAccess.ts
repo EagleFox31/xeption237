@@ -20,6 +20,7 @@ const TAB_MIN_ROLE: Record<AdminTabId, StaffRoleId> = {
   pos: 'vendeur',
   mySales: 'vendeur',
   targets: 'responsable',
+  cashReport: 'direction',
   orders: 'vendeur',
   inventory: 'vendeur',
   productImages: 'vendeur',

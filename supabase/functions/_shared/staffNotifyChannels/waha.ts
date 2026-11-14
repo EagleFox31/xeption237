@@ -31,7 +31,8 @@ export const WAHA_EXCLUDED_EVENT_TYPES: Record<string,string> = {
   pos_sale:'Counter sale: the seller is present, a group message would be noise',
   stock_correction:'Internal stock audit trail, not an operational alert',
   troc_stale:'Not yet in Trigenys Notify ALLOWED_TYPES (barter.stale): add both sides together',
-  daily_digest:'Multi-line digest format, Telegram only for now'
+  daily_digest:'Multi-line digest format, Telegram only for now',
+  weekly_digest:'Multi-line digest format, Telegram only for now'
 };
 
 export const NOTIFY_EVENT_ALIASES: Record<string,string> = {

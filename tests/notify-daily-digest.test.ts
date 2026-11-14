@@ -26,6 +26,10 @@ import {
 import type { NotificationEventType } from '../services/notificationService';
 
 const MIGRATION_PATH = resolve(__dirname, '../supabase/migrations/20261107_001_notify_daily_digest.sql');
+const FALLBACK_MIGRATION_PATH = resolve(
+  __dirname,
+  '../supabase/migrations/20261110_001_daily_digest_debts_snapshot_fallback.sql',
+);
 const NOTIFICATION_ID = '11111111-2222-4333-8444-555555555555';
 const CTX = { siteUrl: 'https://example.test' };
 
@@ -46,6 +50,42 @@ const digest = (message?: string): StaffNotification => ({
     ].join('\n'),
   link_to_tab: 'analytics',
   link_to_id: null,
+});
+
+describe('Daily digest — migration 20261110_001 (repli dettes sur debts_snapshot)', () => {
+  const sql = existsSync(FALLBACK_MIGRATION_PATH) ? readFileSync(FALLBACK_MIGRATION_PATH, 'utf-8') : '';
+
+  it('redéfinit notify_daily_digest sans toucher au job pg_cron ni à _format_xaf', () => {
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.notify_daily_digest\(p_day date DEFAULT NULL\)/);
+    expect(sql).toMatch(/SECURITY DEFINER/);
+    expect(sql).toMatch(/^BEGIN;/m);
+    expect(sql).toMatch(/^COMMIT;/m);
+    expect(sql).not.toMatch(/cron\.schedule/);
+    expect(sql).not.toMatch(/CREATE OR REPLACE FUNCTION public\._format_xaf/);
+  });
+
+  it('lit store_debts d’abord, puis le debts_snapshot du dernier rapport daté <= jour seulement si aucune dette ouverte', () => {
+    const debtsIdx = sql.indexOf('FROM public.store_debts d');
+    const fallbackIdx = sql.indexOf('IF v_debt_count = 0 THEN');
+    expect(debtsIdx).toBeGreaterThan(0);
+    expect(fallbackIdx).toBeGreaterThan(debtsIdx);
+    expect(sql).toMatch(/v_snapshot_remaining_key constant text := 'remaining'/);
+    expect(sql).toMatch(/WHERE c\.store_id = r\.id AND c\.report_date <= v_day/);
+    expect(sql).toMatch(/ORDER BY c\.report_date DESC\s+LIMIT 1/);
+    expect(sql).toMatch(/jsonb_array_elements\(coalesce\(last_report\.debts_snapshot, '\[\]'::jsonb\)\)/);
+    expect(sql).toMatch(/\(e ->> v_snapshot_remaining_key\)::numeric, 0\) > 0/);
+  });
+
+  it('mentionne la date du rapport utilisé en repli, et garde la ligne agrégée sans donnée client', () => {
+    expect(sql).toMatch(/format\(' \(rapport du %s\)', to_char\(v_debt_report_date, 'DD\/MM'\)\)/);
+    expect(sql).toMatch(/'Dettes en cours : aucune'/);
+    expect(sql).not.toMatch(/customer_name|phone/);
+  });
+
+  it('réaffirme les privilèges service_role', () => {
+    expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.notify_daily_digest\(date\) FROM PUBLIC, anon, authenticated;/);
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.notify_daily_digest\(date\) TO service_role;/);
+  });
 });
 
 describe('Daily digest — migration 20261107_001', () => {

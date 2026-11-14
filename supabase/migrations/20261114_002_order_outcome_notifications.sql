@@ -1,4 +1,4 @@
--- Migration 20261110_001_order_outcome_notifications.sql
+-- Migration 20261114_002_order_outcome_notifications.sql
 -- Suivi de commande : issue (livrée / annulée), client injoignable, relance des commandes sans suivi.
 --
 -- 1. orders.unreachable_count / orders.last_unreachable_at : « Client injoignable » est un compteur,

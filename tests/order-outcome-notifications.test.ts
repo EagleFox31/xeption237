@@ -6,7 +6,7 @@ import { DEFAULT_STAFF_EVENT_TYPES } from '../supabase/functions/_shared/staffNo
 import { NOTIFY_EVENT_ALIASES, WAHA_DEFAULT_EVENT_TYPES } from '../supabase/functions/_shared/staffNotifyChannels/waha';
 import type { NotificationEventType } from '../services/notificationService';
 
-const MIGRATION_PATH = resolve(__dirname, '../supabase/migrations/20261110_001_order_outcome_notifications.sql');
+const MIGRATION_PATH = resolve(__dirname, '../supabase/migrations/20261114_002_order_outcome_notifications.sql');
 const sql = existsSync(MIGRATION_PATH) ? readFileSync(MIGRATION_PATH, 'utf-8') : '';
 
 /** Corps d'une fonction SQL (entre son CREATE et le $$; qui la ferme). */

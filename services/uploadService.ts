@@ -2,9 +2,6 @@ import { supabase } from './supabaseClient';
 import { STORAGE_VARIANT_WIDTHS } from '../utils/mediaOptimization';
 
 
-// R2 first for authenticated users; only explicit 'false' restores the legacy provider.
-// VITE_ values are public config only; tenant credentials remain in Supabase Vault.
-const USE_TRIGENYS_STORAGE = import.meta.env.VITE_TRIGENYS_STORAGE_ENABLED !== 'false';
 const WEBP_QUALITY = 0.85;
 const MAX_SIDE = 2048;
 
@@ -14,22 +11,82 @@ const TROC_MAX_BYTES = 2 * 1024 * 1024;
 
 type StorageFolder = 'products' | 'trocs';
 
-async function renderWebP(bitmap: ImageBitmap, scale: number): Promise<Blob> {
+/** Étape d'un envoi vers Trigenys Storage qui a échoué : permet un message précis et un diagnostic. */
+export type StorageUploadErrorCode =
+  | 'format'
+  | 'decode'
+  | 'webp'
+  | 'too_large'
+  | 'rate_limited'
+  | 'authorization'
+  | 'network'
+  | 'upload';
+
+export class StorageUploadError extends Error {
+  constructor(public readonly code: StorageUploadErrorCode, message: string) {
+    super(message);
+    this.name = 'StorageUploadError';
+  }
+}
+
+const TROC_UPLOAD_MESSAGES: Record<StorageUploadErrorCode, string> = {
+  format: "ce format de photo n'est pas pris en charge. Reprenez la photo avec l'appareil photo.",
+  decode: "votre navigateur n'a pas pu ouvrir la photo. Reprenez-la ou essayez avec Chrome.",
+  webp: "votre navigateur n'a pas pu préparer la photo. Essayez avec Chrome.",
+  too_large: 'la photo est trop lourde. Reprenez-la de plus près, sans zoom.',
+  rate_limited: "trop d'envois en peu de temps. Réessayez dans une heure.",
+  authorization: 'le service photo ne répond pas. Réessayez dans quelques minutes.',
+  network: 'la connexion a été coupée. Vérifiez votre réseau puis réessayez.',
+  upload: "l'envoi a été refusé par le service photo. Réessayez dans quelques minutes.",
+};
+
+/** Message client pour la photo n°index (1-based), avec le code d'étape pour le support. */
+export const trocUploadErrorMessage = (error: unknown, index: number): string => {
+  const code: StorageUploadErrorCode = error instanceof StorageUploadError ? error.code : 'upload';
+  return `Photo ${index} non envoyée : ${TROC_UPLOAD_MESSAGES[code]} (code ${code})`;
+};
+
+type DecodedImage = { source: CanvasImageSource; width: number; height: number; release: () => void };
+
+/** createImageBitmap d'abord ; certains navigateurs mobiles échouent dessus, l'élément <img> sert de repli. */
+async function decodeImage(file: File): Promise<DecodedImage> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    return { source: bitmap, width: bitmap.width, height: bitmap.height, release: () => bitmap.close() };
+  } catch {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      await img.decode();
+      return { source: img, width: img.naturalWidth, height: img.naturalHeight, release: () => URL.revokeObjectURL(url) };
+    } catch {
+      URL.revokeObjectURL(url);
+      throw new StorageUploadError('decode', 'Décodage de la photo impossible');
+    }
+  }
+}
+
+async function renderWebP(image: DecodedImage, scale: number): Promise<Blob> {
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Conversion image indisponible');
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  if (!ctx) throw new StorageUploadError('webp', 'Conversion image indisponible');
+  ctx.drawImage(image.source, 0, 0, canvas.width, canvas.height);
   const result = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', WEBP_QUALITY));
-  if (!result || result.type !== 'image/webp') throw new Error('Conversion WebP indisponible');
+  // Libère la mémoire du canvas tout de suite : plusieurs photos de 12 Mpx saturent un mobile.
+  canvas.width = 0;
+  canvas.height = 0;
+  if (!result || result.type !== 'image/webp') throw new StorageUploadError('webp', 'Conversion WebP indisponible');
   return result;
 }
 
 /** Original (côté max borné) + variantes plus étroites que l'original, décodées une seule fois. */
 async function convertToWebP(file: File, maxSide: number = MAX_SIDE, withVariants = true): Promise<{ original: Blob; variants: { width: number; blob: Blob }[] }> {
-  if (!file.type.startsWith('image/')) throw new Error('Format image non pris en charge');
-  const bitmap = await createImageBitmap(file);
+  if (!file.type.startsWith('image/')) throw new StorageUploadError('format', 'Format image non pris en charge');
+  const bitmap = await decodeImage(file);
   try {
     const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
     const original = await renderWebP(bitmap, scale);
@@ -45,7 +102,7 @@ async function convertToWebP(file: File, maxSide: number = MAX_SIDE, withVariant
     }
     return { original, variants };
   } finally {
-    bitmap.close();
+    bitmap.release();
   }
 }
 
@@ -58,26 +115,40 @@ export async function uploadImageToTrigenysStorage(
   // Photos de troc vues par le staff seulement : pas de variantes (écritures R2 économisées).
   const isTroc = folder === 'trocs';
   const { original: webp, variants } = await convertToWebP(file, isTroc ? TROC_MAX_SIDE : MAX_SIDE, !isTroc);
-  if (isTroc && webp.size > TROC_MAX_BYTES) throw new Error('Photo trop lourde');
-  const { data, error } = await supabase.functions.invoke('storage-upload-intent', {
-    body: { folder, contentType: 'image/webp', maxBytes: webp.size, sessionKey }
-  });
+  if (isTroc && webp.size > TROC_MAX_BYTES) throw new StorageUploadError('too_large', 'Photo trop lourde');
+  let intent: Awaited<ReturnType<typeof supabase.functions.invoke>>;
+  try {
+    intent = await supabase.functions.invoke('storage-upload-intent', {
+      body: { folder, contentType: 'image/webp', maxBytes: webp.size, sessionKey }
+    });
+  } catch {
+    throw new StorageUploadError('network', 'Autorisation de stockage injoignable');
+  }
+  const { data, error } = intent;
   if (error || !data?.token || !data?.uploadUrl || !data?.mediaUrl || !data?.origin) {
-    throw new Error('Autorisation de stockage indisponible');
+    const status = (error as { context?: { status?: number } } | null)?.context?.status;
+    if (status === 429) throw new StorageUploadError('rate_limited', 'Quota d\'envoi atteint');
+    if (error?.name === 'FunctionsFetchError') throw new StorageUploadError('network', 'Autorisation de stockage injoignable');
+    throw new StorageUploadError('authorization', 'Autorisation de stockage indisponible');
   }
   const origin = new URL(String(data.origin));
-  if (origin.protocol !== 'https:') throw new Error('Origine de stockage non sécurisée');
+  if (origin.protocol !== 'https:') throw new StorageUploadError('authorization', 'Origine de stockage non sécurisée');
   const upload = new URL(String(data.uploadUrl), origin);
   const publicUrl = new URL(String(data.mediaUrl), origin);
   if (upload.origin !== origin.origin || publicUrl.origin !== origin.origin) {
-    throw new Error('Réponse de stockage invalide');
+    throw new StorageUploadError('authorization', 'Réponse de stockage invalide');
   }
-  const response = await fetch(upload.toString(), {
-    method: 'PUT',
-    headers: { Authorization: 'Bearer ' + String(data.token), 'Content-Type': 'image/webp' },
-    body: webp,
-  });
-  if (!response.ok) throw new Error('Envoi vers Trigenys Storage échoué');
+  let response: Response;
+  try {
+    response = await fetch(upload.toString(), {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + String(data.token), 'Content-Type': 'image/webp' },
+      body: webp,
+    });
+  } catch {
+    throw new StorageUploadError('network', 'Envoi vers Trigenys Storage interrompu');
+  }
+  if (!response.ok) throw new StorageUploadError('upload', 'Envoi vers Trigenys Storage échoué');
   // Même jeton, après l'original ; un échec ici ne bloque pas (repli sur l'original côté Worker).
   await Promise.all(variants.map(({ width, blob }) => fetch(upload.toString() + '/w' + width, {
     method: 'PUT',
@@ -87,104 +158,45 @@ export async function uploadImageToTrigenysStorage(
   return publicUrl.toString();
 }
 
-// Configuration Cloudinary
-const CLOUDINARY_CLOUD_NAME = 'dli0kdkg9';
-const CLOUDINARY_UPLOAD_PRESET = 'xeption_preset'; // Assure-toi que ce preset accepte images ET vidéos (ou est "unsigned")
-const CLOUDINARY_FOLDER = 'xeption';
+// Cloudinary est retiré des envois (compte désactivé pour dépassement de quota, novembre 2026).
+// Les anciennes URLs res.cloudinary.com restent lisibles par l'affichage, rien n'y est plus envoyé.
 
-/**
- * Upload une image vers Cloudinary
- */
-export const uploadImageToCloudinary = async (file: File): Promise<string> => {
-  if (USE_TRIGENYS_STORAGE) {
-    // Unauthenticated consumer upload flows retain Cloudinary temporarily.
-    // Only sessions with a verified Supabase login can request the signed intent.
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (!sessionError && session?.access_token) {
-      try {
-        return await uploadImageToTrigenysStorage(file);
-      } catch {
-        // Preserve UX on a storage outage while the legacy migration is incomplete.
-        console.warn('Trigenys Storage indisponible : fournisseur historique utilisé');
-      }
-    }
+/** Photo produit / pack (staff connecté) vers Trigenys Storage, avec variantes w320/w800. */
+export const uploadProductImage = async (file: File): Promise<string> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('Envoi de photo impossible : reconnectez-vous puis réessayez.');
   }
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', CLOUDINARY_FOLDER);
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data.error?.message || "Erreur Cloudinary Image");
-    }
-
-    return data.secure_url;
-  } catch (error: any) {
-    console.error('Erreur Upload Cloudinary:', error);
-    throw new Error("Impossible d'uploader l'image sur Cloudinary. Vérifiez le preset.");
+    return await uploadImageToTrigenysStorage(file);
+  } catch (error) {
+    const code = error instanceof StorageUploadError ? error.code : 'upload';
+    console.error('[media] envoi photo produit échoué', { code, error });
+    throw new Error(`Envoi de la photo impossible (code ${code}). Réessayez dans quelques minutes.`);
   }
 };
 
-/**
- * Upload une vidéo vers Cloudinary
- */
-export const uploadVideoToCloudinary = async (file: File): Promise<string> => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', CLOUDINARY_FOLDER);
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data.error?.message || "Erreur Cloudinary Vidéo");
-    }
-
-    return data.secure_url;
-  } catch (error: any) {
-    console.error('Erreur Upload Cloudinary:', error);
-    throw new Error("Impossible d'uploader la vidéo sur Cloudinary.");
-  }
+/** L'hébergement vidéo passait par Cloudinary : coller un lien vidéo (YouTube, etc.) à la place. */
+export const uploadProductVideo = async (_file: File): Promise<string> => {
+  throw new Error("L'envoi de vidéo n'est plus disponible : collez le lien de la vidéo dans le champ prévu.");
 };
 
-/**
- * Upload plusieurs fichiers images en parallèle vers Cloudinary.
- * Retourne un tableau d'URLs dans le même ordre que les fichiers fournis.
- */
-export const uploadFiles = async (files: File[]): Promise<string[]> => {
-  return Promise.all(files.map(uploadImageToCloudinary));
-};
 
-/** Photos de troc (clients anonymes) : Trigenys Storage d'abord, Cloudinary en secours. */
+/**
+ * Photos de troc (clients anonymes) vers Trigenys Storage.
+ * Une photo à la fois : décoder 4 photos de 12 Mpx en parallèle sature la mémoire d'un mobile.
+ * Plus de repli Cloudinary (compte désactivé) : il masquait la vraie cause sous un message « preset ».
+ * L'erreur levée porte un message client avec le numéro de photo et le code d'étape.
+ */
 export const uploadTrocPhotos = async (files: File[], sessionKey?: string): Promise<string[]> => {
-  return Promise.all(files.map(async (file) => {
-    if (USE_TRIGENYS_STORAGE) {
-      try {
-        return await uploadImageToTrigenysStorage(file, 'trocs', sessionKey);
-      } catch (error) {
-        console.warn('Trigenys Storage indisponible pour le troc : fournisseur historique utilisé', error);
-      }
+  const urls: string[] = [];
+  for (const [i, file] of files.entries()) {
+    try {
+      urls.push(await uploadImageToTrigenysStorage(file, 'trocs', sessionKey));
+    } catch (error) {
+      console.warn('[troc] envoi photo échoué', { index: i + 1, code: (error as StorageUploadError)?.code, error });
+      throw new Error(trocUploadErrorMessage(error, i + 1));
     }
-    return uploadImageToCloudinary(file);
-  }));
+  }
+  return urls;
 };

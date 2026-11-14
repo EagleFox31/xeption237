@@ -18,6 +18,7 @@ import {
 } from '../staffNotify.ts';
 import { botChatLink, buildStartPayload, resolveBotUsername } from '../telegramStartPayload.ts';
 import { digestAckButton, type TelegramInlineButton } from '../telegramDigestAck.ts';
+import { formatTelegramWeeklyDigest, isWeeklyDigest } from '../weeklyDigest.ts';
 
 /** Limite Telegram d'un message texte. */
 export const TELEGRAM_MAX_MESSAGE_LENGTH = 4096;
@@ -55,6 +56,7 @@ const formatTelegramDailyDigest = (n: StaffNotification): string => {
 /** Corps du message ; le lien direct est porté par un bouton (telegramReplyMarkup). */
 export const formatTelegramNotification = (n: StaffNotification): string => {
   if (isDailyDigest(n)) return truncateTelegramText(formatTelegramDailyDigest(n));
+  if (isWeeklyDigest(n)) return truncateTelegramText(formatTelegramWeeklyDigest(n, escapeTelegramHtml));
   const v = toNotificationView(n);
   const lines = [`${v.icon} <b>${escapeTelegramHtml(v.heading.toUpperCase())}</b>`];
   if (v.subject) lines.push('', `${SUBJECT_ICON} <b><u>${escapeTelegramHtml(v.subject)}</u></b>`);

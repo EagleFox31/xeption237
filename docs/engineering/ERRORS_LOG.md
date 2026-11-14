@@ -733,3 +733,59 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 **Résolution** : `WAHA_EXCLUDED_EVENT_TYPES` (`supabase/functions/_shared/staffNotifyChannels/waha.ts`) liste les types volontairement non relayés, avec leur raison (`troc_stale` : pas encore accepté par Trigenys Notify). Les 4 nouveaux types `order_delivered`, `order_cancelled`, `order_unreachable`, `order_stale` sont aliasés des deux côtés (PR Notify liée).
 
 **Comment ne plus la refaire** : test d'alignement dans `tests/waha-notify-channel.test.ts` : chaque type de `DEFAULT_STAFF_EVENT_TYPES` est soit aliasé, soit exclu explicitement (jamais les deux) ; chaque alias figure dans le miroir `NOTIFY_ALLOWED_TYPES`. Leçon : une liste d'exclusion explicite et testée vaut mieux qu'une absence silencieuse.
+
+## 2026-11-10 — Bilan Telegram : dettes de test affichées, dettes réelles ignorées
+
+- **Symptôme** : la ligne « Dettes en cours » du bilan journalier montrait les 3 dettes de test saisies via le bot
+  sur le siège, alors que 35 dettes réelles venaient d'être importées depuis les rapports WhatsApp.
+- **Cause racine** : deux sources pour une même notion. `notify_daily_digest` lisait `store_debts` (bot) ; l'import
+  WhatsApp écrit dans `store_cash_reports.debts_snapshot`. Le digest a été conçu avant l'import, sans revoir la
+  source quand une seconde est apparue.
+- **Résolution** : purge des 3 lignes de test (autorisation Anjl) + migration `20261110_001` : `store_debts`
+  prime, sinon repli sur le `debts_snapshot` du dernier rapport, date du rapport affichée.
+- **Prévention** : tout nouvel import ou nouvelle table qui porte une notion déjà notifiée (dettes, caisse, ventes)
+  → relire `docs/engineering/NOTIFICATIONS.md` et lister les fonctions SQL qui lisent l'ancienne source
+  (`grep -l "<table>" supabase/migrations/*.sql`) ; tests de contenu sur la migration de repli.
+
+## 2026-11-11 — Préfixe de migration 20261111_003 attribué deux fois
+
+- **Symptôme** : deux fichiers `20261111_003_*` appliqués en prod le même jour, l'un sur `main`
+  (`store_names_official_points`), l'autre sur la branche de la PR 52 (`daily_digest_cash_movements_and_gap`).
+  Même incident déjà vu le matin avec `20261111_001`.
+- **Cause racine** : plusieurs sessions parallèles choisissent leur numéro en listant seulement leur propre
+  worktree ; une migration non encore fusionnée dans `main` est invisible pour les autres branches.
+- **Résolution** : aucune modification. `schema_migrations` enregistre le nom de fichier complet, les deux
+  versions sont distinctes et le suivi reste correct. Renommer un fichier appliqué le ferait passer pour
+  « en attente » : les fichiers restent figés.
+- **Prévention** : avant de choisir `NNN`, lister les préfixes du jour en prod (`npm run db:status`) et sur
+  toutes les branches distantes (`git ls-tree --name-only origin/<branche> supabase/migrations/`), puis prendre
+  le maximum + 1. En session parallèle, réserver le numéro dans la note partagée avant d'écrire le fichier.
+
+## 2026-11-11 — verify-erp-step2 signalait un stock incohérent qui ne l'était pas
+
+- **Symptôme** : « store_stock incohérent » sur 4 produits (stock 6/9/9/5 contre quantity 7/10/10/6), avant et après
+  la fusion du magasin `siege` dans MF1092.
+- **Cause racine** : le script comparait `products.stock` à la `quantity` brute du seul magasin par défaut, alors que
+  `trg_sync_product_stock_from_stores` écrit Σ(quantity − reserved) sur tous les magasins. Le contrôle datait d'avant
+  les réservations et le multi-magasin.
+- **Résolution** : le contrôle reproduit la formule du trigger (somme tous magasins, disponible plancher 0).
+- **Prévention** : un script de vérification qui recalcule une valeur dérivée doit reprendre la formule de l'objet qui
+  la maintient (trigger, RPC) ; au moindre changement de cette formule, `grep` les scripts `verify-*` qui la recopient.
+
+## 2026-11-14 — Troc : « Impossible d'uploader l'image sur Cloudinary. Vérifiez le preset. » chez un client
+
+- **Symptôme** : un client (Galaxy S20 FE) bloqué à l'étape photos du troc avec un message parlant de « preset ».
+- **Cause racine** : deux défauts superposés.
+  1. Le compte Cloudinary `dli0kdkg9` a été désactivé pour dépassement de quota : les envois renvoient
+     `cloud_name is disabled` et les images déjà hébergées répondent en 401.
+  2. Les photos de troc partaient vers Trigenys Storage avec Cloudinary en secours. Quand l'étape Trigenys échouait
+     dans le navigateur (aucune trace côté serveur dans `ai_usage_quota`), le secours échouait à son tour et son
+     message générique masquait la vraie cause.
+  Les 4 photos étaient en outre décodées en parallèle en pleine résolution, ce qui est lourd pour un mobile.
+- **Résolution** : Cloudinary est retiré de tous les envois (troc, produits, packs). Les photos sont envoyées une par
+  une ; si `createImageBitmap` échoue, le décodage passe par `<img>`. Chaque échec porte un code d'étape (`decode`,
+  `webp`, `too_large`, `rate_limited`, `authorization`, `network`, `upload`) affiché au client avec le numéro de
+  la photo. Les erreurs d'envoi de l'admin s'affichent aussi (notifyError), au lieu d'être avalées.
+- **Prévention** : `tests/unit/uploadTrocPhotos.test.ts` (envoi séquentiel, aucun appel Cloudinary, codes d'erreur).
+  Règle : un repli ne doit jamais remplacer le message d'échec du chemin principal ; il faut journaliser la cause
+  première et l'afficher.

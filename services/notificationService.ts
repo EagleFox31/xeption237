@@ -47,6 +47,7 @@ export type NotificationEventType =
   | 'order_cancelled'
   | 'order_unreachable'
   | 'order_stale'
+  | 'weekly_digest'
   | 'manual';
 
 export interface CreateNotificationInput {

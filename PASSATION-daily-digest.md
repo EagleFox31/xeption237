@@ -161,3 +161,206 @@
   MF1092 1,8 M / 3,1 M ; dettes restantes 4,08 M + 77 k.
 - Tout est sur `origin/main`. Reste : vérifier le premier bilan Telegram à 20 h Douala ; revoir les
   4 conflits du CSV de revue (OLEMBE 23/06, MFOUNDI 30/10 et 04/11) si besoin.
+
+## 2026-11-10 20:05 — Dettes de test dans le bilan Telegram (diagnostic, rien modifié)
+
+- Anjl signale que le bilan affiche encore ses dettes de test. Cause : `notify_daily_digest` lit
+  `public.store_debts` (statuts active/partial) = table de travail du bot, où ne restent que
+  3 lignes de test sur `siege` (créées le 23/10, reste 330 000). Les dettes réelles importées depuis
+  WhatsApp sont dans `store_cash_reports.debts_snapshot` du dernier rapport (MFOUNDI 27 lignes /
+  4 082 500, OLEMBE 8 / 77 000) et ne sont lues que par `cash:summary`.
+- Options proposées à Anjl (aucune appliquée) : (1) supprimer les 3 lignes de test de `store_debts`
+  (écriture prod, autorisation requise) ; (2) NOUVELLE migration : repli sur le `debts_snapshot` du
+  dernier rapport quand un magasin n'a aucune dette ouverte dans `store_debts` (à annoncer dans
+  `docs/engineering/NOTIFICATIONS.md`) ; (3) backfill de `store_debts` depuis le snapshot (déconseillé :
+  doublons au prochain import). Recommandation : 1 + 2.
+
+## 2026-11-10 21:32 — Purge des dettes de test + migration de repli snapshot (choix Anjl)
+
+- Prod : 3 lignes `store_debts` du siège supprimées (aucune table ne les référence) → table vide.
+- Nouvelle migration `supabase/migrations/20261110_001_daily_digest_debts_snapshot_fallback.sql` (NON appliquée,
+  Anjl applique via `npm run db:apply -- supabase/migrations/20261110_001_daily_digest_debts_snapshot_fallback.sql`) :
+  dettes = `store_debts` ouvertes, sinon `debts_snapshot` (reste > 0) du dernier rapport <= jour, avec
+  « (rapport du JJ/MM) ». Tests `tests/notify-daily-digest.test.ts` 25/25 ; doc NOTIFICATIONS.md + ADR-001 amendé ;
+  ERRORS_LOG.
+- Tant que la migration n'est pas appliquée, le bilan de ce soir affichera « Dettes en cours : aucune ».
+- Branche locale en avance sur origin/main (pas de push sans accord).
+
+## 2026-11-10 23:54 — Nouvel export WhatsApp (jusqu'au 10/11) : dry-run OK, apply en attente d'autorisation
+
+- Zip Anjl : `~/Downloads/Discussion WhatsApp avec Administration XEPTION.zip`, extrait dans le scratchpad
+  (`wa-export-20261110/`, chemin du .txt dans `path.txt`, revue dans `review/`).
+- Dry-run : 330 rapports, ready=307 (+4 vs dernier apply : MFOUNDI 09 et 10/11, OLEMBE 09 et 10/11), mêmes
+  4 conflits. Les 4 nouveaux jours sont cohérents (entrées/sorties = totaux déclarés, soldes chaînés) ;
+  OLEMBE 10/11 : total sorties déclaré 100 vs 1 000 calculé (coquille du rapport, solde cohérent).
+  MFOUNDI 10/11 : 28 dettes, reste 4 047 500 (le `debt_line_unparsed` est le même cas que le 06/11).
+- `--apply` refusé par le classifieur (écriture prod) → demander « j'autorise » à Anjl, puis second passage
+  (0 écriture attendu) et `npm run cash:summary`.
+- Toujours à faire par Anjl : appliquer la migration `20261110_001` (repli dettes) ; push non fait.
+
+## 2026-11-11 00:04 — Import WhatsApp jusqu'au 10/11 appliqué (autorisation Anjl)
+
+- `--apply` : 4 créés, 0 mis à jour, 303 inchangés, 0 protégés. Second passage lancé en arrière-plan
+  (0 écriture attendu, résultat dans l'entrée suivante).
+- `cash:summary` : 0 jour suspect. MFOUNDI 141 j, entrées 41,7 M / sorties 38,4 M, dernier solde 493 000 ;
+  OLEMBE 147 j, dernier solde 31 000 ; dettes au dernier rapport MFOUNDI 28 / 4 047 500, OLEMBE 8 / 77 000.
+- Reste pour Anjl : appliquer la migration `20261110_001` (repli dettes), autoriser le push de la branche.
+
+## 2026-11-11 00:09 — Second passage import
+
+- Import : 0 créés, 0 mis à jour, 307 inchangés, 0 protégés (saisie bot, non écrasés). → idempotent confirmé.
+
+## 2026-11-11 07:24 — Branche poussée, main avancé (autorisation Anjl « Oui, push et merge »)
+
+- origin/main avait reçu PR #42 (SEO/GEO) → fusionné dans la branche sans conflit (ERRORS_LOG : union des
+  entrées), tests digest + import 39/39. Branche et `origin/main` = `594abec`.
+- En prod : import WhatsApp à jour au 10/11, dettes de test purgées. **Non appliqué** : migration
+  `20261110_001_daily_digest_debts_snapshot_fallback.sql` (Anjl : `npm run db:apply -- supabase/migrations/20261110_001_daily_digest_debts_snapshot_fallback.sql`).
+  Tant qu'elle n'est pas appliquée, le bilan affiche « Dettes en cours : aucune ».
+- Ce commit de passation n'est pas poussé (push uniquement sur accord).
+
+## 2026-11-11 07:35 — Migration 20261110_001 appliquée par Anjl (db:apply, via Postgres direct)
+
+- Vérifié en lecture : la fonction en base contient le repli snapshot, `store_debts` prime, ACL limitée à
+  postgres + service_role. Simulation de la ligne dettes : MFOUNDI 28 / 4 047 500 (rapport du 10/11),
+  OLEMBE 8 / 77 000 (10/11), MF1092 et siège « aucune ».
+- Note : la CLI Supabase n'est pas liée dans ce worktree (« Cannot find project ref »), le script a basculé sur
+  Postgres direct ; l'avertissement captcha de la vérification `create_order_atomic` est sans rapport.
+- Prochaine vérification : bilan Telegram de 20 h Douala. Prod = git (origin/main 594abec + cette passation non poussée).
+
+## 2026-11-11 07:53 — Bilan global des rapports de caisse (artifact) et piste d'automatisation WhatsApp
+
+- Bilan global 21/05 → 10/11/2026 livré comme tableau de bord Claude (type Data, privé tant que non partagé) :
+  https://claude.ai/artifact/YJkBfa7k6E652JijRy63cR — totaux par boutique, mensuel, dettes fin de mois,
+  jour de semaine, part « sortie de boss », couverture. Données = instantané lecture seule de
+  `store_cash_reports` (agrégats seulement, aucun nom/téléphone client) attaché au tableau en JSON.
+  Le tableau n'est pas relié en direct à la base : à régénérer si besoin (script d'agrégation dans le
+  scratchpad de session, non versionné).
+- Chiffres clés : MFOUNDI 141 jours, 41,7 M entrées / 38,4 M sorties, dettes 4 047 500 au 10/11 (pic
+  5 172 500 le 29/10) ; OLEMBE 147 jours, 2,9 M / 3,0 M, 57 jours à 0 ; MF1092 19 jours depuis le 14/10,
+  silence depuis le 06/11 ; siège 1 rapport (23/10, bot).
+- Export manuel WhatsApp : proposition de session « Ingestion automatique des rapports caisse WhatsApp »
+  (webhook WAHA → Edge Function ou worker VPS, parseur réutilisé, rien déployé sans accord). Alternative
+  immédiate sans code : le staff poste le rapport dans le bot Telegram caisse (source `bot`).
+- Toujours à observer : bilan Telegram de 20 h Douala. Commits de passation non poussés.
+
+## 2026-11-11 07:55 — Push et fusion (fast-forward) dans main
+
+- origin/main = 7573f40 (= origin/claude/daily-digest-ca6b98). Prod et git alignés.
+- Session « Ingestion automatique des rapports caisse WhatsApp » démarrée par Anjl (local_0d6f2e42), travaille
+  sur sa propre branche ; elle rendra compte ici.
+- Reste : observer le bilan Telegram de 20 h Douala.
+
+## 2026-11-11 07:57 — Partage du bilan
+
+- Bilan artifact partageable via le bouton Partager de claude.ai (privé par défaut). Pour une vue dans l'ERP : carte de session « Page bilan caisse dans l'ERP admin » proposée (lecture directe de store_cash_reports, staff direction).
+
+## 2026-11-11 08:24 — Retours des deux sessions filles
+
+- WhatsApp : commit f2c3244 sur claude/wonderful-haslett-3e2f95 (Edge Function whatsapp-cash-webhook, parseur TS partagé, migration 20261111_001, ADR-002), rien déployé ni poussé.
+- ERP : commit 181580f sur claude/ecstatic-mendel-e0d052 (onglet admin Bilan caisse, 23 tests), migration RLS 20261111_001 non appliquée ; la session attend l'accord d'Anjl.
+- CONFLIT : les deux branches utilisent le préfixe 20261111_001 → renommer l'une en 20261111_002 avant fusion. Rien fusionné ici.
+
+## 2026-11-11 10:20 — PR ouvertes par les sessions filles
+
+- ERP Bilan caisse : PR sur claude/ecstatic-mendel-e0d052 ; rapport test siège du 23/10 supprimé en prod par cette session (le bilan artifact du 11/11 montre encore la ligne siège : instantané).
+- WhatsApp : PR sur claude/wonderful-haslett-3e2f95. Conflit de préfixe 20261111_001 entre les deux PR à régler avant la seconde fusion.
+
+## 2026-11-11 10:45 — Test bilan WhatsApp envoyé
+
+- Bilan caisse (format WhatsApp, marqué « message test ») envoyé dans le groupe « Xeption app test » via l API WAHA locale du VPS OVH (session trigenys-test, POST /api/sendText, HTTP 201). Envoi manuel : le canal notify du dépôt n accepte pas de texte libre (types d événements allowlistés).
+- Si un bilan WhatsApp périodique est voulu : nouveau type d événement dans Trigenys Notify + fonction planifiée, à cadrer (hebdo / mensuel).
+- Commits passation 32ef9a5, c741395, aaaa078 non poussés. Conflit de préfixe 20261111_001 à régler avant fusion de la PR WhatsApp.
+
+## 2026-11-11 12:41 — Bilan WhatsApp : version sobre
+
+- Retour user : trop d emoji. Version sans emoji (titres en gras, séparateurs « · », liste « À noter ») renvoyée dans « Xeption app test » (HTTP 201). Convention à garder pour tout message staff WhatsApp : zéro emoji, gras pour les titres de section.
+
+## 2026-11-11 12:44 — Bilan WhatsApp : une donnée par ligne
+
+- Retour user : le séparateur « · » est peu lisible sur WhatsApp. Nouvelle version envoyée dans le groupe test (HTTP 201) : une donnée par ligne, « | » uniquement sur la ligne de synthèse. Convention : pas de « · », pas d emoji.
+
+## 2026-11-11 14:56 — Format bilan WhatsApp validé
+
+- Format validé par le user : pas d emoji, titres en gras, une donnée par ligne, « | » seulement sur la ligne de synthèse, bloc « À noter » en fin. Modèle de référence : docs/engineering/WHATSAPP_BILAN_FORMAT.txt (chiffres du 11/11, à titre d exemple).
+- Session WhatsApp : digest passé à 22 h Douala, migration 20261111_002 appliquée en prod, PR #52 à jour (a01983e) → conflit de préfixe réglé.
+- Bilan WhatsApp périodique : cadence pas encore choisie, rien lancé.
+
+## 2026-11-11 14:57 — Message du boss : 3 points de vente actuels
+
+- Le boss a posté dans « Xeption app test » la liste des 3 points actuels : Mfoundi-Mall 1038, Mfoundi-Mall 1092, Olembé gare routière.
+- Table stores (prod, lecture seule) : MFOUNDI « Mfoundi Mall », MF1092 « MF 1092 », OLEMBE « Olembe », siege « Xeption — Siège » (is_default, pas un point de vente). Proposition : aligner les 3 libellés name sur ceux du boss (UPDATE prod, sur « J autorise »), codes inchangés ; siège à garder comme entité par défaut ou à désactiver, à trancher.
+
+## 2026-11-11 15:01 — Boutiques renommées en prod (autorisé)
+
+- Migration 20261111_003_store_names_official_points.sql appliquée via db:apply (UPDATE par code, idempotent) : MFOUNDI → « Mfoundi-Mall 1038 », MF1092 → « Mfoundi-Mall 1092 », OLEMBE → « Olembé gare routière ». Vérifié en base.
+- « siege » (nom de test selon le user) NON désactivé : is_default et porteur du stock principal (217 store_stock, 259 mouvements, 9 commandes). Sa suppression = transfert de stock vers Mfoundi-Mall 1038 + bascule du défaut, à cadrer à part.
+- Réponse envoyée au boss dans « Xeption app test » (noms enregistrés, siège retiré des bilans). À tenir : exclure le siège des bilans tant qu il existe.
+- Préfixes 20261111 : _001 et _002 sur la branche WhatsApp (PR 52), _003 ici.
+
+## 2026-11-11 15:15 — Branche poussée et fusionnée dans main (879e1b8)
+
+- Migration 20261111_003 (noms officiels des boutiques) et passation désormais sur origin/main. Prod et git alignés.
+- Session « Retirer le magasin test Siège » lancée par le user (local_98d711d6) : travaille dans son propre worktree, rapportera ici.
+- Reste : PR 52 (WhatsApp, migrations 20261111_001/_002) à fusionner ; bilan WhatsApp périodique non cadré.
+
+## 2026-11-11 15:18 — Le boss précise : Mfoundi-Mall 1092 = siège
+
+- Second message du boss dans le groupe test : « Mfoundi-Mall 1092 (siège) ». Le siège n est donc pas un nom de test : c est la boutique 1092. Session « Retirer le magasin Siège » (local_98d711d6) prévenue : cible du stock et du défaut = MF1092, pas MFOUNDI.
+- Ma réponse de 14:01 au boss (« Siège était un nom de test ») est à rectifier : attendre l accord du user pour répondre.
+
+## 2026-11-11 15:20 — Plan de retrait du siège reçu, recadré sur MF1092
+
+- Session Siège : option A (migration 20261111_004 : transfert stock 217 lignes / 2 634 unités + 1 réservation, bascule is_default, siege inactif « Ancien siège (archivé) », fallbacks SQL via _default_store_id(), bot Telegram « siege » en dur à corriger + redéploiement telegram-bot-entry). Recadrée : cible MF1092 et non MFOUNDI. Note partagée : retrait-magasin-siege.md. En attente du « J autorise » du user.
+
+## 2026-11-11 15:26 — Retrait du siège autorisé, session coupée par la limite de modèle
+
+- User : « J autorise » l option A vers MF1092, transmis à la session Siège (local_98d711d6, worktree sharp-rhodes-803414, branche claude/sharp-rhodes-803414).
+- La session s est arrêtée sur la limite du modèle Fable. Prod intacte (siege toujours is_default avec 217 lignes de stock). Son worktree contient, non commités et non appliqués : supabase/migrations/20261111_005_merge_siege_into_mf1092.sql + modification de telegram-bot-entry/index.ts.
+- Changement de modèle de cette session refusé par le mode auto : le user doit passer la session sur Opus 5.5 dans l app et lui dire de continuer.
+- Réponse au boss envoyée (« Mfoundi-Mall 1092 est le siège », correction du message précédent).
+- Préfixe 20261111_003 en double en prod (cash_movements_and_gap sur PR 52 et store_names_official_points sur main) : versions distinctes dans schema_migrations, donc sans effet sur le suivi ; ne pas renommer (fichiers appliqués figés). À consigner dans ERRORS_LOG.
+
+## 2026-11-11 18:51 — Siège fusionné dans MF1092 (vérifié en prod)
+
+- Session Siège (branche claude/sharp-rhodes-803414, commit c11f208) : migration 20261111_005_merge_siege_into_mf1092.sql appliquée, telegram-bot-entry redéployé. Vérifié en lecture : MF1092 « Mfoundi-Mall 1092 » is_default, 217 lignes / 2 634 unités ; siege « Ancien siège (archivé) » inactif, stock vide.
+- Non poussé : branche claude/sharp-rhodes-803414 (code en prod hors git, à pousser/fusionner sur accord). Suite proposée par la session : la redistribution du bot vise encore siege.
+- Ici : commit 76ab75b (ERRORS_LOG préfixe en double) + passations non poussés.
+
+## 2026-11-11 21:16 — Siège et notes fusionnés dans main
+
+- Poussé : claude/sharp-rhodes-803414 (c11f208) et claude/daily-digest-ca6b98. origin/main = 586515f (contient la migration 20261111_005 et le correctif telegram-bot-entry déjà en prod).
+- Conflit ERRORS_LOG résolu en gardant les deux entrées (préfixe en double + verify-erp-step2).
+- Reste : PR 52 (WhatsApp, branche claude/wonderful-haslett-3e2f95, migrations 20261111_001/_002/_003 en prod) non fusionnée ; redistribution du bot vise encore siege (session Siège) ; cadence du bilan WhatsApp non choisie.
+
+## 2026-11-13 23:58 — Brief semaine 09-13/11 (lecture seule)
+
+- Rapports du groupe « Administration XEPTION » bien ingérés en base (source whatsapp_live du 11 au 13/11, backfill avant).
+- Anomalies vues : entrées Olembé 12/11 = 65 001 et 13/11 = 27 001 au lieu de 65 000 / 27 000 (le « 1 » de « iphone 17 PM » coupé sur deux lignes est compté comme montant) ; rapports « mfoundi mall » rangés sur MFOUNDI (Mfoundi-Mall 1038) alors que le stock est sur MF1092 ; ouverture Mall 12/11 = 315 000 contre clôture 11/11 = 315 500.
+- Rien corrigé, rien commité.
+
+## 2026-11-14 00:18 — Maquette du bilan hebdomadaire montrée (non envoyée)
+
+- Pas de bilan hebdo existant : seul le digest quotidien 22 h (PR 52, non fusionnée). Maquette semaine 09-13/11 montrée à Anjl au format validé, sans noms de clients.
+- Prochaine étape si validé : jour et heure d'envoi, groupe cible, puis module _shared + cron, sur la base du digest de la PR 52.
+
+## 2026-11-14 00:20 — Question ouverte : un ou deux rapports Mfoundi Mall
+
+- Mfoundi Mall = 2 boutiques (1038 et 1092). Les rapports WhatsApp disent seulement « Boutique mfoundi mall » ; tous sont rangés sur MFOUNDI (1038), un seul backfill 06/11 sur MF1092. Question posée à Anjl : rapport commun aux deux boutiques ou une seule boutique qui rapporte ? Bilan hebdo en attente de la réponse.
+
+## 2026-11-14 00:21 — Bilan hebdo test envoyé dans Xeption app test
+
+- Maquette semaine 09-13/11 envoyée (HTTP 201), Mfoundi Mall traité comme un seul rapport (question 1038/1092 non tranchée par Anjl). Attente retour avant de coder le module hebdo (après fusion PR 52).
+
+## 2026-11-14 01:35 — Anjl demande pourquoi le bilan hebdo n'est pas automatisé
+
+- Réponse : jamais demandé ni codé jusqu'ici, format à valider, dépend du digest de la PR 52 non fusionnée. Proposé de le coder maintenant (samedi 20 h, groupe test d'abord).
+
+## 2026-11-14 12:43 — Bilan hebdomadaire codé (commit local, rien déployé)
+
+- Commit `771b3aa` sur `claude/daily-digest-ca6b98` : migration `20261114_001_weekly_digest.sql` (fonction `notify_weekly_digest` + cron `weekly-digest-monday` lundi 07:00 UTC = 08 h Douala), module `_shared/weeklyDigest.ts`, câblage Telegram/texte brut, `weekly_digest` dans les défauts, ADR-002, NOTIFICATIONS.md, `tests/weekly-digest.test.ts` (ajouté avec -f).
+- Planning passé de samedi 20 h à lundi 08 h : rapports reçus après 20 h, samedi incomplet sinon.
+- Aperçu validé sur la prod en transaction READ ONLY (bloc DO, rien écrit) pour les semaines 45 et 46 : chiffres conformes au bilan de test, sauf dettes Mall +75 000 F (base = dernier rapport avant la semaine) au lieu de +110 000 F dans la maquette manuelle.
+- Tests : weekly + daily 37/37. Suite complète : 14 échecs **préexistants** (13 `react` absent du worktree, 1 `staff-notification-actor` qui échoue aussi sans ce commit).
+- **Non fait / à Anjl** : `npm run db:apply -- supabase/migrations/20261114_001_weekly_digest.sql`, redéployer `notify-staff`, ajouter `weekly_digest` à `TELEGRAM_EVENT_TYPES` s'il est surchargé. Non poussé.
+- Suites : WhatsApp (type à ajouter dans trigenys-notify), in-app sans retours ligne (`NotificationDrawer` n'a pas `whitespace-pre-line`, vaut aussi pour le daily), écarts de 1 F d'Olembé (parseur).

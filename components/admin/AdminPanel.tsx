@@ -38,6 +38,7 @@ import StaffTab from './tabs/StaffTab';
 import QaRecetteTab from './tabs/QaRecetteTab';
 import TrocWorkspaceTab from './tabs/TrocWorkspaceTab';
 import TrocDashboardTab from './tabs/TrocDashboardTab';
+import CashReportTab from './tabs/CashReportTab';
 import MySalesTab from './tabs/MySalesTab';
 import SalesTargetsTab from './tabs/SalesTargetsTab';
 import StockMovementsTab from './tabs/StockMovementsTab';
@@ -722,6 +723,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProducts }) =
                       />
                     )}
                     {activeTab === 'trocDashboard' && <TrocDashboardTab />}
+                    {activeTab === 'cashReport' && <CashReportTab />}
                 </>
             ) : null}
             </div>

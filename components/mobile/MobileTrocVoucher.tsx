@@ -15,6 +15,7 @@ import { buildWhatsAppUrl, buildTradeInVoucherShareMessage } from '../../utils/w
 import { resolveTrocTargetSummary, type TrocTargetSummary } from '../../services/trocCheckoutService';
 import { downloadTradeInVoucher } from '../../utils/tradeInVoucherGenerator';
 import { copyToClipboard } from '../../utils/clipboard';
+import { BRAND_MARK_PATH } from '../../constants/brandAssets';
 import { trackTrocChoice } from '../../utils/analytics';
 
 export interface MobileTrocVoucherProps {
@@ -137,7 +138,7 @@ export const MobileTrocVoucher: React.FC<MobileTrocVoucherProps> = ({
           <div className="flex items-center justify-between pt-0.5 pb-2.5 border-b border-white/10">
             <div className="flex items-center gap-1.5">
               <img
-                src="https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png"
+                src={BRAND_MARK_PATH}
                 alt="Xeption"
                 className="w-5 h-5 object-contain drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]"
               />

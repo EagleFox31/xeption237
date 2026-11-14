@@ -320,8 +320,7 @@ const App: React.FC = () => {
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const bgVideoUrl =
-    'https://res.cloudinary.com/dli0kdkg9/video/upload/v1768438828/xption7_zrgro4.mp4';
+  // Vidéo de fond retirée : elle était hébergée sur Cloudinary (compte désactivé, original perdu).
   const isBackgroundVideoPaused =
     isAdminPage || isStudioPage || isImageOnlyBackgroundPage || isLightBackgroundPage || !isVideoAllowed;
   const backgroundImagePool = isLightBackgroundPage
@@ -333,7 +332,6 @@ const App: React.FC = () => {
 
       <SiteBackground
         videoRef={videoRef}
-        videoUrl={bgVideoUrl}
         isVideoPaused={isBackgroundVideoPaused}
         imagePool={backgroundImagePool}
         variant={isLightBackgroundPage ? 'light' : 'dark'}

@@ -43,6 +43,7 @@ export type NotificationEventType =
   | 'voucher_expiring'
   | 'debt_overdue'
   | 'daily_digest'
+  | 'weekly_digest'
   | 'manual';
 
 export interface CreateNotificationInput {

@@ -7,6 +7,7 @@
  */
 
 import type { OrderNotificationSnapshot } from './staffNotifyOrder.ts';
+import { formatPlainWeeklyDigest, isWeeklyDigest } from './weeklyDigest.ts';
 
 export interface StaffNotification {
   notification_id: string;
@@ -56,6 +57,7 @@ export const DEFAULT_STAFF_EVENT_TYPES = [
   'voucher_expiring',
   'debt_overdue',
   'daily_digest',
+  'weekly_digest',
 ] as const;
 
 /** Bilan journalier par boutique (notify_daily_digest, pg_cron) : format dédié multi-lignes. */
@@ -176,6 +178,7 @@ export const dailyDigestLines = (n: StaffNotification): string[] =>
 
 /** Texte brut commun (canaux sans mise en forme : SMS, WhatsApp texte…). */
 export const formatPlainNotification = (n: StaffNotification, ctx?: StaffNotifyContext): string => {
+  if (isWeeklyDigest(n)) return formatPlainWeeklyDigest(n, ctx && notificationLink(n, ctx).url);
   if (isDailyDigest(n)) {
     return [`${eventIcon(n.event_type)} ${cleanHeading(n.title)}`, ...dailyDigestLines(n), ctx && notificationLink(n, ctx).url]
       .filter(Boolean)

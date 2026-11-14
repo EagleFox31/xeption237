@@ -201,3 +201,15 @@ rendu conforme (MF1092 26/10 : excédent 737 000 ; MFOUNDI 10/11 : −25 000 vs 
 vérifiée via pg_get_functiondef. Tests : 29 OK. Docs ADR-001 + NOTIFICATIONS.md. État : cron 22 h Douala,
 PR #52 (auto-fix). Prochaine étape : lire les bilans de ce soir 22 h ; si « excédent de 14 FCFA » type bruit
 gêne, relever `v_cash_gap_tolerance` dans une nouvelle migration.
+
+## 2026-11-14 12:54 — Conflit PR #52 résolu (merge de main)
+
+Auto-fix a signalé un conflit avec `main`. `git merge FETCH_HEAD` : un seul conflit, tableau de
+`docs/engineering/NOTIFICATIONS.md` (ligne `daily_digest` : notre version 22 h + enrichissements conservée,
+ligne `weekly_digest` de main ajoutée). Commit de merge f5d18f4 poussé. Tests digest + webhook + import :
+64 OK. Vérifié en prod : `notify_daily_digest` contient toujours « Mouvements caisse », cron `0 21 * * *`,
+bilans du 12 et 13/11 envoyés à 22 h avec mouvements pour Mfoundi-Mall 1038 et Olembé (1092 : pas de rapport).
+Main apporte `20261114_001_weekly_digest.sql` (non appliquée en prod à cette heure, ne touche pas la fonction
+journalière) et des doublons de préfixe `20261111_001` / `20261111_003` entre branches (suivi par nom de
+fichier complet, donc sans collision, mais règle du préfixe unique cassée). Prochaine étape : rien en attente ;
+surveiller les événements CI de la PR #52.

@@ -364,3 +364,16 @@
 - Tests : weekly + daily 37/37. Suite complète : 14 échecs **préexistants** (13 `react` absent du worktree, 1 `staff-notification-actor` qui échoue aussi sans ce commit).
 - **Non fait / à Anjl** : `npm run db:apply -- supabase/migrations/20261114_001_weekly_digest.sql`, redéployer `notify-staff`, ajouter `weekly_digest` à `TELEGRAM_EVENT_TYPES` s'il est surchargé. Non poussé.
 - Suites : WhatsApp (type à ajouter dans trigenys-notify), in-app sans retours ligne (`NotificationDrawer` n'a pas `whitespace-pre-line`, vaut aussi pour le daily), écarts de 1 F d'Olembé (parseur).
+
+## 2026-11-14 12:50 — Bilan hebdo poussé et fusionné dans main ; WhatsApp manquant
+
+- `origin/main` = `70edeef` (fast-forward depuis la branche), branche `claude/daily-digest-ca6b98` poussée. Migration `20261114_001` toujours **non appliquée**, `notify-staff` non redéployé.
+- Anjl reproche que le bilan n'aille pas sur WhatsApp (demande d'origine). Cause : WhatsApp passe par Trigenys Notify, qui refuse tout type hors `ALLOWED_TYPES` (`src/core/dispatch.ts`) et ne rend que des faits sur liste blanche (`src/core/message-facts.ts`, `contracts.ts`). Prochaine étape proposée : ajouter `report.weekly_digest` dans trigenys-notify (type, rendu du texte complet, tests) + alias et type par défaut côté `waha.ts` dans Xeption. Attention : d'autres sessions ont des worktrees ouverts dans trigenys-notify (`order-outcome-events`, `whatsapp-direct-dispatch-af8be9`).
+
+## 2026-11-14 13:02 — Bilan hebdo sur WhatsApp codé (local, non poussé)
+
+- trigenys-notify, worktree `.claude/worktrees/weekly-digest`, branche `feat/xeption-weekly-digest`, commit `6bf4d10` (non poussé) : type `report.weekly_digest` (faits `digestPeriod`/`digestSections` sur liste blanche, contacts refusés), filtre déclaratif `WAHA_EVENT_GROUPS_JSON` (restreint, n'ajoute jamais, 503 si mal formé), var prod = groupe Xeption app test. `npm test` 112/112.
+- Xeption (cette branche, commit local) : alias `weekly_digest → report.weekly_digest` dans `waha.ts`, type par défaut WAHA, faits via `weeklyDigestFacts()` + `trimWeeklyDigest()` (≤ 4000 octets, pas d'actionUrl). Vitest : aucun nouvel échec (14 fichiers déjà KO : React absent du worktree + staff-notification-actor). `deno check` : 2 erreurs `Cannot find name 'Deno'` préexistantes (config lib), pas liées.
+- Docs : ADR-002 point 5 révisé, NOTIFICATIONS.md mis à jour.
+- Déploiement (Anjl) : 1) Worker Notify ; 2) vérifier route D1 du groupe test pour xeption ; 3) `npm run db:apply -- supabase/migrations/20261114_001_...` ; 4) redéployer `notify-staff` ; 5) ajouter `weekly_digest` à `WAHA_EVENT_TYPES`/`TELEGRAM_EVENT_TYPES` s'ils sont surchargés.
+- Rien poussé, rien déployé.

@@ -214,7 +214,9 @@ describe('Xeption producer -> Trigenys Notify',()=>{
     const NOTIFY_ALLOWED_TYPES = new Set([
       'inventory.stock_low', 'inventory.stock_out', 'catalog.product_missing_image',
       'barter.requested', 'marketplace.listing_created',
-      'order.created', 'order.paid', 'barter.voucher_expiring', 'cash_report.closed', 'finance.debt_overdue'
+      'order.created', 'order.paid', 'barter.voucher_expiring', 'cash_report.closed', 'finance.debt_overdue',
+      // Added by trigenys-notify branch feat/xeption-weekly-digest: deploy the Worker first.
+      'report.weekly_digest'
     ]);
     for (const t of WAHA_DEFAULT_EVENT_TYPES) expect(NOTIFY_ALLOWED_TYPES.has(NOTIFY_EVENT_ALIASES[t])).toBe(true);
   });

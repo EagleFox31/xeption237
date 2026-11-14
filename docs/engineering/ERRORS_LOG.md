@@ -724,6 +724,16 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 
 **Comment ne plus la refaire** : `tests/components/OrdersTab.deeplink.test.tsx` (URL avec id, ouverture de la fiche, id inconnu) et `tests/order-paid-notification.test.ts` (actionUrl). Leçon : ajouter un onglet à `ITEM_LINK_LABELS` exige que l'onglet consomme `focusRequestId`, et inversement ; tester les deux bouts du lien.
 
+## 2026-11-09 — `troc_stale` jamais relayé sur WhatsApp, sans que personne ne le voie
+
+**Symptôme** : en préparant le suivi de commande (événements `order_*`), constat que `troc_stale` (relance troc 48 h, Lot 1) figure dans `DEFAULT_STAFF_EVENT_TYPES` mais n'a aucun alias dans `NOTIFY_EVENT_ALIASES` : il n'a jamais atteint le groupe WhatsApp, et rien ne le signalait.
+
+**Cause racine** : trois listes à tenir alignées à la main (`DEFAULT_STAFF_EVENT_TYPES`, `NOTIFY_EVENT_ALIASES`/`WAHA_DEFAULT_EVENT_TYPES`, `ALLOWED_TYPES` de Trigenys Notify) ; un type absent d'une liste est ignoré en silence. Classification : near miss, défaut de contrat entre producteur et canal.
+
+**Résolution** : `WAHA_EXCLUDED_EVENT_TYPES` (`supabase/functions/_shared/staffNotifyChannels/waha.ts`) liste les types volontairement non relayés, avec leur raison (`troc_stale` : pas encore accepté par Trigenys Notify). Les 4 nouveaux types `order_delivered`, `order_cancelled`, `order_unreachable`, `order_stale` sont aliasés des deux côtés (PR Notify liée).
+
+**Comment ne plus la refaire** : test d'alignement dans `tests/waha-notify-channel.test.ts` : chaque type de `DEFAULT_STAFF_EVENT_TYPES` est soit aliasé, soit exclu explicitement (jamais les deux) ; chaque alias figure dans le miroir `NOTIFY_ALLOWED_TYPES`. Leçon : une liste d'exclusion explicite et testée vaut mieux qu'une absence silencieuse.
+
 ## 2026-11-10 — Bilan Telegram : dettes de test affichées, dettes réelles ignorées
 
 - **Symptôme** : la ligne « Dettes en cours » du bilan journalier montrait les 3 dettes de test saisies via le bot

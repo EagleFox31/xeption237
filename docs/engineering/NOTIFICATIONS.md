@@ -35,6 +35,9 @@ Chaque événement susceptible de créer une notification définit une `dedup_ke
 | Troc refusé | `troc.refused.<request_id>` |
 | Commande créée | `order.created.<order_id>` |
 | Commande payée en ligne | `order_paid.<order_id>` |
+| Commande livrée / annulée | `order.delivered.<order_id>` / `order.cancelled.<order_id>` |
+| Client injoignable (tentative n) | `order.unreachable.<order_id>.<n>` |
+| Commande sans suivi (palier) | `order.stale.<order_id>.48h` puis `order.stale.<order_id>.7d` |
 
 L'INSERT utilise `ON CONFLICT (dedup_key) DO NOTHING`. Résultat :
 - Rejeu du trigger sur la même transition → aucune duplication
@@ -91,6 +94,10 @@ Garanties :
 | `troc_refused` | Trigger DB sur `trade_in_requests` (`refused`) | tous staff | in-app + Telegram | ✅ MVP |
 | `pos_sale` | RPC `telegram_staff_complete_sale` (vente comptoir du bot Telegram) | tous staff | in-app + groupe Telegram | ✅ |
 | `order_paid` | Confirmation paiement en ligne CamPay (`patchOrderPaymentPaid`) | tous staff | in-app + Telegram + WhatsApp | ✅ Livré |
+| `order_delivered` | Trigger DB `trg_notify_order_outcome` (UPDATE de `orders.status` vers `delivered`, hors `pos`) | tous staff | in-app + Telegram + WhatsApp (`order.delivered`) | 🟡 Migration 20261110_001 (à déployer) |
+| `order_cancelled` | Même trigger, statut `cancelled` ; motif relayé seulement s'il appartient à `ORDER_CANCEL_REASONS` (liste fermée, aucun texte libre) | tous staff | in-app + Telegram + WhatsApp (`order.cancelled`) | 🟡 Migration 20261110_001 (à déployer) |
+| `order_unreachable` | RPC `mark_order_unreachable` (bouton « Client injoignable » de la fiche commande ; une tentative au plus toutes les 10 min) | tous staff | in-app + Telegram + WhatsApp (`order.unreachable`, priorité haute) | 🟡 Migration 20261110_001 (à déployer) |
+| `order_stale` | pg_cron `order-stale-hourly` (`15 7-19 * * *` UTC) → `notify_order_stale()` : commande ouverte (`pending`/`confirmed`/`ready`/`shipped`) depuis 48 h puis 7 j, de moins de 30 j, 20 au plus par passage | tous staff | in-app + Telegram + WhatsApp (`order.stale`, priorité haute) | 🟡 Migration 20261110_001 (à déployer) |
 | `order_shipped` | Admin action manuelle | **client (email)** | email | 🟡 Roadmap |
 | `sync_success` / `sync_failure` | Hook `useOfflinePos` (déjà intégré via shim) | vendeur concerné | in-app (silencieux pour `success`) | ✅ MVP (via shim legacy) |
 | `stock_low` / `stock_out` | Trigger DB sur `products.stock` (franchissement du seuil 2, puis 0) | tous staff | in-app + Telegram + WhatsApp | ✅ |
@@ -115,7 +122,8 @@ Garanties :
   - Sur chaque vente comptoir enregistrée (`actionSaleComplete`), comme le téléphone client y est obligatoire, le bot Telegram propose systématiquement au vendeur un bouton interactif `📲 Envoyer le reçu au client`.
   - Ce bouton ouvre l'application WhatsApp du vendeur avec un message pré-rempli (`wa.me`) contenant le reçu détaillé (tronqué à 1 600 caractères max), sans envoi automatique backend (zéro risque de signalement spam ou de ban de numéro boutique).
 - **Groupe WhatsApp (Urgences commerciales, Stocks critiques & Clôtures)** :
-  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report', 'debt_overdue']`).
+  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report', 'debt_overdue', 'order_delivered', 'order_cancelled', 'order_unreachable', 'order_stale']`).
+  - Types volontairement non relayés sur WhatsApp : `WAHA_EXCLUDED_EVENT_TYPES` (`waha.ts`), avec la raison de chacun. Tout type de `DEFAULT_STAFF_EVENT_TYPES` doit être soit aliasé, soit exclu explicitement (test d'alignement dans `tests/waha-notify-channel.test.ts`).
   - ⚠️ Chaque alias de `NOTIFY_EVENT_ALIASES` doit aussi figurer dans `ALLOWED_TYPES` de Trigenys Notify (`src/core/dispatch.ts`), sinon l'envoi est refusé en **HTTP 400** (`notify_http_400` dans `notification_deliveries.last_error`). Garde-fou : test miroir dans `tests/waha-notify-channel.test.ts`.
   - Rappel dettes : uniquement le nom de la boutique, le nombre de dettes de plus de 7 jours et le reste à encaisser (aucun nom client).
   - Protégé contre la fuite de données personnelles (enveloppe canonique Trigenys Notify sans noms ni numéros clients).

@@ -1,8 +1,9 @@
 import {describe,it,expect,vi} from 'vitest';
 import {
   createWahaChannel,toNotifyEvent,WAHA_DEFAULT_EVENT_TYPES,
-  NOTIFY_EVENT_ALIASES,withNotificationDates
+  NOTIFY_EVENT_ALIASES,withNotificationDates,WAHA_EXCLUDED_EVENT_TYPES
 } from '../supabase/functions/_shared/staffNotifyChannels/waha';
+import {DEFAULT_STAFF_EVENT_TYPES} from '../supabase/functions/_shared/staffNotify';
 import {formatOrderPhone,orderSnapshotFacts,withOrderSnapshots} from '../supabase/functions/_shared/staffNotifyOrder';
 
 const sample={
@@ -209,14 +210,17 @@ describe('Xeption producer -> Trigenys Notify',()=>{
     expect(debt.facts).toEqual({ subject: 'Boutique Test', debtCount: 3, debtOutstandingXaf: 125000 });
   });
   it('every default type is accepted by Trigenys Notify (mirror of its ALLOWED_TYPES)', () => {
-    // Mirror of trigenys-notify src/core/dispatch.ts ALLOWED_TYPES (PR Trigenys/trigenys-notify#59).
+    // Mirror of trigenys-notify src/core/dispatch.ts ALLOWED_TYPES (PR Trigenys/trigenys-notify#59,
+    // order.delivered/cancelled/unreachable/stale: PR feat/order-outcome-events).
     // Adding an alias here without adding it there = silent HTTP 400 (ERRORS_LOG 2026-11-02).
     const NOTIFY_ALLOWED_TYPES = new Set([
       'inventory.stock_low', 'inventory.stock_out', 'catalog.product_missing_image',
       'barter.requested', 'marketplace.listing_created',
-      'order.created', 'order.paid', 'barter.voucher_expiring', 'cash_report.closed', 'finance.debt_overdue'
+      'order.created', 'order.paid', 'barter.voucher_expiring', 'cash_report.closed', 'finance.debt_overdue',
+      'order.delivered', 'order.cancelled', 'order.unreachable', 'order.stale'
     ]);
     for (const t of WAHA_DEFAULT_EVENT_TYPES) expect(NOTIFY_ALLOWED_TYPES.has(NOTIFY_EVENT_ALIASES[t])).toBe(true);
+    for (const alias of Object.values(NOTIFY_EVENT_ALIASES)) expect(NOTIFY_ALLOWED_TYPES.has(alias)).toBe(true);
   });
   it('every alias type is a dotted type Trigenys Notify can validate', () => {
     for (const type of Object.values(NOTIFY_EVENT_ALIASES))
@@ -240,3 +244,46 @@ describe('Xeption producer -> Trigenys Notify',()=>{
   });
 });
 
+
+describe('alignement staff -> WhatsApp (ERRORS_LOG 2026-11-09 troc_stale)',()=>{
+  it('every staff event is either aliased or explicitly excluded, never both',()=>{
+    for(const t of DEFAULT_STAFF_EVENT_TYPES){
+      const aliased=t in NOTIFY_EVENT_ALIASES,excluded=t in WAHA_EXCLUDED_EVENT_TYPES;
+      expect({t,covered:aliased!==excluded}).toEqual({t,covered:true});
+    }
+    for(const reason of Object.values(WAHA_EXCLUDED_EVENT_TYPES))expect(reason.length).toBeGreaterThan(10);
+  });
+});
+
+describe('order outcome events (20261110_001)',()=>{
+  const order=(event_type:string,message:string)=>({
+    ...sample,event_type,title:'Commande',message,link_to_tab:'orders',link_to_id:'ORD-3MR8-G6XF'
+  });
+  it('relays the 4 types by default with order resource and deep link',()=>{
+    for(const t of ['order_delivered','order_cancelled','order_unreachable','order_stale'])
+      expect(WAHA_DEFAULT_EVENT_TYPES).toContain(t);
+    const e=toNotifyEvent(order('order_delivered','#ORD-3MR8-G6XF — 90,000 FCFA — Par : Awa'),ctx);
+    expect(e.type).toBe('order.delivered');
+    expect(e.priority).toBe('normal');
+    expect(e.resource).toEqual({kind:'order',id:'ORD-3MR8-G6XF'});
+    expect(e.actionUrl).toBe('https://www.xeptionetwork.shop/admin/orders/ORD-3MR8-G6XF');
+    expect(e.facts).toEqual({subject:'#ORD-3MR8-G6XF',actor:'Awa',orderTotalXaf:90000});
+  });
+  it('keeps the closed-list reason of a cancellation',()=>{
+    const e=toNotifyEvent(order('order_cancelled','#ORD-1 — 15 000 FCFA — Motif : Rupture de stock — Par : Awa'),ctx);
+    expect(e.type).toBe('order.cancelled');
+    expect(e.facts).toMatchObject({orderTotalXaf:15000,outcomeReason:'Rupture de stock',actor:'Awa'});
+  });
+  it('sends unreachable and stale as high priority with bounded counters',()=>{
+    const u=toNotifyEvent(order('order_unreachable','#ORD-1 — 15 000 FCFA — tentative n°2'),ctx);
+    expect(u).toMatchObject({type:'order.unreachable',priority:'high',facts:{attemptCount:2,orderTotalXaf:15000}});
+    const s=toNotifyEvent(order('order_stale','#ORD-1 — 15 000 FCFA — en attente depuis 49 h — injoignable ×3'),ctx);
+    expect(s).toMatchObject({type:'order.stale',priority:'high',facts:{waitingHours:49,attemptCount:3}});
+    const plain=toNotifyEvent(order('order_stale','#ORD-1 — 15 000 FCFA — en attente depuis 170 h'),ctx);
+    expect(plain.facts).not.toHaveProperty('attemptCount');
+  });
+  it('never relays a phone number slipped into the message',()=>{
+    const e=toNotifyEvent(order('order_cancelled','#ORD-1 — 15 000 FCFA — Motif : +237 699 99 99 99'),ctx);
+    expect(JSON.stringify(e)).not.toMatch(/699/);
+  });
+});

@@ -10,6 +10,7 @@ import {
   Check,
   Loader2,
   ArrowRight,
+  RotateCcw,
   Sparkles,
 } from 'lucide-react';
 
@@ -27,6 +28,9 @@ export interface MobileTrocStep2Props {
   visionReady?: boolean;
   visionLoading?: boolean;
   existingPhotoUrls?: string[];
+  /** Photo dont l'envoi a échoué : un bouton « Réessayer » s'affiche dessus. */
+  failedPhoto?: File | null;
+  onRetryUpload?: () => void;
   onReset?: () => void;
 }
 
@@ -91,6 +95,8 @@ export const MobileTrocStep2: React.FC<MobileTrocStep2Props> = ({
   visionReady = true,
   visionLoading = false,
   existingPhotoUrls = EMPTY_URLS,
+  failedPhoto = null,
+  onRetryUpload,
   onReset,
 }) => {
   const [activeAngleIndex, setActiveAngleIndex] = useState<number>(0);
@@ -372,7 +378,8 @@ export const MobileTrocStep2: React.FC<MobileTrocStep2Props> = ({
           const photoFile = angleSlots[idx];
           const previewUrl = slotPreviewUrls[idx];
           const hasPhoto = Boolean(photoFile || previewUrl);
-          const isFlaggedIssue = issueIndices.includes(idx + 1);
+          const isFailedUpload = Boolean(photoFile) && photoFile === failedPhoto;
+          const isFlaggedIssue = issueIndices.includes(idx + 1) || isFailedUpload;
 
           return (
             <div
@@ -415,12 +422,29 @@ export const MobileTrocStep2: React.FC<MobileTrocStep2Props> = ({
                     </button>
                   </div>
 
-                  {/* Statut Validée en bas */}
-                  <div className="absolute bottom-1.5 left-1.5 z-10">
-                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/95 text-black text-[9px] font-tech font-black uppercase tracking-wider flex items-center gap-1 shadow">
-                      <Check className="w-2.5 h-2.5 stroke-[3]" /> Validée
-                    </span>
-                  </div>
+                  {isFailedUpload ? (
+                    /* Envoi échoué : on relance depuis la photo elle-même (les précédentes ne repartent pas). */
+                    onRetryUpload && !isUploading && !isCheckingPhotos && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRetryUpload();
+                        }}
+                        className="absolute bottom-1.5 inset-x-1.5 z-10 min-h-[36px] rounded-lg bg-red-600 hover:bg-red-500 active:scale-95 text-white text-[11px] font-tech font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg border border-white/20"
+                        aria-label={`Réessayer l'envoi de la photo ${angle.label}`}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" /> Réessayer
+                      </button>
+                    )
+                  ) : (
+                    /* Statut Validée en bas */
+                    <div className="absolute bottom-1.5 left-1.5 z-10">
+                      <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/95 text-black text-[9px] font-tech font-black uppercase tracking-wider flex items-center gap-1 shadow">
+                        <Check className="w-2.5 h-2.5 stroke-[3]" /> Validée
+                      </span>
+                    </div>
+                  )}
                 </>
               ) : (
                 /* Case vide */

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Upload, ImagePlus, Loader2, X, AlertTriangle } from 'lucide-react';
+import { Upload, ImagePlus, Loader2, X, AlertTriangle, RotateCcw } from 'lucide-react';
 
 const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 8;
@@ -13,11 +13,14 @@ interface PhotoUploaderProps {
   issueIndices?: number[];
   visionReady?: boolean;
   visionLoading?: boolean;
+  /** Photo dont l'envoi a échoué : un bouton « Réessayer » s'affiche dessus. */
+  failedPhoto?: File | null;
+  onRetryUpload?: () => void;
 }
 
 export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   photos, onPhotosChange, onNext, isUploading = false, isCheckingPhotos = false, issueIndices = [],
-  visionReady = true, visionLoading = false,
+  visionReady = true, visionLoading = false, failedPhoto = null, onRetryUpload,
 }) => {
   const issueSet = new Set(issueIndices);
   const hasIssues = issueSet.size > 0;
@@ -159,11 +162,12 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
             <div className="grid grid-cols-4 lg:grid-cols-3 gap-2">
               {photos.map((file, i) => {
                 const isFlagged = issueSet.has(i + 1); // index 1-based côté Gemini
+                const isFailed = failedPhoto === file;
                 return (
                   <div
                     key={i}
                     className={`relative aspect-square bg-black/60 overflow-hidden group ${
-                      isFlagged
+                      isFlagged || isFailed
                         ? 'border-2 border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.4)]'
                         : 'border border-white/20'
                     }`}
@@ -175,6 +179,17 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                         isFlagged ? 'opacity-60' : 'opacity-80 group-hover:opacity-100'
                       }`}
                     />
+                    {failedPhoto === file && onRetryUpload && !isBusy && (
+                      <button
+                        type="button"
+                        onClick={onRetryUpload}
+                        className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 bg-black/70 text-white"
+                        aria-label={`Réessayer l'envoi de la photo ${i + 1}`}
+                      >
+                        <RotateCcw className="w-5 h-5" />
+                        <span className="text-[10px] font-tech font-bold uppercase tracking-wider">Réessayer</span>
+                      </button>
+                    )}
                     {isFlagged && (
                       <div className="absolute inset-0 flex items-end justify-center pb-1">
                         <span className="bg-red-600 text-white text-[9px] font-tech font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm">

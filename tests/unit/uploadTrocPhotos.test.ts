@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
 vi.mock('../../services/supabaseClient', () => ({ supabase: { functions: { invoke } } }));
 
-import { StorageUploadError, trocUploadErrorMessage, uploadTrocPhotos } from '../../services/uploadService';
+import { StorageUploadError, TrocPhotoUploadError, trocUploadErrorMessage, uploadTrocPhotos } from '../../services/uploadService';
 
 const jpeg = (name: string) => new File([new Uint8Array([1, 2, 3])], name, { type: 'image/jpeg' });
 
@@ -81,5 +81,41 @@ describe('uploadTrocPhotos', () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
 
     await expect(uploadTrocPhotos([jpeg('a.jpg')], 'sess')).rejects.toThrow(/\(code network\)/);
+  });
+});
+
+describe('uploadTrocPhotos — nouvel essai', () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    invoke.mockReset();
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => ({ width: 4000, height: 3000, close: vi.fn() })));
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage: vi.fn() } as never);
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (cb: BlobCallback) {
+      cb(new Blob([new Uint8Array(10)], { type: 'image/webp' }));
+    });
+  });
+
+  it('désigne la photo en échec puis reprend sans renvoyer les précédentes', async () => {
+    const intent = (id: number) => ({ data: { token: 't', uploadUrl: `/u/${id}`, mediaUrl: `/m/${id}`, origin: 'https://storage.example' }, error: null });
+    const files = [jpeg('a.jpg'), jpeg('b.jpg'), jpeg('c.jpg')];
+    const uploaded = new WeakMap<File, string>();
+    invoke.mockImplementation(async () => intent(invoke.mock.calls.length));
+    fetchMock
+      .mockResolvedValueOnce({ ok: true })
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValue({ ok: true });
+
+    const failure = await uploadTrocPhotos(files, 'sess', uploaded).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(TrocPhotoUploadError);
+    expect((failure as TrocPhotoUploadError).file).toBe(files[1]);
+    expect((failure as TrocPhotoUploadError).code).toBe('network');
+
+    const urls = await uploadTrocPhotos(files, 'sess', uploaded);
+    // a déjà envoyée (pas de nouvel appel), b et c seulement : 2 + 2 autorisations au total.
+    expect(invoke).toHaveBeenCalledTimes(4);
+    expect(urls).toEqual(['https://storage.example/m/1', 'https://storage.example/m/3', 'https://storage.example/m/4']);
   });
 });

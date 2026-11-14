@@ -13,7 +13,7 @@
 
 Le digest est produit **en base** par `public.notify_daily_digest(p_day date DEFAULT NULL)`
 (SECURITY DEFINER, service_role seulement, même style que `notify_time_based_reminders`),
-planifiée par pg_cron sous le nom `daily-digest-evening` (`0 19 * * *` UTC = 20 h Douala).
+planifiée par pg_cron sous le nom `daily-digest-evening` (`0 19 * * *` UTC = 20 h Douala ; décalée à 22 h Douala — `0 21 * * *` UTC — par `20261111_002`, les rapports WhatsApp du soir arrivant après 20 h).
 Elle insère **une notification par boutique active** avec
 `event_type = 'daily_digest'` et `dedup_key = 'daily_digest.<store_code>.<YYYY-MM-DD>'`
 (date Africa/Douala), `ON CONFLICT (dedup_key) DO NOTHING`. L'envoi Telegram reste à la
@@ -27,7 +27,7 @@ Choix de données :
 |---|---|---|
 | Ventes | `orders_reportable` | commandes sans `store_id` rattachées à la boutique `is_default` |
 | Canaux | `order_payments` (`status = 'paid'`) | sinon repli sur `orders.payment_method` |
-| Caisse | `store_cash_reports` (store, date) | clôturée si une ligne existe |
+| Caisse | `store_cash_reports` (store, date) | clôturée si une ligne existe ; depuis `20261111_003` : mouvements (+entrées · −sorties) et « ⚠ Écart de caisse » si ouverture + entrées − sorties ≠ clôture |
 | Dettes | `store_debts` (`active`, `partial`) | nombre + reste à encaisser |
 | Trocs | `trade_in_requests` | statuts ouverts, compteur global (pas de boutique sur un troc) |
 | Objectifs | `sales_targets` (`scope_type = 'store'`) | jour / semaine / mois actifs, CA via `orders_reportable` |

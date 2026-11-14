@@ -27,6 +27,7 @@
     "ingest:products": "node scripts/product-ingestion-funnel.mjs --file=data/mfoundi-mall-catalog.json",
     "ingest:pc-catalog": "node scripts/import-pc-catalog-july-2026.mjs",
     "deploy:send-invoice": "powershell -ExecutionPolicy Bypass -File scripts/deploy-send-invoice.ps1",
+    "deploy:whatsapp-cash": "node scripts/deploy-whatsapp-cash-webhook.mjs",
     "market:render": "node scripts/render-market-sources.mjs"
   },
   "dependencies": {

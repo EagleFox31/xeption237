@@ -89,6 +89,10 @@ ton `.env`.
 | `BING_SEARCH_API_KEY` | recherche de prix (facultatif) | portal.azure.com |
 | `AI_CHAT_CAPTCHA_AFTER` | seuil messages chatbot avant session Auth (défaut `3`) | valeur que tu choisis |
 | `PUBLIC_VERIFY_BASE_URL` | URL publique des certificats | ton domaine |
+| `WHATSAPP_CASH_WEBHOOK_HMAC_KEY` | signature HMAC-SHA512 des webhooks WAHA reçus par `whatsapp-cash-webhook` (≥ 32 car., même valeur que `webhooks[].hmac.key` côté WAHA) | `openssl rand -hex 32` |
+| `WHATSAPP_CASH_WEBHOOK_SECRET` | alternative sans HMAC : secret partagé attendu dans `X-Webhook-Secret` (`customHeaders` WAHA) | `openssl rand -hex 32` |
+| `WHATSAPP_CASH_GROUP_IDS` | groupes WhatsApp écoutés (`…@g.us`, virgules) ; vide = tous les groupes de la session | `GET /api/<session>/groups` sur WAHA |
+| `WHATSAPP_CASH_AUTHOR_STORES` | JSON numéro d'auteur → code boutique, repli quand le rapport ne nomme pas la boutique | toi (`{"2376XXXXXXXX":"MFOUNDI"}`) |
 | `SUPABASE_URL` · `SUPABASE_ANON_KEY` · `SUPABASE_SERVICE_ROLE_KEY` | injectés automatiquement par Supabase | rien à faire |
 
 **Captcha (hCaptcha)** : une seule config dans le dashboard Supabase → **Authentication → Bot Protection** (site key + secret). Le checkout, le login ERP et le chatbot (via `signInAnonymously`) réutilisent cette config — pas de secret captcha séparé dans les Edge Functions.

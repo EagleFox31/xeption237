@@ -101,7 +101,7 @@ Garanties :
 | `troc_stale` | pg_cron horaire `notify_time_based_reminders()` (dossier troc sans contact depuis > 48 h, créé il y a < 14 j) | responsable | in-app + Telegram | ✅ Livré |
 | `voucher_expiring` | pg_cron horaire `notify_time_based_reminders()` (bon troc expirant dans < 48 h, statut actif) | responsable | in-app + Telegram + WhatsApp | ✅ Livré |
 | `debt_overdue` | pg_cron horaire `notify_time_based_reminders()` (résumé hebdo par boutique des dettes > 7 j) | tous staff | in-app + Telegram + WhatsApp (`finance.debt_overdue`, depuis le 02/11/2026) | ✅ Livré |
-| `daily_digest` | pg_cron `daily-digest-evening` 19:00 UTC (20 h Douala) → `notify_daily_digest()` : bilan du jour par boutique active (ventes, canaux, caisse, dettes, trocs, objectifs), dedup `daily_digest.<store_code>.<YYYY-MM-DD>` | responsable | in-app + Telegram (bouton « ✅ Vu » → `ack_staff_notification_from_telegram`) ; WhatsApp non (type non accepté par Trigenys Notify) | ✅ Livré le 07/11/2026 (ADR-001). Depuis le 10/11/2026 (`20261110_001`) : « Dettes en cours » = `store_debts` ouvertes, sinon repli sur le `debts_snapshot` du dernier rapport de caisse (import WhatsApp), avec la date du rapport |
+| `daily_digest` | pg_cron `daily-digest-evening` 21:00 UTC (22 h Douala, depuis `20261111_002` ; 20 h auparavant) → `notify_daily_digest()` : bilan du jour par boutique active (ventes, canaux, caisse, dettes, trocs, objectifs), dedup `daily_digest.<store_code>.<YYYY-MM-DD>` | responsable | in-app + Telegram (bouton « ✅ Vu » → `ack_staff_notification_from_telegram`) ; WhatsApp non (type non accepté par Trigenys Notify) | ✅ Livré le 07/11/2026 (ADR-001). Depuis le 10/11/2026 (`20261110_001`) : « Dettes en cours » = `store_debts` ouvertes, sinon repli sur le `debts_snapshot` du dernier rapport de caisse (import WhatsApp), avec la date du rapport. Depuis le 11/11/2026 (`20261111_003`) : « Mouvements caisse : +entrées · −sorties », « ⚠ Écart de caisse » si ouverture + entrées − sorties ≠ clôture, et variation du reste dettes vs rapport précédent |
 | `weekly_digest` | pg_cron `weekly-digest-monday` lundi 07:00 UTC (08 h Douala) → `notify_weekly_digest()` : bilan consolidé de la semaine ISO écoulée à partir des rapports de caisse (entrées, sorties, remis au boss, caisse du dernier soir, meilleur jour, total, dettes agrégées et leur évolution, « À noter » : écarts de caisse, journées sans entrée, rapports manquants lundi-samedi), dedup `weekly_digest.<IYYY>-W<IW>` | responsable | in-app + Telegram (sans emoji, titres en gras) ; WhatsApp non (type non accepté par Trigenys Notify) | Code prêt le 14/11/2026 (ADR-002), migration `20261114_001` **non appliquée** : nouveau comportement par défaut à l'application |
 | `stock_alert` | (remplacé par `stock_low` / `stock_out`) | — | — | — |
 | `security_alert` | `useAdminData` sur `security_events` (déjà intégré via shim) | `direction`+ | in-app | ✅ MVP (via shim legacy) |
@@ -120,6 +120,59 @@ Garanties :
   - Rappel dettes : uniquement le nom de la boutique, le nombre de dettes de plus de 7 jours et le reste à encaisser (aucun nom client).
   - Protégé contre la fuite de données personnelles (enveloppe canonique Trigenys Notify sans noms ni numéros clients).
   - Clôtures de caisse : mappées sur l'événement canonique `cash_report.closed` avec les faits métier (`closingCashXaf`, `totalInflowXaf`, `totalOutflowXaf`, `actor`), bridgées vers le bon groupe WhatsApp par Trigenys Notify.
+
+### Ingestion automatique des rapports de caisse WhatsApp (`whatsapp-cash-webhook`)
+
+Sens **entrant** : les rapports « 📊 RAPPORT DU jj/mm/aaaa » postés par les boutiques dans le groupe WhatsApp
+caisse sont écrits dans `store_cash_reports` (`source = 'whatsapp_live'`) sans export manuel.
+Décision et alternatives : [ADR-002](../adr/ADR-002-whatsapp-cash-webhook.md).
+
+- **Flux** : WAHA (`trigenys-notify`, VPS OVH) → webhook `POST /functions/v1/whatsapp-cash-webhook` →
+  `_shared/whatsappCashReport/` (filtrage, parseur, boutique, plan d'écriture) → `store_cash_reports`.
+  Le parseur est **le même code** que le script de reprise `scripts/import-whatsapp-cash-reports.mjs`
+  (shims `scripts/lib/cashReportText.mjs`, `cashReportStoreResolver.mjs`).
+- **Authentification** : `WHATSAPP_CASH_WEBHOOK_HMAC_KEY` (HMAC-SHA512 du corps brut, en-têtes WAHA
+  `X-Webhook-Hmac` / `X-Webhook-Hmac-Algorithm`) ; à défaut `WHATSAPP_CASH_WEBHOOK_SECRET` attendu dans
+  `X-Webhook-Secret` (`customHeaders` WAHA). Aucun des deux → 503, signature invalide → 401.
+- **Filtrage** : événements `message` / `message.any`, expéditeur `…@g.us` uniquement, groupe dans
+  `WHATSAPP_CASH_GROUP_IDS` si renseigné, texte reconnu rapport (`isCashReportMessage`). Tout le reste →
+  200 `ignored` (WAHA ne rejoue pas).
+- **Boutique** : ligne « Boutique … » → vote des opérateurs connus (`staff.store_id`) → carte
+  `WHATSAPP_CASH_AUTHOR_STORES` (`{"2376XXXXXXXX":"MFOUNDI"}`). Non résolue → 200 `skipped`.
+- **Date** : titre du rapport ; sinon date d'envoi (`Africa/Douala`) avec `date_from_message` ; écart
+  titre / envoi → `date_differs_from_message`.
+- **Idempotence** (`planUpsert`) sur `(store_id, report_date)` : absent → `insert` ; `whatsapp_live` ou
+  `whatsapp_backfill` différent → `update`, identique → `unchanged` ; **`bot` → `protected`, jamais réécrit**.
+  Le script de reprise, lui, ne réécrit que `whatsapp_backfill` : il signale les lignes `whatsapp_live`
+  comme protégées. Erreur base → 500 (WAHA rejoue, l'écriture reste idempotente).
+- **Confidentialité** : logs et réponses = action, code boutique, date, avertissements, identifiant WAHA.
+  Jamais le texte du message ni un nom.
+
+**Déploiement — une commande, idempotente** (`scripts/deploy-whatsapp-cash-webhook.mjs`) :
+
+```bash
+npm run deploy:whatsapp-cash              # plan : lecture seule, montre l'état réel et les actions restantes
+npm run deploy:whatsapp-cash -- --apply   # exécute uniquement ce qui manque
+```
+
+Le script inspecte puis réconcilie, dans l'ordre : **migration** `20261111_001` (sautée si tracée dans
+`schema_migrations`) → **secrets** Supabase (comparés par empreinte SHA-256 ; `WHATSAPP_CASH_WEBHOOK_HMAC_KEY`
+générée si absente ; `WHATSAPP_CASH_GROUP_IDS` / `WHATSAPP_CASH_AUTHOR_STORES` pilotés seulement si fournis via
+`--group=<id>@g.us` ou `.env`) → **fonction** (`functions deploy … --no-verify-jwt --use-api`, seulement si les sources sont plus récentes que le
+déploiement, ou `--redeploy`) → **webhook WAHA**
+sur le VPS via SSH (l'API WAHA n'écoute que sur `127.0.0.1:3000` ; clé API lue dans l'env du conteneur côté VPS,
+clé HMAC transmise par stdin). Seule **notre** entrée de `config.webhooks` est ajoutée ou alignée ; les autres
+webhooks de la session sont conservés. Un second `--apply` convergé = zéro écriture.
+
+- Session WAHA : la seule en `WORKING` par défaut, sinon `--session=<nom>` (ou `WAHA_SESSION`). ⚠️ `PUT /api/sessions`
+  **redémarre la session** (quelques secondes sans réception).
+- Clé HMAC déjà en place côté Supabase mais inconnue localement : la fournir dans l'env (`WHATSAPP_CASH_WEBHOOK_HMAC_KEY`)
+  ou `--rotate-key` (régénère et aligne les deux côtés). `--skip-vps` / `--skip-deploy` pour une étape seule.
+- Accès requis : `DATABASE_URL` (ou `SUPABASE_DB_PASSWORD`) dans `.env` (depuis un worktree git, celui du
+  dépôt principal est repris automatiquement), CLI Supabase connectée, clé SSH
+  `~/.ssh/id_ed25519_fleet_vps` (surcharges : `WAHA_VPS_SSH`, `WAHA_VPS_SSH_KEY`, `WAHA_CONTAINER`, `WAHA_LOCAL_URL`).
+- Rien n'est affiché en clair : empreintes seulement. L'identifiant du groupe (`…@g.us`) se lit dans
+  `GET /api/<session>/groups`. Vérification : `select source, count(*) from store_cash_reports group by 1`.
 
 ### Événements SMART TROC intermédiaires (`accepted → contacted → appointment`)
 
@@ -167,4 +220,5 @@ Migration `20261020_002_staff_notification_deliveries.sql` + Edge Function `noti
 - **SMS WhatsApp** pour les CTAs clients (déjà en place via `whatsappShare.ts`, à harmoniser).
 - **Notifs per-user** si l'équipe staff dépasse 10 personnes (table `notification_reads`).
 - **Préférences utilisateur** (opt-out par type) → table `staff_notification_preferences`.
+- **Rapports de caisse WhatsApp** : ingestion automatique livrée (`whatsapp_live`, [ADR-002](../adr/ADR-002-whatsapp-cash-webhook.md)) ; déploiement en une commande : `npm run deploy:whatsapp-cash -- --apply` (plan sans `--apply`). Ensuite : alerte si une boutique n'a rien posté à 21 h.
 - **Digest quotidien** : livré sur Telegram (`daily_digest`, voir [ADR-001](../adr/ADR-001-daily-digest-telegram.md)). Reste à faire : commandes bot `/jour` et `/ventes` (bilan à la demande), relais WhatsApp quand Trigenys Notify acceptera le type, variante email `direction`.

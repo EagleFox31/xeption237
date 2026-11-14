@@ -332,3 +332,35 @@
 - Poussé : claude/sharp-rhodes-803414 (c11f208) et claude/daily-digest-ca6b98. origin/main = 586515f (contient la migration 20261111_005 et le correctif telegram-bot-entry déjà en prod).
 - Conflit ERRORS_LOG résolu en gardant les deux entrées (préfixe en double + verify-erp-step2).
 - Reste : PR 52 (WhatsApp, branche claude/wonderful-haslett-3e2f95, migrations 20261111_001/_002/_003 en prod) non fusionnée ; redistribution du bot vise encore siege (session Siège) ; cadence du bilan WhatsApp non choisie.
+
+## 2026-11-13 23:58 — Brief semaine 09-13/11 (lecture seule)
+
+- Rapports du groupe « Administration XEPTION » bien ingérés en base (source whatsapp_live du 11 au 13/11, backfill avant).
+- Anomalies vues : entrées Olembé 12/11 = 65 001 et 13/11 = 27 001 au lieu de 65 000 / 27 000 (le « 1 » de « iphone 17 PM » coupé sur deux lignes est compté comme montant) ; rapports « mfoundi mall » rangés sur MFOUNDI (Mfoundi-Mall 1038) alors que le stock est sur MF1092 ; ouverture Mall 12/11 = 315 000 contre clôture 11/11 = 315 500.
+- Rien corrigé, rien commité.
+
+## 2026-11-14 00:18 — Maquette du bilan hebdomadaire montrée (non envoyée)
+
+- Pas de bilan hebdo existant : seul le digest quotidien 22 h (PR 52, non fusionnée). Maquette semaine 09-13/11 montrée à Anjl au format validé, sans noms de clients.
+- Prochaine étape si validé : jour et heure d'envoi, groupe cible, puis module _shared + cron, sur la base du digest de la PR 52.
+
+## 2026-11-14 00:20 — Question ouverte : un ou deux rapports Mfoundi Mall
+
+- Mfoundi Mall = 2 boutiques (1038 et 1092). Les rapports WhatsApp disent seulement « Boutique mfoundi mall » ; tous sont rangés sur MFOUNDI (1038), un seul backfill 06/11 sur MF1092. Question posée à Anjl : rapport commun aux deux boutiques ou une seule boutique qui rapporte ? Bilan hebdo en attente de la réponse.
+
+## 2026-11-14 00:21 — Bilan hebdo test envoyé dans Xeption app test
+
+- Maquette semaine 09-13/11 envoyée (HTTP 201), Mfoundi Mall traité comme un seul rapport (question 1038/1092 non tranchée par Anjl). Attente retour avant de coder le module hebdo (après fusion PR 52).
+
+## 2026-11-14 01:35 — Anjl demande pourquoi le bilan hebdo n'est pas automatisé
+
+- Réponse : jamais demandé ni codé jusqu'ici, format à valider, dépend du digest de la PR 52 non fusionnée. Proposé de le coder maintenant (samedi 20 h, groupe test d'abord).
+
+## 2026-11-14 12:43 — Bilan hebdomadaire codé (commit local, rien déployé)
+
+- Commit `771b3aa` sur `claude/daily-digest-ca6b98` : migration `20261114_001_weekly_digest.sql` (fonction `notify_weekly_digest` + cron `weekly-digest-monday` lundi 07:00 UTC = 08 h Douala), module `_shared/weeklyDigest.ts`, câblage Telegram/texte brut, `weekly_digest` dans les défauts, ADR-002, NOTIFICATIONS.md, `tests/weekly-digest.test.ts` (ajouté avec -f).
+- Planning passé de samedi 20 h à lundi 08 h : rapports reçus après 20 h, samedi incomplet sinon.
+- Aperçu validé sur la prod en transaction READ ONLY (bloc DO, rien écrit) pour les semaines 45 et 46 : chiffres conformes au bilan de test, sauf dettes Mall +75 000 F (base = dernier rapport avant la semaine) au lieu de +110 000 F dans la maquette manuelle.
+- Tests : weekly + daily 37/37. Suite complète : 14 échecs **préexistants** (13 `react` absent du worktree, 1 `staff-notification-actor` qui échoue aussi sans ce commit).
+- **Non fait / à Anjl** : `npm run db:apply -- supabase/migrations/20261114_001_weekly_digest.sql`, redéployer `notify-staff`, ajouter `weekly_digest` à `TELEGRAM_EVENT_TYPES` s'il est surchargé. Non poussé.
+- Suites : WhatsApp (type à ajouter dans trigenys-notify), in-app sans retours ligne (`NotificationDrawer` n'a pas `whitespace-pre-line`, vaut aussi pour le daily), écarts de 1 F d'Olembé (parseur).

@@ -18,7 +18,7 @@ export interface StaffNotification {
   message: string;
   link_to_tab?: string | null;
   link_to_id?: string | null;
-  /** order_created only, hydrated for the WhatsApp alert (staffNotifyOrder.ts). */
+  /** Order events only (ORDER_SNAPSHOT_EVENT_TYPES), hydrated by notify-staff (staffNotifyOrder.ts). */
   order?: OrderNotificationSnapshot;
 }
 

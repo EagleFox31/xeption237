@@ -5,6 +5,7 @@ import {
 } from '../supabase/functions/_shared/staffNotifyChannels/waha';
 import {DEFAULT_STAFF_EVENT_TYPES} from '../supabase/functions/_shared/staffNotify';
 import {formatOrderPhone,orderSnapshotFacts,withOrderSnapshots} from '../supabase/functions/_shared/staffNotifyOrder';
+import {formatTelegramNotification} from '../supabase/functions/_shared/staffNotifyChannels/telegram';
 
 const sample={
   notification_id:'123e4567-e89b-12d3-a456-426614174000',
@@ -285,5 +286,37 @@ describe('order outcome events (20261110_001)',()=>{
   it('never relays a phone number slipped into the message',()=>{
     const e=toNotifyEvent(order('order_cancelled','#ORD-1 — 15 000 FCFA — Motif : +237 699 99 99 99'),ctx);
     expect(JSON.stringify(e)).not.toMatch(/699/);
+  });
+});
+
+describe('order snapshot on follow-up alerts (Telegram: who, what, where)',()=>{
+  const row={
+    id:'ORD-4EYJ-5A6W',customer_name:'Client <Test>',customer_phone:'699 00 00 00',customer_email:null,
+    customer_city:'Douala (Littoral), Akwa',delivery_mode:'delivery',payment_method:'Mobile Money',total:150000,
+    items:[{name:'Téléphone démo 128 Go',price:150000,quantity:1}]
+  };
+  const stale={...sample,event_type:'order_stale',title:'Commande sans suivi',link_to_tab:'orders',
+    link_to_id:row.id,message:'#ORD-4EYJ-5A6W — 150 000 FCFA — en attente depuis 357 h'};
+  it('hydrates every order event, not only order_created',async()=>{
+    const read=vi.fn(async()=>[row]);
+    const [hydrated,other]=await withOrderSnapshots([stale,sample],read);
+    expect(read).toHaveBeenCalledWith([row.id]);
+    expect(hydrated.order).toBe(row);
+    expect(other).toBe(sample);
+  });
+  it('shows customer, items, delivery and payment in the Telegram alert, HTML-escaped',()=>{
+    const html=formatTelegramNotification({...stale,order:row});
+    expect(html).toContain('▫️ en attente depuis 357 h\n\n👤 Client &lt;Test&gt; · +237699000000');
+    expect(html).toContain('🛒 1 × Téléphone démo 128 Go — 150 000 FCFA');
+    expect(html).toContain('🚚 Livraison à domicile — Douala (Littoral), Akwa');
+    expect(html).toContain('💳 Mobile Money');
+  });
+  it('keeps the persisted message alone when the order is missing',()=>{
+    expect(formatTelegramNotification(stale)).not.toContain('👤');
+  });
+  it('still sends no customer data to Trigenys Notify for follow-up events (ADR-002)',()=>{
+    const e=toNotifyEvent({...stale,order:row},ctx);
+    expect(JSON.stringify(e)).not.toMatch(/Client|699|Akwa|Mobile Money/);
+    expect(e.facts).toMatchObject({orderTotalXaf:150000,waitingHours:357});
   });
 });

@@ -810,3 +810,18 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
   marque ne dépendent d'aucun fournisseur média externe : `git grep res.cloudinary.com` hors `scripts/`, `data/` et
   `tests/` doit rester vide.
 - **Reste** : 14 vidéos produits et 1 vidéo de commande Cloudinary n'ont aucune copie (décision métier en attente).
+
+## 2026-11-14 — Alertes « Commande sans suivi » inexploitables sur Telegram
+
+- **Symptôme** : dans le groupe Telegram, les relances de commande montraient seulement le numéro, le montant et
+  l'ancienneté. Le staff ne savait ni qui appeler, ni quoi livrer, ni où.
+- **Cause racine** : la fiche de commande (client, articles, livraison) n'était chargée que pour `order_created`, et
+  seulement pour le canal WhatsApp. Les événements de suivi ajoutés le 2026-11-10 n'en ont jamais bénéficié, et
+  Telegram ne l'affichait pour aucun événement.
+- **Résolution** : `withOrderSnapshots` charge la fiche pour tous les événements de commande
+  (`ORDER_SNAPSHOT_EVENT_TYPES`), sur tous les canaux. Telegram affiche client et téléphone, articles, livraison et
+  paiement (`orderDetailLines`). Vers Trigenys Notify, la règle ADR-002 reste inchangée : données client pour
+  `order_created` seulement.
+- **Prévention** : `tests/waha-notify-channel.test.ts` vérifie la fiche sur une relance, le rendu Telegram et
+  l'absence de données client vers Notify. Règle : un nouveau type d'alerte doit dire ce que le staff doit faire et
+  avec quelles informations, avant d'être relayé.

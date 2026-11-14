@@ -19,6 +19,7 @@ import {
 import { botChatLink, buildStartPayload, resolveBotUsername } from '../telegramStartPayload.ts';
 import { digestAckButton, type TelegramInlineButton } from '../telegramDigestAck.ts';
 import { formatTelegramWeeklyDigest, isWeeklyDigest } from '../weeklyDigest.ts';
+import { orderDetailLines } from '../staffNotifyOrder.ts';
 
 /** Limite Telegram d'un message texte. */
 export const TELEGRAM_MAX_MESSAGE_LENGTH = 4096;
@@ -61,6 +62,9 @@ export const formatTelegramNotification = (n: StaffNotification): string => {
   const lines = [`${v.icon} <b>${escapeTelegramHtml(v.heading.toUpperCase())}</b>`];
   if (v.subject) lines.push('', `${SUBJECT_ICON} <b><u>${escapeTelegramHtml(v.subject)}</u></b>`);
   for (const d of v.details) lines.push(`▫️ ${escapeTelegramHtml(d)}`);
+  // Alertes de commande : qui appeler, quoi préparer, où livrer (groupe staff interne).
+  const order = n.order ? orderDetailLines(n.order) : [];
+  if (order.length) lines.push('', ...order.map(escapeTelegramHtml));
   return truncateTelegramText(lines.join('\n'));
 };
 

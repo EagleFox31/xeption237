@@ -44,14 +44,17 @@ const relayChannel = async (
 
   let rows = (data ?? []) as StaffNotification[];
   let snapshotUnavailable = false;
-  if (channel.id === 'whatsapp_waha' && rows.length) {
+  if (rows.length) {
     try {
-      rows = await withNotificationDates(rows, async (ids) => {
-        const {data: snapshots, error: snapshotError} = await supabase
-          .from('admin_notifications').select('id,created_at').in('id', ids);
-        if (snapshotError) throw snapshotError;
-        return snapshots ?? [];
-      });
+      if (channel.id === 'whatsapp_waha') {
+        rows = await withNotificationDates(rows, async (ids) => {
+          const {data: snapshots, error: snapshotError} = await supabase
+            .from('admin_notifications').select('id,created_at').in('id', ids);
+          if (snapshotError) throw snapshotError;
+          return snapshots ?? [];
+        });
+      }
+      // Toutes les alertes de commande, sur tous les canaux : client, articles, livraison.
       rows = await withOrderSnapshots(rows, async (ids) => {
         const {data: orders, error: orderError} = await supabase
           .from('orders').select(ORDER_SNAPSHOT_COLUMNS).in('id', ids);

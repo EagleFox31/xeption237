@@ -29,7 +29,7 @@ describe('Staff notification actor ("Par : <nom>")', () => {
   });
 
   it('keeps the previous troc action contract (roles, state machine, audit, grants)', () => {
-    const strip = (s: string) => s
+    const strip = (s: string) => s.replace(/\r\n/g, '\n')
       .replace(/SELECT l\.auth_user_id, lower\(s\.role\)[^\n]*/, 'SELECT')
       .replace(/.*v_staff_name.*\n/g, '')
       .replace(/.*app\.actor_name.*\n/g, '')

@@ -825,3 +825,18 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 - **Prévention** : `tests/waha-notify-channel.test.ts` vérifie la fiche sur une relance, le rendu Telegram et
   l'absence de données client vers Notify. Règle : un nouveau type d'alerte doit dire ce que le staff doit faire et
   avec quelles informations, avant d'être relayé.
+
+## 2026-11-14 — `mark_order_cash_paid` exécutable par `anon` sans garde staff
+
+- **Symptôme** : découvert en réutilisant la RPC pour les boutons Telegram. N'importe quel visiteur, avec la clé
+  publique, pouvait passer une commande en « payée (espèces) » et consommer son stock.
+- **Cause racine** : la revue des droits du 2026-08-23 (`20260823_023`) classait la fonction en « ERP staff »
+  (garde staff et `REVOKE PUBLIC, anon`). Le correctif `20260910_004` l'a supprimée puis recréée avec une nouvelle
+  signature `(text, text)`, sans garde, et avec `GRANT … TO anon`. Les droits posés sur l'ancienne signature ne se
+  reportent pas sur la nouvelle.
+- **Classification** : régression de sécurité (droits). Aucun abus constaté.
+- **Résolution** : `20261114_003` rétablit la garde staff (email du JWT présent dans `staff`), retire EXECUTE à
+  `PUBLIC` et `anon` et le garde pour `authenticated` et `service_role`. Le reste du corps est inchangé.
+- **Prévention** : `tests/telegram-order-actions.test.ts` vérifie la garde et le `REVOKE`. Règle : toute migration
+  qui fait `DROP FUNCTION` puis `CREATE`, ou qui change une signature, doit reprendre les `REVOKE`/`GRANT` de la classe
+  de la fonction (`20260823_023`) et ne jamais accorder EXECUTE à `anon` sans justification écrite.

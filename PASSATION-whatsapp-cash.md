@@ -252,3 +252,19 @@ source `whatsapp_backfill`, 64 000 → 99 500, entrées 1 015 000, sorties 979 5
 ou (b) ajouter le numéro de l'auteur au secret `WHATSAPP_CASH_AUTHOR_STORES` (redéploiement via
 `scripts/deploy-whatsapp-cash-webhook.mjs`). Sans ça, chaque rapport 1038 posté sans Arrey sera ignoré.
 Rien de nouveau dans le code.
+
+## 2026-11-16 11:36 — Mfoundi-Mall 1092 : aucun rapport posté depuis le 06/11 (vérifié)
+
+Question de la session digest (1092 sans rapport depuis le 06/11). Vérifications lecture seule :
+- Groupe WhatsApp via API WAHA (session `trigenys-test`) : le cache ne remonte qu'au 11/11 18:55 (début de session) ;
+  10 messages du 11 au 14/11, uniquement « Boutique mfoundi mall » (1038) et « Boutique d'Olembé ». Rien le 15/11.
+- Export WhatsApp du 10/11 (`~/Downloads/Discussion WhatsApp avec Administration XEPTION.zip`, extrait dans le
+  scratchpad puis supprimé) rejoué en simulation `--since=2026-11-05` : 1092 poste avec l'indice « Boutique MF 1092 »
+  (résolu par `hint`), derniers rapports 05 et 06/11 ; aucun rapport 1092 du 07 au 10/11.
+→ Réponse : **rien posté** par 1092 entre le 07 et le 15/11. Aucune écriture.
+
+**Constat collatéral (résolveur fragile depuis le renommage des boutiques)** : en rejouant l'export avec les
+noms actuels, « Boutique mfoundi mall » n'est plus résolu par `hint` (ambigu 1038/1092) ; 09/11 → `store_unresolved`,
+06/11 → attribué à OLEMBE par vote opérateurs (conflit). En prod ces jours sont corrects car importés avant le renommage.
+Prévention à décider (Anjl) : staff rattaché à la bonne boutique (Jordan, Engelbert, Sefora → MFOUNDI) ou mapping
+auteur → boutique dans `WHATSAPP_CASH_AUTHOR_STORES`, ou demander au staff 1038 d'écrire « 1038 » dans l'en-tête.

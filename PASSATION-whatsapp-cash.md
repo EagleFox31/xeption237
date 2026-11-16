@@ -296,3 +296,11 @@ seulement sur accord explicite d'Anjl).
 **Pour activer (sur accord d'Anjl)** : secret Supabase `WHATSAPP_CASH_HINT_DEFAULTS={"mfoundi":"MFOUNDI"}`
 puis redéploiement de `whatsapp-cash-webhook` (commande standard du projet). Tant que ce n'est pas fait, un
 rapport « Boutique mfoundi mall » sans numéro reste `store_unresolved` (ou résolu par le vote des opérateurs).
+
+## 2026-11-16 12:15 — Filet de sécurité DÉPLOYÉ (accord Anjl : « Oui, déployer »)
+
+- Secret Supabase `WHATSAPP_CASH_HINT_DEFAULTS` créé (valeur `{"mfoundi":"MFOUNDI"}`, via `deploy-whatsapp-cash-webhook.mjs --apply --skip-vps`,
+  variable d'environnement, jamais en argument). Fonction `whatsapp-cash-webhook` redéployée (v3) avec le commit bea524a.
+- Second passage du script en plan : zéro action (convergé). WAHA non touché (`--skip-vps`).
+- Prochaine étape : surveiller le prochain rapport « Boutique mfoundi mall » sans numéro → attendu `hint_default` → MFOUNDI ;
+  avec « 1092 » → MF1092 (`hint`). PR #52 à jour, rien en prod hors git.

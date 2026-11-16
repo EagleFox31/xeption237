@@ -382,3 +382,73 @@
 
 - Branches poussées. PR Trigenys/trigenys-notify#66 (feat/xeption-weekly-digest, 6bf4d10) et EagleFox31/xeption237#59 (claude/daily-digest-ca6b98, d3bcaac). Non fusionnées, rien déployé.
 - Prochaine étape : revue/merge de #66 puis déploiement Worker, route D1 groupe test, migration 20261114_001, notify-staff (ordre dans la PR #59).
+
+## 2026-11-16 10:54 — Bilan WhatsApp fusionné dans main (non déployé)
+
+- Trigenys/trigenys-notify#66 fusionnée (f139ccb) après résolution du conflit avec les types order.* (union, 118/118). EagleFox31/xeption237#59 fusionnée (23e51ca) : conflit waha.ts/test résolu en union, et `weekly_digest` retiré de `WAHA_EXCLUDED_EVENT_TYPES` (ajouté sur main entre-temps) puisqu’il a son alias. Tests bilan + canal WAHA 42/42 ; suite complète : 15 fichiers KO hors périmètre (React absent du worktree, uploadTrocPhotos venu de main).
+- Rien déployé. Ordre : Worker Notify → route D1 groupe test → migration 20261114_001 → notify-staff.
+
+## 2026-11-16 10:55 — Pas de déploiement automatique
+
+- Vérifié : merge sur main ne déploie ni le Worker Notify prod (seul `appfactory-infrastructure.yml` provisionne le staging, sur changement de `.appfactory/worker.json`), ni Supabase (aucun workflow functions/migrations ; Vercel = front seulement). Déploiement manuel requis, en attente d’accord d’Anjl.
+
+## 2026-11-16 11:14 — Bilan hebdo WhatsApp DÉPLOYÉ (accord Anjl « deploie alors »)
+
+- Worker Notify `trigenys-notify-staging-api` déployé depuis main f139ccb (version 4e2f2f59…), seul delta depuis le déploiement de 09:45 = PR #66. `WAHA_EVENT_GROUPS_JSON` = groupe test seulement.
+- D1 (lecture) : seule route xeption = groupe test, enabled=1, state=available.
+- Migration `20261114_001_weekly_digest.sql` appliquée (db:apply), cron `weekly-digest-monday` `0 7 * * 1` actif, EXECUTE refusé à anon/authenticated.
+- `notify-staff` redéployé (flags projet). Aucune surcharge `*_EVENT_TYPES` dans les secrets : défauts actifs.
+- Premier envoi automatique : lundi 23/11 08 h Douala (le créneau du 16/11 était passé). Envoi immédiat possible : `SELECT public.notify_weekly_digest();` (non fait, à proposer).
+- Ouvrir à Administration : ajouter son id dans `WAHA_EVENT_GROUPS_JSON` ET router le groupe vers xeption dans D1 (absent aujourd’hui).
+
+## 2026-11-16 11:25 — Bilan W46 envoyé, samedi Mfoundi manquant
+
+- `notify_weekly_digest()` déclenché (accord « Oui, envoie-le ») : notif `weekly_digest.2026-W46` livrée telegram 10:24:01 + whatsapp_waha 10:24:04, sans erreur.
+- Remarque Anjl « prend en compte samedi » : la semaine ISO inclut le samedi (Olembé compté) ; Mfoundi-Mall 1038 n'a AUCUN rapport le 14/11 en base → bilan affiche « caisse vendredi soir » + « pas de rapport samedi ».
+- Demandé à la session ingestion (local_0d6f2e42) de vérifier/ingérer le rapport 1038 du 14/11. Ensuite, re-générer = supprimer la ligne `weekly_digest.2026-W46` puis rappeler la fonction : écriture prod, sur accord explicite seulement.
+- Demande Anjl : sonder @gltich dans le groupe test sur le format du bilan. Notify ne gère pas de texte libre ni de mention ; il faut le numéro de gltich et un canal d'envoi validé (pas d'appel WAHA direct dans du nouveau code).
+- `scripts/.tmp-weekly-send.mjs` supprimé.
+
+## 2026-11-16 11:45 — Retour gltich : 1092 absent du bilan
+
+- gltich (groupe test) : « Je ne vois pas Mfoundi-Mall siège (1092) ». MF1092 actif, aucun rapport en base depuis le 06/11 ; `notify_weekly_digest` ne boucle que sur les magasins actifs AYANT un rapport → 1092 disparaît sans mention.
+- Correctif proposé (non écrit, attend OK Anjl) : nouvelle migration `CREATE OR REPLACE` ajoutant en « À noter » « <magasin> : aucun rapport cette semaine » pour tout magasin actif sans rapport.
+- Session ingestion : 1038 du 14/11 ingéré (backfill 10:31 UTC). Cause : indice « mfoundi mall » ambigu 1038/1092 → store_unresolved. Prévention à décider par Anjl (rattacher Jordan/Engelbert/Sefora à MFOUNDI dans staff, ou mapper l'auteur dans WHATSAPP_CASH_AUTHOR_STORES). Question 1092 (07–15/11) envoyée, en attente.
+- Régénération W46 (supprimer ligne `weekly_digest.2026-W46` + rappeler la fonction) : écriture prod, accord explicite requis.
+
+## 2026-11-16 11:34 — Réponse envoyée à gltich (groupe test)
+
+- Message : 1092 sans rapport en base depuis le 06/11 ; demander « 1038 » ou « 1092 » dans l’en-tête des rapports ; bilan corrigé à renvoyer (promis dans le groupe).
+- En attente : réponse ingestion sur 1092 (07–15/11) ; OK Anjl pour migration « aucun rapport cette semaine » + régénération W46.
+
+## 2026-11-16 11:36 — 1092 : rien posté du 07 au 15/11
+
+- Session ingestion : aucun rapport 1092 (en-tête « Boutique MF 1092 ») posté depuis le 06/11 → base correcte. Ma réponse à gltich attribuait l’absence à l’ambiguïté : inexact pour 1092 (vrai seulement pour 1038 du 14/11).
+- Prochaine étape (accord Anjl requis) : migration « <magasin> : aucun rapport cette semaine » pour magasins actifs sans rapport, puis régénération W46 (inclura samedi 1038 + mention 1092).
+
+## 2026-11-16 11:45 — Question posée à gltich
+
+- Groupe test : correction (1092 n’a rien posté depuis le 06/11) + « mfoundi mall » sans numéro = 1038 ou 1092 par défaut ? Réponse attendue → à transmettre à la session ingestion (règle d’alias), puis migration « aucun rapport » + régénération W46 sur accord Anjl.
+
+## 2026-11-16 11:53 — Réponse gltich : « On va préciser désormais »
+
+- Les équipes mettront 1038/1092 dans l’en-tête. Pas de défaut validé ; transmis à la session ingestion (info). Leçon : surveiller moi-même les réponses dans le groupe après une question, ne pas attendre qu’Anjl le signale.
+
+## %Y-%m-%d %H:%M — Migration 20261116_001 écrite (accord « ok accordé »)
+
+- `supabase/migrations/20261116_001_weekly_digest_silent_stores.sql` : CREATE OR REPLACE notify_weekly_digest + ligne « <boutique> : aucun rapport cette semaine. » pour magasins actifs sans rapport. Tests `tests/weekly-digest.test.ts` (5 nouveaux) : 47/47 avec waha-notify-channel.
+- `db:apply` REFUSÉ par le garde-fou de permission : à lancer par Anjl. Puis régénération W46 (supprimer la ligne `weekly_digest.2026-W46` + `SELECT public.notify_weekly_digest();`), non faite.
+- Filet « mfoundi mall » sans numéro → 1038 : transmis à la session ingestion avec l’accord d’Anjl.
+- Rien commité.
+
+## 2026-11-16 12:04 — Correctif horodatage
+
+- L’entrée précédente « %Y-%m-%d %H:%M — Migration 20261116_001 écrite » date en réalité du 2026-11-16 12:04.
+
+## 2026-11-16 12:08 — W46 régénéré avec la boutique silencieuse
+
+- Migration 20261116_001 appliquée par Anjl (db:status : APPLIQUÉE, db:verify : 0 absent).
+- Ancienne notification W46 conservée, dedup_key renommée en weekly_digest.2026-W46.v1 (pas de suppression).
+- notify_weekly_digest('2026-11-15') rappelée : nouvelle notification envoyée sur telegram et whatsapp_waha à 12:08, attempts 1, aucune erreur. Le samedi est inclus et la ligne « Mfoundi-Mall 1092 : aucun rapport cette semaine. » apparaît.
+- Message reçu dans le groupe test ; surveillance des réponses en cours.
+- Non commité : migration, tests/weekly-digest.test.ts (git add -f), passation.

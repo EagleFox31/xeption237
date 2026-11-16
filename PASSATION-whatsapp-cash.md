@@ -230,3 +230,25 @@ la ligne `weekly_digest` de main (WhatsApp `report.weekly_digest` via `WAHA_EVEN
 avant `notify-staff`). Les migrations de main (`20261114_002`, `_003`) ne touchent ni `notify_daily_digest` ni le cron.
 Tests : `notify-daily-digest`, `whatsapp-cash-webhook`, `whatsapp-cash-import` → 64/64 verts. Merge 361a2b8 poussé
 (avec 777f39d). Rien à déployer.
+
+## 2026-11-16 11:32 — Rapport Mfoundi-Mall 1038 du 14/11 ingéré à la main (backfill)
+
+Demande de la session digest : rapport 1038 du samedi 14/11 absent de `store_cash_reports`. Vérifié via l'API WAHA
+(lecture seule, session `trigenys-test`) : le rapport « Boutique mfoundi mall » du 14/11 a bien été posté dans le
+groupe (deux fois, 19:14 puis 19:29 heure locale, le second corrige le premier). Le webhook l'a ignoré : `store_unresolved`.
+
+**Cause racine** : depuis le renommage des boutiques, l'indice « mfoundi mall » matche DEUX boutiques (`MFOUNDI` =
+« Mfoundi-Mall 1038 » et `MF1092` = « Mfoundi-Mall 1092 ») → ambigu → null. Repli opérateurs : Arrey (seul staff
+rattaché à MFOUNDI) absent ce jour ; Jordan existe dans `staff` mais `store_id` null ; Engelbert / Sefora absents du
+staff → aucun vote. Repli auteur : numéro de l'auteur non mappé dans `WHATSAPP_CASH_AUTHOR_STORES`. Les 12 et 13/11
+n'ont été résolus que grâce aux opérateurs.
+
+**Résolution** : export des 3 messages du 14/11 au format WhatsApp (fichier temporaire, supprimé) →
+`scripts/import-whatsapp-cash-reports.mjs --author-map {<auteur>: MFOUNDI} --apply` : 1 créé (MFOUNDI 14/11,
+source `whatsapp_backfill`, 64 000 → 99 500, entrées 1 015 000, sorties 979 500, 29 dettes), OLEMBE 14/11 protégé
+(déjà `whatsapp_live`, non écrasé). Vérifié en base.
+
+**Prévention (à faire, non fait ici)** : (a) rattacher Jordan à MFOUNDI dans `staff` et ajouter Engelbert / Sefora,
+ou (b) ajouter le numéro de l'auteur au secret `WHATSAPP_CASH_AUTHOR_STORES` (redéploiement via
+`scripts/deploy-whatsapp-cash-webhook.mjs`). Sans ça, chaque rapport 1038 posté sans Arrey sera ignoré.
+Rien de nouveau dans le code.

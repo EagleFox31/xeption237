@@ -377,3 +377,8 @@
 - Docs : ADR-002 point 5 révisé, NOTIFICATIONS.md mis à jour.
 - Déploiement (Anjl) : 1) Worker Notify ; 2) vérifier route D1 du groupe test pour xeption ; 3) `npm run db:apply -- supabase/migrations/20261114_001_...` ; 4) redéployer `notify-staff` ; 5) ajouter `weekly_digest` à `WAHA_EVENT_TYPES`/`TELEGRAM_EVENT_TYPES` s'ils sont surchargés.
 - Rien poussé, rien déployé.
+
+## 2026-11-16 10:21 — PR ouvertes pour le bilan WhatsApp
+
+- Branches poussées. PR Trigenys/trigenys-notify#66 (feat/xeption-weekly-digest, 6bf4d10) et EagleFox31/xeption237#59 (claude/daily-digest-ca6b98, d3bcaac). Non fusionnées, rien déployé.
+- Prochaine étape : revue/merge de #66 puis déploiement Worker, route D1 groupe test, migration 20261114_001, notify-staff (ordre dans la PR #59).

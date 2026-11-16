@@ -8,6 +8,7 @@ const Deno = globalThis.Deno;
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
+  computeWhatsAppActorFingerprint,
   isNotifyActionSecretUsable,
   NOTIFY_SIGNATURE_HEADER,
   NOTIFY_TIMESTAMP_HEADER,
@@ -71,7 +72,7 @@ Deno.serve(async (req: Request) => {
     const result = await handleNotifyStaffAction(relay, async (fn, args) => {
       const { data, error } = await supabase.rpc(fn, args);
       return { data, error: error ? { code: error.code, message: error.message } : null };
-    });
+    }, new Date(), (e164) => computeWhatsAppActorFingerprint(secret, e164));
     if (result.status >= 500) console.error('[notify-staff-action] rpc failed', { gesture: relay.gesture });
     return json(result.status, result.body);
   } catch (err) {

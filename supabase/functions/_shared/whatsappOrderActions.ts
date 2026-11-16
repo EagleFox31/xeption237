@@ -8,9 +8,13 @@
  *   ❌ demande d'annulation (responsable et plus) ;
  * - réponse citée « 1 » à « 5 » dans les 10 min après ❌ : motif ORDER_CANCEL_REASONS[n-1] ;
  * - code « XL-XXXX-XXXX » (gesture 'link') : lie le numéro de l'auteur à son compte staff.
+ * Premier geste d'un auteur non lié : liaison automatique si son numéro correspond à UN SEUL
+ * membre du staff (empreintes comparées ici, clé jamais en base), puis le geste est rejoué ;
+ * la réponse porte alors `linked` pour que Notify annonce la liaison dans le groupe.
  * Tout le reste est ignoré. Les droits sont vérifiés par la RPC, jamais ici.
  */
 import { TELEGRAM_CANCEL_REASONS } from './telegramOrderActions.ts';
+import { timingSafeEqual } from './notifyActionAuth.ts';
 
 /** Même liste fermée que Telegram et ORDER_CANCEL_REASONS (utils/orderWorkflow.ts). */
 export const WHATSAPP_CANCEL_REASONS = TELEGRAM_CANCEL_REASONS;
@@ -113,6 +117,53 @@ function outcomeForError(error: RpcError, action: string): NotifyActionResponse 
   return { status: 502, body: { ok: false, error: 'RPC_FAILED' } };
 }
 
+/** Calcule l'empreinte d'un numéro E.164 (sans « + ») ; null si le numéro est inutilisable. */
+export type ActorFingerprintFn = (e164Digits: string) => Promise<string | null>;
+
+export type PhoneLinkReason =
+  | 'phone_not_found' | 'phone_ambiguous' | 'use_erp_code' | 'no_account'
+  | 'fingerprint_already_linked' | 'staff_already_linked';
+
+type PhoneLinkResult =
+  | { kind: 'linked'; actor?: string; role?: string; store?: string }
+  | { kind: 'refused'; reason: PhoneLinkReason }
+  | { kind: 'failed' };
+
+const PHONE_LINK_REASONS: ReadonlySet<string> = new Set([
+  'phone_not_found', 'phone_ambiguous', 'use_erp_code', 'no_account',
+  'fingerprint_already_linked', 'staff_already_linked',
+]);
+
+/** Cherche le membre du staff dont le numéro donne l'empreinte de l'auteur, puis lie. */
+async function linkByPhone(fingerprint: string, rpc: RpcCall, fingerprintFor: ActorFingerprintFn): Promise<PhoneLinkResult> {
+  const candidates = await rpc('whatsapp_staff_phone_candidates', {});
+  if (candidates.error) return { kind: 'failed' };
+  const matches = new Set<string>();
+  for (const row of Array.isArray(candidates.data) ? candidates.data : []) {
+    const r = row as Record<string, unknown>;
+    if (typeof r.staff_id !== 'string' || typeof r.phone_e164 !== 'string') continue;
+    const candidate = await fingerprintFor(r.phone_e164);
+    if (candidate && timingSafeEqual(candidate, fingerprint)) matches.add(r.staff_id);
+  }
+  if (matches.size === 0) return { kind: 'refused', reason: 'phone_not_found' };
+  if (matches.size > 1) return { kind: 'refused', reason: 'phone_ambiguous' };
+
+  const [staffId] = [...matches];
+  const { data, error } = await rpc('link_whatsapp_staff_by_phone', { p_fingerprint: fingerprint, p_staff_id: staffId });
+  if (error) return { kind: 'failed' };
+  const res = (data ?? {}) as Record<string, unknown>;
+  if (res.linked !== true) {
+    const reason = String(res.reason ?? '');
+    return { kind: 'refused', reason: (PHONE_LINK_REASONS.has(reason) ? reason : 'phone_not_found') as PhoneLinkReason };
+  }
+  return {
+    kind: 'linked',
+    actor: firstName(res.actor),
+    role: typeof res.role === 'string' ? res.role : undefined,
+    store: typeof res.store === 'string' && res.store.trim() ? res.store.trim() : undefined,
+  };
+}
+
 /**
  * Traite un relais déjà authentifié. Réponse 200 pour toute issue métier (Notify ne réessaie
  * pas), 502 seulement si la base est indisponible (Notify peut réessayer : idempotent par id).
@@ -121,6 +172,7 @@ export async function handleNotifyStaffAction(
   relay: NotifyActionRelayV1,
   rpc: RpcCall,
   now: Date = new Date(),
+  fingerprintFor?: ActorFingerprintFn,
 ): Promise<NotifyActionResponse> {
   const intent = whatsappIntent(relay);
   const at = now.toISOString();
@@ -142,14 +194,30 @@ export async function handleNotifyStaffAction(
     };
   }
 
-  const { data, error } = await rpc('whatsapp_staff_order_action', {
+  const orderAction = () => rpc('whatsapp_staff_order_action', {
     p_notification_id: relay.eventId,
     p_action: intent.action,
     p_fingerprint: relay.actor.fingerprint,
     p_reason: intent.action === 'cancelled' ? intent.reason : null,
     p_external_id: relay.id,
   });
-  if (error) return outcomeForError(error, intent.action);
+
+  let { data, error } = await orderAction();
+  let linked: Record<string, unknown> | undefined;
+  if (error) {
+    const first = outcomeForError(error, intent.action);
+    if (first.body.outcome !== 'not_linked' || !fingerprintFor) return first;
+    // Auteur inconnu : liaison par numéro, puis le geste est rejoué (son reçu a été annulé avec l'erreur).
+    const link = await linkByPhone(relay.actor.fingerprint, rpc, fingerprintFor);
+    if (link.kind === 'failed') return { status: 502, body: { ok: false, error: 'RPC_FAILED' } };
+    if (link.kind === 'refused') return { status: 200, body: { ...first.body, link: { reason: link.reason }, at } };
+    linked = { actor: link.actor, role: link.role, store: link.store };
+    ({ data, error } = await orderAction());
+    if (error) {
+      const retry = outcomeForError(error, intent.action);
+      return retry.status === 200 ? { status: 200, body: { ...retry.body, linked, at } } : retry;
+    }
+  }
 
   const res = (data ?? {}) as Record<string, unknown>;
   const body: Record<string, unknown> = {
@@ -163,5 +231,6 @@ export async function handleNotifyStaffAction(
   if (typeof res.count === 'number' && intent.action === 'unreachable') body.attempt = res.count;
   const actor = firstName(res.actor);
   if (actor) body.actor = actor;
+  if (linked) body.linked = linked;
   return { status: 200, body };
 }

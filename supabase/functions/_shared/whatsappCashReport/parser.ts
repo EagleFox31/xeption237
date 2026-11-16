@@ -103,6 +103,15 @@ const MAX_RECONCILE_PASSES = 4;
 const EXPLICIT_ZERO = /^0+\s*(?:xaf|cfa|f[a-z]{0,5})?\.?$/i;
 /** Devise collée au nombre avec variantes (« 60.000f. », « 40.000frs ») → forme `60.000f` comprise par le bot. */
 const CURRENCY_VARIANTS = /(\d)\s*(?:xaf|cfa|f[a-z]{0,5})\.?(?=\s|$|\()/gi;
+/**
+ * Ligne coupée par le staff au milieu d'un numéro de modèle (« … iphone 1 » ⏎ « 7 PM= 55 000F ») :
+ * libellé sans « : » ni « = », se terminant par un nombre d'au plus `SPLIT_TAIL_MAX_DIGITS` chiffres
+ * (jamais un montant en XAF), suivi d'une ligne dont le premier caractère visible est un chiffre
+ * (une puce « * » / « - » en tête de la ligne suivante = nouvelle entrée, pas une suite).
+ */
+const SPLIT_TAIL_MAX_DIGITS = 2;
+const SPLIT_TAIL = new RegExp(`^[^:=]*\\p{L}{2,}[^:=]*\\s\\d{1,${SPLIT_TAIL_MAX_DIGITS}}$`, 'u');
+const STARTS_WITH_DIGIT = /^[\s‎‏⁠]*\d/;
 const DEFAULT_LABEL = 'Sans libellé';
 const NO_SELLER: MatchSeller = () => null;
 
@@ -310,6 +319,25 @@ function declaredAmount(line: string, nextLines: string[]): { amount: number; us
 }
 
 /**
+ * Recolle une ligne coupée au milieu d'un numéro de modèle avec la ligne suivante
+ * (« Avance copie iphone 1 » + « 7 PM= 55 000F » → « Avance copie iphone 17 PM= 55 000F »).
+ * Sans recollage, le parseur produisait deux entrées (« … iphone » = 1 F et « 7 PM » = 55 000 F).
+ * Lignes brutes en entrée et en sortie ; n'altère pas le tableau reçu.
+ */
+export function mergeSplitLines(lines: string[]): string[] {
+  const merged: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const current = normalizeLine(lines[i]).replace(BULLET, '');
+    const next = i + 1 < lines.length ? lines[i + 1] : '';
+    if (SPLIT_TAIL.test(current) && STARTS_WITH_DIGIT.test(next)) {
+      merged.push(`${lines[i].trimEnd()}${lines[i + 1].trimStart()}`);
+      i++;
+    } else merged.push(lines[i]);
+  }
+  return merged;
+}
+
+/**
  * Parse un rapport complet.
  * @param lines lignes brutes du message (titre inclus)
  */
@@ -335,7 +363,7 @@ export function parseCashReportText(lines: string[], options: { matchSeller?: Ma
   let section: SectionKey | null = null;
   let skipNext = false;
   const observationLines: string[] = [];
-  const body = lines.slice(1);
+  const body = mergeSplitLines(lines.slice(1));
   for (let i = 0; i < body.length; i++) {
     if (skipNext) {
       skipNext = false;

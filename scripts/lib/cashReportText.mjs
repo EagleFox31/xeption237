@@ -12,5 +12,6 @@ export {
   reconcileItemsWithDeclaredTotal,
   parseEntryLine,
   parseCashReportText,
+  mergeSplitLines,
   sumAmounts,
 } from '../../supabase/functions/_shared/whatsappCashReport/parser.ts';

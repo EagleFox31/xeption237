@@ -305,3 +305,15 @@ rapport « Boutique mfoundi mall » sans numéro reste `store_unresolved` (ou r�
 - Prochaine étape : surveiller le prochain rapport « Boutique mfoundi mall » sans numéro → attendu `hint_default` → MFOUNDI ;
   avec « 1092 » → MF1092 (`hint`). PR #52 à jour, rien en prod hors git.
 - Correction : la fonction est en **v4** (ACTIVE 2026-11-16 11:14 UTC), pas v3.
+
+## 2026-11-16 12:40 — Recollage des lignes coupées (bug « iphone 1 » ⏎ « 7 PM= 55 000F »)
+
+- Demande Anjl (via session parente, « bah vas y ») : écarts de +1 F à Olembé les 12/11 et 13/11, le staff ayant coupé
+  « iphone 17 PM » sur deux lignes → deux entrées (1 F et 55 000 F).
+- Fait : `mergeSplitLines()` dans `supabase/functions/_shared/whatsappCashReport/parser.ts` (constante
+  `SPLIT_TAIL_MAX_DIGITS = 2`), appelée en tête de `parseCashReportText` → couvre webhook et import d'export.
+  Export ajouté dans `scripts/lib/cashReportText.mjs`. Tests : `tests/whatsapp-cash-import.test.ts` (69 verts sur les
+  3 fichiers caisse/digest). Entrée ERRORS_LOG ajoutée.
+- **Non fait, à soumettre à Anjl** : (1) redéploiement de `whatsapp-cash-webhook` (v4 en prod n'a pas le correctif) ;
+  (2) correction des deux rapports `store_cash_reports` Olembé (ids 0169a971…, 323491e9…) : fusionner les deux items
+  en « … copie iphone 17 PM » et retirer 1 F de `total_inflow`. Rien en prod hors git.

@@ -304,3 +304,4 @@ rapport « Boutique mfoundi mall » sans numéro reste `store_unresolved` (ou r�
 - Second passage du script en plan : zéro action (convergé). WAHA non touché (`--skip-vps`).
 - Prochaine étape : surveiller le prochain rapport « Boutique mfoundi mall » sans numéro → attendu `hint_default` → MFOUNDI ;
   avec « 1092 » → MF1092 (`hint`). PR #52 à jour, rien en prod hors git.
+- Correction : la fonction est en **v4** (ACTIVE 2026-11-16 11:14 UTC), pas v3.

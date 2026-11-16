@@ -109,26 +109,44 @@ export function toReportDate(at: Date, timeZone: string = REPORT_TIMEZONE): stri
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
 
+/** Objet JSON `{ clé: "texte" }` depuis une variable d'environnement ; vide → `{}`. */
+function parseJsonRecordEnv(raw: string | null | undefined, name: string): Record<string, string> {
+  if (!raw?.trim()) return {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`${name} must be a JSON object`);
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error(`${name} must be a JSON object`);
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+    if (key.trim() && typeof value === 'string' && value.trim()) out[key.trim()] = value.trim();
+  }
+  return out;
+}
+
 /**
  * Carte « chiffres du numéro auteur → code boutique », depuis la variable
  * `WHATSAPP_CASH_AUTHOR_STORES` (JSON `{"237600000000":"MFOUNDI"}`). Les clés sont
  * réduites à leurs chiffres pour tolérer `+237 6 00 00 00 00` ou `…@c.us`.
  */
 export function parseAuthorStores(raw: string | null | undefined): Record<string, string> {
-  if (!raw?.trim()) return {};
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error('WHATSAPP_CASH_AUTHOR_STORES must be a JSON object');
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('WHATSAPP_CASH_AUTHOR_STORES must be a JSON object');
   const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(parseJsonRecordEnv(raw, 'WHATSAPP_CASH_AUTHOR_STORES'))) {
     const digits = authorDigitsOf(key);
-    if (digits && typeof value === 'string' && value.trim()) out[digits] = value.trim();
+    if (digits) out[digits] = value;
   }
   return out;
+}
+
+/**
+ * Carte « mot d'indice ambigu → code boutique » depuis `WHATSAPP_CASH_HINT_DEFAULTS`
+ * (JSON `{"mfoundi":"MFOUNDI"}`) : boutique retenue quand la ligne « Boutique … » désigne
+ * plusieurs boutiques (cf. `hintDefaults` du résolveur).
+ */
+export function parseHintDefaults(raw: string | null | undefined): Record<string, string> {
+  return parseJsonRecordEnv(raw, 'WHATSAPP_CASH_HINT_DEFAULTS');
 }
 
 /** Liste d'identifiants de groupe depuis `WHATSAPP_CASH_GROUP_IDS` (séparés par virgule / espace). */

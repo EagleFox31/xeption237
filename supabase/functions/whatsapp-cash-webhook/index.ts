@@ -8,7 +8,8 @@
  *
  * Secrets : WHATSAPP_CASH_WEBHOOK_HMAC_KEY (prioritaire) ou WHATSAPP_CASH_WEBHOOK_SECRET ;
  * optionnels : WHATSAPP_CASH_GROUP_IDS (liste `xxx@g.us`), WHATSAPP_CASH_AUTHOR_STORES (JSON
- * numéro → code boutique). Déploiement : voir docs/engineering/NOTIFICATIONS.md.
+ * numéro → code boutique), WHATSAPP_CASH_HINT_DEFAULTS (JSON mot d'indice ambigu → code boutique).
+ * Déploiement : voir docs/engineering/NOTIFICATIONS.md.
  *
  * Codes de réponse : 200 traité ou ignoré (WAHA ne rejoue pas) ; 401 signature invalide ;
  * 405 méthode ; 503 secret non configuré ; 500 erreur base (WAHA rejoue : l'écriture est idempotente).
@@ -23,6 +24,7 @@ import {
   extractGroupMessage,
   parseAuthorStores,
   parseGroupIds,
+  parseHintDefaults,
   parseIncomingReport,
   planUpsert,
   type CashReportRow,
@@ -116,7 +118,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   try {
     const refs = await loadRefs(supabase);
-    const resolver = createStoreResolver({ ...refs, authorStores: parseAuthorStores(env('WHATSAPP_CASH_AUTHOR_STORES')) });
+    const resolver = createStoreResolver({
+      ...refs,
+      authorStores: parseAuthorStores(env('WHATSAPP_CASH_AUTHOR_STORES')),
+      hintDefaults: parseHintDefaults(env('WHATSAPP_CASH_HINT_DEFAULTS')),
+    });
     const parsed = parseIncomingReport({ lines: message.lines, matchSeller: resolver.matchSeller });
     const { store, method } = resolver.resolveStore(parsed, message.authorDigits);
     if (!store) {

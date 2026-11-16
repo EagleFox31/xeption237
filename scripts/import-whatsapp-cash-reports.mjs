@@ -10,6 +10,8 @@
  *   --since=YYYY-MM-DD   ignorer les rapports antérieurs
  *   --author-map=<json>  repli { "<auteur WhatsApp>": "<code boutique>" } si ni la ligne
  *                        « Boutique » ni les opérateurs ne permettent de rattacher le rapport
+ *   --hint-defaults=<json> repli { "<mot d'indice>": "<code boutique>" } quand la ligne
+ *                        « Boutique » désigne plusieurs boutiques (ex. {"mfoundi":"MFOUNDI"})
  *
  * Idempotent : clé (store_id, report_date) ; une ligne existante n'est réécrite que si elle
  * provient d'un backfill (`source = 'whatsapp_backfill'`) ET que son contenu diffère.
@@ -69,9 +71,10 @@ const apply = args.includes('--apply');
 const since = flag('since') ?? null;
 const outDir = flag('out') ?? resolve(tmpdir(), 'xeption-whatsapp-cash-import');
 const authorMapPath = flag('author-map');
+const hintDefaultsJson = flag('hint-defaults');
 
 if (!inputPath) {
-  console.error('Usage: node scripts/import-whatsapp-cash-reports.mjs <export.txt> [--apply] [--out=dir] [--since=YYYY-MM-DD] [--author-map=file.json]');
+  console.error('Usage: node scripts/import-whatsapp-cash-reports.mjs <export.txt> [--apply] [--out=dir] [--since=YYYY-MM-DD] [--author-map=file.json] [--hint-defaults=json]');
   process.exit(2);
 }
 
@@ -81,13 +84,14 @@ if (!databaseUrl) {
   process.exit(1);
 }
 const authorStores = authorMapPath ? JSON.parse(readFileSync(resolve(authorMapPath), 'utf8')) : {};
+const hintDefaults = hintDefaultsJson ? JSON.parse(hintDefaultsJson) : {};
 
 const client = new pg.Client({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } });
 await client.connect();
 try {
   const { rows: stores } = await client.query('select id, code, name from public.stores order by code');
   const { rows: staff } = await client.query('select id, name, store_id from public.staff');
-  const resolver = createStoreResolver({ stores, staff, authorStores });
+  const resolver = createStoreResolver({ stores, staff, authorStores, hintDefaults });
 
   const messages = parseWhatsAppExport(readFileSync(resolve(inputPath), 'utf8'));
   const authors = [...new Set(messages.map((m) => m.author))];

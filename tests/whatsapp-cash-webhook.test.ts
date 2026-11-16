@@ -13,6 +13,7 @@ import {
   extractGroupMessage,
   parseAuthorStores,
   parseGroupIds,
+  parseHintDefaults,
   parseIncomingReport,
   planUpsert,
   sameContent,
@@ -169,6 +170,12 @@ describe('configuration', () => {
     expect(parseAuthorStores('')).toEqual({});
     expect(() => parseAuthorStores('[1]')).toThrow(/JSON object/);
     expect(() => parseAuthorStores('{oops')).toThrow(/JSON object/);
+  });
+
+  it('parseHintDefaults accepte un objet JSON mot → code et refuse le reste', () => {
+    expect(parseHintDefaults('{"mfoundi":" MFOUNDI ","":"X","vide":""}')).toEqual({ mfoundi: 'MFOUNDI' });
+    expect(parseHintDefaults(undefined)).toEqual({});
+    expect(() => parseHintDefaults('"mfoundi"')).toThrow(/WHATSAPP_CASH_HINT_DEFAULTS must be a JSON object/);
   });
 
   it('parseGroupIds accepte virgules et espaces', () => {

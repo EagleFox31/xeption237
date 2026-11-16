@@ -17,7 +17,8 @@
  * Options : --apply · --rotate-key (nouvelle clé HMAC des deux côtés) · --skip-vps · --skip-deploy · --redeploy
  *           --session=<nom WAHA> · --group=<id@g.us>[,…]
  * Variables (.env ou environnement) : SUPABASE_PROJECT_REF, WHATSAPP_CASH_WEBHOOK_HMAC_KEY (pour réutiliser
- *   une clé existante), WHATSAPP_CASH_GROUP_IDS, WHATSAPP_CASH_AUTHOR_STORES, WAHA_SESSION, WAHA_VPS_SSH,
+ *   une clé existante), WHATSAPP_CASH_GROUP_IDS, WHATSAPP_CASH_AUTHOR_STORES, WHATSAPP_CASH_HINT_DEFAULTS,
+ *   WAHA_SESSION, WAHA_VPS_SSH,
  *   WAHA_VPS_SSH_KEY, WAHA_CONTAINER, WAHA_LOCAL_URL, WHATSAPP_CASH_WEBHOOK_URL.
  *
  * Aucun secret n'est affiché ni passé en argument de commande : empreintes seulement, valeurs via
@@ -73,6 +74,7 @@ const WEBHOOK_URL =
 const SECRET_HMAC = 'WHATSAPP_CASH_WEBHOOK_HMAC_KEY';
 const SECRET_GROUPS = 'WHATSAPP_CASH_GROUP_IDS';
 const SECRET_AUTHORS = 'WHATSAPP_CASH_AUTHOR_STORES';
+const SECRET_HINT_DEFAULTS = 'WHATSAPP_CASH_HINT_DEFAULTS';
 const HMAC_KEY_BYTES = 32; // 64 hex chars (la fonction exige ≥ 32 caractères)
 const WAHA_RETRIES = { policy: 'exponential', delaySeconds: 2, attempts: 5 };
 const WAHA_EVENTS = ['message'];
@@ -172,6 +174,7 @@ function planSecrets(existing) {
   const optional = [
     [SECRET_GROUPS, opt('group') || process.env[SECRET_GROUPS]],
     [SECRET_AUTHORS, process.env[SECRET_AUTHORS]],
+    [SECRET_HINT_DEFAULTS, process.env[SECRET_HINT_DEFAULTS]],
   ];
   for (const [name, value] of optional) {
     if (!value) {

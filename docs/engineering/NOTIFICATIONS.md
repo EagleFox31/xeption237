@@ -145,7 +145,9 @@ Décision et alternatives : [ADR-002](../adr/ADR-002-whatsapp-cash-webhook.md).
 - **Filtrage** : événements `message` / `message.any`, expéditeur `…@g.us` uniquement, groupe dans
   `WHATSAPP_CASH_GROUP_IDS` si renseigné, texte reconnu rapport (`isCashReportMessage`). Tout le reste →
   200 `ignored` (WAHA ne rejoue pas).
-- **Boutique** : ligne « Boutique … » → vote des opérateurs connus (`staff.store_id`) → carte
+- **Boutique** : ligne « Boutique … » (boutique unique ; si elle en désigne plusieurs, repli configuré
+  `WHATSAPP_CASH_HINT_DEFAULTS` `{"mfoundi":"MFOUNDI"}` → méthode `hint_default`, un mot distinctif comme
+  « 1092 » l'emporte toujours) → vote des opérateurs connus (`staff.store_id`) → carte
   `WHATSAPP_CASH_AUTHOR_STORES` (`{"2376XXXXXXXX":"MFOUNDI"}`). Non résolue → 200 `skipped`.
 - **Date** : titre du rapport ; sinon date d'envoi (`Africa/Douala`) avec `date_from_message` ; écart
   titre / envoi → `date_differs_from_message`.
@@ -165,7 +167,7 @@ npm run deploy:whatsapp-cash -- --apply   # exécute uniquement ce qui manque
 
 Le script inspecte puis réconcilie, dans l'ordre : **migration** `20261111_001` (sautée si tracée dans
 `schema_migrations`) → **secrets** Supabase (comparés par empreinte SHA-256 ; `WHATSAPP_CASH_WEBHOOK_HMAC_KEY`
-générée si absente ; `WHATSAPP_CASH_GROUP_IDS` / `WHATSAPP_CASH_AUTHOR_STORES` pilotés seulement si fournis via
+générée si absente ; `WHATSAPP_CASH_GROUP_IDS` / `WHATSAPP_CASH_AUTHOR_STORES` / `WHATSAPP_CASH_HINT_DEFAULTS` pilotés seulement si fournis via
 `--group=<id>@g.us` ou `.env`) → **fonction** (`functions deploy … --no-verify-jwt --use-api`, seulement si les sources sont plus récentes que le
 déploiement, ou `--redeploy`) → **webhook WAHA**
 sur le VPS via SSH (l'API WAHA n'écoute que sur `127.0.0.1:3000` ; clé API lue dans l'env du conteneur côté VPS,

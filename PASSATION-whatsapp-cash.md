@@ -276,3 +276,23 @@ rapports « Boutique mfoundi mall » → le résolveur `hint` (tokens « 1038 »
 règle d'alias par défaut validée ; filet de sécurité (staff rattaché ou `WHATSAPP_CASH_AUTHOR_STORES`) laissé à
 l'arbitrage d'Anjl. Rien à faire ici tant qu'un rapport sans numéro ne réapparaît pas (surveiller `store_unresolved`
 dans les logs du webhook). Branche à jour, PR #52 sans conflit, rien à déployer.
+
+## 2026-11-16 12:12 — Filet de sécurité : indice « mfoundi mall » sans numéro → MFOUNDI (1038), configurable
+
+Validé par Anjl (« ok accordé », relayé par la session digest). Implémenté, **non déployé** (déploiement
+seulement sur accord explicite d'Anjl).
+
+- `storeResolver.ts` : `hintDefaults` (mot d'indice → code boutique) et méthode `hint_default`. Quand la
+  ligne « Boutique … » désigne plusieurs boutiques : (1) un mot que seule une candidate porte (« 1092 »,
+  « 1038 ») la désigne → `hint` (corrige aussi « Boutique mfoundi mall 1092 », ambigu auparavant) ; (2) sinon
+  le repli configuré tranche → `hint_default`, placé AVANT le vote des opérateurs (un vote erroné ne peut
+  plus l'écraser, cf. 06/11 attribué à OLEMBE) ; (3) sinon null comme avant. Sans configuration : aucun
+  changement de comportement.
+- Webhook : variable optionnelle `WHATSAPP_CASH_HINT_DEFAULTS` (JSON, `parseHintDefaults` dans `ingest.ts`,
+  helper `parseJsonRecordEnv` partagé avec `parseAuthorStores`). Script d'import : `--hint-defaults=<json>`.
+  `deploy-whatsapp-cash-webhook.mjs` pilote le secret s'il est fourni via `.env`/environnement.
+- Docs : NOTIFICATIONS.md, SECRETS_ET_VARIABLES.md, ADR-002. Tests : +2 (66 verts sur les 3 fichiers caisse).
+
+**Pour activer (sur accord d'Anjl)** : secret Supabase `WHATSAPP_CASH_HINT_DEFAULTS={"mfoundi":"MFOUNDI"}`
+puis redéploiement de `whatsapp-cash-webhook` (commande standard du projet). Tant que ce n'est pas fait, un
+rapport « Boutique mfoundi mall » sans numéro reste `store_unresolved` (ou résolu par le vote des opérateurs).

@@ -39,7 +39,8 @@ secret vérifié à la réception (HMAC-SHA512 WAHA en priorité, sinon en-tête
   une ligne `whatsapp_live` y apparaît comme « protégée ». L'export manuel devient un outil de secours.
 - `report_date` : date du titre « RAPPORT DU jj/mm/aaaa » en priorité, sinon date d'envoi du message
   (fuseau `Africa/Douala`), avec avertissement dans la réponse et le log.
-- Boutique : ligne « Boutique … », sinon vote des opérateurs connus dans `staff`, sinon carte
+- Boutique : ligne « Boutique … » (unique, ou repli `WHATSAPP_CASH_HINT_DEFAULTS` si plusieurs boutiques
+  correspondent), sinon vote des opérateurs connus dans `staff`, sinon carte
   `WHATSAPP_CASH_AUTHOR_STORES` (numéro d'auteur → code boutique). Non résolue → message ignoré (200,
   `store_unresolved`) et loggé sans contenu.
 - Les logs et réponses ne contiennent ni texte de message ni donnée nominative (identifiant WAHA seulement).

@@ -201,6 +201,36 @@ describe('createStoreResolver', () => {
     expect(resolver.resolveStore({ store_hint: 'Boutique testville mall', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'TESTVILLE' } });
   });
 
+  it('falls back to the configured default when the store line fits two cash desks of one centre', () => {
+    // Deux caisses nommées d'après le même centre : seul le numéro les départage.
+    const stores = [
+      { id: 'c-1038', code: 'CENTRE', name: 'Centre-Mall 1038' },
+      { id: 'c-1092', code: 'CM1092', name: 'Centre-Mall 1092' },
+      { id: 'c-other', code: 'AILLEURS', name: 'Ailleurs gare' },
+    ];
+    const staff = [{ id: 'u9', name: 'Zoey Ailleurs', store_id: 'c-other' }];
+    const strict = createStoreResolver({ stores, staff });
+    const lenient = createStoreResolver({ stores, staff, hintDefaults: { Centre: 'centre' } });
+
+    // Sans repli : indice ambigu → le vote des opérateurs tranche, sinon rien.
+    expect(strict.resolveStore({ store_hint: 'Boutique centre mall', operators: [] }, 'x')).toEqual({ store: null, method: null });
+    expect(strict.resolveStore({ store_hint: 'Boutique centre mall', operators: ['Zoey'] }, 'x')).toMatchObject({ method: 'operators', store: { code: 'AILLEURS' } });
+
+    // Avec repli : la caisse par défaut l'emporte, même sur un vote d'opérateurs contraire.
+    expect(lenient.resolveStore({ store_hint: 'Boutique centre mall', operators: ['Zoey'] }, 'x')).toEqual({ store: stores[0], method: 'hint_default' });
+    expect(lenient.resolveStore({ store_hint: 'BOUTIQUE  Centre-mall', operators: [] }, 'x')).toMatchObject({ method: 'hint_default', store: { code: 'CENTRE' } });
+
+    // Le numéro reste souverain : indice unique → `hint`, jamais le repli.
+    expect(lenient.resolveStore({ store_hint: 'Boutique centre mall 1092', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'CM1092' } });
+    expect(lenient.resolveStore({ store_hint: 'Boutique CM 1092', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'CM1092' } });
+    expect(lenient.resolveStore({ store_hint: 'Boutique centre mall 1038', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'CENTRE' } });
+
+    // Repli ignoré si son mot n'est pas dans l'indice, ou si sa boutique n'est pas candidate / inconnue.
+    const misconfigured = createStoreResolver({ stores, staff, hintDefaults: { mall: 'AILLEURS', centre: 'INCONNUE' } });
+    expect(misconfigured.resolveStore({ store_hint: 'Boutique centre mall', operators: [] }, 'x')).toEqual({ store: null, method: null });
+    expect(lenient.resolveStore({ store_hint: 'Boutique ailleurs', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'AILLEURS' } });
+  });
+
   it('never matches the head office on generic words and needs a unique seller', () => {
     expect(resolver.resolveStore({ store_hint: 'Boutique Xeption Siège', operators: [] }, 'x').store).toBeNull();
     expect(resolver.matchSeller('vendu par Alice')).toBe('Alice Test');

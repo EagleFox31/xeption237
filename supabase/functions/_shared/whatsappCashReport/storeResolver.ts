@@ -2,7 +2,8 @@
  * Rattachement d'un rapport de caisse texte à une boutique et à ses vendeurs,
  * à partir des référentiels `stores` / `staff` (injectés, jamais codés en dur).
  *
- * Ordre de résolution : ligne « Boutique … » du rapport → opérateurs connus du
+ * Ordre de résolution : ligne « Boutique … » du rapport (boutique unique, sinon repli
+ * configuré `hintDefaults` quand l'indice désigne plusieurs boutiques) → opérateurs connus du
  * staff → correspondance auteur → boutique fournie en configuration.
  * Module pur, partagé par l'Edge Function, les scripts Node et Vitest.
  */
@@ -20,7 +21,7 @@ export interface StaffRef {
   store_id: string | null;
 }
 
-export type StoreResolutionMethod = 'hint' | 'operators' | 'author';
+export type StoreResolutionMethod = 'hint' | 'hint_default' | 'operators' | 'author';
 
 export interface StoreResolution {
   store: StoreRef | null;
@@ -32,6 +33,13 @@ export interface StoreResolverRefs {
   staff: StaffRef[];
   /** Auteur (nom exporté ou numéro, selon la source) → code boutique, repli optionnel. */
   authorStores?: Record<string, string>;
+  /**
+   * Mot d'indice ambigu → code boutique à retenir quand la ligne « Boutique … » désigne plusieurs
+   * boutiques (ex. deux caisses d'un même centre) sans qu'un mot ne les départage.
+   * Ex. `{"mfoundi":"MFOUNDI"}` : « Boutique mfoundi mall » sans numéro → MFOUNDI ; avec « 1092 » →
+   * la boutique unique porteuse de ce mot l'emporte toujours. Optionnel.
+   */
+  hintDefaults?: Record<string, string>;
 }
 
 export interface StoreResolver {
@@ -51,8 +59,11 @@ function tokensOf(text: string | null | undefined): string[] {
   return foldText(text).split(TOKEN_SPLIT).filter((t) => t.length >= MIN_TOKEN_LENGTH);
 }
 
-export function createStoreResolver({ stores, staff, authorStores = {} }: StoreResolverRefs): StoreResolver {
+export function createStoreResolver({ stores, staff, authorStores = {}, hintDefaults = {} }: StoreResolverRefs): StoreResolver {
   const storeByCode = new Map(stores.map((s) => [foldText(s.code), s] as const));
+  const hintDefaultByWord = new Map(
+    Object.entries(hintDefaults).map(([word, code]) => [foldText(word), storeByCode.get(foldText(code)) ?? null] as const),
+  );
   const storeTokens = stores.map((s) => ({
     store: s,
     tokens: new Set([...tokensOf(s.code), ...tokensOf(s.name)].filter((t) => !GENERIC_STORE_WORDS.has(t))),
@@ -75,12 +86,31 @@ export function createStoreResolver({ stores, staff, authorStores = {} }: StoreR
     return matchStaff(text)?.name ?? null;
   }
 
-  /** Boutique dont un mot distinctif (code ou nom) apparaît dans l'indice texte. */
-  function storeFromHint(hint: string | null): StoreRef | null {
+  /**
+   * Boutique dont un mot distinctif (code ou nom) apparaît dans l'indice texte.
+   * Plusieurs candidates (deux caisses d'un même centre partagent « mfoundi », « mall ») :
+   * 1. un mot que seule une candidate porte (ex. « 1092 ») la désigne → `hint` ;
+   * 2. sinon le repli `hintDefaults` dont le mot figure dans l'indice et dont la boutique est
+   *    candidate tranche → `hint_default` ;
+   * 3. sinon ambigu → null.
+   */
+  function storeFromHint(hint: string | null): StoreResolution | null {
     if (!hint) return null;
     const words = new Set(tokensOf(hint));
-    const hits = storeTokens.filter(({ tokens }) => [...tokens].some((t) => words.has(t)));
-    return hits.length === 1 ? hits[0].store : null;
+    const candidates = storeTokens
+      .map(({ store, tokens }) => ({ store, matched: [...tokens].filter((t) => words.has(t)) }))
+      .filter((c) => c.matched.length > 0);
+    if (candidates.length === 1) return { store: candidates[0].store, method: 'hint' };
+    if (candidates.length < 2) return null;
+    const owners = new Map<string, number>();
+    for (const c of candidates) for (const t of c.matched) owners.set(t, (owners.get(t) ?? 0) + 1);
+    const distinctive = candidates.filter((c) => c.matched.some((t) => owners.get(t) === 1));
+    if (distinctive.length === 1) return { store: distinctive[0].store, method: 'hint' };
+    const hits = candidates.map((c) => c.store);
+    for (const [word, store] of hintDefaultByWord) {
+      if (store && words.has(word) && hits.includes(store)) return { store, method: 'hint_default' };
+    }
+    return null;
   }
 
   /** Boutique majoritaire parmi les opérateurs reconnus dans le staff. */
@@ -101,7 +131,7 @@ export function createStoreResolver({ stores, staff, authorStores = {} }: StoreR
     author: string | null | undefined,
   ): StoreResolution {
     const fromHint = storeFromHint(store_hint);
-    if (fromHint) return { store: fromHint, method: 'hint' };
+    if (fromHint) return fromHint;
     const fromOps = storeFromOperators(operators);
     if (fromOps) return { store: fromOps, method: 'operators' };
     const code = author ? authorStores[author] : undefined;

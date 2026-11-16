@@ -317,3 +317,13 @@ rapport « Boutique mfoundi mall » sans numéro reste `store_unresolved` (ou r�
 - **Non fait, à soumettre à Anjl** : (1) redéploiement de `whatsapp-cash-webhook` (v4 en prod n'a pas le correctif) ;
   (2) correction des deux rapports `store_cash_reports` Olembé (ids 0169a971…, 323491e9…) : fusionner les deux items
   en « … copie iphone 17 PM » et retirer 1 F de `total_inflow`. Rien en prod hors git.
+
+## 2026-11-16 14:25 — Recollage DÉPLOYÉ + rapports Olembé corrigés (accord Anjl : « Oui, les deux »)
+
+- `whatsapp-cash-webhook` redéployé via `deploy-whatsapp-cash-webhook.mjs --apply --skip-vps` avec le commit 8b974fe
+  (recollage des lignes coupées). Replan : « Tout est déjà en place » (convergé). WAHA non touché.
+- Base : les deux rapports Olembé (`store_cash_reports` 0169a971… du 12/11 et 323491e9… du 13/11) corrigés en
+  transaction avec garde sur l'état attendu : items « … copie iphone » (1 F) + « 7 PM » fusionnés en
+  « … copie iphone 17 PM » (55 000 F / 5 000 F), `total_inflow` 65 001 → 65 000 et 27 001 → 27 000. Re-lecture :
+  `opening + inflow − outflow = closing` vrai pour les deux. Rien d'autre modifié.
+- Prochaine étape : rien en attente côté caisse WhatsApp. PR #52 à jour, rien en prod hors git.

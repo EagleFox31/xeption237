@@ -2,7 +2,8 @@
 import React, { useRef, useState } from 'react';
 import { Pack, Product, PackItem } from '../../../types';
 import { ArrowLeft, Gift, Search, Plus, Trash2, Calendar, Image as ImageIcon, Loader2, AlertTriangle, Calculator, Upload } from 'lucide-react';
-import { uploadImageToCloudinary } from '../../../services/uploadService';
+import { uploadProductImage } from '../../../services/uploadService';
+import { notifyError } from "../../../utils/notify";
 
 interface PackEditorOverlayProps {
   pack: Pack;
@@ -50,9 +51,9 @@ const PackEditorOverlay: React.FC<PackEditorOverlayProps> = ({ pack, allProducts
       if (!e.target.files?.[0]) return;
       setIsUploading(true);
       try {
-          const url = await uploadImageToCloudinary(e.target.files[0]);
+          const url = await uploadProductImage(e.target.files[0]);
           onChange({ image: url });
-      } finally { setIsUploading(false); }
+      } catch (err) { notifyError("Envoi impossible", err instanceof Error ? err.message : undefined); } finally { setIsUploading(false); }
   };
 
   return (

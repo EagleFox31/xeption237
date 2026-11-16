@@ -2,11 +2,11 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { getPublicSpecs } from './publicSpecs';
 import { FREE_DELIVERY_THRESHOLD_XAF } from '../constants/delivery';
+import { BRAND_ICON_PATH } from '../constants/brandAssets';
 
 const SITE_URL = 'https://www.xeptionetwork.shop';
 export const absoluteUrl = (path: string) => `${SITE_URL}${path}`;
-const DEFAULT_OG_IMAGE =
-  'https://res.cloudinary.com/dli0kdkg9/image/upload/w_1200,h_630,c_pad,b_rgb:050505/v1768287078/logo_mbajfa.png';
+const DEFAULT_OG_IMAGE = absoluteUrl(BRAND_ICON_PATH);
 
 export interface PageSEOProps {
   title: string;

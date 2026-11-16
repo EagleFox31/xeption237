@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Product, Category, Brand, ProductRange } from '../../../types';
 import { findBestDuplicateMatch, validateProductForSave } from '../../../utils/productDuplicate';
 import { Loader2, Sparkles, Image as ImageIcon, ArrowLeft, Tag, ShieldCheck, Check, X, Cpu, ListPlus, CreditCard, Film, Trash2, Plus, Upload, Star, RefreshCw, MessageCircle } from 'lucide-react';
-import { uploadImageToCloudinary, uploadVideoToCloudinary } from '../../../services/uploadService';
+import { uploadProductImage, uploadProductVideo } from '../../../services/uploadService';
+import { notifyError } from "../../../utils/notify";
 import { generateProductDetails } from '../../../services/aiProductDetailsService';
 import type { ProductEnricherField } from '../../../services/personas/productEnricher';
 import { isWeakProductDescription } from '../../../utils/productDescription';
@@ -212,9 +213,9 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
         if (!e.target.files?.[0]) return;
         setUploadingImage(true);
         try {
-            const url = await uploadImageToCloudinary(e.target.files[0]);
+            const url = await uploadProductImage(e.target.files[0]);
             onChange({ image: url });
-        } finally { setUploadingImage(false); }
+        } catch (err) { notifyError("Envoi impossible", err instanceof Error ? err.message : undefined); } finally { setUploadingImage(false); }
     };
 
     const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -224,11 +225,11 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
         setUploadingGallery(true);
         try {
             const files = Array.from(filesList) as File[];
-            const newUrls = await Promise.all(files.map(file => uploadImageToCloudinary(file)));
+            const newUrls = await Promise.all(files.map(file => uploadProductImage(file)));
 
             const currentImages = product.images || [];
             onChange({ images: [...currentImages, ...newUrls] });
-        } finally { setUploadingGallery(false); }
+        } catch (err) { notifyError("Envoi impossible", err instanceof Error ? err.message : undefined); } finally { setUploadingGallery(false); }
     };
 
     const removeGalleryImage = (indexToRemove: number) => {
@@ -240,9 +241,9 @@ const ProductEditorOverlay: React.FC<ProductEditorOverlayProps> = ({
         if (!e.target.files?.[0]) return;
         setUploadingVideo(true);
         try {
-            const url = await uploadVideoToCloudinary(e.target.files[0]);
+            const url = await uploadProductVideo(e.target.files[0]);
             onChange({ video: url });
-        } finally { setUploadingVideo(false); }
+        } catch (err) { notifyError("Envoi impossible", err instanceof Error ? err.message : undefined); } finally { setUploadingVideo(false); }
     };
 
     const isAiBusy = generatingField !== null;

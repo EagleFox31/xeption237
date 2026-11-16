@@ -18,7 +18,7 @@ export interface StaffNotification {
   message: string;
   link_to_tab?: string | null;
   link_to_id?: string | null;
-  /** order_created only, hydrated for the WhatsApp alert (staffNotifyOrder.ts). */
+  /** Order events only (ORDER_SNAPSHOT_EVENT_TYPES), hydrated by notify-staff (staffNotifyOrder.ts). */
   order?: OrderNotificationSnapshot;
 }
 
@@ -57,6 +57,10 @@ export const DEFAULT_STAFF_EVENT_TYPES = [
   'voucher_expiring',
   'debt_overdue',
   'daily_digest',
+  'order_delivered',
+  'order_cancelled',
+  'order_unreachable',
+  'order_stale',
   'weekly_digest',
 ] as const;
 
@@ -80,6 +84,10 @@ const EVENT_ICONS: Record<string, string> = {
   voucher_expiring: '⏳',
   debt_overdue: '📋',
   daily_digest: '📅',
+  order_delivered: '✅',
+  order_cancelled: '❌',
+  order_unreachable: '📵',
+  order_stale: '⏰',
 };
 const DEFAULT_ICON = '🔔';
 

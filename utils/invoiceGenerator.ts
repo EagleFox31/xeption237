@@ -3,7 +3,8 @@ import QRCode from 'qrcode';
 import { Order } from '../types';
 import { SHOP_PHONE_DISPLAY } from '../constants/contact';
 import { getPaymentMethodLabel } from './paymentMethods';
-import { buildPublicSiteUrl } from './publicSiteUrl';
+import { buildPublicSiteUrl, getPublicSiteOrigin } from './publicSiteUrl';
+import { BRAND_ICON_PATH } from '../constants/brandAssets';
 
 export type InvoiceDocumentType = 'facture';
 
@@ -214,7 +215,7 @@ export const generateInvoiceHTML = (
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px; border-bottom: 2px solid ${colors.gold}; padding-bottom: 20px;">
       <tr>
         <td valign="top">
-          <img src="https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png" width="60" style="display: block; margin-bottom: 10px;">
+          <img src="${getPublicSiteOrigin()}${BRAND_ICON_PATH}" width="60" style="display: block; margin-bottom: 10px;">
           <div style="font-size: 24px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #000000;">XEPTION</div>
         </td>
         <td align="right" valign="top">

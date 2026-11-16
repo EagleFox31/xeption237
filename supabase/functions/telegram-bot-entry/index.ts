@@ -86,6 +86,7 @@ import {
   type TelegramDebtDeps
 } from "../_shared/telegramDebtScreens.ts";
 import { handleDigestAckCallback } from "../_shared/telegramDigestAck.ts";
+import { handleOrderActionCallback, type OrderRpcAction } from "../_shared/telegramOrderActions.ts";
 
 
 declare const Deno: {
@@ -3255,6 +3256,37 @@ async function ackStaffNotificationFromTelegram(notificationId: string, telegram
   return { acknowledged: data === true, errorCode: error?.code ?? null };
 }
 
+// ── Actions sur une commande depuis l'alerte du groupe (Livrée / Injoignable / Annuler) ──
+
+async function telegramOrderAction(orderId: string, action: OrderRpcAction, telegramUserId: string, reason?: string) {
+  const supabase = db();
+  if (!supabase) throw new Error("no_db");
+  const { data, error } = await supabase.rpc("telegram_staff_order_action", {
+    p_order_id: orderId,
+    p_action: action,
+    p_telegram_user_id: telegramUserId,
+    p_reason: reason ?? null
+  });
+  if (error && error.code !== "42501" && error.code !== "P0001") {
+    console.error("telegram-bot-entry: order action failed", { code: error.code, action });
+  }
+  return { data: (data ?? null) as Record<string, unknown> | null, errorCode: error?.code ?? null, errorMessage: error?.message ?? null };
+}
+
+async function telegramOrderState(orderId: string) {
+  const supabase = db();
+  if (!supabase) throw new Error("no_db");
+  const { data, error } = await supabase
+    .from("orders").select("status,payment_status,delivery_mode").eq("id", orderId).maybeSingle();
+  if (error) throw new Error("order_state_failed");
+  if (!data) return null;
+  return {
+    status: String(data.status ?? ""),
+    paymentStatus: (data.payment_status as string | null) ?? null,
+    deliveryMode: (data.delivery_mode as string | null) ?? null
+  };
+}
+
 // ── Routeur des Boutiques & Callbacks ─────────────────────────────────────────
 
 async function handleCallbackQuery(cb: Obj): Promise<void> {
@@ -3275,6 +3307,13 @@ async function handleCallbackQuery(cb: Obj): Promise<void> {
   if (isGroup) {
     // « ✅ Vu » d'un bilan journalier : la RPC vérifie elle-même le rang (responsable+).
     if (await handleDigestAckCallback(cb, { ack: ackStaffNotificationFromTelegram, telegram })) return;
+    // Boutons d'une alerte de commande : la RPC revérifie le lien staff et le rôle.
+    if (await handleOrderActionCallback(cb, {
+      actor: staff ? { rank: staff.rank, name: staff.name } : null,
+      act: telegramOrderAction,
+      orderState: telegramOrderState,
+      telegram
+    })) return;
 
     if (!staff || staff.rank < RANK_DIRECTION) {
       await telegram("answerCallbackQuery", {

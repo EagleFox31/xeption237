@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import type { AdminNotification } from '../../types';
+import { NOTIFICATION_SOUND_PATH } from '../../constants/brandAssets';
 import {
   createNotification,
   fetchNotifications,
@@ -27,8 +28,7 @@ import {
   type NotificationRow,
 } from '../../services/notificationService';
 
-const SOUND_URL =
-  'https://res.cloudinary.com/dli0kdkg9/video/upload/v1709736806/notification_sound_b4qj3f.mp3';
+const SOUND_URL = NOTIFICATION_SOUND_PATH;
 
 /** Convention : les types d'événements qu'on NE SOUHAITE PAS entendre (bruit UI). */
 const SILENT_EVENT_TYPES: ReadonlySet<string> = new Set(['sync_success']);

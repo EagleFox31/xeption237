@@ -724,6 +724,16 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 
 **Comment ne plus la refaire** : `tests/components/OrdersTab.deeplink.test.tsx` (URL avec id, ouverture de la fiche, id inconnu) et `tests/order-paid-notification.test.ts` (actionUrl). Leçon : ajouter un onglet à `ITEM_LINK_LABELS` exige que l'onglet consomme `focusRequestId`, et inversement ; tester les deux bouts du lien.
 
+## 2026-11-09 — `troc_stale` jamais relayé sur WhatsApp, sans que personne ne le voie
+
+**Symptôme** : en préparant le suivi de commande (événements `order_*`), constat que `troc_stale` (relance troc 48 h, Lot 1) figure dans `DEFAULT_STAFF_EVENT_TYPES` mais n'a aucun alias dans `NOTIFY_EVENT_ALIASES` : il n'a jamais atteint le groupe WhatsApp, et rien ne le signalait.
+
+**Cause racine** : trois listes à tenir alignées à la main (`DEFAULT_STAFF_EVENT_TYPES`, `NOTIFY_EVENT_ALIASES`/`WAHA_DEFAULT_EVENT_TYPES`, `ALLOWED_TYPES` de Trigenys Notify) ; un type absent d'une liste est ignoré en silence. Classification : near miss, défaut de contrat entre producteur et canal.
+
+**Résolution** : `WAHA_EXCLUDED_EVENT_TYPES` (`supabase/functions/_shared/staffNotifyChannels/waha.ts`) liste les types volontairement non relayés, avec leur raison (`troc_stale` : pas encore accepté par Trigenys Notify). Les 4 nouveaux types `order_delivered`, `order_cancelled`, `order_unreachable`, `order_stale` sont aliasés des deux côtés (PR Notify liée).
+
+**Comment ne plus la refaire** : test d'alignement dans `tests/waha-notify-channel.test.ts` : chaque type de `DEFAULT_STAFF_EVENT_TYPES` est soit aliasé, soit exclu explicitement (jamais les deux) ; chaque alias figure dans le miroir `NOTIFY_ALLOWED_TYPES`. Leçon : une liste d'exclusion explicite et testée vaut mieux qu'une absence silencieuse.
+
 ## 2026-11-10 — Bilan Telegram : dettes de test affichées, dettes réelles ignorées
 
 - **Symptôme** : la ligne « Dettes en cours » du bilan journalier montrait les 3 dettes de test saisies via le bot
@@ -761,3 +771,72 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 - **Résolution** : le contrôle reproduit la formule du trigger (somme tous magasins, disponible plancher 0).
 - **Prévention** : un script de vérification qui recalcule une valeur dérivée doit reprendre la formule de l'objet qui
   la maintient (trigger, RPC) ; au moindre changement de cette formule, `grep` les scripts `verify-*` qui la recopient.
+
+## 2026-11-14 — Troc : « Impossible d'uploader l'image sur Cloudinary. Vérifiez le preset. » chez un client
+
+- **Symptôme** : un client (Galaxy S20 FE) bloqué à l'étape photos du troc avec un message parlant de « preset ».
+- **Cause racine** : deux défauts superposés.
+  1. Le compte Cloudinary `dli0kdkg9` a été désactivé pour dépassement de quota : les envois renvoient
+     `cloud_name is disabled` et les images déjà hébergées répondent en 401.
+  2. Les photos de troc partaient vers Trigenys Storage avec Cloudinary en secours. Quand l'étape Trigenys échouait
+     dans le navigateur (aucune trace côté serveur dans `ai_usage_quota`), le secours échouait à son tour et son
+     message générique masquait la vraie cause.
+  Les 4 photos étaient en outre décodées en parallèle en pleine résolution, ce qui est lourd pour un mobile.
+- **Résolution** : Cloudinary est retiré de tous les envois (troc, produits, packs). Les photos sont envoyées une par
+  une ; si `createImageBitmap` échoue, le décodage passe par `<img>`. Chaque échec porte un code d'étape (`decode`,
+  `webp`, `too_large`, `rate_limited`, `authorization`, `network`, `upload`) affiché au client avec le numéro de
+  la photo. Les erreurs d'envoi de l'admin s'affichent aussi (notifyError), au lieu d'être avalées.
+- **Prévention** : `tests/unit/uploadTrocPhotos.test.ts` (envoi séquentiel, aucun appel Cloudinary, codes d'erreur).
+  Règle : un repli ne doit jamais remplacer le message d'échec du chemin principal ; il faut journaliser la cause
+  première et l'afficher.
+
+## 2026-11-14 — Images restées sur Cloudinary malgré la migration vers R2
+
+- **Symptôme** : après la désactivation du compte Cloudinary, des images produits, une annonce de troc, des commandes,
+  le logo du site, la vidéo de fond et le son des notifications staff ne s'affichaient plus (401).
+- **Cause racine** : deux défauts.
+  1. Lors du passage de `scripts/migrate-cloudinary-to-r2.mjs` du 2026-10-27, les fichiers ont bien été copiés sur R2
+     (table de correspondance enregistrée), mais les écritures en base ont échoué (TLS). Au passage suivant, le filtre
+     de lignes écartait les URL déjà présentes dans la table : ces lignes n'ont jamais été repointées.
+     `marketplace_listings.photo_urls` et `orders.items` n'étaient pas couverts par le script.
+  2. Le logo, la vidéo de fond et le son étaient codés en dur avec des URL Cloudinary, hors de toute migration.
+- **Résolution** : le script sélectionne toute ligne contenant encore une URL Cloudinary et compte à part les lignes
+  à simplement repointer (`repointOnly`). Les portées `listings` et `orders` sont ajoutées (JSON parcouru
+  récursivement). En prod : 24 produits, 1 annonce et 7 commandes repointés ; le second passage n'a rien écrit.
+  Les ressources de marque sont servies depuis `public/` (`constants/brandAssets.ts`). La vidéo de fond est retirée,
+  car aucune copie n'existe.
+- **Prévention** : un script de migration doit sélectionner sur l'état de la cible (« encore une URL source ? ») et
+  non sur l'état de sa propre progression ; un second passage convergé doit indiquer 0 écriture. Les ressources de
+  marque ne dépendent d'aucun fournisseur média externe : `git grep res.cloudinary.com` hors `scripts/`, `data/` et
+  `tests/` doit rester vide.
+- **Reste** : 14 vidéos produits et 1 vidéo de commande Cloudinary n'ont aucune copie (décision métier en attente).
+
+## 2026-11-14 — Alertes « Commande sans suivi » inexploitables sur Telegram
+
+- **Symptôme** : dans le groupe Telegram, les relances de commande montraient seulement le numéro, le montant et
+  l'ancienneté. Le staff ne savait ni qui appeler, ni quoi livrer, ni où.
+- **Cause racine** : la fiche de commande (client, articles, livraison) n'était chargée que pour `order_created`, et
+  seulement pour le canal WhatsApp. Les événements de suivi ajoutés le 2026-11-10 n'en ont jamais bénéficié, et
+  Telegram ne l'affichait pour aucun événement.
+- **Résolution** : `withOrderSnapshots` charge la fiche pour tous les événements de commande
+  (`ORDER_SNAPSHOT_EVENT_TYPES`), sur tous les canaux. Telegram affiche client et téléphone, articles, livraison et
+  paiement (`orderDetailLines`). Vers Trigenys Notify, la règle ADR-002 reste inchangée : données client pour
+  `order_created` seulement.
+- **Prévention** : `tests/waha-notify-channel.test.ts` vérifie la fiche sur une relance, le rendu Telegram et
+  l'absence de données client vers Notify. Règle : un nouveau type d'alerte doit dire ce que le staff doit faire et
+  avec quelles informations, avant d'être relayé.
+
+## 2026-11-14 — `mark_order_cash_paid` exécutable par `anon` sans garde staff
+
+- **Symptôme** : découvert en réutilisant la RPC pour les boutons Telegram. N'importe quel visiteur, avec la clé
+  publique, pouvait passer une commande en « payée (espèces) » et consommer son stock.
+- **Cause racine** : la revue des droits du 2026-08-23 (`20260823_023`) classait la fonction en « ERP staff »
+  (garde staff et `REVOKE PUBLIC, anon`). Le correctif `20260910_004` l'a supprimée puis recréée avec une nouvelle
+  signature `(text, text)`, sans garde, et avec `GRANT … TO anon`. Les droits posés sur l'ancienne signature ne se
+  reportent pas sur la nouvelle.
+- **Classification** : régression de sécurité (droits). Aucun abus constaté.
+- **Résolution** : `20261114_003` rétablit la garde staff (email du JWT présent dans `staff`), retire EXECUTE à
+  `PUBLIC` et `anon` et le garde pour `authenticated` et `service_role`. Le reste du corps est inchangé.
+- **Prévention** : `tests/telegram-order-actions.test.ts` vérifie la garde et le `REVOKE`. Règle : toute migration
+  qui fait `DROP FUNCTION` puis `CREATE`, ou qui change une signature, doit reprendre les `REVOKE`/`GRANT` de la classe
+  de la fonction (`20260823_023`) et ne jamais accorder EXECUTE à `anon` sans justification écrite.

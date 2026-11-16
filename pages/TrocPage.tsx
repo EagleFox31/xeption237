@@ -904,6 +904,8 @@ const TrocPage: React.FC = () => {
                   visionReady={visionHealth.report?.ready ?? true}
                   visionLoading={visionHealth.loading}
                   existingPhotoUrls={troc.photoUrls}
+                  failedPhoto={troc.failedPhoto}
+                  onRetryUpload={troc.continueFromPhotos}
                   onReset={handleNewEvaluation}
                 />
               </div>
@@ -1114,6 +1116,8 @@ const TrocPage: React.FC = () => {
                 isUploading={troc.isUploading}
                 isCheckingPhotos={troc.isCheckingPhotos}
                 issueIndices={troc.photoIssueIndices}
+                failedPhoto={troc.failedPhoto}
+                onRetryUpload={troc.continueFromPhotos}
                 visionReady={visionHealth.report?.ready ?? true}
                 visionLoading={visionHealth.loading}
               />

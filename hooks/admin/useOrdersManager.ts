@@ -12,11 +12,38 @@ interface UseOrdersManagerProps {
     refreshData?: () => void;
 }
 
+export interface MarkUnreachableResult {
+    /** Nombre total de tentatives enregistrées pour la commande. */
+    count: number;
+    /** true si une tentative a déjà été notée il y a moins de 10 min (aucune écriture). */
+    skipped: boolean;
+}
+
+/** Message lisible pour une erreur Supabase (PostgrestError n'est pas toujours une Error). */
+const toActionError = (error: unknown, fallback: string): Error => {
+    const raw =
+        error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string'
+            ? (error as { message: string }).message
+            : '';
+    if (/responsable boutique ou à la direction/i.test(raw)) {
+        return new Error('Seul un responsable boutique ou la direction peut annuler une commande.');
+    }
+    if (/réservé à l'équipe|réservé à l’équipe/i.test(raw)) {
+        return new Error('Action réservée à l’équipe connectée.');
+    }
+    return new Error(raw.trim() || fallback);
+};
+
 export const useOrdersManager = ({ orders, setOrders, refreshData }: UseOrdersManagerProps) => {
 
-    const updateStatus = useCallback(async (orderId: string, newStatus: Order['status']) => {
+    /**
+     * `fromStatus` : statut connu de l'appelant. Indispensable quand plusieurs étapes
+     * s'enchaînent dans un même handler (Livrée depuis « En attente ») : `orders`
+     * capturé par ce callback n'est pas encore re-rendu entre deux étapes.
+     */
+    const updateStatus = useCallback(async (orderId: string, newStatus: Order['status'], fromStatus?: Order['status']) => {
         const order = orders.find((o) => o.id === orderId);
-        const oldStatus = order?.status ?? null;
+        const oldStatus = fromStatus ?? order?.status ?? null;
 
         if (!oldStatus || !canTransitionOrder(oldStatus, newStatus)) {
             throw new Error('Cette étape n\'est pas possible pour cette commande.');
@@ -52,7 +79,7 @@ export const useOrdersManager = ({ orders, setOrders, refreshData }: UseOrdersMa
             p_order_id: order.id,
             p_reason: reason ?? null,
         });
-        if (error) throw error;
+        if (error) throw toActionError(error, 'Annulation refusée');
         assertRpcSuccess(data, 'Annulation refusée');
 
         setOrders((prev) =>
@@ -65,5 +92,24 @@ export const useOrdersManager = ({ orders, setOrders, refreshData }: UseOrdersMa
         refreshData?.();
     }, [setOrders, refreshData]);
 
-    return { updateStatus, cancelOrder };
+    /** Note une tentative de contact sans réponse (idempotent sur 10 min côté serveur). */
+    const markUnreachable = useCallback(async (orderId: string): Promise<MarkUnreachableResult> => {
+        const { data, error } = await supabase.rpc('mark_order_unreachable', { p_order_id: orderId });
+        if (error) throw toActionError(error, 'Impossible de noter la tentative.');
+        assertRpcSuccess(data, 'Impossible de noter la tentative.');
+
+        const count = Number(data.count ?? 0);
+        const skipped = data.skipped === true;
+        const lastUnreachableAt = typeof data.last_unreachable_at === 'string' ? data.last_unreachable_at : null;
+        setOrders((prev) =>
+            prev.map((o) =>
+                o.id === orderId
+                    ? { ...o, unreachableCount: count, lastUnreachableAt: lastUnreachableAt ?? o.lastUnreachableAt ?? null }
+                    : o,
+            ),
+        );
+        return { count, skipped };
+    }, [setOrders]);
+
+    return { updateStatus, cancelOrder, markUnreachable };
 };

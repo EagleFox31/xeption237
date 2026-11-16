@@ -221,3 +221,12 @@ et google.com injoignables depuis le poste (code 000, échec de connexion). Rien
 inchangée. À faire dès le retour du réseau : `git fetch origin main && git merge --no-edit FETCH_HEAD`,
 résoudre (probablement `docs/engineering/NOTIFICATIONS.md` ou `PASSATION-*`), tests
 `tests/notify-daily-digest.test.ts` + webhook, commit, push. Cette entrée est commitée en local, non poussée.
+
+## 2026-11-16 11:14 — Conflit PR #52 (tête 65f39ee) résolu, main fusionné
+
+Réseau revenu : `git fetch origin main && git merge --no-edit FETCH_HEAD` (main = 23e51ca). Seul conflit :
+`docs/engineering/NOTIFICATIONS.md` — gardé notre ligne `daily_digest` (22 h Douala, `20261111_002`/`_003`) et pris
+la ligne `weekly_digest` de main (WhatsApp `report.weekly_digest` via `WAHA_EVENT_GROUPS_JSON`, Worker à déployer
+avant `notify-staff`). Les migrations de main (`20261114_002`, `_003`) ne touchent ni `notify_daily_digest` ni le cron.
+Tests : `notify-daily-digest`, `whatsapp-cash-webhook`, `whatsapp-cash-import` → 64/64 verts. Merge 361a2b8 poussé
+(avec 777f39d). Rien à déployer.

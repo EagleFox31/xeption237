@@ -4,6 +4,7 @@
  */
 import type {StaffNotification} from './staffNotify.ts';
 import {orderSnapshotFacts} from './staffNotifyOrder.ts';
+import {isWeeklyDigest,weeklyDigestFacts} from './weeklyDigest.ts';
 
 const contact=/@|https?:\/\/|www\.|\+\s*\d(?:[\s().-]*\d){7,}|\b\d{9,15}\b|\b(?:237[\s.-]*)?[26]\d{2}(?:[\s.-]*\d{3}){2}\b/i;
 const label=(raw:string|undefined,max:number):string|undefined=>{
@@ -23,6 +24,8 @@ export const extractNotificationFacts=(n:StaffNotification):Record<string,unknow
     const snapshot=orderSnapshotFacts(n.order);
     if(Object.keys(snapshot).length)return snapshot;
   }
+  // Bilan hebdomadaire : sections rédigées par la requête SQL (aucune donnée client).
+  if(isWeeklyDigest(n))return weeklyDigestFacts(n) as Record<string,unknown>|undefined;
   const parts=n.message.slice(0,4000).split(' — ').map(s=>s.trim()).filter(Boolean);
   const facts:Record<string,string|number>={};
   const subject=label(parts[0],160);if(subject)facts.subject=subject;

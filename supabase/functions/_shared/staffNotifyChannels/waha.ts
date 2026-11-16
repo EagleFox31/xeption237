@@ -15,10 +15,11 @@ import {
   type StaffNotifyContext,
 } from '../staffNotify.ts';
 import {extractNotificationFacts} from '../staffNotifyFacts.ts';
+import {isWeeklyDigest,trimWeeklyDigest,type WeeklyDigestFacts} from '../weeklyDigest.ts';
 
 export const WAHA_DEFAULT_EVENT_TYPES = [
   'order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report',
-  'debt_overdue','order_delivered','order_cancelled','order_unreachable','order_stale'
+  'debt_overdue','order_delivered','order_cancelled','order_unreachable','order_stale','weekly_digest'
 ];
 
 /**
@@ -31,8 +32,7 @@ export const WAHA_EXCLUDED_EVENT_TYPES: Record<string,string> = {
   pos_sale:'Counter sale: the seller is present, a group message would be noise',
   stock_correction:'Internal stock audit trail, not an operational alert',
   troc_stale:'Not yet in Trigenys Notify ALLOWED_TYPES (barter.stale): add both sides together',
-  daily_digest:'Multi-line digest format, Telegram only for now',
-  weekly_digest:'Multi-line digest format, Telegram only for now'
+  daily_digest:'Multi-line digest format, Telegram only for now'
 };
 
 export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
@@ -49,7 +49,8 @@ export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
   voucher_expiring:'barter.voucher_expiring',
   marketplace_listed:'marketplace.listing_created',
   store_cash_report:'cash_report.closed',
-  debt_overdue:'finance.debt_overdue'
+  debt_overdue:'finance.debt_overdue',
+  weekly_digest:'report.weekly_digest'
 };
 // Every alias must also be in Trigenys Notify's ALLOWED_TYPES, or it is rejected with HTTP 400.
 
@@ -83,7 +84,8 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
     type.startsWith('barter.')?'barter':
     type.startsWith('order.')?'order':
     type.startsWith('cash_report.')?'cash_report':
-    type.startsWith('finance.')?'finance':'marketplace';
+    type.startsWith('finance.')?'finance':
+    type.startsWith('report.')?'report':'marketplace';
   if(!n.created_at||!Number.isFinite(Date.parse(n.created_at)))
     throw new Error('NOTIFICATION_TIMESTAMP_REQUIRED');
   const facts=extractNotificationFacts(n);
@@ -99,11 +101,14 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
     audience:'staff',
     ...(facts?{facts}:{}),
     // Do not use a client-controlled origin from message or source settings.
-    actionUrl:notificationLink(n,{siteUrl:'https://www.xeptionetwork.shop'}).url
+    // The weekly digest has no link: Notify prefixes links with an emoji (validated format: none).
+    ...(isWeeklyDigest(n)?{}:{actionUrl:notificationLink(n,{siteUrl:'https://www.xeptionetwork.shop'}).url})
   };
   // Deterministic trim: a long basket keeps its first lines, the total stays exact.
   const items=Array.isArray(facts?.items)?facts.items:undefined;
-  while(items&&items.length>1&&new TextEncoder().encode(JSON.stringify(event)).length>MAX_EVENT_BYTES)items.pop();
+  const size=()=>new TextEncoder().encode(JSON.stringify(event)).length;
+  while(items&&items.length>1&&size()>MAX_EVENT_BYTES)items.pop();
+  if(isWeeklyDigest(n)&&facts)trimWeeklyDigest(facts as unknown as WeeklyDigestFacts,size,MAX_EVENT_BYTES);
   return event;
 }
 

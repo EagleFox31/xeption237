@@ -6,7 +6,11 @@ import {
   formatPlainNotification,
   type StaffNotification,
 } from '../supabase/functions/_shared/staffNotify';
-import { WAHA_DEFAULT_EVENT_TYPES } from '../supabase/functions/_shared/staffNotifyChannels/waha';
+import {
+  NOTIFY_EVENT_ALIASES,
+  WAHA_DEFAULT_EVENT_TYPES,
+  toNotifyEvent,
+} from '../supabase/functions/_shared/staffNotifyChannels/waha';
 import {
   formatTelegramNotification,
   telegramReplyMarkup,
@@ -16,6 +20,8 @@ import {
   formatPlainWeeklyDigest,
   formatTelegramWeeklyDigest,
   isWeeklyDigest,
+  WEEKLY_DIGEST_LIMITS,
+  weeklyDigestFacts,
 } from '../supabase/functions/_shared/weeklyDigest';
 import type { NotificationEventType } from '../services/notificationService';
 
@@ -88,9 +94,10 @@ describe('Bilan hebdomadaire — mise en forme', () => {
 });
 
 describe('Bilan hebdomadaire — routage', () => {
-  it('relayé par défaut (Telegram), pas sur WhatsApp tant que Trigenys Notify ne le gère pas', () => {
+  it('relayé par défaut sur Telegram et WhatsApp (type Notify report.weekly_digest)', () => {
     expect(DEFAULT_STAFF_EVENT_TYPES).toContain('weekly_digest');
-    expect(WAHA_DEFAULT_EVENT_TYPES).not.toContain('weekly_digest');
+    expect(WAHA_DEFAULT_EVENT_TYPES).toContain('weekly_digest');
+    expect(NOTIFY_EVENT_ALIASES.weekly_digest).toBe('report.weekly_digest');
     const type: NotificationEventType = 'weekly_digest';
     expect(type).toBe(WEEKLY_DIGEST_EVENT_TYPE);
   });
@@ -129,5 +136,47 @@ describe('Migration 20261114_001 — contrat SQL', () => {
   it('message sans emoji (format validé par la direction)', () => {
     const body = sql.slice(sql.indexOf('AS $$'), sql.indexOf('$$;'));
     expect(body).not.toMatch(EMOJI);
+  });
+});
+
+describe('Bilan hebdomadaire — événement WhatsApp (Trigenys Notify)', () => {
+  const dated = (message?: string): StaffNotification => ({ ...weekly(message), created_at: '2026-11-16T07:00:00.000Z' });
+
+  it('envoie la période et les sections, sans titre ni message bruts, ni lien', () => {
+    const event = toNotifyEvent(dated(), CTX) as Record<string, unknown>;
+    expect(event.type).toBe('report.weekly_digest');
+    expect(event.resource).toEqual({ kind: 'report', id: '11111111-2222-4333-8444-555555555555' });
+    expect(event.priority).toBe('normal');
+    expect(event).not.toHaveProperty('actionUrl');
+    expect(event.facts).toEqual({
+      digestPeriod: 'du 09/11 au 15/11',
+      digestSections: [
+        { title: 'Boutique A & Co', lines: ['Entrées : 1 000 F', 'Sorties : 400 F'] },
+        { title: 'Total semaine', lines: ['Entrées 1 000 F | Sorties 400 F | Boss 0 F'] },
+        { title: 'À noter', lines: ['- Rien à signaler.'] },
+      ],
+    });
+    expect(JSON.stringify(event)).not.toContain('Bilan de la semaine');
+  });
+
+  it('garde les gros montants, écarte une donnée de contact et le balisage', () => {
+    const facts = weeklyDigestFacts(weekly('*A*\nBoss : 650 000 000 F\nAppeler +237 699 00 00 00\nmail@example.test\nPrix *promo*'));
+    expect(facts?.digestSections).toEqual([{ title: 'A', lines: ['Boss : 650 000 000 F', 'Prix promo'] }]);
+  });
+
+  it('borne sections, lignes et longueur comme le contrat Notify', () => {
+    const many = Array.from({ length: 20 }, (_, i) => `*S${i}*\n${Array(30).fill('x'.repeat(200)).join('\n')}`).join('\n\n');
+    const facts = weeklyDigestFacts(weekly(many))!;
+    expect(facts.digestSections).toHaveLength(WEEKLY_DIGEST_LIMITS.sections);
+    expect(facts.digestSections[0].lines).toHaveLength(WEEKLY_DIGEST_LIMITS.linesPerSection);
+    expect(facts.digestSections[0].lines[0].length).toBe(WEEKLY_DIGEST_LIMITS.line);
+    // Puis l'événement entier repasse sous la limite d'entrée de Notify.
+    const event = toNotifyEvent(dated(many), CTX);
+    expect(new TextEncoder().encode(JSON.stringify(event)).length).toBeLessThanOrEqual(4000);
+    expect((event.facts as { digestSections: unknown[] }).digestSections.length).toBeGreaterThan(0);
+  });
+
+  it('message sans section reconnue : aucun fait (Notify affiche son texte générique)', () => {
+    expect(weeklyDigestFacts(weekly('texte libre'))).toBeUndefined();
   });
 });

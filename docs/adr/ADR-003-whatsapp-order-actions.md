@@ -69,9 +69,14 @@ réaction n'annule pas l'action ; il faut corriger sur la fiche.
    - `eventId` vaut `admin_notifications.id`.
    - `actor.fingerprint` est un HMAC, avec la clé du projet, du numéro de l'auteur. Le numéro en
      clair ne sort jamais de Notify, sur le modèle de `whatsapp-direct`.
-   - Authentification par signature HMAC-SHA512 du corps brut avec horodatage, comme
-     `webhookAuth.ts` de la PR #52, avec une clé dédiée `XEPTION_NOTIFY_ACTION_KEY` de 32
-     caractères minimum. Elle est distincte de la clé d'ingestion.
+   - Authentification : en-têtes `x-notify-timestamp` (epoch en ms, ±5 min) et
+     `x-notify-signature` = hex HMAC-SHA512 de `${timestamp}.${corps brut}`. L'horodatage est
+     donc signé, contrairement au webhook WAHA. Clé dédiée `XEPTION_NOTIFY_ACTION_KEY` de 32
+     caractères minimum, distincte de la clé d'ingestion.
+   - Réponse : `200 {ok, changed, outcome, action, reason?, attempt?, actor?, at}` pour toute
+     issue métier (`actor` = prénom seul), `502` si la base est indisponible (réessai sûr grâce
+     à `id`), `401` signature invalide, `503` clé absente ou `WHATSAPP_ACTIONS_ENABLED` faux.
+   - `gesture:'link'` : `value` = code `XL-XXXX-XXXX`, `eventId` peut être vide.
 4. **Ligne de suivi sortante.** Un nouveau type `order.action_recorded` entre dans
    `ALLOWED_TYPES`. Ses `facts` se limitent à : action, motif (liste fermée), numéro de tentative,
    prénom du staff, heure. Il ne porte aucune donnée client. Notify l'envoie **en réponse
@@ -80,20 +85,22 @@ réaction n'annule pas l'action ; il faut corriger sur la fiche.
 
 ### 3. Côté Xeption
 
-1. **Lien numéro → staff.** Nouvelle table `whatsapp_staff_links(fingerprint, staff_id,
-   linked_at, revoked_at)`, accessible au service_role seul. Le lien se crée depuis l'ERP
+1. **Lien numéro → staff.** Nouvelle table `whatsapp_staff_links(fingerprint, auth_user_id,
+   linked_at, revoked_at)`, même clé que `telegram_staff_links`,, accessible au service_role seul. Le lien se crée depuis l'ERP
    (« Lier mon WhatsApp »). L'ERP génère un code à usage unique valable 10 min, stocké en
    SHA-256, comme `create_telegram_link_code`. Le staff envoie ce code dans le groupe ; Notify
    relaie `gesture:'link'` avec l'empreinte, et Xeption brûle le code. Le numéro n'est jamais
    stocké chez Xeption.
-2. **Une seule règle métier.** La RPC actuelle devient `staff_order_action_core(p_order_id,
-   p_action, p_staff_id, p_reason)`. Elle reprend les gardes de rang, la machine d'états et
-   l'audit. `telegram_staff_order_action` et la nouvelle `whatsapp_staff_order_action` se
-   contentent d'identifier le staff, puis l'appellent. La signature Telegram ne change pas : non
+2. **Une seule règle métier.** La RPC actuelle devient `_staff_order_action_core(p_order_id,
+   p_action, p_auth_user_id, p_reason)`. Elle reprend les gardes de rang et la machine d'états.
+   `telegram_staff_order_action` et la nouvelle `whatsapp_staff_order_action` identifient le
+   staff, l'appellent, puis tiennent chacune leur audit (`telegram_staff_action_audit`,
+   `staff_action_receipts`). La signature Telegram ne change pas : non
    régression.
-3. **Module pur partagé.** Le mapping des gestes, le calcul des actions possibles et le texte des
-   lignes de suivi sortent de `telegramOrderActions.ts` vers `_shared/orderActions.ts`. Les deux
-   adaptateurs, Telegram et WhatsApp, s'appuient dessus.
+3. **Modules purs.** `_shared/whatsappOrderActions.ts` (relais v1, geste → action, réponse) et
+   `_shared/notifyActionAuth.ts` (signature). La liste des motifs vient de
+   `telegramOrderActions.ts`, laissé inchangé : la règle commune est dans le cœur SQL, et le texte
+   de la ligne de suivi WhatsApp est rédigé par Notify à partir des faits renvoyés.
 4. **Idempotence.** Une table `staff_action_receipts(source, external_id)` à clé unique empêche
    une même réaction d'agir deux fois. Un ✅ posé sur une commande déjà livrée est un no-op.
    Il est signalé une seule fois, puis ignoré.

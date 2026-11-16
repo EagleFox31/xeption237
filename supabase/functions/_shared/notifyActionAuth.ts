@@ -7,6 +7,10 @@
  * - x-notify-signature : hex HMAC-SHA512(clé, `${timestamp}.${corps brut}`).
  * L'horodatage est signé avec le corps : un corps signé ne peut pas être rejoué avec une
  * autre date. Clé dédiée XEPTION_NOTIFY_ACTION_KEY, 32 caractères minimum.
+ *
+ * Empreinte de l'auteur (actor.fingerprint), calculée à l'identique par Notify et Xeption :
+ * hex HMAC-SHA256(même clé, `wa-actor:v1:${numéro E.164 sans « + »}`). Le préfixe sépare cet
+ * usage de la signature (SHA-512) ; la liaison par numéro compare ces empreintes.
  */
 
 export const NOTIFY_ACTION_MIN_SECRET_LENGTH = 32;
@@ -18,12 +22,25 @@ export type NotifySignatureCheck = 'ok' | 'missing' | 'stale' | 'bad_signature';
 
 const encoder = new TextEncoder();
 
-export async function computeHmacSha512Hex(secret: string, message: string): Promise<string> {
+async function computeHmacHex(hash: 'SHA-256' | 'SHA-512', secret: string, message: string): Promise<string> {
   const key = await crypto.subtle.importKey(
-    'raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-512' }, false, ['sign'],
+    'raw', encoder.encode(secret), { name: 'HMAC', hash }, false, ['sign'],
   );
   const signature = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(message)));
   return Array.from(signature, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export function computeHmacSha512Hex(secret: string, message: string): Promise<string> {
+  return computeHmacHex('SHA-512', secret, message);
+}
+
+export const WHATSAPP_ACTOR_FINGERPRINT_PREFIX = 'wa-actor:v1:';
+const E164_DIGITS = /^[1-9][0-9]{7,14}$/;
+
+/** Empreinte de l'auteur WhatsApp ; null si le numéro n'est pas en E.164 sans « + ». */
+export async function computeWhatsAppActorFingerprint(secret: string, e164Digits: string): Promise<string | null> {
+  if (!E164_DIGITS.test(e164Digits)) return null;
+  return computeHmacHex('SHA-256', secret.trim(), `${WHATSAPP_ACTOR_FINGERPRINT_PREFIX}${e164Digits}`);
 }
 
 /** Comparaison à temps constant (pour des chaînes de même longueur). */

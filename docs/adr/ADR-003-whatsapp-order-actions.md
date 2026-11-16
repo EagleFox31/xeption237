@@ -24,7 +24,8 @@
 - **Données client.** Les données client quittent Xeption seulement dans `order.created`
   (Notify ADR-002, `staffNotifyFacts.ts`). Une ligne de suivi n'en contient aucune.
 - **Identité staff.** La RPC Telegram identifie l'auteur par `telegram_staff_links`. Rien ne relie
-  aujourd'hui un numéro WhatsApp à un membre du staff : `staff` n'a pas de colonne téléphone.
+  aujourd'hui un compte WhatsApp à un membre du staff. En revanche `staff.phone` est renseigné et
+  unique pour tout le staff, et Telegram lie déjà par numéro (`telegram_staff_link_by_phone`).
 
 ## Options
 
@@ -64,11 +65,13 @@ réaction n'annule pas l'action ; il faut corriger sur la fiche.
    numéro ni texte.
 3. **Relais vers Xeption.** Notify appelle une fonction Xeption dédiée, nouvelle :
    `POST /functions/v1/notify-staff-action`. Corps :
-   `{version:1, id, eventId, groupKey, actor:{fingerprint}, gesture:'reaction'|'reply', value}`.
+   `{version:1, id, eventId, groupKey, actor:{fingerprint}, gesture:'reaction'|'reply'|'link', value}`.
    - `id` est l'identifiant WAHA de l'événement et sert d'idempotence.
    - `eventId` vaut `admin_notifications.id`.
-   - `actor.fingerprint` est un HMAC, avec la clé du projet, du numéro de l'auteur. Le numéro en
-     clair ne sort jamais de Notify, sur le modèle de `whatsapp-direct`.
+   - `actor.fingerprint` = hex HMAC-SHA256(`XEPTION_NOTIFY_ACTION_KEY`,
+     `wa-actor:v1:<numéro E.164 sans « + »>`), calculé à l'identique par Notify et Xeption. Le
+     numéro en clair ne sort jamais de Notify. Vecteur de référence : clé `k` × 32, numéro
+     `237600000001` (test `tests/whatsapp-order-actions.test.ts`).
    - Authentification : en-têtes `x-notify-timestamp` (epoch en ms, ±5 min) et
      `x-notify-signature` = hex HMAC-SHA512 de `${timestamp}.${corps brut}`. L'horodatage est
      donc signé, contrairement au webhook WAHA. Clé dédiée `XEPTION_NOTIFY_ACTION_KEY` de 32
@@ -86,11 +89,23 @@ réaction n'annule pas l'action ; il faut corriger sur la fiche.
 ### 3. Côté Xeption
 
 1. **Lien numéro → staff.** Nouvelle table `whatsapp_staff_links(fingerprint, auth_user_id,
-   linked_at, revoked_at)`, même clé que `telegram_staff_links`,, accessible au service_role seul. Le lien se crée depuis l'ERP
-   (« Lier mon WhatsApp »). L'ERP génère un code à usage unique valable 10 min, stocké en
-   SHA-256, comme `create_telegram_link_code`. Le staff envoie ce code dans le groupe ; Notify
-   relaie `gesture:'link'` avec l'empreinte, et Xeption brûle le code. Le numéro n'est jamais
-   stocké chez Xeption.
+   linked_at, revoked_at)`, accessible au service_role seul. Deux voies :
+   - **Automatique, par numéro (voie normale).** Au premier geste d'un auteur non lié,
+     `notify-staff-action` lit les numéros du staff (`whatsapp_staff_phone_candidates`, E.164),
+     calcule leurs empreintes avec la clé partagée et exige une correspondance **unique** avec
+     `actor.fingerprint`. Puis `link_whatsapp_staff_by_phone` applique la règle Telegram : staff
+     boutique seulement (vendeur, editor, responsable, manager, manager_vente), compte Auth requis,
+     idempotente, jamais de déplacement d'une liaison active, audit `link.phone` dans
+     `staff_action_receipts`. Le geste est ensuite rejoué et la réponse porte
+     `linked:{actor, role, store}` : Notify annonce la liaison dans le groupe. Sinon la réponse
+     porte `outcome:'not_linked'` et `link:{reason}` (`phone_not_found`, `phone_ambiguous`,
+     `use_erp_code`, `no_account`, `staff_already_linked`, `fingerprint_already_linked`). La clé ne
+     passe jamais par la base.
+   - **Code de l'ERP (secours, direction, changement de téléphone).** L'ERP génère un code à usage
+     unique valable 10 min, stocké en SHA-256, comme `create_telegram_link_code`. Le staff
+     l'envoie dans le groupe ; Notify relaie `gesture:'link'` et Xeption brûle le code.
+   Une erreur d'identité se corrige dans l'ERP (numéro de la fiche, écran Équipe). Le numéro
+   n'est jamais stocké côté liens : seule l'empreinte l'est.
 2. **Une seule règle métier.** La RPC actuelle devient `_staff_order_action_core(p_order_id,
    p_action, p_auth_user_id, p_reason)`. Elle reprend les gardes de rang et la machine d'états.
    `telegram_staff_order_action` et la nouvelle `whatsapp_staff_order_action` identifient le
@@ -119,8 +134,9 @@ réaction n'annule pas l'action ; il faut corriger sur la fiche.
 ## Déploiement
 
 1. Notify : colonne `provider_message_id` et enregistrement de l'identifiant. Aucun effet visible.
-2. Xeption : migrations (core, liens, reçus), fonction `notify-staff-action` désactivée par
-   `WHATSAPP_ACTIONS_ENABLED=false`, puis liaison du staff.
+2. Xeption : migrations (core, liens, reçus ; puis `20261116_002` liaison par numéro), fonction
+   `notify-staff-action` désactivée par `WHATSAPP_ACTIONS_ENABLED=false`. Le staff se lie seul
+   au premier geste.
 3. Notify : relais des réactions et type `order.action_recorded`. On déploie le consommateur
    compatible avant le producteur.
    Prérequis à vérifier avant l'étape 3 : l'engine NOWEB de la session `trigenys-test` émet bien

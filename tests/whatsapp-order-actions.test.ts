@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,6 +12,7 @@ import {
   type RpcCall,
 } from '../supabase/functions/_shared/whatsappOrderActions';
 import {
+  computeWhatsAppActorFingerprint,
   isNotifyActionSecretUsable,
   signNotifyAction,
   verifyNotifyActionSignature,
@@ -19,6 +21,8 @@ import {
 const SQL = readFileSync(resolve(__dirname, '../supabase/migrations/20261116_001_whatsapp_order_actions_core.sql'), 'utf-8')
   .replace(/\r\n/g, '\n');
 const PREVIOUS = readFileSync(resolve(__dirname, '../supabase/migrations/20261114_003_telegram_order_actions.sql'), 'utf-8')
+  .replace(/\r\n/g, '\n');
+const PHONE_SQL = readFileSync(resolve(__dirname, '../supabase/migrations/20261116_002_whatsapp_link_by_phone.sql'), 'utf-8')
   .replace(/\r\n/g, '\n');
 const FN = readFileSync(resolve(__dirname, '../supabase/functions/notify-staff-action/index.ts'), 'utf-8');
 
@@ -271,5 +275,152 @@ describe('migration 20261116_001', () => {
 
   it('les RPC ne réactivent jamais un réglage de session au-delà de la transaction', () => {
     expect(SQL).not.toMatch(/set_config\([^)]*,\s*false\)/);
+  });
+});
+
+describe('empreinte de l’auteur (partagée avec Notify)', () => {
+  const KEY = 'k'.repeat(32);
+
+  it('hex HMAC-SHA256(clé, "wa-actor:v1:" + E.164 sans +) : vecteur de référence', async () => {
+    const expected = createHmac('sha256', KEY).update('wa-actor:v1:237600000001').digest('hex');
+    expect(await computeWhatsAppActorFingerprint(KEY, '237600000001')).toBe(expected);
+    expect(await computeWhatsAppActorFingerprint(` ${KEY} `, '237600000001')).toBe(expected);
+  });
+
+  it('refuse un numéro hors E.164 sans +', async () => {
+    for (const bad of ['+237600000001', '0600000001', '600 00 00 01', '12', '']) {
+      expect(await computeWhatsAppActorFingerprint(KEY, bad)).toBeNull();
+    }
+  });
+});
+
+describe('liaison automatique par numéro', () => {
+  const NOW = new Date('2026-11-16T10:00:00Z');
+  const AWA = '00000000-0000-4000-8000-0000000000a1';
+  const BOB = '00000000-0000-4000-8000-0000000000b2';
+  // Calcul factice : « 237600000001 » donne FP, tout autre numéro une autre empreinte.
+  const fingerprintFor = async (e164: string) => (e164 === '237600000001' ? FP : 'b'.repeat(64));
+  type Result = { data: unknown; error: { code: string; message: string } | null };
+
+  /** 1er appel d'action : non lié ; puis candidats, liaison, 2e appel d'action. */
+  const scripted = (opts: { candidates?: unknown; link?: unknown; retry?: Result } = {}) => {
+    let actionCalls = 0;
+    return vi.fn<RpcCall>(async (fn) => {
+      if (fn === 'whatsapp_staff_order_action') {
+        actionCalls += 1;
+        if (actionCalls === 1) return { data: null, error: { code: '42501', message: 'Staff link not found' } };
+        return opts.retry ?? { data: { changed: true, outcome: 'applied', actor: 'Awa Mbarga' }, error: null };
+      }
+      if (fn === 'whatsapp_staff_phone_candidates') {
+        return {
+          data: opts.candidates ?? [
+            { staff_id: AWA, phone_e164: '237600000001' },
+            { staff_id: BOB, phone_e164: '237600000002' },
+          ],
+          error: null,
+        };
+      }
+      if (fn === 'link_whatsapp_staff_by_phone') {
+        return { data: opts.link ?? { linked: true, changed: true, actor: 'Awa Mbarga', role: 'vendeur', store: 'Akwa' }, error: null };
+      }
+      return { data: null, error: { code: 'XX000', message: 'unexpected' } };
+    });
+  };
+  const actionCalls = (rpc: ReturnType<typeof scripted>) =>
+    rpc.mock.calls.filter(([fn]) => fn === 'whatsapp_staff_order_action');
+
+  it('numéro unique : liaison, geste rejoué avec le même id, `linked` dans la réponse', async () => {
+    const rpc = scripted();
+    const res = await handleNotifyStaffAction(relay(), rpc, NOW, fingerprintFor);
+    expect(rpc).toHaveBeenCalledWith('link_whatsapp_staff_by_phone', { p_fingerprint: FP, p_staff_id: AWA });
+    expect(actionCalls(rpc)).toHaveLength(2);
+    expect(actionCalls(rpc)[1][1]).toEqual(actionCalls(rpc)[0][1]);
+    expect(res).toMatchObject({
+      status: 200,
+      body: { ok: true, changed: true, outcome: 'applied', actor: 'Awa', linked: { actor: 'Awa', role: 'vendeur', store: 'Akwa' } },
+    });
+    expect(JSON.stringify(res.body)).not.toContain('237600000001');
+  });
+
+  it('aucune fiche ou deux fiches pour le numéro : pas de liaison, raison renvoyée', async () => {
+    const none = await handleNotifyStaffAction(relay(), scripted({ candidates: [{ staff_id: BOB, phone_e164: '237600000002' }] }), NOW, fingerprintFor);
+    expect(none.body).toMatchObject({ outcome: 'not_linked', link: { reason: 'phone_not_found' } });
+
+    const twice = scripted({
+      candidates: [
+        { staff_id: AWA, phone_e164: '237600000001' },
+        { staff_id: BOB, phone_e164: '237600000001' },
+      ],
+    });
+    const ambiguous = await handleNotifyStaffAction(relay(), twice, NOW, fingerprintFor);
+    expect(ambiguous.body).toMatchObject({ outcome: 'not_linked', link: { reason: 'phone_ambiguous' } });
+    expect(twice).not.toHaveBeenCalledWith('link_whatsapp_staff_by_phone', expect.anything());
+  });
+
+  it('refus de la base (direction, sans compte, déjà lié) : raison, geste non rejoué', async () => {
+    for (const reason of ['use_erp_code', 'no_account', 'staff_already_linked', 'fingerprint_already_linked']) {
+      const rpc = scripted({ link: { linked: false, reason } });
+      const res = await handleNotifyStaffAction(relay(), rpc, NOW, fingerprintFor);
+      expect(res.body).toMatchObject({ outcome: 'not_linked', link: { reason } });
+      expect(actionCalls(rpc)).toHaveLength(1);
+    }
+  });
+
+  it('liaison faite mais geste refusé (annulation par un vendeur) : issue + `linked`', async () => {
+    const rpc = scripted({ retry: { data: null, error: { code: '42501', message: 'Cancellation requires responsable or higher' } } });
+    const res = await handleNotifyStaffAction(relay({ value: '❌' }), rpc, NOW, fingerprintFor);
+    expect(res.body).toMatchObject({ outcome: 'cancel_forbidden', linked: { actor: 'Awa' } });
+  });
+
+  it('base indisponible pendant la liaison : 502 (Notify réessaie)', async () => {
+    const rpc = vi.fn<RpcCall>(async (fn) => (fn === 'whatsapp_staff_order_action'
+      ? { data: null, error: { code: '42501', message: 'Staff link not found' } }
+      : { data: null, error: { code: '08006', message: 'down' } }));
+    expect(await handleNotifyStaffAction(relay(), rpc, NOW, fingerprintFor)).toEqual({ status: 502, body: { ok: false, error: 'RPC_FAILED' } });
+  });
+
+  it('sans calcul d’empreinte injecté : comportement inchangé (not_linked)', async () => {
+    const rpc = scripted();
+    const res = await handleNotifyStaffAction(relay(), rpc, NOW);
+    expect(res.body).toEqual({ ok: true, changed: false, outcome: 'not_linked', action: 'delivered' });
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('la fonction injecte le calcul d’empreinte avec la clé du relais', () => {
+    expect(FN).toContain('computeWhatsAppActorFingerprint(secret, e164)');
+  });
+});
+
+describe('migration 20261116_002', () => {
+  it('transactionnelle', () => {
+    expect(PHONE_SQL).toMatch(/^BEGIN;$/m);
+    expect(PHONE_SQL.trimEnd().endsWith('COMMIT;')).toBe(true);
+  });
+
+  it('RPC réservées au service_role', () => {
+    for (const sig of ['whatsapp_staff_phone_candidates()', 'link_whatsapp_staff_by_phone(text, uuid)']) {
+      const esc = sig.replace(/[()]/g, '\\$&');
+      expect(PHONE_SQL).toMatch(new RegExp(`REVOKE ALL ON FUNCTION public\\.${esc} FROM PUBLIC, anon, authenticated;`));
+      expect(PHONE_SQL).toMatch(new RegExp(`GRANT EXECUTE ON FUNCTION public\\.${esc} TO service_role;`));
+    }
+  });
+
+  it('même règle que Telegram : staff boutique seulement, compte requis, jamais de déplacement silencieux', () => {
+    const fn = body(PHONE_SQL, 'link_whatsapp_staff_by_phone');
+    expect(fn).toContain(`('vendeur', 'editor', 'responsable', 'manager', 'manager_vente')`);
+    for (const reason of ['use_erp_code', 'no_account', 'phone_ambiguous', 'staff_already_linked', 'fingerprint_already_linked']) {
+      expect(fn).toContain(`'${reason}'`);
+    }
+    expect(fn).not.toMatch(/SET revoked_at = now\(\)/);
+    expect(fn.indexOf("'staff_already_linked'")).toBeLessThan(fn.indexOf('INSERT INTO public.whatsapp_staff_links'));
+  });
+
+  it('audit avec un identifiant propre (le reçu du geste rejoué reste libre)', () => {
+    expect(body(PHONE_SQL, 'link_whatsapp_staff_by_phone')).toContain("'link.phone:' || gen_random_uuid()::text");
+  });
+
+  it('la clé d’empreinte ne passe jamais par la base', () => {
+    expect(PHONE_SQL).not.toMatch(/hmac\(/i);
+    expect(FN).not.toMatch(/rpc\([^)]*secret/);
   });
 });

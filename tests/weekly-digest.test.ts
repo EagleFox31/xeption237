@@ -180,3 +180,49 @@ describe('Bilan hebdomadaire — événement WhatsApp (Trigenys Notify)', () => 
     expect(weeklyDigestFacts(weekly('texte libre'))).toBeUndefined();
   });
 });
+
+describe('Migration 20261116_001 — boutiques actives sans rapport', () => {
+  const sql = readFileSync(
+    resolve(__dirname, '../supabase/migrations/20261116_001_weekly_digest_silent_stores.sql'),
+    'utf8',
+  );
+  const previous = readFileSync(MIGRATION_PATH, 'utf8');
+
+  it('remplace la fonction sans toucher au job pg_cron, transactionnelle', () => {
+    expect(sql).toMatch(/^BEGIN;$/m);
+    expect(sql).toMatch(/^COMMIT;$/m);
+    expect(sql).toContain('CREATE OR REPLACE FUNCTION public.notify_weekly_digest(p_day date DEFAULT NULL)');
+    expect(sql).not.toMatch(/cron\.(schedule|unschedule)/);
+  });
+
+  it('garde le même contrat : dedup, droits, une seule écriture', () => {
+    expect(sql).toContain('ON CONFLICT (dedup_key) DO NOTHING');
+    expect(sql).toContain('REVOKE ALL ON FUNCTION public.notify_weekly_digest(date) FROM PUBLIC, anon, authenticated;');
+    expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.notify_weekly_digest(date) TO service_role;');
+    const writes = sql.match(/\b(INSERT INTO|UPDATE|DELETE FROM)\s+[\w.]+/g) ?? [];
+    expect(writes).toEqual(['INSERT INTO public.admin_notifications']);
+  });
+
+  it('signale dans « À noter » une boutique active sans aucun rapport de la semaine', () => {
+    expect(sql).toContain("v_no_report_store        constant text   := '%s : aucun rapport cette semaine.'");
+    expect(sql).toMatch(/WHERE s\.active\s+AND NOT EXISTS/);
+    expect(sql).toContain('v_notes := v_notes || format(v_no_report_store, r.name);');
+  });
+
+  it('seul ajout par rapport à 20261114_001 : la constante et la boucle des boutiques muettes', () => {
+    const fn = (s: string) => s.slice(s.indexOf('CREATE OR REPLACE FUNCTION'), s.indexOf('$$;'));
+    const lines = (s: string) => fn(s).split(/\r?\n/); // le fichier d'origine peut être en CRLF
+    const added = lines(sql).filter((l) => !lines(previous).includes(l));
+    expect(added).toEqual([
+      "  v_no_report_store        constant text   := '%s : aucun rapport cette semaine.';",
+      '  -- Boutiques actives sans aucun rapport sur la semaine : sans cette ligne elles disparaissent du bilan',
+      '    SELECT s.name',
+      '      AND NOT EXISTS (',
+      '    v_notes := v_notes || format(v_no_report_store, r.name);',
+    ]);
+  });
+
+  it('message sans emoji', () => {
+    expect(sql.slice(sql.indexOf('AS $$'), sql.indexOf('$$;'))).not.toMatch(EMOJI);
+  });
+});

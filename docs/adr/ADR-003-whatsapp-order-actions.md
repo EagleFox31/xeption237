@@ -1,6 +1,6 @@
 # ADR-003 — Actions sur les alertes commande dans le groupe WhatsApp staff
 
-- **Statut** : proposé — 2026-11-14. Rien n'est implémenté. Le contrat dépend d'une évolution
+- **Statut** : accepté — 2026-11-16 (proposé le 2026-11-14). Mise en œuvre par étapes, voir « Déploiement ». Le contrat dépend d'une évolution
   de Trigenys Notify (dépôt `Trigenys/trigenys-notify`), qui doit l'accepter dans son propre ADR.
 - **Contexte** : depuis la PR #57, une alerte commande sur Telegram porte des boutons : ✅ Livrée,
   📵 Injoignable et ❌ Annuler (motif pris dans une liste fermée), plus un lien « 💬 WhatsApp

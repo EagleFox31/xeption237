@@ -1,20 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { Order } from '../../../types';
-import { X, User, MapPin, CreditCard, Package, Truck, Phone, Mail, RefreshCw, Smartphone, Tag } from 'lucide-react';
-import { useDueFeedbackInvites } from '../../../hooks/useDueFeedbackInvites';
+import { X, User, MapPin, CreditCard, Package, Truck, Phone, Mail, RefreshCw, Smartphone, Tag, MessageCircle } from 'lucide-react';
 import OrderFeedbackInviteButton from '../OrderFeedbackInviteButton';
-import { getOrderStatusLabel } from '../../../utils/orderWorkflow';
+import OrderOutcomeActions, { type OrderOutcomeHandlers } from './OrderOutcomeActions';
+import { getOrderStatusLabel, isOrderOpen } from '../../../utils/orderWorkflow';
 import { optimizeImage } from '../../../utils/mediaOptimization';
 import { supabase } from '../../../services/supabaseClient';
+import type { DueFeedbackInvite } from '../../../services/orderFeedback';
 
 interface OrderDetailModalProps {
   order: Order;
   onClose: () => void;
+  /** Invitations d'avis dues (instance unique de useDueFeedbackInvites dans OrdersTab). */
+  feedbackInvites?: DueFeedbackInvite[];
+  onFeedbackSent?: (token: string) => void;
+  /** Livrée / Annulée / Client injoignable : pied de fiche affiché si la commande est en cours. */
+  outcome?: OrderOutcomeHandlers;
 }
 
-const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) => {
-  const { invites, markSent } = useDueFeedbackInvites();
-  const orderInvites = invites.filter((invite) => invite.order_id === order.id);
+const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
+  order,
+  onClose,
+  feedbackInvites = [],
+  onFeedbackSent,
+  outcome,
+}) => {
+  const orderInvites = feedbackInvites.filter((invite) => invite.order_id === order.id);
+  const showOutcome = Boolean(outcome) && isOrderOpen(order);
 
   const [trocVoucher, setTrocVoucher] = useState(order.trocVoucher || null);
 
@@ -99,15 +111,27 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
         {/* Corps défilable avec padding bas garanti sur mobile */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6 pb-28 sm:pb-8">
           {order.status === 'delivered' && orderInvites.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {orderInvites.map((invite) => (
-                <OrderFeedbackInviteButton
-                  key={invite.token}
-                  invite={invite}
-                  onSent={markSent}
-                />
-              ))}
-            </div>
+            <section
+              data-testid="order-feedback-invites"
+              aria-label="Envoyer le lien d’avis"
+              className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-4"
+            >
+              <h3 className="mb-1 flex items-center gap-2 text-xs font-bold uppercase text-emerald-300">
+                <MessageCircle className="h-4 w-4" /> Envoyer le lien d’avis
+              </h3>
+              <p className="mb-3 text-xs text-white/75">
+                Commande livrée : propose au client de laisser son avis sur WhatsApp.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {orderInvites.map((invite) => (
+                  <OrderFeedbackInviteButton
+                    key={invite.token}
+                    invite={invite}
+                    onSent={onFeedbackSent}
+                  />
+                ))}
+              </div>
+            </section>
           ) : null}
           
           {/* Grille Infos Client, Livraison & Smart Troc */}
@@ -301,6 +325,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
           </div>
 
         </div>
+
+        {showOutcome && outcome ? <OrderOutcomeActions order={order} handlers={outcome} /> : null}
       </div>
     </div>
   );

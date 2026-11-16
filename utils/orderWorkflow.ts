@@ -45,6 +45,60 @@ export const canIssueInvoice = (order: Order): boolean =>
 export const canCancelOrder = (order: Order): boolean =>
   canTransitionOrder(order.status, 'cancelled');
 
+/** Statuts « en cours » : la fiche propose Livrée / Annulée / Client injoignable.
+ * Même liste que notify_order_stale et mark_order_unreachable (20261110_001). */
+export const ORDER_OPEN_STATUSES: ReadonlyArray<OrderStatus> = ['pending', 'confirmed', 'ready', 'shipped'];
+
+export const isOrderOpen = (order: Pick<Order, 'status'>): boolean =>
+  ORDER_OPEN_STATUSES.includes(order.status);
+
+/** Motifs d'annulation : liste fermée, relayée telle quelle dans l'alerte staff
+ * (notify_order_outcome n'accepte que ces libellés, aucun texte libre). */
+export const ORDER_CANCEL_REASONS = [
+  'Client injoignable',
+  'Client a renoncé',
+  'Rupture de stock',
+  'Doublon',
+  'Prix ou délai refusé',
+] as const;
+
+export type OrderCancelReason = (typeof ORDER_CANCEL_REASONS)[number];
+
+export const UNREACHABLE_CANCEL_REASON: OrderCancelReason = 'Client injoignable';
+
+/** Nombre de tentatives sans réponse à partir duquel la fiche propose l'annulation. */
+export const UNREACHABLE_CANCEL_THRESHOLD = 3;
+
+/**
+ * Étapes intermédiaires à enchaîner avant l'encaissement qui passe la commande en « Livrée ».
+ * Pur : aucune transition directe vers delivered (l'encaissement reste le seul chemin).
+ * Chaque pas est validé par canTransitionOrder ; une chaîne invalide renvoie [].
+ */
+export const planDeliveredSteps = (order: Pick<Order, 'status' | 'deliveryMode'>): OrderStatus[] => {
+  const handover: OrderStatus = order.deliveryMode === 'delivery' ? 'shipped' : 'ready';
+  let steps: OrderStatus[];
+  switch (order.status) {
+    case 'pending':
+      steps = ['confirmed', handover];
+      break;
+    case 'confirmed':
+      steps = [handover];
+      break;
+    default:
+      return [];
+  }
+  let from: OrderStatus = order.status;
+  for (const to of steps) {
+    if (!canTransitionOrder(from, to)) return [];
+    from = to;
+  }
+  return canTransitionOrder(from, 'delivered') ? steps : [];
+};
+
+/** La commande peut-elle être menée jusqu'à « Livrée » depuis la fiche ? */
+export const canMarkDelivered = (order: Pick<Order, 'status' | 'deliveryMode'>): boolean =>
+  order.status === 'ready' || order.status === 'shipped' || planDeliveredSteps(order).length > 0;
+
 export const getInvoiceGateLabel = (status: Order['status']): string => {
   if (status === 'cancelled' || status === 'returned') return '—';
   if (status === 'pending') return 'Après acceptation';

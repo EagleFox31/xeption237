@@ -1,7 +1,8 @@
 /**
  * Adaptateur Telegram (Bot API, parse_mode HTML).
  * Secrets : TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID ; optionnels TELEGRAM_EVENT_TYPES,
- * TELEGRAM_MINIAPP_LINK, TELEGRAM_BOT_USERNAME (sinon déduit du lien Mini App).
+ * TELEGRAM_MINIAPP_LINK, TELEGRAM_BOT_USERNAME (sinon déduit du lien Mini App),
+ * SHOP_NAME (signature du message WhatsApp prérempli, « Xeption » par défaut).
  */
 import {
   cleanHeading,
@@ -19,6 +20,10 @@ import {
 import { botChatLink, buildStartPayload, resolveBotUsername } from '../telegramStartPayload.ts';
 import { digestAckButton, type TelegramInlineButton } from '../telegramDigestAck.ts';
 import { formatTelegramWeeklyDigest, isWeeklyDigest } from '../weeklyDigest.ts';
+import { customerWhatsAppLink, orderDetailLines } from '../staffNotifyOrder.ts';
+import { isOrderActionable, ORDER_ACTION_EVENT_TYPES, orderActionRows } from '../telegramOrderActions.ts';
+
+const DEFAULT_SHOP_NAME = 'Xeption';
 
 /** Limite Telegram d'un message texte. */
 export const TELEGRAM_MAX_MESSAGE_LENGTH = 4096;
@@ -61,6 +66,9 @@ export const formatTelegramNotification = (n: StaffNotification): string => {
   const lines = [`${v.icon} <b>${escapeTelegramHtml(v.heading.toUpperCase())}</b>`];
   if (v.subject) lines.push('', `${SUBJECT_ICON} <b><u>${escapeTelegramHtml(v.subject)}</u></b>`);
   for (const d of v.details) lines.push(`▫️ ${escapeTelegramHtml(d)}`);
+  // Alertes de commande : qui appeler, quoi préparer, où livrer (groupe staff interne).
+  const order = n.order ? orderDetailLines(n.order) : [];
+  if (order.length) lines.push('', ...order.map(escapeTelegramHtml));
   return truncateTelegramText(lines.join('\n'));
 };
 
@@ -80,6 +88,7 @@ export const telegramReplyMarkup = (
   ctx: StaffNotifyContext,
   miniAppUrl?: string,
   botUsername?: string | null,
+  shopName: string = DEFAULT_SHOP_NAME,
 ) => {
   const link = notificationLink(n, ctx);
   const miniApp = trustedMiniAppLink(miniAppUrl);
@@ -93,6 +102,13 @@ export const telegramReplyMarkup = (
   }
   // Bilan journalier : acquittement en un clic depuis le groupe (ack_staff_notification_from_telegram).
   if (isDailyDigest(n)) keyboard.push([digestAckButton(n.notification_id)]);
+  // Commande en attente d'une issue : actions en un clic (telegram_staff_order_action) + contact client.
+  const order = n.order;
+  if (order && ORDER_ACTION_EVENT_TYPES.has(n.event_type) && isOrderActionable(order.status, order.delivery_mode)) {
+    keyboard.push(...orderActionRows(order.id, order.status as string));
+    const whatsapp = customerWhatsAppLink(order, shopName);
+    if (whatsapp) keyboard.push([{ text: '💬 WhatsApp client ↗', url: whatsapp }]);
+  }
   return { inline_keyboard: keyboard };
 };
 
@@ -106,6 +122,7 @@ export const createTelegramChannel = (
   if (!token || !chatId) return null;
   const miniAppUrl = env('TELEGRAM_MINIAPP_LINK');
   const botUsername = resolveBotUsername(env('TELEGRAM_BOT_USERNAME'), miniAppUrl);
+  const shopName = env('SHOP_NAME') || DEFAULT_SHOP_NAME;
 
   return {
     id: 'telegram',
@@ -119,7 +136,7 @@ export const createTelegramChannel = (
           text: formatTelegramNotification(notification),
           parse_mode: 'HTML',
           disable_web_page_preview: true,
-          reply_markup: telegramReplyMarkup(notification, ctx, miniAppUrl, botUsername),
+          reply_markup: telegramReplyMarkup(notification, ctx, miniAppUrl, botUsername, shopName),
         }),
       });
       if (res.ok) return null;

@@ -84,7 +84,7 @@ const getBrandFallbackImage = (brandOrName: string): string => {
   if (b.includes('samsung') || b.includes('galaxy')) return '/troc-rec-galaxys23.png';
   if (b.includes('tecno') || b.includes('phantom')) return '/troc-rec-tecnophantom.png';
   if (b.includes('xiaomi') || b.includes('redmi'))
-    return 'https://res.cloudinary.com/dli0kdkg9/image/upload/v1778755031/xeption/f0ttv0zvegqwxbfmrti2.jpg';
+    return 'https://trigenys-storage-api.lawrynnjennifer.workers.dev/v1/media/xeption/1e21bcd1-0e9b-48b1-9ca1-ababf6ee6a5e';
   return '/troc-rec-galaxys23.png';
 };
 

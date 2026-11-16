@@ -1,8 +1,10 @@
 /**
- * Typed order snapshot for the « Nouvelle commande » staff alert.
+ * Typed order snapshot for staff order alerts.
  *
- * Exception to the no-customer-data rule, scoped to order_created only (Trigenys Notify ADR-002):
- * the staff must know who to call, what to prepare and where to deliver.
+ * The staff must know who to call, what to prepare and where to deliver. The snapshot is attached
+ * to every order event (new, delivered, cancelled, unreachable, stale) and shown in the internal
+ * Telegram group. Toward Trigenys Notify (WhatsApp), the exception to the no-customer-data rule
+ * stays scoped to order_created (ADR-002, staffNotifyFacts.ts).
  * Each field is dropped when it fails validation; the alert still goes out.
  */
 import type {StaffNotification} from './staffNotify.ts';
@@ -17,10 +19,12 @@ export interface OrderNotificationSnapshot {
   payment_method?:string|null;
   total?:number|string|null;
   items?:unknown;
+  /** Current status: decides whether the Telegram alert carries action buttons. */
+  status?:string|null;
 }
 
 export const ORDER_SNAPSHOT_COLUMNS =
-  'id,customer_name,customer_phone,customer_email,customer_city,delivery_mode,payment_method,total,items';
+  'id,customer_name,customer_phone,customer_email,customer_city,delivery_mode,payment_method,total,items,status';
 
 /** Must stay within Trigenys Notify's limits (10 items, 4096-byte body). */
 const MAX_ITEMS=10;
@@ -54,6 +58,19 @@ export const formatOrderPhone=(raw:unknown):string|undefined=>{
   return /^\d{8,15}$/.test(full)?'+'+full:undefined;
 };
 
+/**
+ * wa.me link to the customer, with a short prefilled greeting (order number only, no amount).
+ * Internal Telegram group only: never sent to Trigenys Notify.
+ */
+export const customerWhatsAppLink=(order:OrderNotificationSnapshot,shopName?:string):string|undefined=>{
+  const phone=formatOrderPhone(order.customer_phone);
+  if(!phone||!/^[A-Za-z0-9_-]{1,40}$/.test(order.id))return undefined;
+  const name=clean(order.customer_name,80)?.split(' ')[0];
+  const shop=clean(shopName,60);
+  const text=`Bonjour${name?' '+name:''}, ici ${shop??'la boutique'} au sujet de votre commande #${order.id}.`;
+  return `https://wa.me/${phone.slice(1)}?text=${encodeURIComponent(text)}`;
+};
+
 export function orderSnapshotFacts(order:OrderNotificationSnapshot):Record<string,unknown>{
   const facts:Record<string,unknown>={};
   const name=clean(order.customer_name,80);if(name)facts.customerName=name;
@@ -83,8 +100,34 @@ export function orderSnapshotFacts(order:OrderNotificationSnapshot):Record<strin
   return facts;
 }
 
+/** Order events whose link_to_id is the order id: their alert carries the order snapshot. */
+export const ORDER_SNAPSHOT_EVENT_TYPES:ReadonlySet<string>=new Set([
+  'order_created','order_delivered','order_cancelled','order_unreachable','order_stale',
+]);
+
+const groupThousands=(value:number):string=>String(value).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+
 /**
- * Attach the order row to each order_created notification in one read.
+ * Human-readable lines (who, what, where, how to pay) for text channels.
+ * Built from the validated facts, so a malformed field is dropped rather than shown.
+ */
+export function orderDetailLines(order:OrderNotificationSnapshot):string[]{
+  const f=orderSnapshotFacts(order);
+  const lines:string[]=[];
+  const contactLine=[f.customerName,f.customerPhone??f.customerEmail].filter(Boolean).join(' · ');
+  if(contactLine)lines.push(`👤 ${contactLine}`);
+  for(const item of (f.items as Array<{name:string;quantity:number;unitPriceXaf?:number}>|undefined)??[]){
+    const price=item.unitPriceXaf!==undefined?` — ${groupThousands(item.unitPriceXaf)} FCFA`:'';
+    lines.push(`🛒 ${item.quantity} × ${item.name}${price}`);
+  }
+  const place=[f.city,f.deliveryAddress].filter(Boolean).join(', ');
+  if(f.deliveryMode||place)lines.push(`🚚 ${[f.deliveryMode,place].filter(Boolean).join(' — ')}`);
+  if(f.paymentMethod)lines.push(`💳 ${f.paymentMethod}`);
+  return lines;
+}
+
+/**
+ * Attach the order row to each order notification (ORDER_SNAPSHOT_EVENT_TYPES) in one read.
  * A read error throws (the batch is retried later) so a retry never sends a poorer payload;
  * a deleted order falls back to the persisted message.
  */
@@ -92,10 +135,10 @@ export async function withOrderSnapshots(
   rows:StaffNotification[],
   read:(ids:string[])=>Promise<OrderNotificationSnapshot[]>
 ):Promise<StaffNotification[]>{
-  const ids=[...new Set(rows.filter(r=>r.event_type==='order_created'&&r.link_to_id)
-    .map(r=>r.link_to_id as string))];
+  const wanted=(r:StaffNotification)=>ORDER_SNAPSHOT_EVENT_TYPES.has(r.event_type)&&!!r.link_to_id;
+  const ids=[...new Set(rows.filter(wanted).map(r=>r.link_to_id as string))];
   if(!ids.length)return rows;
   const orders=new Map((await read(ids)).map(o=>[o.id,o]));
-  return rows.map(row=>row.event_type==='order_created'&&row.link_to_id&&orders.has(row.link_to_id)
-    ?{...row,order:orders.get(row.link_to_id)}:row);
+  return rows.map(row=>wanted(row)&&orders.has(row.link_to_id as string)
+    ?{...row,order:orders.get(row.link_to_id as string)}:row);
 }

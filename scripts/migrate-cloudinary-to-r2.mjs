@@ -1,6 +1,7 @@
 /**
  * Migration des images Cloudinary vers Trigenys Storage (R2).
- * Périmètre : products.image + products.images, trade_in_requests.photo_urls (images seulement ;
+ * Périmètre : products.image + products.images, trade_in_requests.photo_urls ; en option
+ * (--scope=listings,orders) marketplace_listings.photo_urls et orders.items (images seulement ;
  * vidéos et archives restent sur Cloudinary). Rien n'est supprimé chez Cloudinary.
  *
  * Essai à blanc (défaut) : inventaire + vérification HEAD, aucune écriture.
@@ -58,7 +59,37 @@ const TABLES = {
     urls: (r) => (Array.isArray(r.photo_urls) ? r.photo_urls : []),
     patch: (r, swap) => ({ photo_urls: r.photo_urls.map(swap) }),
   },
+  // Annonces marketplace : photos vendeur, mêmes réglages que les trocs.
+  listings: {
+    table: 'marketplace_listings', select: 'id,photo_urls', folder: 'trocs', maxSide: 1600, variants: false,
+    urls: (r) => (Array.isArray(r.photo_urls) ? r.photo_urls : []),
+    patch: (r, swap) => ({ photo_urls: r.photo_urls.map(swap) }),
+  },
+  // Commandes : items = instantanés produit (image, images, variantes…) : parcours profond.
+  orders: {
+    table: 'orders', select: 'id,items', folder: 'products', maxSide: 2048, variants: true,
+    urls: (r) => deepStrings(r.items),
+    patch: (r, swap) => ({ items: deepSwap(r.items, swap) }),
+  },
 };
+
+/** Toutes les chaînes d'une valeur JSON, à toute profondeur. */
+function deepStrings(value) {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap(deepStrings);
+  if (value && typeof value === 'object') return Object.values(value).flatMap(deepStrings);
+  return [];
+}
+
+/** Copie de la valeur JSON avec chaque chaîne passée par swap. */
+function deepSwap(value, swap) {
+  if (typeof value === 'string') return swap(value);
+  if (Array.isArray(value)) return value.map((v) => deepSwap(v, swap));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, deepSwap(v, swap)]));
+  }
+  return value;
+}
 
 const CLOUDINARY_IMAGE_RE = /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//i;
 const isCloudinaryImage = (u) => typeof u === 'string' && CLOUDINARY_IMAGE_RE.test(u);
@@ -236,8 +267,10 @@ async function main() {
   for (const scope of SCOPES) {
     const cfg = TABLES[scope];
     if (!cfg) throw new Error(`Périmètre inconnu : ${scope}`);
+    // Toute ligne qui pointe encore vers Cloudinary, même si l'image est déjà copiée : une écriture
+    // en base peut avoir échoué après l'envoi (2026-10-27), la relance doit alors juste repointer.
     let rows = (await fetchRows(client, cfg).catch((e) => { console.warn(e.message); return []; }))
-      .filter((r) => cfg.urls(r).some((u) => isCloudinaryImage(u) && !map[u]));
+      .filter((r) => cfg.urls(r).some(isCloudinaryImage));
     if (LIMIT) rows = rows.slice(0, LIMIT);
 
     const urls = [...new Set(rows.flatMap((r) => cfg.urls(r)).filter((u) => isCloudinaryImage(u) && !map[u]))];
@@ -245,6 +278,8 @@ async function main() {
     const dead = new Set(urls.filter((_, i) => probes[i].status !== 200));
     const summary = {
       rows: rows.length,
+      // Lignes à seulement repointer : toutes leurs images Cloudinary ont déjà une copie R2.
+      repointOnly: rows.filter((r) => cfg.urls(r).filter(isCloudinaryImage).every((u) => map[u])).length,
       urls: urls.length,
       migratable: urls.length - dead.size,
       dead: dead.size,

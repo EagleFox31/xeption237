@@ -4,7 +4,7 @@ import { Check, ExternalLink, ImageOff, Loader2, Plus, Star, Upload } from 'luci
 import type { Brand, Product, ProductRange } from '../../../types';
 import { supabase } from '../../../services/supabaseClient';
 import { DB_TABLES, DB_SCHEMA } from '../../../constants/dbSchema';
-import { uploadImageToCloudinary } from '../../../services/uploadService';
+import { uploadProductImage } from '../../../services/uploadService';
 import { optimizeImage } from '../../../utils/mediaOptimization';
 import { resolveCatalogBrandId } from '../../../utils/catalogStructure';
 import TableShell from '../shared/TableShell';
@@ -140,7 +140,7 @@ const ProductImagesBulkTab: React.FC<ProductImagesBulkTabProps> = ({
       setUploadingMode(mode);
       setRecentSuccessId(null);
       try {
-        const urls = await Promise.all(files.map((f) => uploadImageToCloudinary(f)));
+        const urls = await Promise.all(files.map((f) => uploadProductImage(f)));
         const gallery = [...(product.images || [])];
         let main = product.image?.trim() || '';
 

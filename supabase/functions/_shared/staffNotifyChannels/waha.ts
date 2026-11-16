@@ -15,15 +15,33 @@ import {
   type StaffNotifyContext,
 } from '../staffNotify.ts';
 import {extractNotificationFacts} from '../staffNotifyFacts.ts';
+import {isWeeklyDigest,trimWeeklyDigest,type WeeklyDigestFacts} from '../weeklyDigest.ts';
 
 export const WAHA_DEFAULT_EVENT_TYPES = [
   'order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report',
-  'debt_overdue'
+  'debt_overdue','order_delivered','order_cancelled','order_unreachable','order_stale','weekly_digest'
 ];
+
+/**
+ * Staff events deliberately NOT relayed to WhatsApp (no alias). Every DEFAULT_STAFF_EVENT_TYPES
+ * entry must be either aliased below or listed here, with its reason (tests/waha-notify-channel).
+ */
+export const WAHA_EXCLUDED_EVENT_TYPES: Record<string,string> = {
+  troc_completed:'Telegram only: back-office follow-up of a trade-in already handled',
+  troc_refused:'Telegram only: back-office follow-up of a trade-in already handled',
+  pos_sale:'Counter sale: the seller is present, a group message would be noise',
+  stock_correction:'Internal stock audit trail, not an operational alert',
+  troc_stale:'Not yet in Trigenys Notify ALLOWED_TYPES (barter.stale): add both sides together',
+  daily_digest:'Multi-line digest format, Telegram only for now'
+};
 
 export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
   order_created:'order.created',
   order_paid:'order.paid',
+  order_delivered:'order.delivered',
+  order_cancelled:'order.cancelled',
+  order_unreachable:'order.unreachable',
+  order_stale:'order.stale',
   stock_low:'inventory.stock_low',
   stock_out:'inventory.stock_out',
   product_missing_image:'catalog.product_missing_image',
@@ -31,7 +49,8 @@ export const NOTIFY_EVENT_ALIASES: Record<string,string> = {
   voucher_expiring:'barter.voucher_expiring',
   marketplace_listed:'marketplace.listing_created',
   store_cash_report:'cash_report.closed',
-  debt_overdue:'finance.debt_overdue'
+  debt_overdue:'finance.debt_overdue',
+  weekly_digest:'report.weekly_digest'
 };
 // Every alias must also be in Trigenys Notify's ALLOWED_TYPES, or it is rejected with HTTP 400.
 
@@ -65,7 +84,8 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
     type.startsWith('barter.')?'barter':
     type.startsWith('order.')?'order':
     type.startsWith('cash_report.')?'cash_report':
-    type.startsWith('finance.')?'finance':'marketplace';
+    type.startsWith('finance.')?'finance':
+    type.startsWith('report.')?'report':'marketplace';
   if(!n.created_at||!Number.isFinite(Date.parse(n.created_at)))
     throw new Error('NOTIFICATION_TIMESTAMP_REQUIRED');
   const facts=extractNotificationFacts(n);
@@ -75,16 +95,20 @@ export function toNotifyEvent(n:StaffNotification, _ctx:StaffNotifyContext) {
     version:1,project:'xeption',id:n.notification_id,type,
     occurredAt:new Date(n.created_at).toISOString(),
     priority:n.event_type==='stock_out'||n.event_type==='order_created'?'critical':
-      n.event_type==='stock_low'||n.event_type==='troc_submitted'||n.event_type==='store_cash_report'||n.event_type==='voucher_expiring'||n.event_type==='order_paid'?'high':'normal',
+      n.event_type==='stock_low'||n.event_type==='troc_submitted'||n.event_type==='store_cash_report'||n.event_type==='voucher_expiring'||n.event_type==='order_paid'||
+      n.event_type==='order_stale'||n.event_type==='order_unreachable'?'high':'normal',
     resource:{kind,id:resourceId},
     audience:'staff',
     ...(facts?{facts}:{}),
     // Do not use a client-controlled origin from message or source settings.
-    actionUrl:notificationLink(n,{siteUrl:'https://www.xeptionetwork.shop'}).url
+    // The weekly digest has no link: Notify prefixes links with an emoji (validated format: none).
+    ...(isWeeklyDigest(n)?{}:{actionUrl:notificationLink(n,{siteUrl:'https://www.xeptionetwork.shop'}).url})
   };
   // Deterministic trim: a long basket keeps its first lines, the total stays exact.
   const items=Array.isArray(facts?.items)?facts.items:undefined;
-  while(items&&items.length>1&&new TextEncoder().encode(JSON.stringify(event)).length>MAX_EVENT_BYTES)items.pop();
+  const size=()=>new TextEncoder().encode(JSON.stringify(event)).length;
+  while(items&&items.length>1&&size()>MAX_EVENT_BYTES)items.pop();
+  if(isWeeklyDigest(n)&&facts)trimWeeklyDigest(facts as unknown as WeeklyDigestFacts,size,MAX_EVENT_BYTES);
   return event;
 }
 

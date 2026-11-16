@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { optimizeImage } from '../utils/mediaOptimization';
+import { BRAND_MARK_PATH } from '../constants/brandAssets';
 
 interface LogoProps {
   className?: string;
@@ -23,7 +23,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', subtitle }) => {
     <div className={`flex items-center gap-3 select-none ${className}`}>
       <div className="relative w-12 h-12 flex items-center justify-center">
         <img
-          src={optimizeImage("https://res.cloudinary.com/dli0kdkg9/image/upload/v1768287078/logo_mbajfa.png", 100)}
+          src={BRAND_MARK_PATH}
           alt="Xeption Logo"
           className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(255,215,0,0.6)] animate-pulse-slow"
         />

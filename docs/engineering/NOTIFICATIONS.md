@@ -35,6 +35,9 @@ Chaque événement susceptible de créer une notification définit une `dedup_ke
 | Troc refusé | `troc.refused.<request_id>` |
 | Commande créée | `order.created.<order_id>` |
 | Commande payée en ligne | `order_paid.<order_id>` |
+| Commande livrée / annulée | `order.delivered.<order_id>` / `order.cancelled.<order_id>` |
+| Client injoignable (tentative n) | `order.unreachable.<order_id>.<n>` |
+| Commande sans suivi (palier) | `order.stale.<order_id>.48h` puis `order.stale.<order_id>.7d` |
 
 L'INSERT utilise `ON CONFLICT (dedup_key) DO NOTHING`. Résultat :
 - Rejeu du trigger sur la même transition → aucune duplication
@@ -91,6 +94,10 @@ Garanties :
 | `troc_refused` | Trigger DB sur `trade_in_requests` (`refused`) | tous staff | in-app + Telegram | ✅ MVP |
 | `pos_sale` | RPC `telegram_staff_complete_sale` (vente comptoir du bot Telegram) | tous staff | in-app + groupe Telegram | ✅ |
 | `order_paid` | Confirmation paiement en ligne CamPay (`patchOrderPaymentPaid`) | tous staff | in-app + Telegram + WhatsApp | ✅ Livré |
+| `order_delivered` | Trigger DB `trg_notify_order_outcome` (UPDATE de `orders.status` vers `delivered`, hors `pos`) | tous staff | in-app + Telegram + WhatsApp (`order.delivered`) | 🟡 Migration 20261110_001 (à déployer) |
+| `order_cancelled` | Même trigger, statut `cancelled` ; motif relayé seulement s'il appartient à `ORDER_CANCEL_REASONS` (liste fermée, aucun texte libre) | tous staff | in-app + Telegram + WhatsApp (`order.cancelled`) | 🟡 Migration 20261110_001 (à déployer) |
+| `order_unreachable` | RPC `mark_order_unreachable` (bouton « Client injoignable » de la fiche commande ; une tentative au plus toutes les 10 min) | tous staff | in-app + Telegram + WhatsApp (`order.unreachable`, priorité haute) | 🟡 Migration 20261110_001 (à déployer) |
+| `order_stale` | pg_cron `order-stale-hourly` (`15 7-19 * * *` UTC) → `notify_order_stale()` : commande ouverte (`pending`/`confirmed`/`ready`/`shipped`) depuis 48 h puis 7 j, de moins de 30 j, 20 au plus par passage | tous staff | in-app + Telegram + WhatsApp (`order.stale`, priorité haute) | 🟡 Migration 20261110_001 (à déployer) |
 | `order_shipped` | Admin action manuelle | **client (email)** | email | 🟡 Roadmap |
 | `sync_success` / `sync_failure` | Hook `useOfflinePos` (déjà intégré via shim) | vendeur concerné | in-app (silencieux pour `success`) | ✅ MVP (via shim legacy) |
 | `stock_low` / `stock_out` | Trigger DB sur `products.stock` (franchissement du seuil 2, puis 0) | tous staff | in-app + Telegram + WhatsApp | ✅ |
@@ -102,7 +109,7 @@ Garanties :
 | `voucher_expiring` | pg_cron horaire `notify_time_based_reminders()` (bon troc expirant dans < 48 h, statut actif) | responsable | in-app + Telegram + WhatsApp | ✅ Livré |
 | `debt_overdue` | pg_cron horaire `notify_time_based_reminders()` (résumé hebdo par boutique des dettes > 7 j) | tous staff | in-app + Telegram + WhatsApp (`finance.debt_overdue`, depuis le 02/11/2026) | ✅ Livré |
 | `daily_digest` | pg_cron `daily-digest-evening` 21:00 UTC (22 h Douala, depuis `20261111_002` ; 20 h auparavant) → `notify_daily_digest()` : bilan du jour par boutique active (ventes, canaux, caisse, dettes, trocs, objectifs), dedup `daily_digest.<store_code>.<YYYY-MM-DD>` | responsable | in-app + Telegram (bouton « ✅ Vu » → `ack_staff_notification_from_telegram`) ; WhatsApp non (type non accepté par Trigenys Notify) | ✅ Livré le 07/11/2026 (ADR-001). Depuis le 10/11/2026 (`20261110_001`) : « Dettes en cours » = `store_debts` ouvertes, sinon repli sur le `debts_snapshot` du dernier rapport de caisse (import WhatsApp), avec la date du rapport. Depuis le 11/11/2026 (`20261111_003`) : « Mouvements caisse : +entrées · −sorties », « ⚠ Écart de caisse » si ouverture + entrées − sorties ≠ clôture, et variation du reste dettes vs rapport précédent |
-| `weekly_digest` | pg_cron `weekly-digest-monday` lundi 07:00 UTC (08 h Douala) → `notify_weekly_digest()` : bilan consolidé de la semaine ISO écoulée à partir des rapports de caisse (entrées, sorties, remis au boss, caisse du dernier soir, meilleur jour, total, dettes agrégées et leur évolution, « À noter » : écarts de caisse, journées sans entrée, rapports manquants lundi-samedi), dedup `weekly_digest.<IYYY>-W<IW>` | responsable | in-app + Telegram (sans emoji, titres en gras) ; WhatsApp non (type non accepté par Trigenys Notify) | Code prêt le 14/11/2026 (ADR-002), migration `20261114_001` **non appliquée** : nouveau comportement par défaut à l'application |
+| `weekly_digest` | pg_cron `weekly-digest-monday` lundi 07:00 UTC (08 h Douala) → `notify_weekly_digest()` : bilan consolidé de la semaine ISO écoulée à partir des rapports de caisse (entrées, sorties, remis au boss, caisse du dernier soir, meilleur jour, total, dettes agrégées et leur évolution, « À noter » : écarts de caisse, journées sans entrée, rapports manquants lundi-samedi), dedup `weekly_digest.<IYYY>-W<IW>` | responsable | in-app + Telegram (sans emoji, titres en gras) + WhatsApp (`report.weekly_digest`, groupe de test seulement via `WAHA_EVENT_GROUPS_JSON` de Trigenys Notify, Worker à déployer avant `notify-staff`) | Code prêt le 14/11/2026 (ADR-002), migration `20261114_001` **non appliquée** : nouveau comportement par défaut à l'application |
 | `stock_alert` | (remplacé par `stock_low` / `stock_out`) | — | — | — |
 | `security_alert` | `useAdminData` sur `security_events` (déjà intégré via shim) | `direction`+ | in-app | ✅ MVP (via shim legacy) |
 
@@ -115,7 +122,8 @@ Garanties :
   - Sur chaque vente comptoir enregistrée (`actionSaleComplete`), comme le téléphone client y est obligatoire, le bot Telegram propose systématiquement au vendeur un bouton interactif `📲 Envoyer le reçu au client`.
   - Ce bouton ouvre l'application WhatsApp du vendeur avec un message pré-rempli (`wa.me`) contenant le reçu détaillé (tronqué à 1 600 caractères max), sans envoi automatique backend (zéro risque de signalement spam ou de ban de numéro boutique).
 - **Groupe WhatsApp (Urgences commerciales, Stocks critiques & Clôtures)** :
-  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report', 'debt_overdue']`).
+  - Événements configurés (`WAHA_DEFAULT_EVENT_TYPES = ['order_created', 'order_paid', 'troc_submitted', 'voucher_expiring', 'stock_out', 'stock_low', 'store_cash_report', 'debt_overdue', 'order_delivered', 'order_cancelled', 'order_unreachable', 'order_stale']`).
+  - Types volontairement non relayés sur WhatsApp : `WAHA_EXCLUDED_EVENT_TYPES` (`waha.ts`), avec la raison de chacun. Tout type de `DEFAULT_STAFF_EVENT_TYPES` doit être soit aliasé, soit exclu explicitement (test d'alignement dans `tests/waha-notify-channel.test.ts`).
   - ⚠️ Chaque alias de `NOTIFY_EVENT_ALIASES` doit aussi figurer dans `ALLOWED_TYPES` de Trigenys Notify (`src/core/dispatch.ts`), sinon l'envoi est refusé en **HTTP 400** (`notify_http_400` dans `notification_deliveries.last_error`). Garde-fou : test miroir dans `tests/waha-notify-channel.test.ts`.
   - Rappel dettes : uniquement le nom de la boutique, le nombre de dettes de plus de 7 jours et le reste à encaisser (aucun nom client).
   - Protégé contre la fuite de données personnelles (enveloppe canonique Trigenys Notify sans noms ni numéros clients).

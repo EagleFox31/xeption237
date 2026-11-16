@@ -268,3 +268,11 @@ noms actuels, « Boutique mfoundi mall » n'est plus résolu par `hint` (ambigu 
 06/11 → attribué à OLEMBE par vote opérateurs (conflit). En prod ces jours sont corrects car importés avant le renommage.
 Prévention à décider (Anjl) : staff rattaché à la bonne boutique (Jordan, Engelbert, Sefora → MFOUNDI) ou mapping
 auteur → boutique dans `WHATSAPP_CASH_AUTHOR_STORES`, ou demander au staff 1038 d'écrire « 1038 » dans l'en-tête.
+
+## 2026-11-16 11:54 — Décision terrain : numéro de boutique dans l'en-tête
+
+Info relayée par la session digest : les équipes mettront désormais le numéro (1038 / 1092) dans l'en-tête des
+rapports « Boutique mfoundi mall » → le résolveur `hint` (tokens « 1038 » / « 1092 ») redevient suffisant. Aucune
+règle d'alias par défaut validée ; filet de sécurité (staff rattaché ou `WHATSAPP_CASH_AUTHOR_STORES`) laissé à
+l'arbitrage d'Anjl. Rien à faire ici tant qu'un rapport sans numéro ne réapparaît pas (surveiller `store_unresolved`
+dans les logs du webhook). Branche à jour, PR #52 sans conflit, rien à déployer.

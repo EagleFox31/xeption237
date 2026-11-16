@@ -213,3 +213,11 @@ Main apporte `20261114_001_weekly_digest.sql` (non appliquée en prod à cette h
 journalière) et des doublons de préfixe `20261111_001` / `20261111_003` entre branches (suivi par nom de
 fichier complet, donc sans collision, mais règle du préfixe unique cassée). Prochaine étape : rien en attente ;
 surveiller les événements CI de la PR #52.
+
+## 2026-11-16 10:59 — Nouveau conflit PR #52 signalé, réseau indisponible
+
+Auto-fix signale un conflit avec `main` (tête 65f39ee). Impossible de `git fetch origin main` : github.com
+et google.com injoignables depuis le poste (code 000, échec de connexion). Rien fusionné ; la branche locale est
+inchangée. À faire dès le retour du réseau : `git fetch origin main && git merge --no-edit FETCH_HEAD`,
+résoudre (probablement `docs/engineering/NOTIFICATIONS.md` ou `PASSATION-*`), tests
+`tests/notify-daily-digest.test.ts` + webhook, commit, push. Cette entrée est commitée en local, non poussée.

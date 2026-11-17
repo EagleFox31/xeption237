@@ -545,3 +545,20 @@
 - `npm run troc:catalog-gaps` (lecture seule) : calibrage du ratio + 121/151 produits boutique sans
   entrée de reprise, avec le `base_price` proposé.
 - Rien déployé, aucune migration. À déployer par Anjl : `save-trade-in` (après fusion de #63).
+## 2026-11-17 18:37 — Refus de bon troc débloqué (RLS historique)
+
+- Migration `20261117_001_trade_in_status_history_definer.sql` appliquée en prod (accord Anjl « Oui, applique ») via `db:apply` ; enregistrée dans `schema_migrations` ; `log_trade_in_status_change()` = `prosecdef=true`, `search_path=public, pg_temp`.
+- Branche `fix/troc-status-history-rls` (commit 46a89e4 + cette passation), non poussée, pas de PR.
+- À faire : Anjl re-clique « Refuser l'échange » dans l'ERP pour confirmer ; proposer push + PR.
+- Message @glitch (bon BON-1794932672 revu) : pas encore envoyé. Méthode déjà utilisée : WAHA sur le VPS (`/api/sendText`, session `trigenys-test`). SSH du VPS en « connection reset » à 18:35 ; il manque l'id du groupe staff et celui de glitch pour la mention.
+
+## 2026-11-17 18:50 — Refus troc confirmé en ERP
+
+- Anjl confirme : le refus d'un bon passe dans l'ERP après la migration `20261117_001`.
+- Branche `fix/troc-status-history-rls` (46a89e4, 7a1a05d, cette entrée) : à pousser + PR sur accord.
+- Restent : message @glitch (SSH du VPS en « connection reset », id du groupe staff et de glitch à récupérer via WAHA), PR #63 à fusionner, branche `feat/troc-catalog-link` (c6e649d) de la session catalogue, non poussée.
+
+## 2026-11-17 19:05 — Message @glitch envoyé
+
+- SSH du VPS revenu. Message « bon BON-1794932672 revu » envoyé via WAHA (`trigenys-test`, groupe « Xeption app test », mention `23797686684@c.us`) : HTTP 201.
+- Reste : push + PR de `fix/troc-status-history-rls` sur accord ; PR #63 puis #64 à fusionner.

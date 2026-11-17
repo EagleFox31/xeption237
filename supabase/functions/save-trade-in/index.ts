@@ -5,6 +5,7 @@ import { SCREEN_CONDITIONS, BODY_CONDITIONS, CAMERA_CONDITIONS, REPAIR_OPTIONS }
 import { resolveTier, type TrocTier } from '../_shared/trocTiers.ts';
 import { matchTradeInModel } from '../_shared/tradeInModelMatch.ts';
 import { capCreditToShopPrice, findLowestShopPrice, shopPriceSearchToken, SHOP_PRICE_CAP_CATEGORIES } from '../_shared/shopPriceCap.ts';
+import { resolveFirstBasePrice, shopPriceToBasePrice, type BasePriceSource } from '../_shared/basePriceResolution.ts';
 import {
   customerContactTask,
   offerPatchIfChanged,
@@ -285,7 +286,8 @@ const validateBody = (body: any): string | null => {
   return null;
 };
 
-// ─── Prix de base : id catalogue (exact) → matching nom (fragile) → repli tolérant → market-intel ──
+// ─── Prix de base : catalogue de reprise (id exact → nom → repli tolérant) → prix boutique → market-intel ──
+// Ordre et conversion boutique : ADR-005.
 // Partagé par la création et l'action staff `recalculate` : une seule source de calcul.
 
 type BasePriceInput = {
@@ -294,13 +296,15 @@ type BasePriceInput = {
   deviceStorage?: string | null;
   deviceRam?: string | null;
   tradeInModelId: string | null;
+  /** Prix boutique le plus bas du modèle (déjà lu pour le plafond) : réutilisé, pas relu. */
+  lowestShopPrice: Promise<number | null>;
 };
 
 const resolveBasePrice = async (
   supabaseUrl: string,
   serviceKey: string,
-  { deviceBrand, deviceModel, deviceStorage, deviceRam, tradeInModelId: initialModelId }: BasePriceInput,
-): Promise<{ basePrice: number; tradeInModelId: string | null }> => {
+  { deviceBrand, deviceModel, deviceStorage, deviceRam, tradeInModelId: initialModelId, lowestShopPrice }: BasePriceInput,
+): Promise<{ basePrice: number; tradeInModelId: string | null; basePriceSource: BasePriceSource }> => {
   const authHeaders = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
   let basePrice = 0;
   let tradeInModelId = initialModelId;
@@ -353,26 +357,38 @@ const resolveBasePrice = async (
     } catch { /* pas de prix argus */ }
   }
 
-  if (basePrice <= 0) {
-    try {
-      const intelRes = await fetchWithTimeout(`${supabaseUrl}/functions/v1/market-price-intel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
-        body: JSON.stringify({
-          deviceBrand: deviceBrand.trim(), deviceModel: deviceModel.trim(),
-          deviceStorage: deviceStorage || null, deviceRam: deviceRam || null,
-          countryCode: 'CM', forceRefresh: true,
-        }),
-      });
-      if (intelRes.ok) {
-        const intelData = await intelRes.json();
-        const ref = Number(intelData?.referencePrice || 0);
-        if (Number.isFinite(ref) && ref > 0) basePrice = ref;
-      }
-    } catch { /* keep 0 */ }
-  }
+  if (basePrice > 0) return { basePrice, tradeInModelId, basePriceSource: 'catalog' };
 
-  return { basePrice, tradeInModelId };
+  const resolved = await resolveFirstBasePrice([
+    { source: 'shop', load: async () => shopPriceToBasePrice(await lowestShopPrice) },
+    { source: 'market', load: () => fetchMarketIntelPrice(supabaseUrl, serviceKey, { deviceBrand, deviceModel, deviceStorage, deviceRam }) },
+  ]);
+  return { basePrice: resolved.basePrice, tradeInModelId, basePriceSource: resolved.source };
+};
+
+/** Prix neuf estimé par `market-price-intel` (dernier recours), ou null. */
+const fetchMarketIntelPrice = async (
+  supabaseUrl: string,
+  serviceKey: string,
+  { deviceBrand, deviceModel, deviceStorage, deviceRam }: Pick<BasePriceInput, 'deviceBrand' | 'deviceModel' | 'deviceStorage' | 'deviceRam'>,
+): Promise<number | null> => {
+  try {
+    const intelRes = await fetchWithTimeout(`${supabaseUrl}/functions/v1/market-price-intel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({
+        deviceBrand: deviceBrand.trim(), deviceModel: deviceModel.trim(),
+        deviceStorage: deviceStorage || null, deviceRam: deviceRam || null,
+        countryCode: 'CM', forceRefresh: true,
+      }),
+    });
+    if (intelRes.ok) {
+      const intelData = await intelRes.json();
+      const ref = Number(intelData?.referencePrice || 0);
+      if (Number.isFinite(ref) && ref > 0) return ref;
+    }
+  } catch { /* pas d'estimation */ }
+  return null;
 };
 
 /**
@@ -442,14 +458,16 @@ const handleRecalculate = async (req: Request, body: any): Promise<Response> => 
   }
 
   const input = tradeInRowToPricingInput(row);
-  const { basePrice, tradeInModelId } = await resolveBasePrice(supabaseUrl, serviceKey, {
+  const shopPricePromise = fetchLowestShopPrice(supabaseUrl, serviceKey, input.deviceBrand, input.deviceModel);
+  const { basePrice, tradeInModelId, basePriceSource } = await resolveBasePrice(supabaseUrl, serviceKey, {
     deviceBrand: input.deviceBrand,
     deviceModel: input.deviceModel,
     deviceStorage: row.device_storage,
     deviceRam: row.device_ram,
     tradeInModelId: row.trade_in_model_id ?? null,
+    lowestShopPrice: shopPricePromise,
   });
-  const lowestShopPrice = await fetchLowestShopPrice(supabaseUrl, serviceKey, input.deviceBrand, input.deviceModel);
+  const lowestShopPrice = await shopPricePromise;
   const offer = computeOfferV2(input, basePrice, lowestShopPrice);
 
   const patch = offerPatchIfChanged(row, {
@@ -463,7 +481,7 @@ const handleRecalculate = async (req: Request, body: any): Promise<Response> => 
     trade_in_model_id:   tradeInModelId,
   });
 
-  if (!patch) return jsonResponse({ changed: false, basePrice, offer });
+  if (!patch) return jsonResponse({ changed: false, basePrice, basePriceSource, offer });
 
   const patchRes = await fetchWithTimeout(rowUrl, {
     method: 'PATCH',
@@ -475,7 +493,7 @@ const handleRecalculate = async (req: Request, body: any): Promise<Response> => 
     return jsonResponse({ error: 'Erreur lors de la sauvegarde' }, 500);
   }
   console.info('[save-trade-in] recalculated', {
-    requestId: row.id, by: auth.email, basePrice,
+    requestId: row.id, by: auth.email, basePrice, basePriceSource,
     before: { trade_in_value: row.trade_in_value, blocker_reason: row.blocker_reason },
     after: { trade_in_value: offer.tradeInValue, blocker_reason: offer.blocker ?? null },
   });
@@ -499,7 +517,7 @@ const handleRecalculate = async (req: Request, body: any): Promise<Response> => 
     }
   }
   return jsonResponse({
-    changed: true, basePrice, offer, customerTaskQueued,
+    changed: true, basePrice, basePriceSource, offer, customerTaskQueued,
     request: Array.isArray(updated) ? updated[0] : updated,
   });
 };
@@ -571,13 +589,16 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const [{ basePrice, tradeInModelId }, lowestShopPrice] = await Promise.all([
+    const shopPricePromise = fetchLowestShopPrice(supabaseUrl, serviceKey, deviceBrand, deviceModel);
+    const [{ basePrice, tradeInModelId, basePriceSource }, lowestShopPrice] = await Promise.all([
       resolveBasePrice(supabaseUrl, serviceKey, {
         deviceBrand, deviceModel, deviceStorage, deviceRam,
         tradeInModelId: typeof body?.tradeInModelId === 'string' && body.tradeInModelId ? body.tradeInModelId : null,
+        lowestShopPrice: shopPricePromise,
       }),
-      fetchLowestShopPrice(supabaseUrl, serviceKey, deviceBrand, deviceModel),
+      shopPricePromise,
     ]);
+    console.info('[save-trade-in] base_price', { basePrice, basePriceSource, lowestShopPrice });
 
     // ── Vérification IMEI ────────────────────────────────────────────────────
     // Le palier 'safety' déclenche le check premium imeicheck.net (blacklist mondiale).

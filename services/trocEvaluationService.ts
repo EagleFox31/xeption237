@@ -8,6 +8,7 @@ import { normalizeModelKey } from '../utils/modelKey';
 import { getProductDisplayName } from '../utils/productDisplay';
 import { computeVoucherExpiry } from '../utils/voucherValidity';
 import { findLowestShopPrice, shopPriceSearchToken, SHOP_PRICE_CAP_CATEGORIES } from '../utils/shopPriceCap';
+import { resolveFirstBasePrice, shopPriceToBasePrice } from '../utils/basePriceResolution';
 import {
   sanitizeImei,
   isValidImei as isValidImeiStrict,
@@ -203,37 +204,40 @@ export const fetchArgusBrands = async (): Promise<string[]> => {
   }
 };
 
+// Ordre (ADR-005) : catalogue de reprise → relevé boutique d'occasion → catalogue boutique
+// → market-price-intel → tableau figé. Aligné sur `resolveBasePrice` de `save-trade-in`.
 const resolveBasePrice = async (
   form: TrocDeviceForm,
-  currentBasePrice: number
+  currentBasePrice: number,
+  lowestShopPrice: Promise<number | null>,
 ): Promise<number> => {
-  if (Number.isFinite(currentBasePrice) && currentBasePrice > 0) return currentBasePrice;
+  const { basePrice } = await resolveFirstBasePrice([
+    { source: 'catalog', load: () => currentBasePrice },
+    // Un prix constaté en boutique (occasion, local, daté, attribué) passe avant les sources
+    // en ligne : c'est la seule qui ne dépend d'aucun concurrent.
+    { source: 'observed', load: async () => (await fetchMarketReferencePrice(form.deviceBrand, form.deviceModel))?.priceXaf },
+    // Modèle vendu en boutique mais absent de `trade_in_models` : base dérivée de NOTRE prix.
+    { source: 'shop', load: async () => shopPriceToBasePrice(await lowestShopPrice) },
+    { source: 'market', load: () => fetchMarketIntelReferencePrice(form) },
+    { source: 'fallback', load: () => fallbackCatalogPrice(form) },
+  ]);
+  return basePrice;
+};
 
-  // Un prix constaté en boutique passe AVANT market-price-intel : il est local,
-  // daté, attribué à quelqu'un, et il porte sur de l'OCCASION — alors que les
-  // sources en ligne vendent du neuf. C'est la seule source qui ne dépend
-  // d'aucun concurrent.
-  const observed = await fetchMarketReferencePrice(form.deviceBrand, form.deviceModel);
-  if (observed) return observed.priceXaf;
-
-  try {
-    const { data, error } = await supabase.functions.invoke('market-price-intel', {
-      body: {
-        deviceBrand: form.deviceBrand,
-        deviceModel: form.deviceModel,
-        deviceStorage: form.deviceStorage || null,
-        deviceRam: form.deviceRam || null,
-        countryCode: 'CM',
-        forceRefresh: true,
-      },
-    });
-    if (error || !data) return fallbackCatalogPrice(form);
-    const intel = data as MarketPriceIntelResponse;
-    const ref = Number(intel.referencePrice || 0);
-    return Number.isFinite(ref) && ref > 0 ? ref : fallbackCatalogPrice(form);
-  } catch {
-    return 0;
-  }
+/** Prix neuf estimé par `market-price-intel`, ou null. */
+const fetchMarketIntelReferencePrice = async (form: TrocDeviceForm): Promise<number | null> => {
+  const { data, error } = await supabase.functions.invoke('market-price-intel', {
+    body: {
+      deviceBrand: form.deviceBrand,
+      deviceModel: form.deviceModel,
+      deviceStorage: form.deviceStorage || null,
+      deviceRam: form.deviceRam || null,
+      countryCode: 'CM',
+      forceRefresh: true,
+    },
+  });
+  if (error || !data) return null;
+  return Number((data as MarketPriceIntelResponse).referencePrice || 0) || null;
 };
 
 export const checkImei = async (
@@ -522,14 +526,15 @@ export const evaluateDevice = async (
   // Le catalogue prime sur l'âge → inutile de résoudre l'année de sortie dans ce cas.
   const isCatalogModel = Number.isFinite(basePrice) && basePrice > 0;
 
-  // Étape 1 — Prix de base marché (argus → market-intel → catalogue hardcodé)
+  // Étape 1 — Prix de base (catalogue reprise → relevé → prix boutique → market-intel → figé)
   //           + cote du marché en parallèle (non-bloquant)
   //           + année de sortie UNIQUEMENT pour le hors-catalogue (règle des 8 ans)
+  const shopPricePromise = getLowestShopPrice(form.deviceBrand, form.deviceModel);
   const [resolvedBasePrice, marketTrend, releaseYear, lowestShopPrice] = await Promise.all([
-    resolveBasePrice(form, basePrice),
+    resolveBasePrice(form, basePrice, shopPricePromise),
     getMarketTrend(form.deviceBrand, form.deviceModel),
     isCatalogModel ? Promise.resolve(null) : getReleaseYear(form.deviceBrand, form.deviceModel),
-    getLowestShopPrice(form.deviceBrand, form.deviceModel),
+    shopPricePromise,
   ]);
 
   // Étape 2 — Arbre de décision v2 : score d'état + offre monétaire
@@ -856,7 +861,7 @@ export const reevaluateAndPersist = async (request: TradeInRequest): Promise<Ree
   const form = formFromDossier(request);
   const isCatalogModel = !!request.trade_in_model_id;
 
-  // Catalogue → base_price courant du modèle ; hors-catalogue → market-price-intel (forceRefresh).
+  // Catalogue → base_price courant du modèle ; hors-catalogue → prix boutique puis market-price-intel (ADR-005).
   let catalogBasePrice = 0;
   if (isCatalogModel && request.trade_in_model_id) {
     const { data } = await supabase
@@ -867,10 +872,11 @@ export const reevaluateAndPersist = async (request: TradeInRequest): Promise<Ree
     catalogBasePrice = Number((data as { base_price?: number } | null)?.base_price ?? 0);
   }
 
+  const shopPricePromise = getLowestShopPrice(request.device_brand, request.device_model);
   const [basePrice, releaseYear, lowestShopPrice] = await Promise.all([
-    resolveBasePrice(form, catalogBasePrice),
+    resolveBasePrice(form, catalogBasePrice, shopPricePromise),
     getReleaseYear(request.device_brand, request.device_model),
-    getLowestShopPrice(request.device_brand, request.device_model),
+    shopPricePromise,
   ]);
 
   const offer = computeOfferV2(form, basePrice, releaseYear, isCatalogModel, lowestShopPrice);

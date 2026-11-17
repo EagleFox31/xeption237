@@ -1,4 +1,5 @@
 import type { BlockerReason, TrocDeviceForm, TrocEvaluationResult, TrocTradeInGrade } from '../types';
+import { capCreditToShopPrice } from './shopPriceCap';
 
 export type { BlockerReason };
 
@@ -286,6 +287,7 @@ export const computeOfferV2 = (
   basePrice: number,
   releaseYear?: number | null,
   isCatalogModel = false,
+  lowestShopPrice: number | null = null,
 ): OfferV2Result => {
   // Étape 1 — Refus directs (le catalogue prime sur l'âge)
   const blocker = checkBlockers(form, basePrice, releaseYear, isCatalogModel);
@@ -339,6 +341,9 @@ export const computeOfferV2 = (
   } else if (tradeInValue < DIGNIFIED_FLOOR_XAF) {
     tradeInValue = DIGNIFIED_FLOOR_XAF;
   }
+
+  // Étape 8 — Plafond prix boutique : jamais au-dessus d'une part de notre propre prix de vente.
+  tradeInValue = capCreditToShopPrice(tradeInValue, lowestShopPrice);
 
   // Crédit boutique = valeur principale (= sortie algo).
   // Cash = -10 %, arrondi inférieur multiple de 5000.

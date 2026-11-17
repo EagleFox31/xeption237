@@ -7,6 +7,7 @@ import { isTrocPhotosCredibilityVerified } from '../utils/trocPhotoCredibilitySe
 import { normalizeModelKey } from '../utils/modelKey';
 import { getProductDisplayName } from '../utils/productDisplay';
 import { computeVoucherExpiry } from '../utils/voucherValidity';
+import { findLowestShopPrice, shopPriceSearchToken, SHOP_PRICE_CAP_CATEGORIES } from '../utils/shopPriceCap';
 import {
   sanitizeImei,
   isValidImei as isValidImeiStrict,
@@ -469,6 +470,26 @@ export const findCatalogModel = async (
   }
 };
 
+/**
+ * Prix de vente boutique le plus bas du modèle (plafond de l'offre), ou null si la boutique
+ * ne le vend pas ou si la lecture échoue (pas de plafond plutôt qu'un blocage du parcours).
+ */
+export const getLowestShopPrice = async (brand: string, model: string): Promise<number | null> => {
+  const token = shopPriceSearchToken(brand, model);
+  if (!token) return null;
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('name, price')
+      .in('category', [...SHOP_PRICE_CAP_CATEGORIES])
+      .ilike('name', `%${token}%`);
+    if (error || !data) return null;
+    return findLowestShopPrice(brand, model, data as { name: string; price: number }[]);
+  } catch {
+    return null;
+  }
+};
+
 export const evaluateDevice = async (
   form: TrocDeviceForm,
   photoUrls: string[],
@@ -504,15 +525,16 @@ export const evaluateDevice = async (
   // Étape 1 — Prix de base marché (argus → market-intel → catalogue hardcodé)
   //           + cote du marché en parallèle (non-bloquant)
   //           + année de sortie UNIQUEMENT pour le hors-catalogue (règle des 8 ans)
-  const [resolvedBasePrice, marketTrend, releaseYear] = await Promise.all([
+  const [resolvedBasePrice, marketTrend, releaseYear, lowestShopPrice] = await Promise.all([
     resolveBasePrice(form, basePrice),
     getMarketTrend(form.deviceBrand, form.deviceModel),
     isCatalogModel ? Promise.resolve(null) : getReleaseYear(form.deviceBrand, form.deviceModel),
+    getLowestShopPrice(form.deviceBrand, form.deviceModel),
   ]);
 
   // Étape 2 — Arbre de décision v2 : score d'état + offre monétaire
   //           (catalogue → accepté quel que soit l'âge ; hors-catalogue > 8 ans → refus)
-  const offer = computeOfferV2(form, resolvedBasePrice, releaseYear, isCatalogModel);
+  const offer = computeOfferV2(form, resolvedBasePrice, releaseYear, isCatalogModel, lowestShopPrice);
 
   // Étape 3 — Justification textuelle
   //   • Photos déjà validées (pré-paiement) : message crédibilité, pas de 2e appel Gemini
@@ -845,12 +867,13 @@ export const reevaluateAndPersist = async (request: TradeInRequest): Promise<Ree
     catalogBasePrice = Number((data as { base_price?: number } | null)?.base_price ?? 0);
   }
 
-  const [basePrice, releaseYear] = await Promise.all([
+  const [basePrice, releaseYear, lowestShopPrice] = await Promise.all([
     resolveBasePrice(form, catalogBasePrice),
     getReleaseYear(request.device_brand, request.device_model),
+    getLowestShopPrice(request.device_brand, request.device_model),
   ]);
 
-  const offer = computeOfferV2(form, basePrice, releaseYear, isCatalogModel);
+  const offer = computeOfferV2(form, basePrice, releaseYear, isCatalogModel, lowestShopPrice);
   const newCredit = offer.tradeInValueCredit;
   const oldCredit = Number(request.trade_in_value ?? 0);
   const { expiresAt } = computeVoucherExpiry(releaseYear);

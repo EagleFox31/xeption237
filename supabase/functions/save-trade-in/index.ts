@@ -4,6 +4,7 @@ const Deno = globalThis.Deno;
 import { SCREEN_CONDITIONS, BODY_CONDITIONS, CAMERA_CONDITIONS, REPAIR_OPTIONS } from '../_shared/conditions.ts';
 import { resolveTier, type TrocTier } from '../_shared/trocTiers.ts';
 import { matchTradeInModel } from '../_shared/tradeInModelMatch.ts';
+import { capCreditToShopPrice, findLowestShopPrice, shopPriceSearchToken, SHOP_PRICE_CAP_CATEGORIES } from '../_shared/shopPriceCap.ts';
 import {
   customerContactTask,
   offerPatchIfChanged,
@@ -176,7 +177,7 @@ const CASH_DISCOUNT = 0.18;
 const DIGNIFIED_FLOOR_XAF = 15000;
 const creditToCash = (credit: number): number => roundTo5000(credit / (1 + CASH_DISCOUNT));
 
-const computeOfferV2 = (body: any, basePrice: number) => {
+const computeOfferV2 = (body: any, basePrice: number, lowestShopPrice: number | null = null) => {
   // Bloquants directs
   if (body.powersOn === false)       return { conditionScore: 0, tradeInValue: 0, tradeInValueCash: 0, tradeInGrade: 'refuse' as const, blocker: 'powers_off' };
   if (body.hasWaterDamage === true)  return { conditionScore: 0, tradeInValue: 0, tradeInValueCash: 0, tradeInGrade: 'refuse' as const, blocker: 'water_damage' };
@@ -199,6 +200,9 @@ const computeOfferV2 = (body: any, basePrice: number) => {
   } else if (tradeInValue < DIGNIFIED_FLOOR_XAF) {
     tradeInValue = DIGNIFIED_FLOOR_XAF;
   }
+
+  // Plafond prix boutique : jamais au-dessus d'une part de notre propre prix de vente.
+  tradeInValue = capCreditToShopPrice(tradeInValue, lowestShopPrice);
 
   const tradeInValueCash = creditToCash(tradeInValue);
 
@@ -371,6 +375,31 @@ const resolveBasePrice = async (
   return { basePrice, tradeInModelId };
 };
 
+/**
+ * Prix de vente boutique le plus bas du modèle (plafond de l'offre), ou null si la boutique
+ * ne le vend pas ou si la lecture échoue (pas de plafond plutôt qu'un échec du dossier).
+ */
+const fetchLowestShopPrice = async (
+  supabaseUrl: string,
+  serviceKey: string,
+  deviceBrand: string,
+  deviceModel: string,
+): Promise<number | null> => {
+  const token = shopPriceSearchToken(deviceBrand, deviceModel);
+  if (!token) return null;
+  try {
+    const res = await fetchWithTimeout(
+      `${supabaseUrl}/rest/v1/products?select=name,price&category=in.(${SHOP_PRICE_CAP_CATEGORIES.join(',')})&name=ilike.*${encodeURIComponent(token)}*`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return Array.isArray(rows) ? findLowestShopPrice(deviceBrand, deviceModel, rows) : null;
+  } catch {
+    return null;
+  }
+};
+
 // ─── Action staff : recalcul de l'offre d'un dossier existant ────────────────
 // Ne touche qu'aux colonnes d'offre (ni statut, ni IMEI, ni client) ; no-op si inchangé.
 
@@ -420,7 +449,8 @@ const handleRecalculate = async (req: Request, body: any): Promise<Response> => 
     deviceRam: row.device_ram,
     tradeInModelId: row.trade_in_model_id ?? null,
   });
-  const offer = computeOfferV2(input, basePrice);
+  const lowestShopPrice = await fetchLowestShopPrice(supabaseUrl, serviceKey, input.deviceBrand, input.deviceModel);
+  const offer = computeOfferV2(input, basePrice, lowestShopPrice);
 
   const patch = offerPatchIfChanged(row, {
     ai_score:            offer.conditionScore,
@@ -541,10 +571,13 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const { basePrice, tradeInModelId } = await resolveBasePrice(supabaseUrl, serviceKey, {
-      deviceBrand, deviceModel, deviceStorage, deviceRam,
-      tradeInModelId: typeof body?.tradeInModelId === 'string' && body.tradeInModelId ? body.tradeInModelId : null,
-    });
+    const [{ basePrice, tradeInModelId }, lowestShopPrice] = await Promise.all([
+      resolveBasePrice(supabaseUrl, serviceKey, {
+        deviceBrand, deviceModel, deviceStorage, deviceRam,
+        tradeInModelId: typeof body?.tradeInModelId === 'string' && body.tradeInModelId ? body.tradeInModelId : null,
+      }),
+      fetchLowestShopPrice(supabaseUrl, serviceKey, deviceBrand, deviceModel),
+    ]);
 
     // ── Vérification IMEI ────────────────────────────────────────────────────
     // Le palier 'safety' déclenche le check premium imeicheck.net (blacklist mondiale).
@@ -586,7 +619,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Arbre de décision v2 (server-side, non trusté depuis le front) ───────
-    const { conditionScore, tradeInValue, tradeInValueCash, tradeInGrade, desirabilityTier, blocker } = computeOfferV2(body, basePrice);
+    const { conditionScore, tradeInValue, tradeInValueCash, tradeInGrade, desirabilityTier, blocker } = computeOfferV2(body, basePrice, lowestShopPrice);
     const conditionScoreColor = scoreToColor(conditionScore);
 
     // Âge et rang propriétaire (conservés pour audit trail et affichage admin)

@@ -24,6 +24,7 @@
     "db:apply:order-fix": "node scripts/apply-migration.mjs supabase/migrations/20260611_002_fix_create_order_atomic_date.sql",
     "db:introspect": "node scripts/db-introspect.mjs",
     "db:troc:latest": "node scripts/troc-latest.mjs",
+    "troc:catalog-gaps": "node scripts/troc-catalog-gaps.mjs",
     "ingest:products": "node scripts/product-ingestion-funnel.mjs --file=data/mfoundi-mall-catalog.json",
     "ingest:pc-catalog": "node scripts/import-pc-catalog-july-2026.mjs",
     "deploy:send-invoice": "powershell -ExecutionPolicy Bypass -File scripts/deploy-send-invoice.ps1",

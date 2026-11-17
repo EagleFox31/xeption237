@@ -465,3 +465,8 @@
 - Anjl confirme : le refus d'un bon passe dans l'ERP après la migration `20261117_001`.
 - Branche `fix/troc-status-history-rls` (46a89e4, 7a1a05d, cette entrée) : à pousser + PR sur accord.
 - Restent : message @glitch (SSH du VPS en « connection reset », id du groupe staff et de glitch à récupérer via WAHA), PR #63 à fusionner, branche `feat/troc-catalog-link` (c6e649d) de la session catalogue, non poussée.
+
+## 2026-11-17 19:05 — Message @glitch envoyé
+
+- SSH du VPS revenu. Message « bon BON-1794932672 revu » envoyé via WAHA (`trigenys-test`, groupe « Xeption app test », mention `23797686684@c.us`) : HTTP 201.
+- Reste : push + PR de `fix/troc-status-history-rls` sur accord ; PR #63 puis #64 à fusionner.

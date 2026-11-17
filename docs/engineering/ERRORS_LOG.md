@@ -855,3 +855,30 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
   chiffre. Appliqué en tête de `parseCashReportText`, donc webhook live et import d'export en bénéficient.
 - **Prévention** : tests `mergeSplitLines` (cas recollés et cas légitimes laissés intacts) et scénario complet dans
   `tests/whatsapp-cash-import.test.ts`. Règle : un nombre de 1–2 chiffres en fin de libellé n'est pas un montant.
+
+## 2026-11-17 — Offre de reprise supérieure au prix de vente boutique
+
+- **Symptôme** : le boss signale le bon `#BON-1794932672` : un Pixel 8 Pro estimé 275 000 – 330 000 FCFA à la
+  revente, crédit 365 000, alors que la boutique vend ce modèle entre 205 000 et 280 000.
+- **Cause racine** : modèle absent de `trade_in_models`, donc prix de base tiré de `market-price-intel` (prix neuf
+  estimé). Rien ne comparait l'offre au prix de vente du même modèle chez Xeption.
+- **Classification** : défaut de règle métier (garde-fou manquant), impact financier potentiel. Dossier en attente,
+  non racheté.
+- **Résolution** : plafond `SHOP_PRICE_OFFER_CAP_RATIO` (0,7) du prix boutique le plus bas du même modèle, client et
+  serveur (ADR-004).
+- **Prévention** : `tests/shop-price-cap.test.ts` (correspondance exacte du modèle, plafond, non-régression sans prix
+  boutique, parité des copies Vite/Deno). Règle : toute source de prix externe doit être bornée par nos propres prix
+  de vente avant d'engager une offre.
+## 2026-11-17 — Refus d'un dossier troc impossible depuis l'ERP (RLS sur l'historique)
+
+- **Symptôme** : « Action impossible — new row violates row-level security policy for table
+  "trade_in_status_history" » au clic sur « Refuser l'échange » (Dossiers troc).
+- **Cause racine** : `trg_log_trade_in_status` appelle `log_trade_in_status_change()`, créée sans `SECURITY DEFINER`
+  (`20260923_005`). Elle s'exécute donc avec les droits du staff `authenticated`, alors que la table d'historique n'a
+  qu'une policy SELECT (« écriture uniquement via trigger »). L'INSERT est rejeté et annule le changement de statut.
+- **Classification** : défaut de droits (fonction de trigger sur table fermée). Bloque toute transition de statut
+  faite directement par le staff.
+- **Résolution** : `20261117_001` repasse la fonction en `SECURITY DEFINER` avec `search_path` figé et retire
+  `EXECUTE` à `PUBLIC`, `anon`, `authenticated`. Aucune policy d'écriture ajoutée.
+- **Prévention** : `tests/troc-status-history-definer.test.ts`. Règle : un trigger qui écrit dans une table sans
+  policy d'écriture doit être `SECURITY DEFINER` ; le tester avec un compte staff, pas avec `service_role`.

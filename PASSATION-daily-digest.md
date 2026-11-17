@@ -382,3 +382,183 @@
 
 - Branches poussées. PR Trigenys/trigenys-notify#66 (feat/xeption-weekly-digest, 6bf4d10) et EagleFox31/xeption237#59 (claude/daily-digest-ca6b98, d3bcaac). Non fusionnées, rien déployé.
 - Prochaine étape : revue/merge de #66 puis déploiement Worker, route D1 groupe test, migration 20261114_001, notify-staff (ordre dans la PR #59).
+
+## 2026-11-16 10:54 — Bilan WhatsApp fusionné dans main (non déployé)
+
+- Trigenys/trigenys-notify#66 fusionnée (f139ccb) après résolution du conflit avec les types order.* (union, 118/118). EagleFox31/xeption237#59 fusionnée (23e51ca) : conflit waha.ts/test résolu en union, et `weekly_digest` retiré de `WAHA_EXCLUDED_EVENT_TYPES` (ajouté sur main entre-temps) puisqu’il a son alias. Tests bilan + canal WAHA 42/42 ; suite complète : 15 fichiers KO hors périmètre (React absent du worktree, uploadTrocPhotos venu de main).
+- Rien déployé. Ordre : Worker Notify → route D1 groupe test → migration 20261114_001 → notify-staff.
+
+## 2026-11-16 10:55 — Pas de déploiement automatique
+
+- Vérifié : merge sur main ne déploie ni le Worker Notify prod (seul `appfactory-infrastructure.yml` provisionne le staging, sur changement de `.appfactory/worker.json`), ni Supabase (aucun workflow functions/migrations ; Vercel = front seulement). Déploiement manuel requis, en attente d’accord d’Anjl.
+
+## 2026-11-16 11:14 — Bilan hebdo WhatsApp DÉPLOYÉ (accord Anjl « deploie alors »)
+
+- Worker Notify `trigenys-notify-staging-api` déployé depuis main f139ccb (version 4e2f2f59…), seul delta depuis le déploiement de 09:45 = PR #66. `WAHA_EVENT_GROUPS_JSON` = groupe test seulement.
+- D1 (lecture) : seule route xeption = groupe test, enabled=1, state=available.
+- Migration `20261114_001_weekly_digest.sql` appliquée (db:apply), cron `weekly-digest-monday` `0 7 * * 1` actif, EXECUTE refusé à anon/authenticated.
+- `notify-staff` redéployé (flags projet). Aucune surcharge `*_EVENT_TYPES` dans les secrets : défauts actifs.
+- Premier envoi automatique : lundi 23/11 08 h Douala (le créneau du 16/11 était passé). Envoi immédiat possible : `SELECT public.notify_weekly_digest();` (non fait, à proposer).
+- Ouvrir à Administration : ajouter son id dans `WAHA_EVENT_GROUPS_JSON` ET router le groupe vers xeption dans D1 (absent aujourd’hui).
+
+## 2026-11-16 11:25 — Bilan W46 envoyé, samedi Mfoundi manquant
+
+- `notify_weekly_digest()` déclenché (accord « Oui, envoie-le ») : notif `weekly_digest.2026-W46` livrée telegram 10:24:01 + whatsapp_waha 10:24:04, sans erreur.
+- Remarque Anjl « prend en compte samedi » : la semaine ISO inclut le samedi (Olembé compté) ; Mfoundi-Mall 1038 n'a AUCUN rapport le 14/11 en base → bilan affiche « caisse vendredi soir » + « pas de rapport samedi ».
+- Demandé à la session ingestion (local_0d6f2e42) de vérifier/ingérer le rapport 1038 du 14/11. Ensuite, re-générer = supprimer la ligne `weekly_digest.2026-W46` puis rappeler la fonction : écriture prod, sur accord explicite seulement.
+- Demande Anjl : sonder @gltich dans le groupe test sur le format du bilan. Notify ne gère pas de texte libre ni de mention ; il faut le numéro de gltich et un canal d'envoi validé (pas d'appel WAHA direct dans du nouveau code).
+- `scripts/.tmp-weekly-send.mjs` supprimé.
+
+## 2026-11-16 11:45 — Retour gltich : 1092 absent du bilan
+
+- gltich (groupe test) : « Je ne vois pas Mfoundi-Mall siège (1092) ». MF1092 actif, aucun rapport en base depuis le 06/11 ; `notify_weekly_digest` ne boucle que sur les magasins actifs AYANT un rapport → 1092 disparaît sans mention.
+- Correctif proposé (non écrit, attend OK Anjl) : nouvelle migration `CREATE OR REPLACE` ajoutant en « À noter » « <magasin> : aucun rapport cette semaine » pour tout magasin actif sans rapport.
+- Session ingestion : 1038 du 14/11 ingéré (backfill 10:31 UTC). Cause : indice « mfoundi mall » ambigu 1038/1092 → store_unresolved. Prévention à décider par Anjl (rattacher Jordan/Engelbert/Sefora à MFOUNDI dans staff, ou mapper l'auteur dans WHATSAPP_CASH_AUTHOR_STORES). Question 1092 (07–15/11) envoyée, en attente.
+- Régénération W46 (supprimer ligne `weekly_digest.2026-W46` + rappeler la fonction) : écriture prod, accord explicite requis.
+
+## 2026-11-16 11:34 — Réponse envoyée à gltich (groupe test)
+
+- Message : 1092 sans rapport en base depuis le 06/11 ; demander « 1038 » ou « 1092 » dans l’en-tête des rapports ; bilan corrigé à renvoyer (promis dans le groupe).
+- En attente : réponse ingestion sur 1092 (07–15/11) ; OK Anjl pour migration « aucun rapport cette semaine » + régénération W46.
+
+## 2026-11-16 11:36 — 1092 : rien posté du 07 au 15/11
+
+- Session ingestion : aucun rapport 1092 (en-tête « Boutique MF 1092 ») posté depuis le 06/11 → base correcte. Ma réponse à gltich attribuait l’absence à l’ambiguïté : inexact pour 1092 (vrai seulement pour 1038 du 14/11).
+- Prochaine étape (accord Anjl requis) : migration « <magasin> : aucun rapport cette semaine » pour magasins actifs sans rapport, puis régénération W46 (inclura samedi 1038 + mention 1092).
+
+## 2026-11-16 11:45 — Question posée à gltich
+
+- Groupe test : correction (1092 n’a rien posté depuis le 06/11) + « mfoundi mall » sans numéro = 1038 ou 1092 par défaut ? Réponse attendue → à transmettre à la session ingestion (règle d’alias), puis migration « aucun rapport » + régénération W46 sur accord Anjl.
+
+## 2026-11-16 11:53 — Réponse gltich : « On va préciser désormais »
+
+- Les équipes mettront 1038/1092 dans l’en-tête. Pas de défaut validé ; transmis à la session ingestion (info). Leçon : surveiller moi-même les réponses dans le groupe après une question, ne pas attendre qu’Anjl le signale.
+
+## %Y-%m-%d %H:%M — Migration 20261116_001 écrite (accord « ok accordé »)
+
+- `supabase/migrations/20261116_001_weekly_digest_silent_stores.sql` : CREATE OR REPLACE notify_weekly_digest + ligne « <boutique> : aucun rapport cette semaine. » pour magasins actifs sans rapport. Tests `tests/weekly-digest.test.ts` (5 nouveaux) : 47/47 avec waha-notify-channel.
+- `db:apply` REFUSÉ par le garde-fou de permission : à lancer par Anjl. Puis régénération W46 (supprimer la ligne `weekly_digest.2026-W46` + `SELECT public.notify_weekly_digest();`), non faite.
+- Filet « mfoundi mall » sans numéro → 1038 : transmis à la session ingestion avec l’accord d’Anjl.
+- Rien commité.
+
+## 2026-11-16 12:04 — Correctif horodatage
+
+- L’entrée précédente « %Y-%m-%d %H:%M — Migration 20261116_001 écrite » date en réalité du 2026-11-16 12:04.
+
+## 2026-11-16 12:08 — W46 régénéré avec la boutique silencieuse
+
+- Migration 20261116_001 appliquée par Anjl (db:status : APPLIQUÉE, db:verify : 0 absent).
+- Ancienne notification W46 conservée, dedup_key renommée en weekly_digest.2026-W46.v1 (pas de suppression).
+- notify_weekly_digest('2026-11-15') rappelée : nouvelle notification envoyée sur telegram et whatsapp_waha à 12:08, attempts 1, aucune erreur. Le samedi est inclus et la ligne « Mfoundi-Mall 1092 : aucun rapport cette semaine. » apparaît.
+- Message reçu dans le groupe test ; surveillance des réponses en cours.
+- Non commité : migration, tests/weekly-digest.test.ts (git add -f), passation.
+
+## 2026-11-16 12:13 — PR #60 ouverte, filet 1038 prêt côté ingestion
+
+- Commit 0879e9e poussé, PR https://github.com/EagleFox31/xeption237/pull/60 ouverte (CI en cours). Migration déjà appliquée, W46 renvoyé.
+- Session ingestion : filet « mfoundi mall » sans numéro → 1038 codé (commit bea524a, PR #52), NON déployé. Activation = secret WHATSAPP_CASH_HINT_DEFAULTS={"mfoundi":"MFOUNDI"} + redéploiement whatsapp-cash-webhook, sur accord d'Anjl.
+- Surveillance du groupe test en cours (réponse gltich).
+- Prochaine étape : fusion de #60 si accord, activation du filet si accord.
+
+## 2026-11-16 12:16 — Filet 1038 déployé, question images
+
+- Session ingestion : filet « mfoundi mall » sans numéro → MFOUNDI déployé en prod (secret WHATSAPP_CASH_HINT_DEFAULTS, whatsapp-cash-webhook v4, commit bea524a, PR #52). À vérifier sur le prochain rapport réel.
+- PR #60 ouverte, fusion en attente d'accord.
+- Anjl demande des messages avec images : WAHA du VPS = CORE (2026.10.1, NOWEB), envoi d'images a priori réservé à WAHA Plus. Options proposées : WAHA Plus, lien avec aperçu, ou photo via Telegram. En attente de l'exemple visuel d'Anjl (non reçu).
+
+## 2026-11-16 12:38 — Écarts 1 F Olembé = ligne coupée
+
+- Cause : « iphone 17 PM » coupé sur 2 lignes dans les rapports Olembé du 12/11 et 13/11 → item fantôme de 1 F. Correctif du parseur transmis à la session ingestion (correction des rapports et déploiement soumis à l'accord d'Anjl).
+- Aucune réponse dans le groupe test 30 min après le renvoi de W46 ; surveillance réarmée.
+- PR #60 : fusion en attente d'accord. Question images : en attente de l'exemple d'Anjl.
+
+## 2026-11-16 13:08 — Surveillance du groupe arrêtée
+
+- 1 h sans réponse dans le groupe test après W46 v2 ; surveillance non réarmée (relancer à la demande).
+- Correctif parseur 1 F : commit 8b974fe (PR #52), non déployé ; redéploiement webhook + correction des 2 rapports Olembé en attente d'accord d'Anjl.
+- PR #60 : fusion en attente d'accord.
+
+## 2026-11-16 14:26 — Correctif 1 F déployé et rapports Olembé corrigés
+
+- Session ingestion (accord Anjl « Oui, les deux ») : webhook redéployé avec 8b974fe, rapports Olembé 12/11 et 13/11 corrigés (items fusionnés, total_inflow −1 F). Vérifié en base ici.
+- Le bilan W46 déjà envoyé mentionne encore les écarts de 1 F (pas de renvoi sans demande).
+- PR #60 : fusion en attente d'accord.
+
+## 2026-11-16 14:32 — PR #60 fusionnée
+
+- PR #60 fusionnée (merge b2dbc34), CI verte. Migration 20261116_001 déjà en prod.
+- Entrées de passation postérieures au commit 0879e9e : locales, non commitées.
+- Restant : question images WhatsApp (WAHA CORE) en attente de l'exemple d'Anjl.
+
+## 2026-11-16 16:09 — État Xeption transmis à la session Notify #68
+
+- notify-staff-action déployé (PR #61), migration whatsapp_order_actions_core appliquée, secret XEPTION_NOTIFY_ACTION_KEY présent ; WHATSAPP_ACTIONS_ENABLED absent → 503 CHANNEL_DISABLED.
+- Contrat conforme ; écarts signalés : 413 à traiter en abandon, champs ok/changed/action en plus dans la réponse.
+- Doublon de préfixe 20261116_001 (actions WhatsApp + bilan hebdo) : signalé, rien renommé.
+
+## 2026-11-16 21:42 — Test réel des actions WhatsApp lancé
+
+- Contrat d'empreinte en prod côté Notify (trigenys-notify#71, bb2158d) ; Xeption #62 en prod, WHATSAPP_ACTIONS_ENABLED=true.
+- Anjl a validé le test réel (« ok testons ») ; il est mené par la session Notify #68 sur le groupe « Xeption app test ». xeption code prévenu.
+- Retour arrière : WHATSAPP_ACTIONS_ENABLED=false. Restant ici : question images (exemple d'Anjl).
+
+## 2026-11-16 21:44 — Test réel : en attente d'Anjl
+
+- Notify #68 suit les logs du Worker (30 min). Il faut une nouvelle commande de test puis une réaction 📵 d'Anjl sous l'alerte (les anciennes alertes ne sont pas réutilisables).
+
+## 2026-11-16 21:54 — Test réel : alerte ORD-TEST-NF68 dans le groupe
+
+- Commande fictive ORD-TEST-NF68 (eventId c2b789cd-…) créée par xeption code ; alerte reçue dans « Xeption app test ».
+- Attente : réaction 📵 d'Anjl sous l'alerte. Notify #68 vérifie puis prévient ; je transmets alors la fin à xeption code (qui annule la commande fictive).
+
+## 2026-11-17 18:11 — Bon de vente Pixel 8 Pro au-dessus du prix boutique
+
+- Dossier TRC-1794932672 (17/11) : crédit 365 000, cash 305 000, bon affiché 275-330 k (×0,9, MobileVenteVoucher). Boutique : Pixel 8 Pro 205-280 k.
+- Cause : Pixel 8 Pro absent de trade_in_models → save-trade-in replie sur market-price-intel (referencePrice ~600 k) ; aucun plafond par rapport à notre propre prix de vente.
+- Test Notify #68 : surveillance terminée sans geste reçu ; Anjl doit retirer puis remettre 📵.
+- Proposé : plafond serveur+client sur le prix de vente boutique + ajouter le modèle au catalogue. Rien codé.
+
+## 2026-11-17 18:17 — Plafond prix boutique : code et tests prêts, rien de commité ni déployé
+
+- Branche `fix/troc-offer-shop-price-cap`. Helper `utils/shopPriceCap.ts` + copie `_shared/shopPriceCap.ts`,
+  branché dans `trocPricing.ts`, `trocEvaluationService.ts` et `save-trade-in`.
+- `tests/shop-price-cap.test.ts` : 11/11 verts (à ajouter avec `git add -f`). Suite complète : échecs préexistants
+  sans lien (paquets `react`/jsdom absents du `node_modules` du worktree).
+- ADR-004 (statut proposé) + entrée ERRORS_LOG. Pixel 8 Pro excellent : crédit plafonné à 140 000.
+- Reste : accord d'Anjl pour le commit, déploiement de `save-trade-in` par Anjl, puis recalcul de TRC-1794932672.
+- Test Notify #68 (réaction 📵 sur ORD-TEST-NF68) toujours en attente ; prévenir « xeption code » à la fin.
+
+## 2026-11-17 18:20 — Plafond prix boutique commité et déployé
+
+- Commit f6a0e2a sur `fix/troc-offer-shop-price-cap` (non poussé, pas de PR). Déployé avec l'accord d'Anjl :
+  `save-trade-in` (OPTIONS 200). Aucune migration.
+- Vérifié en lecture seule : prix boutique Pixel 8 Pro 205 000 / 260 000 / 280 000, plafond attendu 140 000 de crédit.
+- Le front (calcul affiché au client) ne profite du plafond qu'après merge et déploiement de l'app.
+- Reste : push et PR (accord d'Anjl), recalcul de TRC-1794932672, Pixel 8 Pro dans `trade_in_models`.
+
+## 2026-11-17 18:37 — Troc : prix de base dérivé du catalogue boutique (ADR-005)
+
+- Branche `feat/troc-catalog-link`, partie de `fix/troc-offer-shop-price-cap` (PR #63, non fusionnée).
+- Un modèle absent de `trade_in_models` mais vendu en boutique prend comme base
+  prix boutique le plus bas × 1,7 (`utils/basePriceResolution.ts` + copie `_shared/`), avant
+  `market-price-intel`. Pixel 8 Pro : base 345 000 au lieu de 1 090 000.
+- `npm run troc:catalog-gaps` (lecture seule) : calibrage du ratio + 121/151 produits boutique sans
+  entrée de reprise, avec le `base_price` proposé.
+- Rien déployé, aucune migration. À déployer par Anjl : `save-trade-in` (après fusion de #63).
+## 2026-11-17 18:37 — Refus de bon troc débloqué (RLS historique)
+
+- Migration `20261117_001_trade_in_status_history_definer.sql` appliquée en prod (accord Anjl « Oui, applique ») via `db:apply` ; enregistrée dans `schema_migrations` ; `log_trade_in_status_change()` = `prosecdef=true`, `search_path=public, pg_temp`.
+- Branche `fix/troc-status-history-rls` (commit 46a89e4 + cette passation), non poussée, pas de PR.
+- À faire : Anjl re-clique « Refuser l'échange » dans l'ERP pour confirmer ; proposer push + PR.
+- Message @glitch (bon BON-1794932672 revu) : pas encore envoyé. Méthode déjà utilisée : WAHA sur le VPS (`/api/sendText`, session `trigenys-test`). SSH du VPS en « connection reset » à 18:35 ; il manque l'id du groupe staff et celui de glitch pour la mention.
+
+## 2026-11-17 18:50 — Refus troc confirmé en ERP
+
+- Anjl confirme : le refus d'un bon passe dans l'ERP après la migration `20261117_001`.
+- Branche `fix/troc-status-history-rls` (46a89e4, 7a1a05d, cette entrée) : à pousser + PR sur accord.
+- Restent : message @glitch (SSH du VPS en « connection reset », id du groupe staff et de glitch à récupérer via WAHA), PR #63 à fusionner, branche `feat/troc-catalog-link` (c6e649d) de la session catalogue, non poussée.
+
+## 2026-11-17 19:05 — Message @glitch envoyé
+
+- SSH du VPS revenu. Message « bon BON-1794932672 revu » envoyé via WAHA (`trigenys-test`, groupe « Xeption app test », mention `23797686684@c.us`) : HTTP 201.
+- Reste : push + PR de `fix/troc-status-history-rls` sur accord ; PR #63 puis #64 à fusionner.

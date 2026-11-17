@@ -10,20 +10,9 @@ const MESSAGE_HEADER = /^(\d{2})\/(\d{2})\/(\d{4}),? (\d{1,2}:\d{2}) - ([^:]+?):
 /** Ligne système (membre ajouté, sujet changé…) : même horodatage, pas d'auteur ni de `:`. */
 const SYSTEM_HEADER = /^(\d{2})\/(\d{2})\/(\d{4}),? (\d{1,2}:\d{2}) - (.*)$/;
 
-/** Caractères invisibles ou de mise en forme que WhatsApp insère (NBSP, LRM, gras `*`, italique `_`). */
-const NOISE_CHARS = /[\s‎‏⁠*_]+/g;
-/** Marqueur ajouté par WhatsApp à la fin d'un message édité. */
-const EDITED_MARKER = /<(?:ce message a [ée]t[ée] modifi[ée]|this message was edited)>/giu;
-
-/** Normalise une ligne : espaces exotiques → espace simple, mise en forme et marqueur d'édition retirés, trim. */
-export function normalizeLine(line) {
-  return (line ?? '').replace(EDITED_MARKER, ' ').replace(NOISE_CHARS, ' ').trim();
-}
-
-/** Texte sans accents, en minuscules — pour les comparaisons de noms/mots-clés. */
-export function foldText(text) {
-  return (text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
+/** Normalisation et repli d'accents : implémentation partagée avec l'Edge Function (`_shared/whatsappCashReport/text.ts`). */
+export { normalizeLine, foldText } from '../../supabase/functions/_shared/whatsappCashReport/text.ts';
+import { normalizeLine } from '../../supabase/functions/_shared/whatsappCashReport/text.ts';
 
 /**
  * Découpe l'export en messages.

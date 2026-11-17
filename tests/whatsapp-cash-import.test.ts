@@ -8,6 +8,7 @@ import {
   parseEntryLine,
   reconcileItemsWithDeclaredTotal,
   parseCashReportText,
+  mergeSplitLines,
 } from '../scripts/lib/cashReportText.mjs';
 import { createStoreResolver } from '../scripts/lib/cashReportStoreResolver.mjs';
 import { parseAmount } from '../supabase/functions/_shared/telegramCashReport.ts';
@@ -184,6 +185,55 @@ describe('parseCashReportText', () => {
     expect(report.debts[1]).toMatchObject({ amount_due: 210000, phone: '690000002' });
     expect(report.warnings).toContain('balance_mismatch');
   });
+
+  it('re-joins a model number the staff split across two lines', () => {
+    const report = parseCashReportText([
+      'Rapport du 12/11/2026',
+      'Boutique de Testville',
+      'Entrées du jour :',
+      '* Avance copie iphone 1',
+      '7 PM= 55 000F',
+      '* Reste d\'argent copie iphone 1',
+      '7 PM= 5 000F',
+      '* Coque iPhone 11 = 5 000F',
+      'Total entrée 65 000F',
+    ]);
+    expect(report.inflow_items).toEqual([
+      { label: 'Avance copie iphone 17 PM', amount: 55000 },
+      { label: 'Reste d\'argent copie iphone 17 PM', amount: 5000 },
+      { label: 'Coque iPhone 11', amount: 5000 },
+    ]);
+    expect(report.declared_total_inflow).toBe(65000);
+    expect(report.warnings).toEqual([]);
+  });
+});
+
+describe('mergeSplitLines', () => {
+  it('merges a label ending with a short number with a next line starting with digits', () => {
+    expect(mergeSplitLines(['* Vente iphone 1', '5 pro max = 300 000F'])).toEqual(['* Vente iphone 15 pro max = 300 000F']);
+    expect(mergeSplitLines(['Chargeur type c 2', '0W = 5 000F', 'Total : 5 000F'])).toEqual([
+      'Chargeur type c 20W = 5 000F',
+      'Total : 5 000F',
+    ]);
+  });
+
+  it('leaves legitimate consecutive entries untouched', () => {
+    const lines = [
+      '* Coque iPhone 11 = 5 000F', // montant avec « = » et devise
+      '2 écouteurs = 4 000F',
+      'Vente câble 2000', // 4 chiffres = un montant, pas un numéro de modèle
+      '3 chargeurs 6000',
+      'Nombre de ventes : 3', // « : » exclut la ligne
+      '2 clients servis',
+      'Caisse ouverture', // pas de nombre en fin de ligne : montant sur la ligne suivante
+      '50 000F',
+      '* Avance copie iphone 1',
+      '* 7 PM= 55 000F', // la ligne suivante commence par une puce, pas un chiffre
+    ];
+    expect(mergeSplitLines(lines)).toEqual(lines);
+    expect(mergeSplitLines([])).toEqual([]);
+    expect(mergeSplitLines(['Vente iphone 1'])).toEqual(['Vente iphone 1']);
+  });
 });
 
 describe('createStoreResolver', () => {
@@ -199,6 +249,36 @@ describe('createStoreResolver', () => {
   it('tells two cash desks of the same centre apart by the number in the store line', () => {
     expect(resolver.resolveStore({ store_hint: 'Boutique TV 1092', operators: ['Alice Test'] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'TV1092' } });
     expect(resolver.resolveStore({ store_hint: 'Boutique testville mall', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'TESTVILLE' } });
+  });
+
+  it('falls back to the configured default when the store line fits two cash desks of one centre', () => {
+    // Deux caisses nommées d'après le même centre : seul le numéro les départage.
+    const stores = [
+      { id: 'c-1038', code: 'CENTRE', name: 'Centre-Mall 1038' },
+      { id: 'c-1092', code: 'CM1092', name: 'Centre-Mall 1092' },
+      { id: 'c-other', code: 'AILLEURS', name: 'Ailleurs gare' },
+    ];
+    const staff = [{ id: 'u9', name: 'Zoey Ailleurs', store_id: 'c-other' }];
+    const strict = createStoreResolver({ stores, staff });
+    const lenient = createStoreResolver({ stores, staff, hintDefaults: { Centre: 'centre' } });
+
+    // Sans repli : indice ambigu → le vote des opérateurs tranche, sinon rien.
+    expect(strict.resolveStore({ store_hint: 'Boutique centre mall', operators: [] }, 'x')).toEqual({ store: null, method: null });
+    expect(strict.resolveStore({ store_hint: 'Boutique centre mall', operators: ['Zoey'] }, 'x')).toMatchObject({ method: 'operators', store: { code: 'AILLEURS' } });
+
+    // Avec repli : la caisse par défaut l'emporte, même sur un vote d'opérateurs contraire.
+    expect(lenient.resolveStore({ store_hint: 'Boutique centre mall', operators: ['Zoey'] }, 'x')).toEqual({ store: stores[0], method: 'hint_default' });
+    expect(lenient.resolveStore({ store_hint: 'BOUTIQUE  Centre-mall', operators: [] }, 'x')).toMatchObject({ method: 'hint_default', store: { code: 'CENTRE' } });
+
+    // Le numéro reste souverain : indice unique → `hint`, jamais le repli.
+    expect(lenient.resolveStore({ store_hint: 'Boutique centre mall 1092', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'CM1092' } });
+    expect(lenient.resolveStore({ store_hint: 'Boutique CM 1092', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'CM1092' } });
+    expect(lenient.resolveStore({ store_hint: 'Boutique centre mall 1038', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'CENTRE' } });
+
+    // Repli ignoré si son mot n'est pas dans l'indice, ou si sa boutique n'est pas candidate / inconnue.
+    const misconfigured = createStoreResolver({ stores, staff, hintDefaults: { mall: 'AILLEURS', centre: 'INCONNUE' } });
+    expect(misconfigured.resolveStore({ store_hint: 'Boutique centre mall', operators: [] }, 'x')).toEqual({ store: null, method: null });
+    expect(lenient.resolveStore({ store_hint: 'Boutique ailleurs', operators: [] }, 'x')).toMatchObject({ method: 'hint', store: { code: 'AILLEURS' } });
   });
 
   it('never matches the head office on generic words and needs a unique seller', () => {

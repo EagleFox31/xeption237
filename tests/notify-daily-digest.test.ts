@@ -139,6 +139,56 @@ describe('Daily digest — migration 20261107_001', () => {
   });
 });
 
+describe('Daily digest — migration 20261111_002 (22 h Douala)', () => {
+  const sql2 = readFileSync(
+    resolve(__dirname, '../supabase/migrations/20261111_002_daily_digest_at_22h_douala.sql'),
+    'utf8',
+  );
+
+  it('replanifie daily-digest-evening à 21:00 UTC (22 h Douala) de façon idempotente', () => {
+    expect(sql2).toMatch(/c_job_name\s+constant text := 'daily-digest-evening'/);
+    expect(sql2).toMatch(/c_schedule_utc constant text := '0 21 \* \* \*'/);
+    expect(sql2).toMatch(/cron\.unschedule\(jobid\)/);
+    expect(sql2).toMatch(/\$cron\$SELECT public\.notify_daily_digest\(\);\$cron\$/);
+    expect(sql2).toMatch(/^BEGIN;/m);
+    expect(sql2).toMatch(/^COMMIT;/m);
+  });
+});
+
+describe('Daily digest — migration 20261111_003 (mouvements, écart de caisse, variation dettes)', () => {
+  const sql3 = readFileSync(
+    resolve(__dirname, '../supabase/migrations/20261111_003_daily_digest_cash_movements_and_gap.sql'),
+    'utf8',
+  );
+
+  it('ajoute les mouvements et le contrôle de cohérence quand un rapport du jour existe', () => {
+    expect(sql3).toMatch(/SELECT c\.opening_cash, c\.total_inflow, c\.total_outflow, c\.closing_cash/);
+    expect(sql3).toMatch(/'Mouvements caisse : \+%s entrées · −%s sorties'/);
+    expect(sql3).toMatch(/v_cash_gap_tolerance\s+constant numeric := 0/);
+    expect(sql3).toMatch(/IF abs\(v_cash_gap\) > v_cash_gap_tolerance THEN/);
+    expect(sql3).toMatch(/'⚠ Écart de caisse : %s de %s FCFA/);
+    expect(sql3).toMatch(/WHEN v_cash_gap > 0 THEN 'manque' ELSE 'excédent' END/);
+    expect(sql3).toMatch(/v_cash_lines := ARRAY\['Caisse : non clôturée'\]/);
+    expect(sql3).toMatch(/\] \|\| v_cash_lines \|\| ARRAY\[/);
+  });
+
+  it('indique la variation du reste à encaisser vs le rapport précédent (repli snapshot)', () => {
+    expect(sql3).toMatch(/WHERE c\.store_id = r\.id AND c\.report_date < v_debt_report_date/);
+    expect(sql3).toMatch(/', \+%s vs précédent'/);
+    expect(sql3).toMatch(/', −%s vs précédent'/);
+    expect(sql3).toMatch(/WHEN v_prev_debt_remaining IS NULL OR v_prev_debt_remaining = v_debt_remaining THEN ''/);
+  });
+
+  it('reste rejouable et réservée au service_role', () => {
+    expect(sql3).toMatch(/CREATE OR REPLACE FUNCTION public\.notify_daily_digest\(p_day date DEFAULT NULL\)/);
+    expect(sql3).toMatch(/REVOKE ALL ON FUNCTION public\.notify_daily_digest\(date\) FROM PUBLIC, anon, authenticated;/);
+    expect(sql3).toMatch(/GRANT EXECUTE ON FUNCTION public\.notify_daily_digest\(date\) TO service_role;/);
+    expect(sql3).toMatch(/^BEGIN;/m);
+    expect(sql3).toMatch(/^COMMIT;/m);
+    expect(sql3).not.toMatch(/v_cash_line\b/);
+  });
+});
+
 describe('Daily digest — type d’événement', () => {
   it('est relayé par défaut sur Telegram avec son icône, pas sur WhatsApp', () => {
     expect(DEFAULT_STAFF_EVENT_TYPES).toContain('daily_digest');

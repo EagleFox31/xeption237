@@ -841,6 +841,21 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
   qui fait `DROP FUNCTION` puis `CREATE`, ou qui change une signature, doit reprendre les `REVOKE`/`GRANT` de la classe
   de la fonction (`20260823_023`) et ne jamais accorder EXECUTE à `anon` sans justification écrite.
 
+## 2026-11-16 — Rapports caisse WhatsApp : +1 F sur le total quand un numéro de modèle est coupé sur deux lignes
+
+- **Symptôme** : écart de 1 F sur `total_inflow` de deux rapports Olembé (12/11 et 13/11). Le staff a coupé
+  « iphone 17 PM » en deux lignes : « * Avance copie iphone 1 » puis « 7 PM= 55 000F ». Le parseur créait deux
+  entrées : « Avance copie iphone » = 1 F et « 7 PM » = 55 000 F.
+- **Cause racine** : `parseCashReportText` lit ligne par ligne ; un nombre en fin de ligne est toujours pris pour un
+  montant, même d'un ou deux chiffres (jamais un montant en XAF).
+- **Classification** : bug fonctionnel (robustesse de saisie). Rapprochement déclaré/calculé non alerté car le total
+  déclaré incluait les 55 000 F et l'écart de 1 F restait sous le seuil.
+- **Résolution** : `mergeSplitLines()` (`parser.ts`) recolle une ligne sans « : » ni « = », finissant par un nombre
+  d'au plus `SPLIT_TAIL_MAX_DIGITS` (2) chiffres, avec la ligne suivante dont le premier caractère visible est un
+  chiffre. Appliqué en tête de `parseCashReportText`, donc webhook live et import d'export en bénéficient.
+- **Prévention** : tests `mergeSplitLines` (cas recollés et cas légitimes laissés intacts) et scénario complet dans
+  `tests/whatsapp-cash-import.test.ts`. Règle : un nombre de 1–2 chiffres en fin de libellé n'est pas un montant.
+
 ## 2026-11-17 — Offre de reprise supérieure au prix de vente boutique
 
 - **Symptôme** : le boss signale le bon `#BON-1794932672` : un Pixel 8 Pro estimé 275 000 – 330 000 FCFA à la

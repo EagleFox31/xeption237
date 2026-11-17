@@ -840,3 +840,17 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 - **Prévention** : `tests/telegram-order-actions.test.ts` vérifie la garde et le `REVOKE`. Règle : toute migration
   qui fait `DROP FUNCTION` puis `CREATE`, ou qui change une signature, doit reprendre les `REVOKE`/`GRANT` de la classe
   de la fonction (`20260823_023`) et ne jamais accorder EXECUTE à `anon` sans justification écrite.
+
+## 2026-11-17 — Offre de reprise supérieure au prix de vente boutique
+
+- **Symptôme** : le boss signale le bon `#BON-1794932672` : un Pixel 8 Pro estimé 275 000 – 330 000 FCFA à la
+  revente, crédit 365 000, alors que la boutique vend ce modèle entre 205 000 et 280 000.
+- **Cause racine** : modèle absent de `trade_in_models`, donc prix de base tiré de `market-price-intel` (prix neuf
+  estimé). Rien ne comparait l'offre au prix de vente du même modèle chez Xeption.
+- **Classification** : défaut de règle métier (garde-fou manquant), impact financier potentiel. Dossier en attente,
+  non racheté.
+- **Résolution** : plafond `SHOP_PRICE_OFFER_CAP_RATIO` (0,7) du prix boutique le plus bas du même modèle, client et
+  serveur (ADR-004).
+- **Prévention** : `tests/shop-price-cap.test.ts` (correspondance exacte du modèle, plafond, non-régression sans prix
+  boutique, parité des copies Vite/Deno). Règle : toute source de prix externe doit être bornée par nos propres prix
+  de vente avant d'engager une offre.

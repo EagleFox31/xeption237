@@ -452,3 +452,86 @@
 - notify_weekly_digest('2026-11-15') rappelée : nouvelle notification envoyée sur telegram et whatsapp_waha à 12:08, attempts 1, aucune erreur. Le samedi est inclus et la ligne « Mfoundi-Mall 1092 : aucun rapport cette semaine. » apparaît.
 - Message reçu dans le groupe test ; surveillance des réponses en cours.
 - Non commité : migration, tests/weekly-digest.test.ts (git add -f), passation.
+
+## 2026-11-16 12:13 — PR #60 ouverte, filet 1038 prêt côté ingestion
+
+- Commit 0879e9e poussé, PR https://github.com/EagleFox31/xeption237/pull/60 ouverte (CI en cours). Migration déjà appliquée, W46 renvoyé.
+- Session ingestion : filet « mfoundi mall » sans numéro → 1038 codé (commit bea524a, PR #52), NON déployé. Activation = secret WHATSAPP_CASH_HINT_DEFAULTS={"mfoundi":"MFOUNDI"} + redéploiement whatsapp-cash-webhook, sur accord d'Anjl.
+- Surveillance du groupe test en cours (réponse gltich).
+- Prochaine étape : fusion de #60 si accord, activation du filet si accord.
+
+## 2026-11-16 12:16 — Filet 1038 déployé, question images
+
+- Session ingestion : filet « mfoundi mall » sans numéro → MFOUNDI déployé en prod (secret WHATSAPP_CASH_HINT_DEFAULTS, whatsapp-cash-webhook v4, commit bea524a, PR #52). À vérifier sur le prochain rapport réel.
+- PR #60 ouverte, fusion en attente d'accord.
+- Anjl demande des messages avec images : WAHA du VPS = CORE (2026.10.1, NOWEB), envoi d'images a priori réservé à WAHA Plus. Options proposées : WAHA Plus, lien avec aperçu, ou photo via Telegram. En attente de l'exemple visuel d'Anjl (non reçu).
+
+## 2026-11-16 12:38 — Écarts 1 F Olembé = ligne coupée
+
+- Cause : « iphone 17 PM » coupé sur 2 lignes dans les rapports Olembé du 12/11 et 13/11 → item fantôme de 1 F. Correctif du parseur transmis à la session ingestion (correction des rapports et déploiement soumis à l'accord d'Anjl).
+- Aucune réponse dans le groupe test 30 min après le renvoi de W46 ; surveillance réarmée.
+- PR #60 : fusion en attente d'accord. Question images : en attente de l'exemple d'Anjl.
+
+## 2026-11-16 13:08 — Surveillance du groupe arrêtée
+
+- 1 h sans réponse dans le groupe test après W46 v2 ; surveillance non réarmée (relancer à la demande).
+- Correctif parseur 1 F : commit 8b974fe (PR #52), non déployé ; redéploiement webhook + correction des 2 rapports Olembé en attente d'accord d'Anjl.
+- PR #60 : fusion en attente d'accord.
+
+## 2026-11-16 14:26 — Correctif 1 F déployé et rapports Olembé corrigés
+
+- Session ingestion (accord Anjl « Oui, les deux ») : webhook redéployé avec 8b974fe, rapports Olembé 12/11 et 13/11 corrigés (items fusionnés, total_inflow −1 F). Vérifié en base ici.
+- Le bilan W46 déjà envoyé mentionne encore les écarts de 1 F (pas de renvoi sans demande).
+- PR #60 : fusion en attente d'accord.
+
+## 2026-11-16 14:32 — PR #60 fusionnée
+
+- PR #60 fusionnée (merge b2dbc34), CI verte. Migration 20261116_001 déjà en prod.
+- Entrées de passation postérieures au commit 0879e9e : locales, non commitées.
+- Restant : question images WhatsApp (WAHA CORE) en attente de l'exemple d'Anjl.
+
+## 2026-11-16 16:09 — État Xeption transmis à la session Notify #68
+
+- notify-staff-action déployé (PR #61), migration whatsapp_order_actions_core appliquée, secret XEPTION_NOTIFY_ACTION_KEY présent ; WHATSAPP_ACTIONS_ENABLED absent → 503 CHANNEL_DISABLED.
+- Contrat conforme ; écarts signalés : 413 à traiter en abandon, champs ok/changed/action en plus dans la réponse.
+- Doublon de préfixe 20261116_001 (actions WhatsApp + bilan hebdo) : signalé, rien renommé.
+
+## 2026-11-16 21:42 — Test réel des actions WhatsApp lancé
+
+- Contrat d'empreinte en prod côté Notify (trigenys-notify#71, bb2158d) ; Xeption #62 en prod, WHATSAPP_ACTIONS_ENABLED=true.
+- Anjl a validé le test réel (« ok testons ») ; il est mené par la session Notify #68 sur le groupe « Xeption app test ». xeption code prévenu.
+- Retour arrière : WHATSAPP_ACTIONS_ENABLED=false. Restant ici : question images (exemple d'Anjl).
+
+## 2026-11-16 21:44 — Test réel : en attente d'Anjl
+
+- Notify #68 suit les logs du Worker (30 min). Il faut une nouvelle commande de test puis une réaction 📵 d'Anjl sous l'alerte (les anciennes alertes ne sont pas réutilisables).
+
+## 2026-11-16 21:54 — Test réel : alerte ORD-TEST-NF68 dans le groupe
+
+- Commande fictive ORD-TEST-NF68 (eventId c2b789cd-…) créée par xeption code ; alerte reçue dans « Xeption app test ».
+- Attente : réaction 📵 d'Anjl sous l'alerte. Notify #68 vérifie puis prévient ; je transmets alors la fin à xeption code (qui annule la commande fictive).
+
+## 2026-11-17 18:11 — Bon de vente Pixel 8 Pro au-dessus du prix boutique
+
+- Dossier TRC-1794932672 (17/11) : crédit 365 000, cash 305 000, bon affiché 275-330 k (×0,9, MobileVenteVoucher). Boutique : Pixel 8 Pro 205-280 k.
+- Cause : Pixel 8 Pro absent de trade_in_models → save-trade-in replie sur market-price-intel (referencePrice ~600 k) ; aucun plafond par rapport à notre propre prix de vente.
+- Test Notify #68 : surveillance terminée sans geste reçu ; Anjl doit retirer puis remettre 📵.
+- Proposé : plafond serveur+client sur le prix de vente boutique + ajouter le modèle au catalogue. Rien codé.
+
+## 2026-11-17 18:17 — Plafond prix boutique : code et tests prêts, rien de commité ni déployé
+
+- Branche `fix/troc-offer-shop-price-cap`. Helper `utils/shopPriceCap.ts` + copie `_shared/shopPriceCap.ts`,
+  branché dans `trocPricing.ts`, `trocEvaluationService.ts` et `save-trade-in`.
+- `tests/shop-price-cap.test.ts` : 11/11 verts (à ajouter avec `git add -f`). Suite complète : échecs préexistants
+  sans lien (paquets `react`/jsdom absents du `node_modules` du worktree).
+- ADR-004 (statut proposé) + entrée ERRORS_LOG. Pixel 8 Pro excellent : crédit plafonné à 140 000.
+- Reste : accord d'Anjl pour le commit, déploiement de `save-trade-in` par Anjl, puis recalcul de TRC-1794932672.
+- Test Notify #68 (réaction 📵 sur ORD-TEST-NF68) toujours en attente ; prévenir « xeption code » à la fin.
+
+## 2026-11-17 18:20 — Plafond prix boutique commité et déployé
+
+- Commit f6a0e2a sur `fix/troc-offer-shop-price-cap` (non poussé, pas de PR). Déployé avec l'accord d'Anjl :
+  `save-trade-in` (OPTIONS 200). Aucune migration.
+- Vérifié en lecture seule : prix boutique Pixel 8 Pro 205 000 / 260 000 / 280 000, plafond attendu 140 000 de crédit.
+- Le front (calcul affiché au client) ne profite du plafond qu'après merge et déploiement de l'app.
+- Reste : push et PR (accord d'Anjl), recalcul de TRC-1794932672, Pixel 8 Pro dans `trade_in_models`.

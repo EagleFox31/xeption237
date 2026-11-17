@@ -527,3 +527,11 @@
 - ADR-004 (statut proposé) + entrée ERRORS_LOG. Pixel 8 Pro excellent : crédit plafonné à 140 000.
 - Reste : accord d'Anjl pour le commit, déploiement de `save-trade-in` par Anjl, puis recalcul de TRC-1794932672.
 - Test Notify #68 (réaction 📵 sur ORD-TEST-NF68) toujours en attente ; prévenir « xeption code » à la fin.
+
+## 2026-11-17 18:20 — Plafond prix boutique commité et déployé
+
+- Commit f6a0e2a sur `fix/troc-offer-shop-price-cap` (non poussé, pas de PR). Déployé avec l'accord d'Anjl :
+  `save-trade-in` (OPTIONS 200). Aucune migration.
+- Vérifié en lecture seule : prix boutique Pixel 8 Pro 205 000 / 260 000 / 280 000, plafond attendu 140 000 de crédit.
+- Le front (calcul affiché au client) ne profite du plafond qu'après merge et déploiement de l'app.
+- Reste : push et PR (accord d'Anjl), recalcul de TRC-1794932672, Pixel 8 Pro dans `trade_in_models`.

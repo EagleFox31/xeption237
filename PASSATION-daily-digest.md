@@ -452,3 +452,10 @@
 - notify_weekly_digest('2026-11-15') rappelée : nouvelle notification envoyée sur telegram et whatsapp_waha à 12:08, attempts 1, aucune erreur. Le samedi est inclus et la ligne « Mfoundi-Mall 1092 : aucun rapport cette semaine. » apparaît.
 - Message reçu dans le groupe test ; surveillance des réponses en cours.
 - Non commité : migration, tests/weekly-digest.test.ts (git add -f), passation.
+
+## 2026-11-17 18:37 — Refus de bon troc débloqué (RLS historique)
+
+- Migration `20261117_001_trade_in_status_history_definer.sql` appliquée en prod (accord Anjl « Oui, applique ») via `db:apply` ; enregistrée dans `schema_migrations` ; `log_trade_in_status_change()` = `prosecdef=true`, `search_path=public, pg_temp`.
+- Branche `fix/troc-status-history-rls` (commit 46a89e4 + cette passation), non poussée, pas de PR.
+- À faire : Anjl re-clique « Refuser l'échange » dans l'ERP pour confirmer ; proposer push + PR.
+- Message @glitch (bon BON-1794932672 revu) : pas encore envoyé. Méthode déjà utilisée : WAHA sur le VPS (`/api/sendText`, session `trigenys-test`). SSH du VPS en « connection reset » à 18:35 ; il manque l'id du groupe staff et celui de glitch pour la mention.

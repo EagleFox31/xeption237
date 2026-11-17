@@ -327,3 +327,9 @@ rapport « Boutique mfoundi mall » sans numéro reste `store_unresolved` (ou r�
   « … copie iphone 17 PM » (55 000 F / 5 000 F), `total_inflow` 65 001 → 65 000 et 27 001 → 27 000. Re-lecture :
   `opening + inflow − outflow = closing` vrai pour les deux. Rien d'autre modifié.
 - Prochaine étape : rien en attente côté caisse WhatsApp. PR #52 à jour, rien en prod hors git.
+
+## 2026-11-17 19:33 — Fusion de main dans la PR #52 (conflit ERRORS_LOG)
+
+- Auto-fix : conflit avec `main` sur `docs/engineering/ERRORS_LOG.md` (entrées ajoutées en parallèle). Résolution :
+  les deux côtés conservés en ordre chronologique (16/11 recollage, puis 17/11 troc ×2). Merge a60f8cf, 69 tests verts.
+- État : webhook en prod = 8b974fe, rapports Olembé corrigés, rien en attente côté caisse WhatsApp.

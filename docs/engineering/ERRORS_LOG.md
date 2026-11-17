@@ -840,3 +840,17 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
 - **Prévention** : `tests/telegram-order-actions.test.ts` vérifie la garde et le `REVOKE`. Règle : toute migration
   qui fait `DROP FUNCTION` puis `CREATE`, ou qui change une signature, doit reprendre les `REVOKE`/`GRANT` de la classe
   de la fonction (`20260823_023`) et ne jamais accorder EXECUTE à `anon` sans justification écrite.
+
+## 2026-11-17 — Refus d'un dossier troc impossible depuis l'ERP (RLS sur l'historique)
+
+- **Symptôme** : « Action impossible — new row violates row-level security policy for table
+  "trade_in_status_history" » au clic sur « Refuser l'échange » (Dossiers troc).
+- **Cause racine** : `trg_log_trade_in_status` appelle `log_trade_in_status_change()`, créée sans `SECURITY DEFINER`
+  (`20260923_005`). Elle s'exécute donc avec les droits du staff `authenticated`, alors que la table d'historique n'a
+  qu'une policy SELECT (« écriture uniquement via trigger »). L'INSERT est rejeté et annule le changement de statut.
+- **Classification** : défaut de droits (fonction de trigger sur table fermée). Bloque toute transition de statut
+  faite directement par le staff.
+- **Résolution** : `20261117_001` repasse la fonction en `SECURITY DEFINER` avec `search_path` figé et retire
+  `EXECUTE` à `PUBLIC`, `anon`, `authenticated`. Aucune policy d'écriture ajoutée.
+- **Prévention** : `tests/troc-status-history-definer.test.ts`. Règle : un trigger qui écrit dans une table sans
+  policy d'écriture doit être `SECURITY DEFINER` ; le tester avec un compte staff, pas avec `service_role`.

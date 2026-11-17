@@ -535,3 +535,13 @@
 - Vérifié en lecture seule : prix boutique Pixel 8 Pro 205 000 / 260 000 / 280 000, plafond attendu 140 000 de crédit.
 - Le front (calcul affiché au client) ne profite du plafond qu'après merge et déploiement de l'app.
 - Reste : push et PR (accord d'Anjl), recalcul de TRC-1794932672, Pixel 8 Pro dans `trade_in_models`.
+
+## 2026-11-17 18:37 — Troc : prix de base dérivé du catalogue boutique (ADR-005)
+
+- Branche `feat/troc-catalog-link`, partie de `fix/troc-offer-shop-price-cap` (PR #63, non fusionnée).
+- Un modèle absent de `trade_in_models` mais vendu en boutique prend comme base
+  prix boutique le plus bas × 1,7 (`utils/basePriceResolution.ts` + copie `_shared/`), avant
+  `market-price-intel`. Pixel 8 Pro : base 345 000 au lieu de 1 090 000.
+- `npm run troc:catalog-gaps` (lecture seule) : calibrage du ratio + 121/151 produits boutique sans
+  entrée de reprise, avec le `base_price` proposé.
+- Rien déployé, aucune migration. À déployer par Anjl : `save-trade-in` (après fusion de #63).

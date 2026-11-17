@@ -459,3 +459,9 @@
 - Branche `fix/troc-status-history-rls` (commit 46a89e4 + cette passation), non poussée, pas de PR.
 - À faire : Anjl re-clique « Refuser l'échange » dans l'ERP pour confirmer ; proposer push + PR.
 - Message @glitch (bon BON-1794932672 revu) : pas encore envoyé. Méthode déjà utilisée : WAHA sur le VPS (`/api/sendText`, session `trigenys-test`). SSH du VPS en « connection reset » à 18:35 ; il manque l'id du groupe staff et celui de glitch pour la mention.
+
+## 2026-11-17 18:50 — Refus troc confirmé en ERP
+
+- Anjl confirme : le refus d'un bon passe dans l'ERP après la migration `20261117_001`.
+- Branche `fix/troc-status-history-rls` (46a89e4, 7a1a05d, cette entrée) : à pousser + PR sur accord.
+- Restent : message @glitch (SSH du VPS en « connection reset », id du groupe staff et de glitch à récupérer via WAHA), PR #63 à fusionner, branche `feat/troc-catalog-link` (c6e649d) de la session catalogue, non poussée.

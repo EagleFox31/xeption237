@@ -30,3 +30,8 @@
 - Correctif panier commité : `5551ac7` (branche `claude/dreamy-morse-62f960`, non poussée, pas de PR).
 - Étude (section 7, lots 1-3) et passation commitées dans le commit suivant.
 - Prochaine étape : lot 1 (carrousel) dès réception des listes et photos du client ; push/PR sur accord.
+
+## 2026-11-18 13:42 — PR ouverte
+
+- PR : https://github.com/EagleFox31/xeption237/pull/66 (correctif panier hors stock + étude), base `main`, branche poussée.
+- Prochaine étape : revue/merge de la PR ; lot 1 dès réception des listes et photos du client.

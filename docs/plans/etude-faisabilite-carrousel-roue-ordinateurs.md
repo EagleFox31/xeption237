@@ -118,6 +118,36 @@ artificielle).
 5. **Mesure** : `view_item_list` / `select_item`, puis 4 semaines de données. *Critère : décision go/no-go chiffrée.*
 6. **Si go** : extension à l'accueil (en remplacement de la rangée PC) et détourage des 24 restants.
 
+## 7. Extension demandée par le client (18/11/2026)
+
+Demande : roue pour les PC les plus vendus en 2026, avec le stock boutique en priorité ; affichage des arrivages ;
+commande sur demande des modèles absents. Délai annoncé : **2 semaines et demie** à partir de la réception des
+listes et des photos, livraison par lots.
+
+| Lot | Contenu | Estimation |
+|---|---|---|
+| 1 | Roue, stock boutique en priorité (§ 1 à 6) | ~1 semaine |
+| 2 | Badge « Bientôt disponible » : colonne additive `expected_at` + badge + saisie dans l'admin | ~0,5 j |
+| 3 | Commande sur demande (détail ci-dessous) | ~4 j |
+
+### Lot 3 — état constaté dans le code et dans la base
+
+- Le site affiche déjà **« Sur commande »** quand `stock = 0` (`MobileProductDetailView.tsx` l.416, `utils/productSeo.ts`, `LandingPriceTable`).
+- Mais le panier ne bloque rien côté client, et la RPC `create_order_atomic` (base prod) **refuse** la commande avec « Stock insuffisant pour cette commande ».
+  **Bug existant** : le client voit « Sur commande », remplit tout le tunnel et échoue au paiement. Aucun PC n'est concerné aujourd'hui (les 32 sont en stock), mais les autres catégories le sont.
+- `orders.status` a une contrainte `CHECK` (pending → returned) : on n'y touche pas (règle « ne pas altérer les CHECK existants »).
+
+### Lot 3 — conception recommandée
+
+Une **demande de commande** distincte des commandes, sans acompte en V1 :
+1. Table `special_order_requests` (produit lié en `text` comme `products.id`, ou modèle libre ; contact ; ville ; statut `new → contacted → ordered → arrived → delivered | cancelled`), RLS réservée au staff, insertion par RPC `SECURITY DEFINER` avec `REVOKE … FROM PUBLIC, anon` puis `GRANT` explicite (~0,5 j).
+2. Boutique : si `stock = 0`, le bouton panier devient **« Commander sur demande »** (formulaire court), plus un lien « Vous ne trouvez pas votre modèle ? ». Cela corrige le bug ci-dessus (~1 j).
+3. ERP : un onglet de suivi des demandes, avec passage en commande normale à l'arrivée (~1 j).
+4. Notification staff par le canal existant (~0,5 j), annoncée dans `docs/engineering/NOTIFICATIONS.md`.
+5. Tests : RPC, garde du bouton, scénario BDD (~1 j).
+
+Acompte en ligne (NotchPay, déjà utilisé pour le troc) : V2, seulement si les demandes sans suite deviennent un problème.
+
 ## Sources
 
 - [Embla Carousel — exemples officiels (tween scale, parallax)](https://www.embla-carousel.com/examples/predefined/)

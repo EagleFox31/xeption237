@@ -28,6 +28,7 @@ import { isUuid } from '../../utils/productBrand';
 import { SkeletonShimmer } from '../common/SkeletonLoader';
 import ProductCardImage from '../common/ProductCardImage';
 import { getPublicSpecs, isInternalSpec } from '../../utils/publicSpecs';
+import { isOrderableOnline, ON_REQUEST_LABEL } from '../../utils/cartAvailability';
 
 export interface MobileProductDetailViewProps {
   product: Product;
@@ -174,7 +175,8 @@ export const MobileProductDetailView: React.FC<MobileProductDetailViewProps> = (
 
   const handleAcheterComptant = () => {
     onAddToCart(product);
-    onOpenCart();
+    // Hors stock, `onAddToCart` ouvre WhatsApp : pas de panier vide à afficher.
+    if (isOrderableOnline(product)) onOpenCart();
   };
 
   const handleSmartTroc = () => {
@@ -716,7 +718,7 @@ export const MobileProductDetailView: React.FC<MobileProductDetailViewProps> = (
             className="flex-1 py-2.5 px-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-amber-400/80 text-amber-400 flex flex-col items-center justify-center text-center active:scale-[0.98] transition-all shadow-lg"
           >
             <span className="text-xs font-black font-tech uppercase tracking-wider">
-              Acheter comptant
+              {isOrderableOnline(product) ? 'Acheter comptant' : ON_REQUEST_LABEL}
             </span>
           </button>
         </div>

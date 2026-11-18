@@ -15,7 +15,10 @@ import { useScrollRestoration } from './hooks/useScrollRestoration';
 import { Toaster } from 'sonner';
 import { resolveSuperAdminAccess } from './utils/superAdmin';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { notifyError } from './utils/notify';
+import { notifyError, notifyInfo } from './utils/notify';
+import { decideAddToCart, isOrderableOnline } from './utils/cartAvailability';
+import { buildOnRequestOrderMessage, buildWhatsAppUrl } from './utils/whatsappShare';
+import { getProductDisplayName } from './utils/productDisplay';
 import { trackAddToCart } from './utils/analytics';
 import { getProductSlug } from './utils/slug';
 import { filterStorefrontProducts } from './utils/productVisibility';
@@ -262,6 +265,21 @@ const App: React.FC = () => {
   }, [isAdminPage, isStudioPage, isPrerender]);
 
   const addToCart = (product: Product) => {
+    // Même règle que `create_order_atomic` : on ne laisse pas entrer au panier
+    // ce que la base refusera au paiement.
+    const quantityInCart = cart.find(item => item.id === product.id)?.quantity ?? 0;
+    const decision = decideAddToCart(product, quantityInCart);
+    if (decision.kind === 'on_request') {
+      const name = getProductDisplayName(product);
+      window.open(buildWhatsAppUrl(buildOnRequestOrderMessage(name, product.price)), '_blank', 'noopener');
+      notifyInfo('Produit sur commande', 'Nous vous répondons sur WhatsApp avec le délai de disponibilité.');
+      return;
+    }
+    if (decision.kind === 'max_reached') {
+      notifyInfo('Stock maximum atteint', `Seulement ${decision.stock} disponible(s) pour ce produit.`);
+      setIsCartOpen(true);
+      return;
+    }
     setCart(prev => {
       const exists = prev.find(item => item.id === product.id);
       if (exists) {
@@ -303,7 +321,8 @@ const App: React.FC = () => {
   const updateQuantity = (id: string, delta: number) => {
     setCart(prev => prev.map(item => {
       if (item.id === id) {
-        const newQuantity = Math.max(1, item.quantity + delta);
+        const maxQuantity = isOrderableOnline(item) ? item.stock : 1;
+        const newQuantity = Math.min(maxQuantity, Math.max(1, item.quantity + delta));
         return { ...item, quantity: newQuantity };
       }
       return item;

@@ -12,6 +12,7 @@ import ProductHighlightCards from './product/ProductHighlightCards';
 import { getPublicSpecs } from '../utils/publicSpecs';
 import ProductLink from './common/ProductLink';
 import ProductContentLinks from './content/ProductContentLinks';
+import { isOrderableOnline, ON_REQUEST_LABEL } from '../utils/cartAvailability';
 
 interface ProductDetailProps {
     product: Product;
@@ -220,7 +221,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                                     className="shrink-0 bg-black text-white px-6 py-4 font-tech font-bold uppercase text-sm tracking-wider hover:bg-xeption-gold hover:text-black transition-colors shadow-xl flex items-center justify-center gap-2"
                                 >
                                     <ShoppingCart className="h-5 w-5" />
-                                    Panier
+                                    {isOrderableOnline(product) ? 'Panier' : ON_REQUEST_LABEL}
                                 </button>
                             </div>
                         </div>
@@ -617,7 +618,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                             onClick={() => onAddToCart(product)}
                             className="flex-1 bg-black text-white py-3 font-bold font-tech uppercase tracking-wider rounded-sm shadow-lg active:scale-95 transition-transform"
                         >
-                            Ajouter
+                            {isOrderableOnline(product) ? 'Ajouter' : ON_REQUEST_LABEL}
                         </button>
                     </div>
                 </div>

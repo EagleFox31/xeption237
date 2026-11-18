@@ -27,6 +27,11 @@ export const XEPTION_STORE_WHATSAPP = '237641891031';
 export const buildWhatsAppUrl = (message: string): string =>
   `https://wa.me/${XEPTION_STORE_WHATSAPP}?text=${encodeURIComponent(message)}`;
 
+/** Demande de commande d'un produit hors stock, envoyée à la boutique. */
+export const buildOnRequestOrderMessage = (productName: string, price: number): string =>
+  `Bonjour, je souhaite commander sur demande : ${productName} (${formatFcfa(price)}). ` +
+  'Pouvez-vous me donner le délai de disponibilité ?';
+
 const formatFcfa = (amount: number): string =>
   new Intl.NumberFormat('fr-FR').format(amount).replace(/\s/g, '.') + ' XAF';
 

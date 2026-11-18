@@ -882,3 +882,18 @@ critère avant capture ; les drapeaux booléens d'environnement passent par `isT
   `EXECUTE` à `PUBLIC`, `anon`, `authenticated`. Aucune policy d'écriture ajoutée.
 - **Prévention** : `tests/troc-status-history-definer.test.ts`. Règle : un trigger qui écrit dans une table sans
   policy d'écriture doit être `SECURITY DEFINER` ; le tester avec un compte staff, pas avec `service_role`.
+
+## 2026-11-18 — Produit « Sur commande » refusé au paiement
+
+- **Symptôme** : la vitrine affiche « Sur commande » pour un produit à stock 0 et laisse l'ajouter au panier ; le
+  client remplit tout le tunnel puis reçoit « Stock insuffisant pour cette commande ». Le panier pouvait aussi
+  dépasser le stock disponible.
+- **Cause racine** : deux règles divergentes. L'affichage (`productSeo`, fiches) présente le stock 0 comme
+  commandable ; `create_order_atomic` refuse toute ligne au-delà du stock. Aucune garde côté client hors admin.
+- **Classification** : incohérence entre l'interface et la base (contrat implicite non partagé). Vente perdue en fin
+  de tunnel, pas d'impact sur les données.
+- **Résolution** : `utils/cartAvailability.ts` (`isOrderableOnline`, `decideAddToCart`) appliqué dans `addToCart` et
+  `updateQuantity` (`App.tsx`). Hors stock : ouverture WhatsApp avec `buildOnRequestOrderMessage`, pas d'ajout au
+  panier. Boutons relibellés « Commander sur demande » (carte, fiche desktop et mobile).
+- **Prévention** : `tests/cart-availability.test.ts`. Règle : un statut affiché au client (« Sur commande »,
+  « Disponible ») doit dériver de la même fonction que la garde serveur, jamais d'une condition recopiée.

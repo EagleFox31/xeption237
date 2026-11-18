@@ -7,6 +7,7 @@ import { ProductBadgeChips } from './ProductBadgeChips';
 import ProductCardImage from '../common/ProductCardImage';
 import ProductLink from '../common/ProductLink';
 import { productSpecSummary } from '../../utils/productSpecSummary';
+import { isOrderableOnline, ON_REQUEST_LABEL } from '../../utils/cartAvailability';
 
 interface ProductCardProps {
   product: Product;
@@ -93,9 +94,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onProdu
         <button
           onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
           className="relative z-20 mt-2 w-full inline-flex items-center justify-center gap-2 bg-xeption-gold text-black font-tech font-bold uppercase text-[11px] md:text-xs tracking-wider py-2 md:py-2.5 rounded-md hover:bg-white transition-colors"
-          aria-label={`Acheter ${getProductDisplayName(product)}`}
+          aria-label={`${isOrderableOnline(product) ? 'Acheter' : ON_REQUEST_LABEL} ${getProductDisplayName(product)}`}
         >
-          <ShoppingCart className="w-4 h-4" /> Acheter
+          <ShoppingCart className="w-4 h-4" /> {isOrderableOnline(product) ? 'Acheter' : 'Sur demande'}
         </button>
       </div>
     </div>
